@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>速卖通自运营数据分析</title>
+  <!-- 引入 DataTables CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <!-- 引入 FixedHeader & FixedColumns CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/4.2.2/css/fixedColumns.dataTables.min.css">
+  <style>
+    /* 页面布局样式 */
+    body { margin: 0; font-family: Arial, sans-serif; }
+    .container { display: flex; height: 100vh; }
+    .sidebar {
+      width: 220px; background: #2d3e50; color: #fff;
+      padding: 15px; box-sizing: border-box;
+      border-right: 2px solid #444; transition: width 0.3s;
+    }
+    .sidebar h3 { margin-top: 0; color: #fff; }
+    .sidebar ul { list-style: none; padding-left: 0; }
+    .sidebar li { margin-bottom: 10px; }
+    .sidebar a {
+      text-decoration: none; color: #ddd; font-size: 14px;
+      display: block; padding: 5px; border-radius: 3px;
+    }
+    .sidebar a:hover { color: #fff; text-decoration: underline; }
+    .sidebar .submenu { list-style: none; padding-left: 20px; display: none; }
+    .sidebar .submenu a { font-size: 13px; color: #bbb; }
+    .sidebar .submenu a:hover { color: #fff; }
+    .sidebar .submenu a.active { color: #fff; background-color: #4a90e2; }
+    .sidebar .has-submenu > a { cursor: pointer; }
+    .sidebar .has-submenu.open > .submenu { display: block; }
+    .sidebar .abbr { display: none; }
+    .sidebar.collapsed { width: 60px; }
+    .sidebar.collapsed .nav-title, .sidebar.collapsed .label, .sidebar.collapsed .submenu { display: none; }
+    .sidebar.collapsed .abbr { display: block; text-align: center; font-size: 18px; color: #fff; }
+    .sidebar.collapsed li { margin-bottom: 20px; }
+    .toggle-btn {
+      display: block; margin: 10px; width: 24px; height: 24px;
+      border-radius: 50%; border: none; background: #4a90e2;
+      color: #fff; font-size: 16px; cursor: pointer;
+      text-align: center; line-height: 24px;
+    }
+    .sidebar.collapsed .toggle-btn { margin-left: 18px; }
+
+    .main { flex-grow: 1; display: flex; flex-direction: column; }
+
+    /* 顶部上传区域和统计卡片样式 */
+    .upload-section { background: #2d3e50; color: #fff; padding: 15px; }
+    .upload-section h2 { margin-top: 0; color: #fff; }
+    .upload-section p { color: #ddd; }
+    .upload-section label.upload-btn {
+      background: #00b488; color: #fff; padding: 6px 14px;
+      border: none; border-radius: 20px;
+      font-size: 14px; font-weight: bold;
+      cursor: pointer;
+    }
+    #fileInput { display: none; } /* 隐藏默认的文件输入框 */
+
+    .stats-cards {
+      display: flex; flex-wrap: wrap;
+      gap: 10px; margin-top: 15px;
+    }
+    .stat-card {
+      flex: 1 1 160px;
+      padding: 12px; border-radius: 6px;
+      background: #4a90e2; color: #fff;
+    }
+    .stat-card h4 { margin: 0 0 5px; font-size: 14px; }
+    .stat-card p  { margin: 0; font-size: 18px; font-weight: bold; }
+
+    /* 表格容器及表格样式 */
+    .table-section {
+      background: #fff;
+      flex-grow: 1;
+      overflow: auto;
+      padding: 15px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    /* 信息提示小图标样式 */
+    .info { cursor: pointer; margin-left: 4px; color: #4a90e2; font-weight: bold; }
+    /* 表头单元格内容允许换行 */
+    #productTable th { white-space: nowrap; }
+
+    /* 冻结表头/首列的CSS方案（备用，用于兼容不支持JS的情况）*/
+    #productTable th { position: sticky; top: 0; background: #f5f5f5; }
+    #productTable th:first-child, #productTable td:first-child {
+      position: sticky; left: 0; background: #f5f5f5;
+    }
+    #productTable th:first-child { z-index: 2; } /* 确保表头第一列在最上层 */
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 左侧导航栏 -->
+    <nav class="sidebar" id="sidebar">
+      <button id="toggleBtn" class="toggle-btn">«</button>
+      <h3 class="nav-title">产品导航</h3>
+      <ul>
+        <li class="has-submenu">
+          <a href="#"><span class="abbr">S</span><span class="label">速卖通</span></a>
+          <ul class="submenu">
+            <li><a href="index.html">全托管</a></li>
+            <li><a href="self-operated.html">自运营</a></li>
+          </ul>
+        </li>
+        <li><a href="#"><span class="abbr">T</span><span class="label">TikTok Shop</span></a></li>
+        <li><a href="#"><span class="abbr">A</span><span class="label">亚马逊</span></a></li>
+        <li><a href="#"><span class="abbr">独</span><span class="label">独立站</span></a></li>
+      </ul>
+    </nav>
+
+    <!-- 右侧主内容区 -->
+    <div class="main">
+      <!-- 上传说明和按钮 -->
+      <div class="upload-section">
+        <h2>速卖通自运营 Excel 数据上传与分析</h2>
+        <div class="upload-top" style="display: flex; align-items: center; justify-content: space-between;">
+          <p class="upload-instruction">请选择包含自运营商品数据的 Excel 或 CSV 文件，系统会自动计算转化率并显示完整数据：</p>
+          <label for="fileInput" class="upload-btn">选择文件</label>
+          <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+        </div>
+        <!-- 顶部统计指标卡片 -->
+        <div class="stats-cards">
+          <div class="stat-card" id="card-visavg"><h4>平均访客比</h4><p>--</p></div>
+          <div class="stat-card" id="card-conv1"><h4>平均加购比</h4><p>--</p></div>
+          <div class="stat-card" id="card-conv2"><h4>平均支付比</h4><p>--</p></div>
+          <div class="stat-card" id="card-total"><h4>产品总数</h4><p>--</p></div>
+          <div class="stat-card" id="card-addcount"><h4>有加购的产品数</h4><p>--</p></div>
+          <div class="stat-card" id="card-visitors"><h4>到访客户总数</h4><p>--</p></div>
+          <div class="stat-card" id="card-paycount"><h4>有支付的产品数</h4><p>--</p></div>
+        </div>
+      </div>
+
+      <!-- 数据表格区域 -->
+      <div class="table-section">
+        <table id="productTable" class="display nowrap" style="width:auto;"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 引入必要的 JS 库 -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
+  <script src="https://cdn.datatables.net/fixedcolumns/4.2.2/js/dataTables.fixedColumns.min.js"></script>
+  <!-- 引入 SheetJS (XLSX) 库 -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      // 导航栏折叠按钮逻辑
+      $('#toggleBtn').on('click', function() {
+        var sidebar = $('#sidebar');
+        var collapsed = sidebar.toggleClass('collapsed').hasClass('collapsed');
+        this.textContent = collapsed ? '»' : '«';
+      });
+      // 根据当前页面设置导航激活状态
+      var currentPage = window.location.pathname.split("/").pop();
+      if (currentPage === "" || currentPage === "index.html") {
+        $('a[href="index.html"]').addClass('active');
+      } else {
+        $('.sidebar a[href="' + currentPage + '"]').addClass('active');
+      }
+
+      // 文件上传解析
+      $('#fileInput').on('change', function(event) {
+        var file = event.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        if (file.name.toLowerCase().endsWith('.csv')) {
+          // CSV 文件处理
+          reader.onload = function(e) {
+            var csv = e.target.result;
+            var workbook = XLSX.read(csv, { type: 'string' });
+            processWorkbook(workbook);
+          };
+          reader.readAsText(file);
+        } else {
+          // Excel 文件处理
+          reader.onload = function(e) {
+            var data = e.target.result;
+            var workbook = XLSX.read(data, { type: 'array' });
+            processWorkbook(workbook);
+          };
+          reader.readAsArrayBuffer(file);
+        }
+      });
+
+      // 处理解析后的工作簿，生成表格和统计数据
+      function processWorkbook(workbook) {
+        var sheetName = workbook.SheetNames[0];
+        var worksheet = workbook.Sheets[sheetName];
+        // 将工作表转换为二维数组，包括表头
+        var sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+        if (sheetData.length === 0) {
+          alert("表格中没有数据!");
+          return;
+        }
+        var headers = sheetData[0].slice(); // 原始表头数组
+        var dataRows = sheetData.slice(1);  // 表体数据数组
+
+        // 宽松匹配各关键列索引
+        var idxID       = headers.findIndex(h => h.toString().toLowerCase().includes("id"));
+        var idxExposure = headers.findIndex(h => h.includes("曝光"));
+        var idxVisitors = headers.findIndex(h => h.includes("访客"));
+        var idxAdd      = headers.findIndex(h => h.includes("加购") && h.includes("人"));
+        var idxOrderBuy = headers.findIndex(h => h.includes("下单") && h.includes("买家"));
+        var idxPayBuy   = headers.findIndex(h => h.includes("支付") && h.includes("买家"));
+        var idxPayOrder = headers.findIndex(h => h.includes("支付") && h.includes("订单"));
+
+        // 在表头开头和结尾添加新列名称
+        headers.unshift("商品链接");
+        headers.push("访客比", "加购比", "支付比");
+
+        var tableData = [];
+        // 初始化累积统计变量
+        var sumVisitRatio = 0, sumAddRatio = 0, sumPayRatio = 0;
+        var totalVisitors = 0;
+        var addProductCount = 0, payProductCount = 0;
+        // 遍历每一行数据计算
+        dataRows.forEach(row => {
+          // 确保数据行长度与表头一致（有些行可能缺值）
+          if (row.length < headers.length - 4) { // 原始表头长度 = headers.length-新增4列（链接+3比率）
+            row.length = headers.length - 4;
+            row.fill('', row.length, headers.length - 4);
+          }
+          // 获取各字段值并转为数值型（为空则为0）
+          var productID   = row[idxID] || '';
+          var exposureVal = Number(row[idxExposure] || 0);
+          var visitorVal  = Number(row[idxVisitors] || 0);
+          var addVal      = Number(row[idxAdd] || 0);
+          var orderBuyVal = Number(row[idxOrderBuy] || 0);
+          var payBuyVal   = Number(row[idxPayBuy] || 0);
+          // 构造产品链接单元格HTML
+          var linkCell = productID ? `<a href="https://aliexpress.ru/item/${productID}.html" target="_blank">${productID}</a>` : '';
+          // 计算转化率指标
+          var visitRatio = (exposureVal > 0) ? (visitorVal / exposureVal * 100) : 0;
+          var addRatio   = (visitorVal > 0)  ? (addVal / visitorVal * 100)     : 0;
+          var payRatio   = (orderBuyVal > 0) ? (payBuyVal / orderBuyVal * 100) : 0;
+          // 累加用于平均计算
+          sumVisitRatio += visitRatio;
+          sumAddRatio   += addRatio;
+          sumPayRatio   += payRatio;
+          // 统计其他总计
+          totalVisitors += visitorVal;
+          if (addVal > 0) addProductCount++;
+          if (payBuyVal > 0) payProductCount++;
+          // 格式化百分比字符串
+          var visitRatioStr = visitRatio.toFixed(2) + "%";
+          var addRatioStr   = addRatio.toFixed(2)   + "%";
+          var payRatioStr   = payRatio.toFixed(2)   + "%";
+          // 组装完整表格行数据（含链接列和新增比率列）
+          var newRow = [linkCell, ...row, visitRatioStr, addRatioStr, payRatioStr];
+          tableData.push(newRow);
+        });
+
+        // 计算平均指标并更新顶部卡片显示
+        var totalCount = dataRows.length;
+        if (totalCount > 0) {
+          var avgVisRatio = (sumVisitRatio / totalCount).toFixed(2) + "%";
+          var avgAddRatio = (sumAddRatio / totalCount).toFixed(2) + "%";
+          var avgPayRatio = (sumPayRatio / totalCount).toFixed(2) + "%";
+          $("#card-visavg p").text(avgVisRatio);
+          $("#card-conv1 p").text(avgAddRatio);
+          $("#card-conv2 p").text(avgPayRatio);
+          $("#card-total p").text(totalCount);
+          $("#card-addcount p").text(addProductCount);
+          $("#card-visitors p").text(totalVisitors);
+          $("#card-paycount p").text(payProductCount);
+        }
+
+        // 若已有DataTable实例则销毁，准备重新绘制新数据
+        if ($.fn.DataTable.isDataTable('#productTable')) {
+          $('#productTable').DataTable().destroy();
+          $('#productTable').empty();
+        }
+        // 初始化 DataTable 显示数据表格
+        $('#productTable').DataTable({
+          data: tableData,
+          columns: headers.map(title => ({ title: title })),
+          autoWidth: false,
+          searching: false,
+          paging: false,
+          scrollX: true,
+          fixedHeader: true,
+          fixedColumns: { leftColumns: 1 },
+          language: { url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json" },
+          columnDefs: [
+            { targets: 0, orderable: false, searchable: false }
+          ]
+        });
+        // 数据加载后，如侧边栏未折叠则自动折叠以腾出空间
+        if (!$('#sidebar').hasClass('collapsed')) {
+          $('#sidebar').addClass('collapsed');
+          $('#toggleBtn').text('»');
+        }
+      }
+
+      // 可选：信息提示弹窗（与index页一致，可以忽略或定制）
+      window.showInfo = function(key) {
+        var messages = {
+          'conv1': '访客到加购转化率 = 商品加购人数 ÷ 商品访客数 × 100%',
+          'conv2': '加购到支付转化率 = 支付买家数 ÷ 商品加购人数 × 100%',
+          'visRatio': '访客比 = 商品访客数 ÷ 搜索曝光量 × 100%'
+        };
+        if (messages[key]) alert(messages[key]);
+      };
+    });
+  </script>
+</body>
+</html>
