@@ -1,11 +1,10 @@
 {
   "name": "aliexpress-analytics",
   "version": "1.0.0",
-  "description": "AliExpress analytics report with Supabase backend deployed on Vercel",
+  "description": "AliExpress analytics project on Vercel",
   "dependencies": {
-    "@supabase/supabase-js": "^2.33.3"
-        "node-fetch": "^2.6.9",
+    "@supabase/supabase-js": "^2.33.3",
+    "node-fetch": "^2.6.9",
     "cheerio": "^1.0.0-rc.12"
-
   }
 }
