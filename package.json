@@ -1,0 +1,8 @@
+{
+  "name": "aliexpress-analytics",
+  "version": "1.0.0",
+  "description": "AliExpress analytics report with Supabase backend deployed on Vercel",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.33.3"
+  }
+}
