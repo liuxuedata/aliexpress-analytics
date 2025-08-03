@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>自运营数据上传</title>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; }
+    .container { display: flex; height: 100vh; }
+    .sidebar {
+      width: 220px;
+      background: #2d3e50;
+      color: #fff;
+      padding: 15px;
+      box-sizing: border-box;
+      border-right: 2px solid #444;
+    }
+    .sidebar h3 { margin-top: 0; }
+    .sidebar ul { list-style: none; padding-left: 0; }
+    .sidebar li { margin-bottom: 10px; }
+    .sidebar a { text-decoration: none; color: #ddd; font-size: 14px; display: block; padding: 5px; border-radius: 3px; }
+    .sidebar a:hover, .sidebar a.active { color: #fff; background-color: #4a90e2; }
+
+    .main { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .upload-section {
+      background: #2d3e50;
+      color: #fff;
+      padding: 15px;
+      flex-shrink: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .upload-btn {
+      background: #00b488;
+      color: #fff;
+      padding: 8px 20px;
+      border: none;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .upload-section input[type="file"] {
+      display: none;
+    }
+
+    .table-section {
+      flex-grow: 1;
+      background: #fff;
+      overflow: auto;
+      padding: 15px;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+      font-size: 14px;
+    }
+    th {
+      background: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <nav class="sidebar">
+    <h3>产品导航</h3>
+    <ul>
+      <li class="has-submenu">
+        <a href="#">速卖通</a>
+        <ul class="submenu">
+          <li><a href="index.html">全托管</a></li>
+          <li><a href="self-operated.html">自运营分析</a></li>
+          <li><a href="self-operated-upload.html" class="active">自运营上传</a></li>
+        </ul>
+      </li>
+      <li><a href="#">TikTok Shop</a></li>
+      <li><a href="#">亚马逊</a></li>
+      <li><a href="#">独立站</a></li>
+    </ul>
+  </nav>
+
+  <div class="main">
+    <div class="upload-section">
+      <label for="fileInput" class="upload-btn">选择文件上传</label>
+      <input type="file" id="fileInput" accept=".xlsx,.xls" />
+      <span id="uploadStatus"></span>
+    </div>
+
+    <div class="table-section">
+      <table id="resultTable"></table>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('fileInput').addEventListener('change', function (e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: 'array' });
+
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+    const formatted = jsonData.slice(1).map(row => ({
+      stat_date: formatExcelDate(row[0]),
+      product_id: String(row[1]),
+      exposure: parseInt(row[2]) || 0,
+      visitors: parseInt(row[3]) || 0,
+      views: parseInt(row[4]) || 0,
+      add_people: parseInt(row[5]) || 0,
+      add_count: parseInt(row[6]) || 0,
+      pay_items: parseInt(row[7]) || 0,
+      pay_orders: parseInt(row[8]) || 0,
+      pay_buyers: parseInt(row[9]) || 0,
+      visitor_to_add: parseFloat(row[10]) || 0,
+      add_to_pay: parseFloat(row[11]) || 0,
+      visitor_ratio: parseFloat(row[12]) || 0,
+    }));
+
+    document.getElementById('uploadStatus').innerText = '上传中...';
+
+    fetch('/api/self_operated_save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formatted)
+    })
+    .then(res => res.json())
+    .then(({ inserted, skipped, data }) => {
+      document.getElementById('uploadStatus').innerText = `上传完成：新增 ${inserted} 条，跳过 ${skipped} 条`;
+      renderTable(data);
+    });
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+function formatExcelDate(serial) {
+  const utc_days = Math.floor(serial - 25569);
+  const utc_value = utc_days * 86400;
+  const date_info = new Date(utc_value * 1000);
+  return date_info.toISOString().split('T')[0];
+}
+
+function renderTable(data) {
+  const table = document.getElementById('resultTable');
+  table.innerHTML = '';
+
+  const headerRow = document.createElement('tr');
+  [
+    '日期', '商品ID', '曝光', '访客', '浏览量', '加购人数', '加购件数',
+    '支付件数', '支付订单数', '支付买家数', '访客→加购', '加购→支付', '访客比'
+  ].forEach(text => {
+    const th = document.createElement('th');
+    th.innerText = text;
+    headerRow.appendChild(th);
+  });
+  table.appendChild(headerRow);
+
+  data.forEach(row => {
+    const tr = document.createElement('tr');
+    [
+      row.stat_date, row.product_id, row.exposure, row.visitors,
+      row.views, row.add_people, row.add_count, row.pay_items,
+      row.pay_orders, row.pay_buyers,
+      `${row.visitor_to_add || 0}%`,
+      `${row.add_to_pay || 0}%`,
+      `${row.visitor_ratio || 0}%`
+    ].forEach(cell => {
+      const td = document.createElement('td');
+      td.innerText = cell;
+      tr.appendChild(td);
+    });
+    table.appendChild(tr);
+  });
+}
+</script>
+</body>
+</html>
