@@ -196,7 +196,7 @@ function computeAndFormat(dataArray) {
         var conv2 = addPeople ? (buyers / addPeople * 100).toFixed(2) : '0.00';
         var visRatio = exposures ? (visitors / exposures * 100).toFixed(2) : '0.00';
         
-        var link = productId ? `<a href="https://aliexpress.ru/item/${productId}.html" target="_blank">${productId}</a>` : '';
+        var link = productId ? `<a href="https://aliexpress.com/item/${productId}.html" target="_blank">${productId}</a>` : '';
         
         return [
             productId || '', link, row['搜索曝光量'] || '', row['商品访客数'] || '', row['商品浏览量'] || '',
@@ -214,7 +214,7 @@ function buildDataForSave(dataArray) {
         var exp = parseFloat(obj['搜索曝光量']) || 0;
         return {
             product_id: obj['商品ID'],
-            product_link: `https://aliexpress.ru/item/${obj['商品ID']}.html`,
+            product_link: `https://aliexpress.com/item/${obj['商品ID']}.html`,
             exposure: exp, visitors: visitorCount, views: parseFloat(obj['商品浏览量']) || 0,
             add_people: addPeople, add_count: parseFloat(obj['商品加购件数']) || 0,
             pay_items: parseFloat(obj['支付件数']) || 0, pay_orders: parseFloat(obj['支付订单数']) || 0, pay_buyers: payBuyers,
@@ -261,3 +261,4 @@ function updateCards(avg1, avg2, avgVis, totalProducts, addProductCount, totalVi
 </body>
 
 </html>
+
