@@ -73,7 +73,61 @@
     /* Top6 下方链接列表 */
     .legend-list a { color:#e5e7eb; text-decoration:none; margin-right:10px; }
     .legend-list a:hover { text-decoration:underline; color:#fff; }
+    /* ===== 商品(ID) 列：蓝底 + 白字 + 加粗 ===== */
+/* 主表第一列 */
+#report.dataTable tbody td:first-child {
+  background-color: #1e3a8a !important;  /* 蓝色底 */
+  color: #ffffff !important;             /* 白字 */
+  font-weight: 800;                      /* 加粗 */
+  border-color: #1f2a5f !important;
+}
+
+/* 第一列里的超链接：白色 + 加粗，hover 更亮 */
+#report.dataTable tbody td:first-child a,
+#report.dataTable tbody td:first-child a:visited {
+  color: #ffffff !important;
+  font-weight: 800;
+  text-decoration: none;
+}
+#report.dataTable tbody td:first-child a:hover {
+  color: #ffffff !important;
+  text-decoration: underline;
+}
+
+/* DataTables 排序高亮（sorting_1）有时会把第一列刷白，这里强制回蓝底 */
+#report.dataTable tbody td.sorting_1:first-child {
+  background-color: #1e3a8a !important;
+  color: #ffffff !important;
+}
+
+/* FixedColumns 左侧克隆表也要同步样式（它只包含被固定的第一列） */
+.DTFC_Cloned tbody td {
+  background-color: #1e3a8a !important;
+  color: #ffffff !important;
+  font-weight: 800;
+  border-color: #1f2a5f !important;
+}
+.DTFC_Cloned tbody td.sorting_1 {
+  background-color: #1e3a8a !important;
+  color: #ffffff !important;
+}
+
+/* 悬停整行时，第一列仍保持蓝底白字 */
+#report.dataTable tbody tr:hover td:first-child,
+.DTFC_Cloned tbody tr:hover td {
+  background-color: #1e40af !important; /* 稍深一点的蓝，表示 hover */
+  color: #ffffff !important;
+}
+
+/* （可选）表头第一列也用蓝底白字 */
+#report thead th:first-child {
+  background-color: #1f2a5f !important;
+  color: #ffffff !important;
+  font-weight: 800;
+}
+
   </style>
+  
 </head>
 <body>
 <div class="container">
