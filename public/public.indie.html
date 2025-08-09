@@ -1,0 +1,118 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>独立站数据（Shopify）</title>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background:#0f172a; color:#fff; margin:0; }
+    .container { padding:16px; }
+    .upload-top { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content: space-between; background:#111827; padding:12px; border-radius:8px; }
+    .cards { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:10px; margin-top:12px; }
+    .card { background:#1f2937; padding:12px; border-radius:8px; }
+    label { margin-right:6px; }
+    input, select, button { padding:8px 10px; border-radius:6px; border:1px solid #374151; background:#0b1220; color:#fff; }
+    button { background:#2563eb; border:0; cursor:pointer; }
+    a { color:#93c5fd; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="upload-top">
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <div><label>日期</label><input type="date" id="statDate"></div>
+        <div><label>来源</label>
+          <select id="sourceCode">
+            <option value="SHOPIFY" selected>独立站-Shopify</option>
+            <option value="AE_FBM">速卖通-全托管</option>
+            <option value="AE_SO">速卖通-自运营</option>
+          </select>
+        </div>
+        <div><label>平台</label>
+          <select id="platform">
+            <option value="shopify" selected>shopify</option>
+            <option value="aliexpress">aliexpress</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button id="ingestBtn">立即拉取 Shopify</button>
+        <a href="history.html">查看历史数据 →</a>
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="card"><div>GMV (￥)</div><div id="gmv" style="font-size:22px;font-weight:700;">-</div></div>
+      <div class="card"><div>订单数</div><div id="orders" style="font-size:22px;font-weight:700;">-</div></div>
+      <div class="card"><div>买家数</div><div id="buyers" style="font-size:22px;font-weight:700;">-</div></div>
+      <div class="card"><div>商品数</div><div id="products" style="font-size:22px;font-weight:700;">-</div></div>
+    </div>
+
+    <div style="margin-top:12px; background:#111827; padding:12px; border-radius:8px;">
+      <table id="tb" class="display" style="width:100%">
+        <thead>
+          <tr>
+            <th>product_id</th>
+            <th>pay_items</th>
+            <th>pay_orders</th>
+            <th>pay_buyers</th>
+            <th>revenue</th>
+            <th>stat_date</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+const dt = $('#tb').DataTable({ pageLength: 50 });
+
+function defaultDate() {
+  const d = new Date(Date.now() - 24*3600*1000); // 默认昨天
+  const s = d.toISOString().slice(0,10);
+  document.getElementById('statDate').value = s;
+  return s;
+}
+
+async function fetchForDate(date) {
+  const params = new URLSearchParams({ source: 'SHOPIFY', from: date, to: date, limit: 1000 });
+  const resp = await fetch('/api/fetchData?' + params.toString());
+  const { data } = await resp.json();
+  dt.clear().rows.add((data||[]).map(r => [r.product_id, r.pay_items, r.pay_orders, r.pay_buyers, r.revenue || 0, r.stat_date])).draw();
+
+  // 汇总卡片
+  let gmv = 0, orders = 0, buyersSet = new Set(), products = 0;
+  for (const r of (data||[])) {
+    gmv += Number(r.revenue||0);
+    orders += Number(r.pay_orders||0);
+    if (r.pay_buyers) buyersSet.add(r.product_id + '|' + r.stat_date); // 粗略去重以商品维度展示
+    products += 1;
+  }
+  document.getElementById('gmv').innerText = gmv.toFixed(2);
+  document.getElementById('orders').innerText = orders;
+  document.getElementById('buyers').innerText = (data||[]).reduce((acc, r)=> acc + Number(r.pay_buyers||0), 0);
+  document.getElementById('products').innerText = products;
+}
+
+document.getElementById('ingestBtn').addEventListener('click', async () => {
+  const date = document.getElementById('statDate').value || defaultDate();
+  const resp = await fetch('/api/ingest/shopify?date=' + encodeURIComponent(date));
+  const json = await resp.json();
+  if (!resp.ok || !json.success) {
+    alert('拉取失败：' + (json.error || resp.status));
+    return;
+  }
+  await fetchForDate(date);
+  alert('拉取完成：' + JSON.stringify(json));
+});
+
+const d = defaultDate();
+fetchForDate(d);
+</script>
+</body>
+</html>
