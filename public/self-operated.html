@@ -16,9 +16,9 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
   <style>
-    :root { --bg:#0f172a; --brand:#1e40af; --brand2:#2563EB; --ok:#00b488; --accent:#F97316; }
+    :root { --bg:#0f172a; --panel:#0b1a3b; --brand:#1e40af; --blue:#2563EB; --orange:#F97316; --text:#E5E7EB; --muted:#94a3b8; }
     *{box-sizing:border-box}
-    body { font-family: Arial, Helvetica, sans-serif; margin: 0; background:#0b1220; color:#E5E7EB;}
+    body { font-family: Arial, Helvetica, sans-serif; margin: 0; background:#0b1220; color:var(--text);}
     .container { display: flex; height: 100vh; }
     .sidebar { width: 220px; background: var(--bg); color: #fff; padding: 16px; border-right: 1px solid #1f2937; }
     .sidebar h3 { margin: 0 0 10px 0; font-size:16px; }
@@ -35,30 +35,30 @@
     .upload-section { background: #0b1220; color: #fff; padding: 12px 16px; border-bottom:1px solid #1f2937; }
     .upload-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
     .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .upload-btn { background: var(--ok); color: #001; padding: 8px 16px; border: none; border-radius: 24px; font-size: 14px; font-weight: bold; cursor: pointer; }
+    .upload-btn { background: #00b488; color: #001; padding: 8px 16px; border: none; border-radius: 24px; font-size: 14px; font-weight: bold; cursor: pointer; }
     .upload-section input[type="file"] { display: none; }
-    .btn { background: var(--brand2); color: #fff; padding: 8px 12px; border: 0; border-radius: 8px; cursor: pointer; }
+    .btn { background: var(--blue); color: #fff; padding: 8px 12px; border: 0; border-radius: 8px; cursor: pointer; }
     .sel, .date-filter, .num { color: #0b1220; padding: 7px 8px; font-size: 14px; border-radius: 8px; border: 1px solid #334155; background:#fff; }
     .tabs { display:flex; gap:12px; padding:10px 16px; border-bottom:1px solid #1f2937; background:#0b1220;}
     .tab { padding:8px 12px; border-radius:8px; background:#111827; color:#9CA3AF; cursor:pointer; }
-    .tab.active { background:#1f2937; color:#fff; box-shadow: inset 0 -2px 0 0 var(--brand2); }
+    .tab.active { background:#1f2937; color:#fff; box-shadow: inset 0 -2px 0 0 var(--blue); }
     .content { flex:1; overflow:auto; }
     .content-pad{ padding: 14px 16px; }
-    .cards { display:flex; gap:10px; overflow-x:auto; }
-    .card { background:#0b1a3b; color:#fff; padding:12px; border-radius:10px; min-width:160px; }
+    .kpi { display:grid; grid-template-columns: repeat(6, minmax(140px, 1fr)); gap:10px; }
+    .card { background:var(--panel); color:#fff; padding:12px; border-radius:10px; min-width:160px; }
     .card h4 { margin:0 0 6px 0; font-size:13px; color:#93c5fd; }
     .card p { margin:0; font-size:18px; font-weight:bold; }
-    .kpi { display:grid; grid-template-columns: repeat(6, minmax(140px, 1fr)); gap:10px; }
     .grid { display:grid; gap:16px; }
     .grid-2 { grid-template-columns: 1fr 1fr; }
-    .panel { background:#0b1a3b; border-radius:12px; padding:12px; }
+    .panel { background:var(--panel); border-radius:12px; padding:12px; }
     .panel h3 { margin:0 0 10px 0; font-weight:600; font-size:15px; color:#93c5fd;}
-    .legend-list a{ color:#60a5fa; text-decoration: none; margin-right:8px; }
-    .legend-list a:hover{ text-decoration: underline; }
-    #report_wrapper { background:#0b1a3b; border-radius:12px; padding:8px; }
+    #report_wrapper { background:var(--panel); border-radius:12px; padding:8px; }
     table.dataTable thead th { color:#93c5fd; }
+    table.dataTable thead th.sorting_asc, table.dataTable thead th.sorting_desc { color:#fff !important; background:#1f2937 !important; }
     table.dataTable tbody td, table.dataTable thead th { border-color:#172554 !important; }
-    .notice { font-size: 12px; color: #94a3b8; }
+    #report a { color:#60a5fa; background:transparent; text-decoration: none; }
+    #report a:hover { text-decoration: underline; }
+    .notice { font-size: 12px; color: var(--muted); }
     .progress { font-size: 13px; margin-left: 8px; }
     .divider { height:1px; background:#1f2937; margin:8px 0 12px; }
   </style>
@@ -109,7 +109,6 @@
         </div>
       </div>
       <div class="divider"></div>
-      <!-- KPI 卡片 -->
       <div class="kpi">
         <div class="card"><h4>平均访客比</h4><p id="avgVisitor">0%</p></div>
         <div class="card"><h4>平均加购比</h4><p id="avgCart">0%</p></div>
@@ -130,41 +129,31 @@
       <!-- 汇总对比 -->
       <section id="summary" class="content-pad">
         <div class="panel">
-          <h3>周期 A vs 周期 B · 平均指标曲线（按天）</h3>
+          <h3>周期 A vs 周期 B · 总量曲线（按天）</h3>
           <div class="controls" style="margin-bottom:8px;">
             <span>维度：</span>
             <select id="metricSel" class="sel">
-              <option value="pay_ratio">平均支付比</option>
-              <option value="cart_ratio">平均加购比</option>
-              <option value="visitor_ratio">平均访客比</option>
+              <option value="exposure_sum">曝光量总和</option>
+              <option value="visitors_sum">访客数总和</option>
+              <option value="add_people_sum">加购人数总和</option>
+              <option value="fav_sum">收藏总数</option>
+              <option value="orders_sum">下单总数</option>
             </select>
-            <span class="notice">A = 选择的日期范围；B = 上一周期（同长度，向前平移）。</span>
+            <span class="notice">A = 当前选择；B = 上一周期（向前平移同长度，例如 A=2025-08-03~2025-08-09 ⇒ B=2025-07-27~2025-08-02）。</span>
           </div>
           <div id="lineChart" style="width:100%;height:360px;"></div>
         </div>
 
         <div class="grid grid-2" style="margin-top:16px;">
           <div class="panel">
-            <h3>Top10 加购商品（可点击）</h3>
-            <div class="controls" style="margin-bottom:8px;">
-              <span>统计周期：</span>
-              <select id="topPeriodSel" class="sel">
-                <option value="A">周期 A（当前）</option>
-                <option value="B">周期 B（上期）</option>
-              </select>
-            </div>
-            <div id="barChart" style="width:100%;height:320px;"></div>
-            <div class="notice">口径：在所选周期内，按 Σ加购人数 排序取前 10 个商品；点击柱子跳转到 AliExpress 商品页。</div>
+            <h3>平均比率对比（A vs B）</h3>
+            <div id="ratioBar" style="width:100%;height:300px;"></div>
+            <div class="notice">对比：平均加购比、平均访客比、平均支付比。</div>
           </div>
           <div class="panel">
-            <h3>口径与说明</h3>
-            <ul style="margin:0 0 6px 16px; line-height:1.6;">
-              <li>访客比 = Σ访客 ÷ Σ曝光 × 100%</li>
-              <li>加购比 = Σ加购人数 ÷ Σ访客 × 100%</li>
-              <li>支付比 = Σ支付买家数 ÷ Σ加购人数 × 100%</li>
-              <li>曲线：对周期内每一天，按上式计算『全体商品』的平均值</li>
-              <li>Top10：按所选周期内 Σ加购人数 排名</li>
-            </ul>
+            <h3>Top10 加购商品（A & B 同图）</h3>
+            <div id="topBar" style="width:100%;height:320px;"></div>
+            <div class="notice">口径：各周期内 Σ加购人数；同一商品使用同色，不同周期用深浅区分（A 深、B 浅）。柱子可点击跳商品页。</div>
           </div>
         </div>
       </section>
@@ -203,7 +192,7 @@ const toNum = v => {
   return isNaN(n) ? 0 : n;
 };
 
-// ===== 上传：与之前相同（严格识别访客） =====
+// ===== 上传逻辑（严格识别『访客数』；兼容收藏） =====
 $('#fileInput').on('change', function(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -232,6 +221,8 @@ $('#fileInput').on('change', function(e) {
         pay_items:  findIdx(/^支付件数$/i),
         pay_orders: findIdx(/^(支付订单数|下单人数|订单数)$/i),
         pay_buyers: findIdx(/^(支付买家数|支付人数|成交人数)$/i),
+        fav_people: findIdx(/^(收藏人数|收藏买家数|收藏用户数)$/i),
+        fav_count:  findIdx(/^(收藏件数|收藏量)$/i)
       };
       if (idx.product_id<0 || idx.stat_date<0) throw new Error('缺少必填：商品ID / 统计时间');
 
@@ -249,9 +240,9 @@ $('#fileInput').on('change', function(e) {
         if (v === null || v === undefined || v === '') return null;
         if (typeof v === 'number') return excelDateToISO(v);
         let s = String(v).trim(); s = s.replace(/[.]/g,'-').replace(/\//g,'-');
-        const m = s.match(/^(\\d{4})-(\\d{1,2})-(\\d{1,2})$/);
+        const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
         if (m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
-        const m2 = s.match(/^(\\d{1,2})-(\\d{1,2})-(\\d{4})$/);
+        const m2 = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
         if (m2) return `${m2[3]}-${m2[1].padStart(2,'0')}-${m2[2].padStart(2,'0')}`;
         return s.slice(0,10);
       }
@@ -263,7 +254,7 @@ $('#fileInput').on('change', function(e) {
           ? toNum(r[idx.visitors])
           : ((idx.visitors_new !== -1 ? toNum(r[idx.visitors_new]) : 0) +
              (idx.visitors_old !== -1 ? toNum(r[idx.visitors_old]) : 0)));
-        return {
+        const row = {
           product_id: pid, stat_date: sd,
           exposure:  idx.exposure  === -1 ? 0 : toNum(r[idx.exposure]),
           visitors,
@@ -274,6 +265,9 @@ $('#fileInput').on('change', function(e) {
           pay_orders:idx.pay_orders=== -1 ? 0 : toNum(r[idx.pay_orders]),
           pay_buyers:idx.pay_buyers=== -1 ? 0 : toNum(r[idx.pay_buyers]),
         };
+        if (idx.fav_people !== -1) row.fav_people = toNum(r[idx.fav_people]);
+        if (idx.fav_count  !== -1) row.fav_count  = toNum(r[idx.fav_count]);
+        return row;
       }).filter(x => x.product_id && x.stat_date);
       const dmap = new Map(); rows.forEach(r => dmap.set(r.product_id+'__'+r.stat_date, r)); const deduped = Array.from(dmap.values());
 
@@ -282,8 +276,6 @@ $('#fileInput').on('change', function(e) {
       const txt = await resp.text(); let j; try { j = JSON.parse(txt); } catch(e) { throw new Error('Upsert API响应不是JSON：' + txt.slice(0,200)); }
       if (!resp.ok || !j.ok) throw new Error(j.error || '入库失败');
       $('#progress').text('入库完成 ✔');
-
-      // 自动刷新
       $('#refreshBtn').click();
     } catch(err) {
       console.error(err); alert('处理失败：' + (err.message || err)); $('#progress').text('');
@@ -292,7 +284,7 @@ $('#fileInput').on('change', function(e) {
   reader.readAsArrayBuffer(file);
 });
 
-// ===== 查询/汇总 =====
+// ===== 查询 / 汇总 =====
 async function fetchAgg(startISO, endISO, granularity) {
   const url = `/api/ae_query?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}&granularity=${encodeURIComponent(granularity)}`;
   const resp = await fetch(url);
@@ -330,101 +322,119 @@ function computeCards(rows) {
   $('#avgVisitor').text(vr); $('#avgCart').text(cr); $('#avgPay').text(pr);
   $('#totalProducts').text(products.size); $('#cartedProducts').text(pc); $('#purchasedProducts').text(pp);
 }
-
-// daily curves for A & B: compute per day average ratio across all products
-function buildDailySeries(rows, days, metric, startISO) {
-  // rows are day-aggregated per product; bucket is the day.
+// Build per-day totals
+function buildDailyTotals(rows, days, startISO) {
   const byDay = new Map();
   rows.forEach(r => {
-    const d = r.bucket; // 'YYYY-MM-DD'
-    if (!byDay.has(d)) byDay.set(d, {exp:0, vis:0, add:0, pay:0});
+    const d = r.bucket; // day
+    if (!byDay.has(d)) byDay.set(d, {exp:0, vis:0, add:0, fav:0, orders:0});
     const a = byDay.get(d);
-    a.exp += r.exposure||0; a.vis += r.visitors||0; a.add += r.add_people||0; a.pay += r.pay_buyers||0;
+    a.exp += r.exposure||0;
+    a.vis += r.visitors||0;
+    a.add += r.add_people||0;
+    a.orders += r.pay_orders||0;
+    a.fav += (r.fav_people || r.fav_count || 0);
   });
-  function ratio(a) {
-    if (metric==='visitor_ratio') return a.exp>0 ? (a.vis/a.exp)*100 : 0;
-    if (metric==='cart_ratio') return a.vis>0 ? (a.add/a.vis)*100 : 0;
-    if (metric==='pay_ratio') return a.add>0 ? (a.pay/a.add)*100 : 0;
-    return 0;
-  }
-  // Build Day1..DayN with tooltip date
-  const x = []; const vals = []; const tips = [];
+  const x = [], A = [], tips = [];
   const start = new Date(startISO + 'T00:00:00');
-  for (let i=0; i<days; i++) {
+  for (let i=0;i<days;i++){
     const cur = new Date(start.getTime() + i*86400000);
     const key = cur.toISOString().slice(0,10);
-    const a = byDay.get(key) || {exp:0,vis:0,add:0,pay:0};
-    x.push(`Day ${i+1}`);
-    vals.push(Number(ratio(a).toFixed(2)));
-    tips.push(key);
+    x.push(`Day ${i+1}`); tips.push(key);
+    const a = byDay.get(key) || {exp:0,vis:0,add:0,fav:0,orders:0};
+    A.push({exp:a.exp, vis:a.vis, add:a.add, fav:a.fav, orders:a.orders, date:key});
   }
-  return { x, vals, tips };
+  return { x, A };
 }
-
-function drawLineChartDaily(rowsA, rowsB, metric, daysA, daysB, startA, startB) {
+function drawLineChartDaily(rowsA, rowsB, days, startA, startB, metricKey) {
   const chart = echarts.init(document.getElementById('lineChart'));
-  const A = buildDailySeries(rowsA, daysA, metric, startA);
-  const B = buildDailySeries(rowsB, daysB, metric, startB);
-  const maxN = Math.max(A.x.length, B.x.length);
-  const x = Array.from({length:maxN}, (_,i)=>`Day ${i+1}`);
-
+  const A = buildDailyTotals(rowsA, days, startA);
+  const B = buildDailyTotals(rowsB, days, startB);
+  const x = A.x;
+  function pick(arr){ return arr.map(o => Number((o[metricKey] || 0))) }
   chart.setOption({
-    tooltip: {
+    tooltip:{
       trigger:'axis',
-      formatter: function(params) {
-        // params is array of points (A/B) at same index
-        let s = '';
-        params.forEach(p => {
-          const isA = p.seriesName==='周期A';
-          const tips = isA ? A.tips : B.tips;
-          const date = tips[p.dataIndex] || '';
-          s += `<div>${p.marker}${p.seriesName}：${p.value}% <span style="color:#9CA3AF">(${date})</span></div>`;
-        });
-        return s || '无数据';
+      formatter: (params)=>{
+        let s=''; params.forEach(p=>{
+          const series = p.seriesName==='周期A' ? A.A : B.A;
+          const o = series[p.dataIndex];
+          s += `<div>${p.marker}${p.seriesName}：${p.data} <span style='color:#9CA3AF'>(${o?.date||''})</span></div>`;
+        }); return s||'无数据';
       }
     },
     legend:{ data:['周期A','周期B'] },
     grid:{ left:40, right:16, top:36, bottom:24 },
     xAxis:{ type:'category', data:x },
+    yAxis:{ type:'value' },
+    series:[
+      { name:'周期A', type:'line', data: pick(A.A), smooth:true, showSymbol:false, itemStyle:{ color:'#2563EB' } },
+      { name:'周期B', type:'line', data: pick(B.A), smooth:true, showSymbol:false, itemStyle:{ color:'#F97316' } }
+    ]
+  });
+  window.addEventListener('resize', ()=>chart.resize());
+}
+// A vs B 平均比率对比
+function drawRatioBar(rowsA, rowsB){
+  function sums(rows){
+    return rows.reduce((a,b)=>({exp:a.exp+b.exposure, vis:a.vis+b.visitors, add:a.add+b.add_people, pay:a.pay+b.pay_buyers}), {exp:0,vis:0,add:0,pay:0});
+  }
+  const A = sums(rowsA), B = sums(rowsB);
+  const d = {
+    A: [ (A.vis>0?A.add/A.vis*100:0), (A.exp>0?A.vis/A.exp*100:0), (A.add>0?A.pay/A.add*100:0) ],
+    B: [ (B.vis>0?B.add/B.vis*100:0), (B.exp>0?B.vis/B.exp*100:0), (B.add>0?B.pay/B.add*100:0) ]
+  };
+  const chart = echarts.init(document.getElementById('ratioBar'));
+  chart.setOption({
+    tooltip:{ trigger:'axis' },
+    legend:{ data:['周期A','周期B'] },
+    grid:{ left:40, right:16, top:36, bottom:24 },
+    xAxis:{ type:'category', data:['平均加购比','平均访客比','平均支付比'] },
     yAxis:{ type:'value', axisLabel:{ formatter:'{value} %' } },
     series:[
-      { name:'周期A', type:'line', data:A.vals, smooth:true, showSymbol:false, itemStyle:{ color:'#2563EB' } },
-      { name:'周期B', type:'line', data:B.vals, smooth:true, showSymbol:false, itemStyle:{ color:'#F97316' } }
+      { name:'周期A', type:'bar', data:d.A.map(v=>Number(v.toFixed(2))), itemStyle:{ color:'#2563EB' }, label:{ show:true, position:'top', formatter:'{c}%' } },
+      { name:'周期B', type:'bar', data:d.B.map(v=>Number(v.toFixed(2))), itemStyle:{ color:'#F97316' }, label:{ show:true, position:'top', formatter:'{c}%' } }
     ]
   });
   window.addEventListener('resize', ()=>chart.resize());
 }
-
-function drawTop10Bar(periodRows) {
-  // Sum add_people per product
-  const per = new Map();
-  periodRows.forEach(r => {
-    if (!per.has(r.product_id)) per.set(r.product_id, 0);
-    per.set(r.product_id, per.get(r.product_id) + (r.add_people||0));
-  });
-  const arr = Array.from(per.entries()).map(([id, val])=>({id, val})).sort((a,b)=>b.val-a.val).slice(0,10).reverse(); // reverse for horizontal chart ascending
-  const ids = arr.map(d=>d.id);
-  const vals = arr.map(d=>d.val);
-
-  const chart = echarts.init(document.getElementById('barChart'));
+// Top10 加购商品：A & B 同图（同色不同深浅）
+function drawTop10Both(rowsA, rowsB){
+  function perAdd(rows){
+    const m = new Map();
+    rows.forEach(r => { m.set(r.product_id, (m.get(r.product_id)||0) + (r.add_people||0)); });
+    return m;
+  }
+  const mapA = perAdd(rowsA);
+  const mapB = perAdd(rowsB);
+  function top10(map){ return Array.from(map.entries()).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([id])=>id); }
+  const union = Array.from(new Set([...top10(mapA), ...top10(mapB)]));
+  const rows = union.map(id => ({ id, a: mapA.get(id)||0, b: mapB.get(id)||0, max: Math.max(mapA.get(id)||0, mapB.get(id)||0) }))
+                    .sort((x,y)=>y.max - x.max);
+  const ids = rows.map(r=>r.id);
+  const dataA = rows.map(r=>r.a);
+  const dataB = rows.map(r=>r.b);
+  function hue(id){ let h=0; for (let i=0;i<id.length;i++) h=(h*31 + id.charCodeAt(i))%360; return h; }
+  const colorsA = ids.map(id => `hsl(${hue(id)}, 70%, 55%)`);
+  const colorsB = ids.map(id => `hsl(${hue(id)}, 70%, 80%)`);
+  const chart = echarts.init(document.getElementById('topBar'));
   chart.setOption({
     tooltip:{ trigger:'axis', axisPointer:{ type:'shadow' } },
-    grid:{ left:80, right:16, top:20, bottom:24 },
+    grid:{ left:120, right:20, top:20, bottom:24 },
     xAxis:{ type:'value' },
-    yAxis:{ type:'category', data: ids.map(id => `#${id}`) },
+    yAxis:{ type:'category', data: ids.map(id=>`#${id}`) },
     series:[
-      { name:'加购人数', type:'bar', data: vals, itemStyle:{ color:'#4F46E5' }, label:{ show:true, position:'right' } }
+      { name:'周期A', type:'bar', data: dataA.map((v,i)=>({value:v, itemStyle:{color:colorsA[i]}})), label:{ show:true, position:'right' } },
+      { name:'周期B', type:'bar', data: dataB.map((v,i)=>({value:v, itemStyle:{color:colorsB[i]}})), label:{ show:true, position:'right' } }
     ]
   });
-  window.addEventListener('resize', ()=>chart.resize());
   chart.off('click');
   chart.on('click', function(params){
-    const id = arr[params.dataIndex]?.id;
+    const id = ids[params.dataIndex];
     if (id) window.open(`https://aliexpress.com/item/${id}.html`, '_blank');
   });
+  window.addEventListener('resize', ()=>chart.resize());
 }
-
-function uniqueSorted(arr) { return Array.from(new Set(arr)).sort(); }
 
 function renderTable(rows, granularity) {
   if (window.dataTable) window.dataTable.destroy();
@@ -470,21 +480,29 @@ async function fetchAndRenderAll() {
     const g = $('#granularity').val();
     $('#progress').text('查询中…');
 
-    // 明细表与卡片：按当前粒度展示
+    // 明细 & 卡片（按当前粒度展示）
     const rowsNowAgg = await fetchAgg(startISO, endISO, g);
     computeCards(rowsNowAgg);
     renderTable(rowsNowAgg, g);
 
-    // 折线：按日对比（周期A vs 周期B）
+    // A vs B 折线（总量，按日）
     const { prevStart, prevEnd, days } = periodShift(startISO, endISO);
-    const rowsA = await fetchAgg(startISO, endISO, 'day'); // 按天
+    const rowsA = await fetchAgg(startISO, endISO, 'day'); // daily
     const rowsB = await fetchAgg(prevStart, prevEnd, 'day');
-    const metric = $('#metricSel').val();
-    drawLineChartDaily(rowsA, rowsB, metric, days, days, startISO, prevStart);
+    const metricKey = (function(k){
+      if (k==='exposure_sum') return 'exp';
+      if (k==='visitors_sum') return 'vis';
+      if (k==='add_people_sum') return 'add';
+      if (k==='orders_sum') return 'orders';
+      if (k==='fav_sum') return 'fav';
+    })(document.getElementById('metricSel').value);
+    drawLineChartDaily(rowsA, rowsB, days, startISO, prevStart, metricKey);
 
-    // Top10：选择周期（默认A）
-    const periodVal = $('#topPeriodSel').val();
-    drawTop10Bar(periodVal==='A' ? rowsA : rowsB);
+    // A vs B 平均比率对比
+    drawRatioBar(rowsA, rowsB);
+
+    // A & B Top10
+    drawTop10Both(rowsA, rowsB);
 
     $('#progress').text(`A: ${rowsA.length} 条 · B: ${rowsB.length} 条`);
   } catch (err) {
@@ -495,12 +513,10 @@ async function fetchAndRenderAll() {
 // 日期控件
 const fp = flatpickr('#dateFilter', {
   mode: 'range', dateFormat: 'Y-m-d',
-  onClose: function(selectedDates){
-    if (selectedDates.length===2) fetchAndRenderAll();
-  }
+  onClose: function(selectedDates){ if (selectedDates.length===2) fetchAndRenderAll(); }
 });
 $('#refreshBtn').on('click', fetchAndRenderAll);
-$('#metricSel, #granularity, #topPeriodSel').on('change', fetchAndRenderAll);
+$('#metricSel, #granularity').on('change', fetchAndRenderAll);
 
 // 初始默认最近7天（周视角）
 (async function initDefault(){
@@ -512,3 +528,4 @@ $('#metricSel, #granularity, #topPeriodSel').on('change', fetchAndRenderAll);
 </script>
 </body>
 </html>
+
