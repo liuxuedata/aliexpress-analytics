@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 
-/** Prefer numeric */
 function toNum(v) {
   if (v === null || v === undefined) return 0;
   if (typeof v === 'number') return isFinite(v) ? v : 0;
@@ -8,11 +7,6 @@ function toNum(v) {
   return Number.isNaN(n) ? 0 : n;
 }
 
-/** Robustly compute total visitors.
- * Priority:
- * 1) visitors (商品访客数/访客数) if provided
- * 2) sum(new + old) if either set of aliases is present
- */
 function pickVisitors(row) {
   if (row.visitors !== undefined && row.visitors !== null && row.visitors !== '') {
     return toNum(row.visitors);
@@ -26,7 +20,6 @@ function pickVisitors(row) {
   return 0;
 }
 
-/** Normalize a single input row to DB schema */
 function normalize(r) {
   return {
     product_id: String(r.product_id ?? '').trim(),
@@ -39,6 +32,9 @@ function normalize(r) {
     pay_items: toNum(r.pay_items),
     pay_orders: toNum(r.pay_orders),
     pay_buyers: toNum(r.pay_buyers),
+    // 收藏：若前端传了则入库；否则 0
+    fav_people: toNum(r.fav_people),
+    fav_count:  toNum(r.fav_count),
   };
 }
 
@@ -65,7 +61,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid body, expected array of rows' });
     }
 
-    // normalize + dedupe by (product_id, stat_date)
     const map = new Map();
     for (const raw of rowsIn) {
       const row = normalize(raw);
@@ -74,7 +69,6 @@ export default async function handler(req, res) {
     }
     const rows = Array.from(map.values());
 
-    // upsert in chunks
     const CHUNK = 1000;
     let upserted = 0;
     for (let i = 0; i < rows.length; i += CHUNK) {
