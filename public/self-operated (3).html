@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>自运营数据分析（服务端入库版）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/4.2.2/css/fixedColumns.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
+  <script src="https://cdn.datatables.net/fixedcolumns/4.2.2/js/dataTables.fixedColumns.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <style>
+    :root { --bg:#2d3e50; --brand:#4a90e2; --ok:#00b488; }
+    body { font-family: Arial, Helvetica, sans-serif; margin: 0; }
+    .container { display: flex; height: 100vh; }
+    .sidebar { width: 220px; background: var(--bg); color: #fff; padding: 15px; box-sizing: border-box; border-right: 2px solid #444; }
+    .sidebar h3 { margin-top: 0; color: #fff; }
+    .sidebar ul { list-style: none; padding-left: 0; }
+    .sidebar li { margin-bottom: 10px; }
+    .sidebar a { text-decoration: none; color: #ddd; font-size: 14px; display: block; padding: 5px; border-radius: 3px; }
+    .sidebar a:hover { color: #fff; text-decoration: underline; }
+    .sidebar .submenu { list-style: none; padding-left: 20px; display: none; }
+    .sidebar .submenu a { font-size: 13px; color: #bbb; }
+    .sidebar .submenu a.active { color: #fff; background-color: var(--brand); }
+    .sidebar .has-submenu > a { cursor: pointer; }
+    .sidebar .has-submenu.open > .submenu { display: block; }
+    .main { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .upload-section { background: var(--bg); color: #fff; padding: 15px; flex-shrink: 0; }
+    .upload-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+    .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .upload-btn { background: var(--ok); color: #fff; padding: 6px 14px; border: none; border-radius: 20px; font-size: 14px; font-weight: bold; cursor: pointer; }
+    .upload-section input[type="file"] { display: none; }
+    .btn { background: var(--brand); color: #fff; padding: 6px 12px; border: 0; border-radius: 6px; cursor: pointer; }
+    .sel, .date-filter { color: #000; padding: 6px 8px; font-size: 14px; border-radius: 6px; border: 1px solid #ccc; background:#fff; }
+    .stats-cards { display: flex; flex-wrap: nowrap; gap: 10px; margin-top: 15px; overflow-x: auto; }
+    .stat-card { flex: 0 0 160px; padding: 12px; border-radius: 6px; background: var(--brand); color: #fff; text-align: center; }
+    .stat-card h4 { margin: 0 0 5px 0; font-size: 14px; }
+    .stat-card p { margin: 0; font-size: 18px; font-weight: bold; }
+    .info { cursor: pointer; margin-left: 6px; color: #fff200; font-weight: bold; background: var(--brand); border-radius: 50%; padding: 0 7px; font-size: 14px; display: inline-block; vertical-align: middle; }
+    .table-section { background: #fff; flex-grow: 1; overflow: hidden; padding: 15px; }
+    .table-wrapper { width: 100%; height: 100%; overflow: auto; }
+    .notice { font-size: 12px; color: #ddd; }
+    .progress { font-size: 13px; margin-left: 8px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <nav class="sidebar" id="sidebar">
+    <h3>产品导航</h3>
+    <ul>
+      <li class="has-submenu">
+        <a href="#">速卖通</a>
+        <ul class="submenu">
+          <li><a href="index.html">全托管</a></li>
+          <li><a href="self-operated.html">自运营</a></li>
+        </ul>
+      </li>
+      <li><a href="#">TikTok Shop</a></li>
+      <li><a href="#">亚马逊</a></li>
+      <li class="has-submenu">
+        <a href="#">独立站</a>
+        <ul class="submenu">
+          <li><a href="independent-site.html">数据分析</a></li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+  <div class="main">
+    <div class="upload-section">
+      <div class="upload-top">
+        <div class="controls">
+          <label for="fileInput" class="upload-btn">选择文件</label>
+          <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+          <span class="notice">（上传→服务端入库→按周期聚合展示）</span>
+        </div>
+        <div class="controls">
+          <label>周期：</label>
+          <select id="granularity" class="sel">
+            <option value="day">按日</option>
+            <option value="week">按周</option>
+            <option value="month">按月</option>
+          </select>
+          <label>时间：</label>
+          <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
+          <button id="refreshBtn" class="btn">刷新</button>
+          <span id="progress" class="progress"></span>
+        </div>
+      </div>
+      <div class="stats-cards">
+        <div class="stat-card">
+          <h4>平均访客比<span class="info" onclick="showInfo('visitorRate')" title="点击查看公式">?</span></h4>
+          <p id="avgVisitor">0%</p>
+        </div>
+        <div class="stat-card">
+          <h4>平均加购比<span class="info" onclick="showInfo('cartRate')" title="点击查看公式">?</span></h4>
+          <p id="avgCart">0%</p>
+        </div>
+        <div class="stat-card">
+          <h4>平均支付比<span class="info" onclick="showInfo('payRate')" title="点击查看公式">?</span></h4>
+          <p id="avgPay">0%</p>
+        </div>
+        <div class="stat-card"><h4>商品总数</h4><p id="totalProducts">0</p></div>
+        <div class="stat-card"><h4>加购商品数</h4><p id="cartedProducts">0</p></div>
+        <div class="stat-card"><h4>支付商品数</h4><p id="purchasedProducts">0</p></div>
+      </div>
+    </div>
+    <div class="table-section">
+      <div class="table-wrapper">
+        <table id="report" class="display nowrap" style="width:100%"></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var currentPage = window.location.pathname.split('/').pop();
+  if (!currentPage) currentPage = 'self-operated.html';
+  $('.sidebar a[href="' + currentPage + '"]').addClass('active');
+  $('.sidebar a.active').closest('.has-submenu').addClass('open');
+  $('.has-submenu > a').on('click', function(e){ e.preventDefault(); $(this).parent().toggleClass('open'); });
+})();
+
+function showInfo(key) {
+  const infoMap = {
+    visitorRate: '访客比 = Σ访客 ÷ Σ曝光 × 100%（曝光为0则为0%）',
+    cartRate:   '加购比 = Σ加购人数 ÷ Σ访客 × 100%（访客为0则为0%）',
+    payRate:    '支付比 = Σ支付买家数 ÷ Σ加购人数 × 100%（加购为0则为0%）',
+  };
+  alert(infoMap[key] || '暂无说明');
+}
+
+const toNum = v => {
+  if (v === null || v === undefined) return 0;
+  if (typeof v === 'number') return isFinite(v) ? v : 0;
+  const n = parseFloat(String(v).replace(/,/g, '').trim());
+  return isNaN(n) ? 0 : n;
+};
+
+function excelDateToISO(n) {
+  if (typeof n !== 'number') return null;
+  const utc_days = Math.floor(n - 25569);
+  const utc_value = utc_days * 86400;
+  const date_info = new Date(utc_value * 1000);
+  const year = date_info.getUTCFullYear();
+  const month = (date_info.getUTCMonth() + 1).toString().padStart(2, '0');
+  const day = date_info.getUTCDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+function parseDateToISO(v) {
+  if (v === null || v === undefined || v === '') return null;
+  if (typeof v === 'number') return excelDateToISO(v);
+  let s = String(v).trim();
+  s = s.replace(/[.]/g, '-').replace(/\//g, '-');
+  const m = s.match(/^(\\d{4})-(\\d{1,2})-(\\d{1,2})$/);
+  if (m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  const m2 = s.match(/^(\\d{1,2})-(\\d{1,2})-(\\d{4})$/);
+  if (m2) return `${m2[3]}-${m2[1].padStart(2,'0')}-${m2[2].padStart(2,'0')}`;
+  return s.slice(0,10);
+}
+
+function findHeaderIdx(headers, keywords) {
+  return headers.findIndex(h => {
+    const clean = String(h).trim().toLowerCase();
+    return keywords.some(k => clean.includes(k.toLowerCase()));
+  });
+}
+
+function dedupeByKey(rows, keyFn) {
+  const map = new Map();
+  for (const r of rows) { map.set(keyFn(r), r); }
+  return Array.from(map.values());
+}
+
+let dataTable = null;
+function renderTable(rows, granularity) {
+  const data = rows.map(r => {
+    const conv1 = r.exposure>0 ? ((r.visitors/r.exposure)*100).toFixed(2) : '0.00';
+    const conv2 = r.visitors>0 ? ((r.add_people/r.visitors)*100).toFixed(2) : '0.00';
+    const conv3 = r.add_people>0 ? ((r.pay_buyers/r.add_people)*100).toFixed(2) : '0.00';
+    const link = r.product_id ? `<a href="https://aliexpress.com/item/${r.product_id}.html" target="_blank">${r.product_id}</a>` : '';
+    return [link, r.bucket, conv1 + '%', conv2 + '%', conv3 + '%', r.exposure, r.visitors, r.views, r.add_people, r.add_count, r.pay_items, r.pay_orders, r.pay_buyers];
+  });
+  if (dataTable) dataTable.destroy();
+  $('#report').empty();
+  dataTable = $('#report').DataTable({
+    data,
+    columns: [
+      { title: '商品链接' },
+      { title: granularity==='day' ? '日期' : (granularity==='week' ? '周起始日' : '月份') },
+      { title: '访客比(%)' },
+      { title: '加购比(%)' },
+      { title: '支付比(%)' },
+      { title: '曝光量' },
+      { title: '访客数' },
+      { title: '浏览量' },
+      { title: '加购人数' },
+      { title: '加购件数' },
+      { title: '支付件数' },
+      { title: '支付订单数' },
+      { title: '支付买家数' }
+    ],
+    order: [[1,'desc']],
+    scrollX: true,
+    scrollY: 'calc(100vh - 350px)',
+    scrollCollapse: true,
+    fixedHeader: true,
+    fixedColumns: { leftColumns: 1 }
+  });
+}
+function computeCards(rows) {
+  if (!rows.length) {
+    $('#avgVisitor').text('0%'); $('#avgCart').text('0%'); $('#avgPay').text('0%');
+    $('#totalProducts').text(0); $('#cartedProducts').text(0); $('#purchasedProducts').text(0);
+    return;
+  }
+  const sum = rows.reduce((a,b) => ({
+    exposure:a.exposure+b.exposure, visitors:a.visitors+b.visitors, add_people:a.add_people+b.add_people, pay_buyers:a.pay_buyers+b.pay_buyers
+  }), {exposure:0,visitors:0,add_people:0,pay_buyers:0});
+  const uniqueProducts = new Set(rows.map(r => r.product_id));
+  const carted = new Set(rows.filter(r => r.add_people>0).map(r=>r.product_id));
+  const paid   = new Set(rows.filter(r => r.pay_buyers>0).map(r=>r.product_id));
+  const vr  = sum.exposure>0 ? ((sum.visitors/sum.exposure)*100).toFixed(2)+'%' : '0%';
+  const cr  = sum.visitors>0 ? ((sum.add_people/sum.visitors)*100).toFixed(2)+'%' : '0%';
+  const pr  = sum.add_people>0 ? ((sum.pay_buyers/sum.add_people)*100).toFixed(2)+'%' : '0%';
+  $('#avgVisitor').text(vr); $('#avgCart').text(cr); $('#avgPay').text(pr);
+  $('#totalProducts').text(uniqueProducts.size); $('#cartedProducts').text(carted.size); $('#purchasedProducts').text(paid.size);
+}
+
+// Upload -> upsert via API
+$('#fileInput').on('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(evt) {
+    try {
+      $('#progress').text('解析中…');
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, {type:'array'});
+      const sheet = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
+      if (sheet.length < 2) throw new Error('表格无有效数据');
+      const headers = sheet[0].map(h => String(h).trim());
+      const idx = {
+        product_id: headers.findIndex(h => /商品id|商品ID|^id$|item id|item_id/i.test(h)),
+        stat_date:  headers.findIndex(h => /统计时间|日期|数据时间|date/i.test(h)),
+        exposure:   headers.findIndex(h => /搜索曝光量|曝光量|商品曝光量|impressions/i.test(h)),
+        visitors:   headers.findIndex(h => /商品访客数|访客数|访客|sessions/i.test(h)),
+        views:      headers.findIndex(h => /商品浏览量|浏览量|pv|page views/i.test(h)),
+        add_people: headers.findIndex(h => /商品加购人数|加购人数|加购买家数/i.test(h)),
+        add_count:  headers.findIndex(h => /商品加购件数|加购件数/i.test(h)),
+        pay_items:  headers.findIndex(h => /支付件数/i.test(h)),
+        pay_orders: headers.findIndex(h => /支付订单数|下单人数|订单数/i.test(h)),
+        pay_buyers: headers.findIndex(h => /支付买家数|支付人数|成交人数/i.test(h)),
+      };
+      if (idx.product_id<0 || idx.stat_date<0 || idx.visitors<0 || idx.add_people<0 || idx.pay_buyers<0) {
+        throw new Error('缺少必填字段（商品ID、统计时间、访客数、加购人数、支付买家数）');
+      }
+      const rows = sheet.slice(1).filter(r => r && r.length).map(r => {
+        const pid = String(r[idx.product_id]).trim();
+        const sd  = parseDateToISO(r[idx.stat_date]);
+        return {
+          product_id: pid,
+          stat_date: sd,
+          exposure:  idx.exposure  === -1 ? 0 : toNum(r[idx.exposure]),
+          visitors:  idx.visitors  === -1 ? 0 : toNum(r[idx.visitors]),
+          views:     idx.views     === -1 ? 0 : toNum(r[idx.views]),
+          add_people:idx.add_people=== -1 ? 0 : toNum(r[idx.add_people]),
+          add_count: idx.add_count === -1 ? 0 : toNum(r[idx.add_count]),
+          pay_items: idx.pay_items === -1 ? 0 : toNum(r[idx.pay_items]),
+          pay_orders:idx.pay_orders=== -1 ? 0 : toNum(r[idx.pay_orders]),
+          pay_buyers:idx.pay_buyers=== -1 ? 0 : toNum(r[idx.pay_buyers]),
+        };
+      }).filter(x => x.product_id && x.stat_date);
+      const deduped = dedupeByKey(rows, r => r.product_id + '__' + r.stat_date);
+      $('#progress').text(`入库中（${deduped.length} 条）…`);
+      const resp = await fetch('/api/ae_upsert', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ rows: deduped })
+      });
+      const j = await resp.json();
+      if (!resp.ok || !j.ok) throw new Error(j.error || '入库失败');
+      $('#progress').text('入库完成 ✔');
+      // 刷新到最近7天
+      const today = new Date(); const end = today.toISOString().slice(0,10);
+      const start = new Date(today.getTime() - 6*86400000).toISOString().slice(0,10);
+      $('#dateFilter').val(`${start} to ${end}`);
+      await fetchAndRender(start, end, $('#granularity').val());
+    } catch(err) {
+      console.error(err);
+      alert('处理失败：' + (err.message || err));
+      $('#progress').text('');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+async function fetchAndRender(startISO, endISO, granularity) {
+  $('#progress').text('查询中…');
+  const url = `/api/ae_query?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}&granularity=${encodeURIComponent(granularity)}`;
+  const resp = await fetch(url);
+  const j = await resp.json();
+  if (!resp.ok || !j.ok) {
+    alert('查询失败：' + (j.error || '未知错误'));
+    $('#progress').text('');
+    return;
+  }
+  const rows = j.rows || [];
+  computeCards(rows);
+  renderTable(rows, granularity);
+  $('#progress').text(`共 ${rows.length} 条（聚合后）`);
+}
+
+// 日期控件
+const fp = flatpickr('#dateFilter', {
+  mode: 'range',
+  dateFormat: 'Y-m-d',
+  onClose: async function(selectedDates) {
+    if (selectedDates.length === 2) {
+      const startISO = selectedDates[0].toISOString().slice(0,10);
+      const endISO   = selectedDates[1].toISOString().slice(0,10);
+      await fetchAndRender(startISO, endISO, $('#granularity').val());
+    }
+  }
+});
+$('#refreshBtn').on('click', async function(){
+  const val = $('#dateFilter').val();
+  let startISO, endISO;
+  if (val && val.includes(' to ')) {
+    const [s,e] = val.split(' to ');
+    startISO = s; endISO = e;
+  } else {
+    const today = new Date(); endISO = today.toISOString().slice(0,10);
+    startISO = new Date(today.getTime() - 6*86400000).toISOString().slice(0,10);
+    $('#dateFilter').val(`${startISO} to ${endISO}`);
+  }
+  await fetchAndRender(startISO, endISO, $('#granularity').val());
+});
+
+// 初始默认最近7天
+(async function initDefault(){
+  const today = new Date(); const end = today.toISOString().slice(0,10);
+  const startDate = new Date(today.getTime() - 6*86400000).toISOString().slice(0,10);
+  $('#dateFilter').val(`${startDate} to ${end}`);
+  await fetchAndRender(startDate, end, 'day');
+})();
+</script>
+</body>
+</html>
