@@ -1,0 +1,100 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>历史数据 - fact_daily_metrics</title>
+
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding: 16px; }
+    .row { display:flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+    input, select, button { padding: 8px 10px; }
+    button { background:#111827; color:#fff; border:0; border-radius:6px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <h3>历史数据</h3>
+
+  <div class="row">
+    <select id="source">
+      <option value="">全部来源</option>
+      <option value="AE_FBM">速卖通-全托管</option>
+      <option value="AE_SO">速卖通-自运营</option>
+      <option value="SHOPIFY">独立站-Shopify</option>
+    </select>
+    <input type="date" id="from">
+    <input type="date" id="to">
+    <input type="text" id="kw" placeholder="product_id 关键词">
+    <button id="query">查询</button>
+  </div>
+
+  <table id="tb" class="display" style="width:100%">
+    <thead>
+      <tr>
+        <th>stat_date</th>
+        <th>source_code</th>
+        <th>platform</th>
+        <th>product_id</th>
+        <th>exposure</th>
+        <th>visitors</th>
+        <th>add_people</th>
+        <th>pay_orders</th>
+        <th>visitor_ratio</th>
+        <th>updated_at</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+<script>
+const dt = $('#tb').DataTable({
+  pageLength: 50,
+  columns: [
+    { data:'stat_date' },
+    { data:'source_code' },
+    { data:'platform' },
+    { data:'product_id' },
+    { data:'exposure' },
+    { data:'visitors' },
+    { data:'add_people' },
+    { data:'pay_orders' },
+    { data:'visitor_ratio' },
+    { data:'updated_at' },
+  ]
+});
+
+async function load(){
+  const params = new URLSearchParams();
+  const source = document.getElementById('source').value;
+  const from = document.getElementById('from').value;
+  const to = document.getElementById('to').value;
+  const kw = document.getElementById('kw').value.trim();
+
+  if(source) params.set('source', source);
+  if(from) params.set('from', from);
+  if(to) params.set('to', to);
+  if(kw) params.set('keyword', kw);
+  params.set('limit', 1000);
+
+  const resp = await fetch('/api/fetchData?' + params.toString());
+  const { data } = await resp.json();
+  dt.clear().rows.add(data || []).draw();
+}
+
+document.getElementById('query').addEventListener('click', load);
+
+// 默认查询最近30天
+const today = new Date();
+const from = new Date(today.getTime() - 29*24*3600*1000);
+document.getElementById('to').valueAsDate = today;
+document.getElementById('from').valueAsDate = from;
+
+load();
+</script>
+</body>
+</html>
