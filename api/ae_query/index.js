@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     while (true) {
       const { data, error } = await supabase
         .from(TABLE)
-        .select('product_id, stat_date, exposure, visitors, views, add_people, add_count, pay_items, pay_orders, pay_buyers')
+        .select('product_id, stat_date, exposure, visitors, views, add_people, add_count, pay_items, pay_orders, pay_buyers, fav_people, fav_count')
         .gte('stat_date', String(start))
         .lte('stat_date', String(end))
         .order('product_id', { ascending: true })
@@ -62,7 +62,8 @@ export default async function handler(req, res) {
           bucket: b,
           min_date: r.stat_date,
           max_date: r.stat_date,
-          exposure: 0, visitors: 0, views: 0, add_people: 0, add_count: 0, pay_items: 0, pay_orders: 0, pay_buyers: 0
+          exposure: 0, visitors: 0, views: 0, add_people: 0, add_count: 0, pay_items: 0, pay_orders: 0, pay_buyers: 0,
+          fav_people: 0, fav_count: 0
         });
       }
       const acc = map.get(key);
@@ -74,6 +75,8 @@ export default async function handler(req, res) {
       acc.pay_items += r.pay_items || 0;
       acc.pay_orders += r.pay_orders || 0;
       acc.pay_buyers += r.pay_buyers || 0;
+      acc.fav_people += r.fav_people || 0;
+      acc.fav_count  += r.fav_count  || 0;
       if (r.stat_date < acc.min_date) acc.min_date = r.stat_date;
       if (r.stat_date > acc.max_date) acc.max_date = r.stat_date;
     }
