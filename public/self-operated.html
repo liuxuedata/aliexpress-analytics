@@ -188,12 +188,10 @@
           <span id="progress" class="progress"></span>
         </div>
         <div class="controls">
-          <span>粒度：</span>
-          <select id="granularity" class="sel">
-            <option value="week" selected>自然周</option>
-            <option value="month">自然月</option>
-            <option value="day">按日</option>
-          </select>
+       <span>粒度：</span>
+<span class="sel" style="background:#1f2937;color:#fff;border-color:#334155;cursor:not-allowed">按日</span>
+<input type="hidden" id="granularity" value="day">
+
           <span>日期：</span>
           <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
           <button id="refreshBtn" class="btn">刷新</button>
@@ -471,7 +469,7 @@ async function fetchAndRenderAll() {
     const val=$('#dateFilter').val(); let startISO,endISO;
     if (val && val.includes(' to ')) { const [s,e]=val.split(' to '); startISO=s; endISO=e; }
     else { const today=new Date(); endISO=today.toISOString().slice(0,10); startISO=new Date(today.getTime()-6*86400000).toISOString().slice(0,10); $('#dateFilter').val(`${startISO} to ${endISO}`); }
-    const g=$('#granularity').val(); $('#progress').text('查询中…');
+    const g = 'day';$('#progress').text('查询中…');
 
     const rowsNowAgg=await fetchAgg(startISO,endISO,g);
     computeCards(rowsNowAgg);
@@ -493,7 +491,8 @@ async function fetchAndRenderAll() {
 /* ---------- 初始化 ---------- */
 const fp=flatpickr('#dateFilter',{ mode:'range', dateFormat:'Y-m-d', onClose:(ds)=>{ if(ds.length===2) fetchAndRenderAll(); } });
 $('#refreshBtn').on('click', fetchAndRenderAll);
-$('#metricSel, #granularity').on('change', fetchAndRenderAll);
+$('#metricSel').on('change', fetchAndRenderAll);
+
 (async function initDefault(){
   const today=new Date(); const end=today.toISOString().slice(0,10);
   const startDate=new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
