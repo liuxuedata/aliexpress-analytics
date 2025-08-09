@@ -6,15 +6,9 @@
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
-
-    // 兜底：如果访问根目录，就返回 /public/index.html
     { "src": "^/$", "dest": "/public/index.html" },
-
-    // 其他静态资源照常从 /public 下找
     { "src": "/(.*)", "dest": "/public/$1" }
   ],
-
-  // 预留：Shopify 自动采集的定时任务（每天 02:00 SGT ≈ 18:00 UTC）
   "crons": [
     { "path": "/api/ingest/shopify", "schedule": "0 18 * * *" }
   ]
