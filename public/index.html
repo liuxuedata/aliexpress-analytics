@@ -228,35 +228,61 @@ function updateCards(avg1, avg2, avgVis, totalProducts, addProductCount, totalVi
 </script>
 
 
+
 <script>
 (function() {
   var page = location.pathname.split('/').pop() || 'index.html';
+
+  // Highlight current page
   var links = document.querySelectorAll('.sidebar a[href]');
   for (var i=0;i<links.length;i++) {
     if (links[i].getAttribute('href') === page) {
       links[i].classList.add('active');
-      var parent = links[i].closest('.has-submenu');
-      if (parent) parent.classList.add('open');
+      var p = links[i].closest('.has-submenu');
+      if (p) p.classList.add('open');
     }
   }
-  // Improved behavior: if a parent only has one submenu item, click navigates to that page; otherwise toggle submenu
+
+  // Make sure sidebar sits above content and is clickable
+  var sb = document.querySelector('.sidebar');
+  if (sb) { sb.style.zIndex = 1000; }
+
+  // Parent click: if only one child, go directly; else toggle
   var parents = document.querySelectorAll('.has-submenu > a');
   for (var j=0;j<parents.length;j++) {
     parents[j].addEventListener('click', function(e){
       var li = this.parentElement;
       var submenu = li.querySelector('.submenu');
-      if (submenu) {
-        var items = submenu.querySelectorAll('a[href]');
-        if (items.length === 1) {
-          // direct navigate to the only child page
-          window.location.href = items[0].getAttribute('href');
-        } else {
-          // toggle open for multi-item groups
-          e.preventDefault();
-          li.classList.toggle('open');
-        }
+      if (!submenu) return;
+      var items = submenu.querySelectorAll('a[href]');
+      if (items.length === 1) {
+        window.location.href = items[0].getAttribute('href');
+      } else {
+        e.preventDefault();
+        li.classList.toggle('open');
       }
     });
+  }
+
+  // Submenu links: always navigate
+  var subLinks = document.querySelectorAll('.submenu a[href]');
+  for (var k=0;k<subLinks.length;k++) {
+    subLinks[k].addEventListener('click', function(e){
+      // Some browsers may have preventDefault from other handlers; enforce navigation
+      window.location.href = this.getAttribute('href');
+    });
+  }
+
+  // If we're on independent-site.html, auto-open the 速卖通菜单（第一个带有"速卖通"文本的父级）
+  if (page === 'independent-site.html') {
+    var groups = document.querySelectorAll('.has-submenu');
+    for (var g=0; g<groups.length; g++) {
+      var txt = groups[g].textContent || '';
+      if (txt.indexOf('速卖通') !== -1 || txt.toLowerCase().indexOf('aliexpress') !== -1) {
+        groups[g].classList.add('open');
+        break;
+      }
+    }
   }
 })();
 </script>
