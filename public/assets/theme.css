@@ -17,7 +17,7 @@ body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: var(--b
 .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
 /* ===== Sidebar（统一三页） ===== */
-.sidebar {
+.sidebar { position: sticky; top:0; z-index: 1000;
   width: 220px; background: #0f172a; color:#fff; padding:16px;
   border-right: 1px solid #1f2937;
 }
@@ -80,7 +80,7 @@ body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: var(--b
 }
 
 /* ===== Table area（统一三页 DataTables 深色皮肤） ===== */
-.table-section { background: transparent; flex:1; overflow:hidden; padding:15px; }
+.table-section { background: transparent; flex:1; overflow:auto; padding:15px; }
 #report_wrapper { background: var(--panel); border-radius:12px; padding:8px; }
 table.dataTable thead th { color:#93c5fd; }
 table.dataTable thead th.sorting_asc,
