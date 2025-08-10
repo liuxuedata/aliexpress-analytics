@@ -7,12 +7,12 @@
   <title>速卖通全托管数据分析</title>
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css">
-  <link rel="stylesheet" href="assets/theme.css?v=20250811">
+  <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
 </head>
-<body>
+<body class="fm">
 <div class="container">
   <aside class="sidebar">
     <h3>产品导航</h3>
@@ -39,18 +39,16 @@
 
           <select id="periodSelect" class="sel"><option value="">加载中...</option></select>
 
-          <label for="file" class="upload-btn">选择文件</label>
+          <label for="file" id="pickLabel" class="upload-btn">选择文件</label>
           <input type="file" id="file" accept=".xlsx,.xls" />
-          <button id="upload" class="btn">保存到数据库</button>
+          <span id="status" class="notice"></span>
         </div>
       </div>
     </div>
 
     <div class="content">
       <div class="content-pad">
-        <div class="stats-cards" id="kpi">
-          <!-- KPI cards inserted by JS -->
-        </div>
+        <div class="stats-cards" id="kpi"></div>
         <div class="divider"></div>
         <div class="table-section">
           <table id="report" class="display" style="width:100%">
@@ -81,7 +79,6 @@
 
 <script>
 (function(){
-  // Sidebar behavior
   document.querySelectorAll('.has-submenu > a').forEach(a => {
     a.addEventListener('click', function(e){
       const li = this.parentElement;
@@ -92,52 +89,48 @@
     });
   });
 
-  const state = {
-    granularity: 'week',
-    file: null,
-    table: null
-  };
+  const state = { granularity: 'week', table: null, uploading: false };
 
   $('input[name="gran"]').on('change', function(){
     state.granularity = this.value;
-    loadPeriods().then(()=> loadData());
+    loadPeriods().then(loadData);
   });
 
-  $('#file').on('change', function(e){
-    state.file = e.target.files[0] || null;
+  $('#file').on('change', async function(e){
+    const file = e.target.files[0];
+    if (!file) return;
+    await autoUpload(file);
+    e.target.value = '';
   });
 
-  $('#upload').on('click', async function(){
-    if (!state.file) { alert('请先选择文件'); return; }
-    const fd = new FormData();
-    fd.append('file', state.file);
+  async function autoUpload(file){
+    if (state.uploading) return;
+    state.uploading = true;
+    setStatus('上传中…'); togglePick(true);
     try {
-      const r = await fetch('/api/ingest', { method:'POST', body: fd, headers: { 'x-file-name': state.file.name } });
+      const fd = new FormData();
+      fd.append('file', file);
+      const r = await fetch('/api/ingest', { method:'POST', body: fd, headers: { 'x-file-name': file.name } });
       const j = await r.json();
-      if (!j.ok) throw new Error(j.msg || '导入失败');
-      alert('导入成功：' + j.type + ' ' + j.date + ' 共 ' + j.rows + ' 行');
-      // reload periods & data (keep current granularity)
-      await loadPeriods();
-      await loadData();
+      if (!j.ok) throw new Error((j.step?('[步骤 '+j.step+'] '):'') + (j.msg || '导入失败'));
+      setStatus('已入库：' + j.type + ' ' + j.date + '（' + j.rows + ' 行）');
+      await loadPeriods(); await loadData();
     } catch(err){
       alert(err.message);
+      setStatus('上传失败：' + err.message);
+    } finally {
+      togglePick(false); setTimeout(()=> setStatus(''), 5000); state.uploading = false;
     }
-  });
+  }
+  function togglePick(disabled){ $('#pickLabel').css({ opacity: disabled?.6:1, pointerEvents: disabled?'none':'auto' }).text(disabled?'上传中…':'选择文件'); }
+  function setStatus(t){ $('#status').text(t||''); }
 
   async function loadPeriods(){
-    const r = await fetch('/api/periods');
-    const j = await r.json();
-    if (!j.ok) return;
-    const list = state.granularity==='week' ? j.weeks : j.months;
-    const $sel = $('#periodSelect');
-    $sel.empty();
-    if (!list || !list.length){
-      $sel.append('<option value="">暂无数据</option>');
-      return;
-    }
-    list.forEach((d,i)=>{
-      $sel.append('<option value="'+d+'">'+d+'</option>');
-    });
+    const r = await fetch('/api/periods'); const j = await r.json();
+    const list = (state.granularity==='week' ? j.weeks : j.months) || [];
+    const $sel = $('#periodSelect').empty();
+    if (!list.length){ $sel.append('<option value="">暂无数据</option>'); return; }
+    list.forEach(d=> $sel.append('<option value="'+d+'">'+d+'</option>'));
   }
 
   $('#periodSelect').on('change', loadData);
@@ -146,60 +139,35 @@
     const period = $('#periodSelect').val();
     const qs = new URLSearchParams({ granularity: state.granularity });
     if (period) qs.set('period_end', period);
-
-    const r = await fetch('/api/stats?'+qs.toString());
-    const j = await r.json();
-    if (!j.ok) { alert(j.msg||'查询失败'); return; }
-
+    const r = await fetch('/api/stats?'+qs.toString()); const j = await r.json();
+    if (!j.ok){ alert(j.msg||'查询失败'); return; }
     renderKPI(j.kpis || {});
-
-    // DataTable
     const rows = (j.rows||[]).map(x => [
       x.product_id || '',
       x.product_link ? '<a href="'+x.product_link+'" target="_blank">'+(x.product_link.split('/').pop() || '链接')+'</a>' : '',
-      x.search_exposure || 0,
-      x.uv || 0,
-      x.pv || 0,
-      x.add_to_cart_users || 0,
-      x.add_to_cart_qty || 0,
-      x.pay_items || 0,
-      x.pay_orders || 0,
-      x.pay_buyers || 0,
+      x.search_exposure || 0, x.uv || 0, x.pv || 0,
+      x.add_to_cart_users || 0, x.add_to_cart_qty || 0,
+      x.pay_items || 0, x.pay_orders || 0, x.pay_buyers || 0,
       (x.uv ? ((x.add_to_cart_users||0)/x.uv*100).toFixed(2) : '0.00'),
       (x.add_to_cart_users ? ((x.pay_buyers||0)/x.add_to_cart_users*100).toFixed(2) : '0.00'),
       (x.pv ? ((x.uv||0)/x.pv*100).toFixed(2) : '0.00')
     ]);
-
-    if (state.table) { state.table.clear().rows.add(rows).draw(); }
-    else {
-      state.table = $('#report').DataTable({
-        data: rows,
-        paging: true,
-        pageLength: 25,
-        fixedHeader: true,
-        scrollY: '60vh',
-        scrollCollapse: true,
-        autoWidth: false
-      });
-    }
+    if (state.table) state.table.clear().rows.add(rows).draw();
+    else state.table = $('#report').DataTable({ data: rows, paging:true, pageLength:25, fixedHeader:true, scrollY:'60vh', scrollCollapse:true, autoWidth:false });
   }
 
-  function card(title, val){
-    return '<div class="stat-card"><h4>'+title+'</h4><p>'+val+'</p></div>';
-  }
+  function card(title, val){ return '<div class="stat-card"><h4>'+title+'</h4><p>'+val+'</p></div>'; }
   function renderKPI(k){
-    const html = [
+    $('#kpi').html([
       card('平均访客到加购转化率', (k.avg_visit_to_atc||0)+'%'),
       card('平均加购到支付转化率', (k.avg_atc_to_pay||0)+'%'),
       card('平均访客比', (k.avg_visit_rate||0)+'%'),
       card('产品总数', k.product_count||0),
       card('有加购的产品数', k.atc_product_count||0),
       card('有支付的产品数', k.pay_product_count||0)
-    ].join('');
-    $('#kpi').html(html);
+    ].join(''));
   }
 
-  // init
   loadPeriods().then(loadData);
 })();
 </script>
