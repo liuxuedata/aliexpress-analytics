@@ -1,0 +1,185 @@
+
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>速卖通全托管数据分析</title>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css">
+  <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
+</head>
+<body class="fm">
+<div class="container">
+  <nav class="sidebar" id="sidebar">
+    <h3>产品导航</h3>
+    <ul>
+      <li class="has-submenu open">
+        <a href="#">速卖通</a>
+        <ul class="submenu">
+          <li><a href="index.html" class="active">全托管</a></li>
+          <li><a href="self-operated.html">自运营</a></li>
+        </ul>
+      </li>
+      <li><a href="#">TikTok Shop</a></li>
+      <li><a href="#">亚马逊</a></li>
+      <li class="has-submenu open">
+        <a href="#">独立站</a>
+        <ul class="submenu">
+          <li><a href="independent-site.html">数据分析</a></li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+
+  <main class="main">
+    <div class="upload-section">
+      <div class="upload-top">
+        <div style="font-size:28px;font-weight:800;">速卖通全托管数据分析</div>
+        <div class="controls">
+          <label class="badge">时间粒度</label>
+          <label><input type="radio" name="gran" value="week" checked> 周</label>
+          <label><input type="radio" name="gran" value="month"> 月</label>
+
+          <select id="periodSelect" class="sel"><option value="">加载中...</option></select>
+
+          <label for="file" id="pickLabel" class="upload-btn">选择文件</label>
+          <input type="file" id="file" accept=".xlsx,.xls" />
+          <span id="status" class="notice"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="content-pad">
+        <div class="stats-cards" id="kpi"></div>
+        <div class="divider"></div>
+        <div class="table-section">
+          <table id="report" class="display" style="width:100%">
+            <thead>
+              <tr>
+                <th>商品ID</th>
+                <th>产品链接</th>
+                <th>搜索曝光量</th>
+                <th>商品访客数</th>
+                <th>商品浏览量</th>
+                <th>加购人数</th>
+                <th>加购件数</th>
+                <th>支付件数</th>
+                <th>支付订单数</th>
+                <th>支付买家数</th>
+                <th>访客到加购转化率(%)</th>
+                <th>加购到支付转化率(%)</th>
+                <th>访客比(%)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  document.querySelectorAll('.has-submenu > a').forEach(a => {
+    a.addEventListener('click', function(e){
+      const li = this.parentElement;
+      const sub = li.querySelector('.submenu');
+      if (!sub) return;
+      e.preventDefault();
+      li.classList.toggle('open');
+    });
+  });
+
+  const state = { granularity: 'week', table: null, uploading: false };
+
+  $('input[name="gran"]').on('change', function(){
+    state.granularity = this.value;
+    loadPeriods().then(loadData);
+  });
+
+  $('#file').on('change', async function(e){
+    const file = e.target.files[0];
+    if (!file) return;
+    await autoUpload(file);
+    e.target.value = '';
+  });
+
+  async function autoUpload(file){
+    if (state.uploading) return;
+    state.uploading = true;
+    setStatus('上传中…'); togglePick(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file, file.name);
+      fd.append('filename', file.name); // 可选：后端也能拿到
+      const r = await fetch('/api/ingest', { method:'POST', body: fd });
+      const j = await r.json();
+      if (!j.ok) throw new Error((j.step?('[步骤 '+j.step+'] '):'') + (j.msg || '导入失败'));
+      setStatus('已入库：' + j.type + ' ' + j.date + '（' + j.rows + ' 行）');
+      await loadPeriods(); await loadData();
+    } catch(err){
+      alert(err.message);
+      setStatus('上传失败：' + err.message);
+    } finally {
+      togglePick(false); setTimeout(()=> setStatus(''), 5000); state.uploading = false;
+    }
+  }
+  function togglePick(disabled){ $('#pickLabel').css({ opacity: disabled?.6:1, pointerEvents: disabled?'none':'auto' }).text(disabled?'上传中…':'选择文件'); }
+  function setStatus(t){ $('#status').text(t||''); }
+
+  async function loadPeriods(){
+    const r = await fetch('/api/periods'); const j = await r.json();
+    const list = (state.granularity==='week' ? j.weeks : j.months) || [];
+    const $sel = $('#periodSelect').empty();
+    if (!list.length){ $sel.append('<option value="">暂无数据</option>'); return; }
+    list.forEach(d=> $sel.append('<option value="'+d+'">'+d+'</option>'));
+  }
+
+  $('#periodSelect').on('change', loadData);
+
+  async function loadData(){
+    const period = $('#periodSelect').val();
+    const qs = new URLSearchParams({ granularity: state.granularity });
+    if (period) qs.set('period_end', period);
+    const r = await fetch('/api/stats?'+qs.toString()); const j = await r.json();
+    if (!j.ok){ alert(j.msg||'查询失败'); return; }
+    renderKPI(j.kpis || {});
+    const rows = (j.rows||[]).map(x => [
+      x.product_id || '',
+      x.product_link ? '<a href="'+x.product_link+'" target="_blank">'+(x.product_link.split('/').pop() || '链接')+'</a>' : '',
+      x.search_exposure || 0, x.uv || 0, x.pv || 0,
+      x.add_to_cart_users || 0, x.add_to_cart_qty || 0,
+      x.pay_items || 0, x.pay_orders || 0, x.pay_buyers || 0,
+      (x.uv ? ((x.add_to_cart_users||0)/x.uv*100).toFixed(2) : '0.00'),
+      (x.add_to_cart_users ? ((x.pay_buyers||0)/x.add_to_cart_users*100).toFixed(2) : '0.00'),
+     (x.search_exposure ? ((x.uv||0)/x.search_exposure*100).toFixed(2) : '0.00')
+
+    ]);
+    if (state.table) state.table.clear().rows.add(rows).draw();
+    else state.table = $('#report').DataTable({ data: rows, paging:true, pageLength:25, fixedHeader:true, scrollY:'60vh', scrollCollapse:true, autoWidth:false });
+  }
+
+  function card(title, val){ return '<div class="stat-card"><h4>'+title+'</h4><p>'+val+'</p></div>'; }
+  function renderKPI(k){
+    $('#kpi').html([
+      card('平均访客到加购转化率', (k.avg_visit_to_atc||0)+'%'),
+      card('平均加购到支付转化率', (k.avg_atc_to_pay||0)+'%'),
+      card('平均访客比', (k.avg_visit_rate||0)+'%'),
+      card('产品总数', k.product_count||0),
+      card('有加购的产品数', k.atc_product_count||0),
+      card('有支付的产品数', k.pay_product_count||0)
+    ].join(''));
+  }
+
+  loadPeriods().then(loadData);
+})();
+</script>
+
+</body>
+</html>
