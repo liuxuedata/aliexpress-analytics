@@ -64,6 +64,8 @@ export default async function handler(req, res) {
     const map = new Map();
     for (const raw of rowsIn) {
       const row = normalize(raw);
+        // 确保彻底去掉 product_link（即使前端传了）
+        if ('product_link' in row) delete row.product_link;
       if (!row.product_id || !row.stat_date) continue;
       map.set(row.product_id + '__' + row.stat_date, row);
     }
