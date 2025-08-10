@@ -1,289 +1,206 @@
-<!DOCTYPE html>
-<html lang="zh">
+
+<!doctype html>
+<html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <title>速卖通报告与导航 - 全托管</title>
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
-    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
-<link rel="stylesheet" href="assets/theme.css?v=20250810b">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>速卖通全托管数据分析</title>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css">
+  <link rel="stylesheet" href="assets/theme.css?v=20250811">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <nav class="sidebar" id="sidebar">
-            <button id="toggleBtn" class="toggle-btn">«</button>
-            <h3 class="nav-title">产品导航</h3>
-            <ul>
-                <li class="has-submenu">
-                    <a href="#"><span class="abbr">S</span><span class="label">速卖通</span></a>
-                    <ul class="submenu">
-                        <li><a href="index.html">全托管</a></li>
-                        <li><a href="self-operated.html">自运营</a></li>
-                    </ul>
-                </li>
-                <li><a href="#"><span class="abbr">T</span><span class="label">TikTok Shop</span></a></li>
-                <li><a href="#"><span class="abbr">A</span><span class="label">亚马逊</span></a></li>
-                <li class="has-submenu">
-                    <a href="#"><span class="abbr">独</span><span class="label">独立站</span></a>
-                    <ul class="submenu">
-                        <li><a href="independent-site.html">数据分析</a></li>
-                    </ul>
-                </li>
-            </ul>
-        </nav>
-        <div class="main">
-            <div class="upload-section">
-                <h2>速卖通全托管数据分析</h2>
-                <div class="upload-top">
-                    <p class="upload-instruction">请选择包含商品数据的 Excel 或 CSV 文件，系统会自动计算转化率并显示完整数据：</p>
-                    <label for="fileInput" class="upload-btn">选择文件</label>
-                    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
-                </div>
-                <div class="stats-cards">
-                    <div class="stat-card" id="card-conv1"><h4>平均访客到加购转化率</h4><p></p></div>
-                    <div class="stat-card" id="card-conv2"><h4>平均加购到支付转化率</h4><p></p></div>
-                    <div class="stat-card" id="card-visavg"><h4>平均访客比</h4><p></p></div>
-                    <div class="stat-card" id="card-total"><h4>产品总数</h4><p></p></div>
-                    <div class="stat-card" id="card-addcount"><h4>有加购的产品数</h4><p></p></div>
-                    <div class="stat-card" id="card-visitors"><h4>到访客户总数</h4><p></p></div>
-                    <div class="stat-card" id="card-paycount"><h4>有支付的产品数</h4><p></p></div>
-                </div>
-                <button id="saveBtn" style="margin-top: 15px; padding: 8px 14px; font-size: 14px; border: none; border-radius: 4px; background: #4a90e2; color: #fff; cursor: pointer; opacity: 0.6;" disabled>保存到数据库</button>
-            </div>
-            <div class="table-section">
-                <table id="report" class="display" style="width:100%"></table>
-            </div>
+<div class="container">
+  <aside class="sidebar">
+    <h3>产品导航</h3>
+    <ul>
+      <li class="has-submenu open">
+        <a href="#">速卖通</a>
+        <ul class="submenu">
+          <li><a href="index.html" class="active">全托管</a></li>
+          <li><a href="self-operated.html">自运营</a></li>
+        </ul>
+      </li>
+      <li><a href="independent-site.html">独立站</a></li>
+    </ul>
+  </aside>
+
+  <main class="main">
+    <div class="upload-section">
+      <div class="upload-top">
+        <div style="font-size:28px;font-weight:800;">速卖通全托管数据分析</div>
+        <div class="controls">
+          <label class="badge">时间粒度</label>
+          <label><input type="radio" name="gran" value="week" checked> 周</label>
+          <label><input type="radio" name="gran" value="month"> 月</label>
+
+          <select id="periodSelect" class="sel"><option value="">加载中...</option></select>
+
+          <label for="file" class="upload-btn">选择文件</label>
+          <input type="file" id="file" accept=".xlsx,.xls" />
+          <button id="upload" class="btn">保存到数据库</button>
         </div>
+      </div>
     </div>
-<script>
-$(document).ready(function() {
-    // --- START: Sidebar Active Link Logic ---
-    var currentPage = window.location.pathname.split("/").pop();
-    if (currentPage === "" || currentPage === "index.html") {
-        $('a[href="index.html"]').addClass('active');
-    } else {
-        $('.sidebar a[href="' + currentPage + '"]').addClass('active');
-    }
-    $('.sidebar a.active').closest('.has-submenu').addClass('open');
-    // --- END: Sidebar Active Link Logic ---
 
-    // Sidebar submenu toggle logic
-    $('.has-submenu > a').on('click', function(e) {
-        e.preventDefault();
-        $(this).parent().toggleClass('open');
-    });
-
-    // Sidebar collapse button
-    $('#toggleBtn').on('click', function() {
-        var sidebar = $('#sidebar');
-        var collapsed = sidebar.toggleClass('collapsed').hasClass('collapsed');
-        this.textContent = collapsed ? '»' : '«';
-    });
-
-    // --- The rest of your page-specific JavaScript ---
-    var table = $('#report').DataTable({
-        data: [],
-        columns: [
-            { title: '商品ID' }, { title: '产品链接' }, { title: '搜索曝光量' }, { title: '商品访客数' },
-            { title: '商品浏览量' }, { title: '商品加购人数' }, { title: '商品加购件数' }, { title: '支付件数' },
-            { title: '支付订单数' }, { title: '支付买家数' },
-            { title: '访客到加购转化率(%) <span class="info" onclick="showInfo(\'conv1\')">?</span>' },
-            { title: '加购到支付转化率(%) <span class="info" onclick="showInfo(\'conv2\')">?</span>' },
-            { title: '访客比(%) <span class="info" onclick="showInfo(\'visRatio\')">?</span>' }
-        ],
-        language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json' },
-        scrollX: true
-    });
-
-    var processedDataToSave = [];
-    $('#fileInput').on('change', function(e) {
-        var file = e.target.files[0];
-        if (!file) return;
-        var reader = new FileReader();
-        reader.onload = function(evt) {
-            var data = new Uint8Array(evt.target.result);
-            var workbook = XLSX.read(data, { type: 'array' });
-            var firstSheetName = workbook.SheetNames[0];
-            var worksheet = workbook.Sheets[firstSheetName];
-            var json = XLSX.utils.sheet_to_json(worksheet, { defval: '', raw: false });
-            var processed = computeAndFormat(json);
-            
-            processedDataToSave = buildDataForSave(json);
-
-            $('#saveBtn').prop('disabled', false).css('opacity', 1);
-            table.clear().rows.add(processed).draw();
-            
-            updateStats(json, processed);
-
-            if (!$('#sidebar').hasClass('collapsed')) {
-                $('#sidebar').addClass('collapsed');
-                $('#toggleBtn').text('»');
-            }
-        };
-        reader.readAsArrayBuffer(file);
-    });
-
-    $('#saveBtn').on('click', function() {
-        if (processedDataToSave.length === 0) {
-            alert('没有可保存的数据。');
-            return;
-        }
-        fetch('/api/submitData', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(processedDataToSave)
-        })
-        .then(response => response.json())
-        .then(result => {
-            alert(result.success ? '数据已成功保存到数据库。' : '保存失败：' + (result.error || '未知错误'));
-        })
-        .catch(err => alert('保存时发生错误：' + err.message));
-    });
-});
-
-function showInfo(key) {
-    var messages = {
-        'conv1': '访客到加购转化率 = 商品加购人数 ÷ 商品访客数 × 100%',
-        'conv2': '加购到支付转化率 = 支付买家数 ÷ 商品加购人数 × 100%',
-        'visRatio': '访客比 = 商品访客数 ÷ 搜索曝光量 × 100%'
-    };
-    if (messages[key]) alert(messages[key]);
-}
-
-function computeAndFormat(dataArray) {
-    return dataArray.map(row => {
-        var productId = row['商品ID'];
-        var exposures = parseFloat(row['搜索曝光量']) || 0;
-        var visitors = parseFloat(row['商品访客数']) || 0;
-        var addPeople = parseFloat(row['商品加购人数']) || 0;
-        var buyers = parseFloat(row['支付买家数']) || 0;
-        
-        var conv1 = visitors ? (addPeople / visitors * 100).toFixed(2) : '0.00';
-        var conv2 = addPeople ? (buyers / addPeople * 100).toFixed(2) : '0.00';
-        var visRatio = exposures ? (visitors / exposures * 100).toFixed(2) : '0.00';
-        
-        var link = productId ? `<a href="https://aliexpress.com/item/${productId}.html" target="_blank">${productId}</a>` : '';
-        
-        return [
-            productId || '', link, row['搜索曝光量'] || '', row['商品访客数'] || '', row['商品浏览量'] || '',
-            row['商品加购人数'] || '', row['商品加购件数'] || '', row['支付件数'] || '',
-            row['支付订单数'] || '', row['支付买家数'] || '', conv1, conv2, visRatio
-        ];
-    });
-}
-
-function buildDataForSave(dataArray) {
-    return dataArray.map(obj => {
-        var visitorCount = parseFloat(obj['商品访客数']) || 0;
-        var addPeople = parseFloat(obj['商品加购人数']) || 0;
-        var payBuyers = parseFloat(obj['支付买家数']) || 0;
-        var exp = parseFloat(obj['搜索曝光量']) || 0;
-        return {
-            product_id: obj['商品ID'],
-            product_link: `https://aliexpress.com/item/${obj['商品ID']}.html`,
-            exposure: exp, visitors: visitorCount, views: parseFloat(obj['商品浏览量']) || 0,
-            add_people: addPeople, add_count: parseFloat(obj['商品加购件数']) || 0,
-            pay_items: parseFloat(obj['支付件数']) || 0, pay_orders: parseFloat(obj['支付订单数']) || 0, pay_buyers: payBuyers,
-            visitor_to_add: visitorCount ? (addPeople / visitorCount * 100).toFixed(2) : '0.00',
-            add_to_pay: addPeople ? (payBuyers / addPeople * 100).toFixed(2) : '0.00',
-            visitor_ratio: exp ? (visitorCount / exp * 100).toFixed(2) : '0.00'
-        };
-    });
-}
-
-function updateStats(json, processed) {
-    let total1 = 0, count1 = 0, total2 = 0, count2 = 0, totalVis = 0, countVis = 0;
-    processed.forEach(row => {
-        let c1 = parseFloat(row[10]); if (!isNaN(c1)) { total1 += c1; count1++; }
-        let c2 = parseFloat(row[11]); if (!isNaN(c2)) { total2 += c2; count2++; }
-        let c3 = parseFloat(row[12]); if (!isNaN(c3)) { totalVis += c3; countVis++; }
-    });
-
-    let addProductCount = 0, payProductCount = 0, totalVisitors = 0;
-    json.forEach(row => {
-        if (parseFloat(row['商品加购人数']) > 0) addProductCount++;
-        if (parseFloat(row['支付订单数']) > 0) payProductCount++;
-        totalVisitors += parseFloat(row['商品访客数']) || 0;
-    });
-
-    updateCards(
-        count1 ? (total1 / count1).toFixed(2) : '0.00',
-        count2 ? (total2 / count2).toFixed(2) : '0.00',
-        countVis ? (totalVis / countVis).toFixed(2) : '0.00',
-        json.length, addProductCount, totalVisitors, payProductCount
-    );
-}
-
-function updateCards(avg1, avg2, avgVis, totalProducts, addProductCount, totalVisitors, payProductCount) {
-    $('#card-conv1 p').text(avg1 + '%');
-    $('#card-conv2 p').text(avg2 + '%');
-    $('#card-visavg p').text(avgVis + '%');
-    $('#card-total p').text(totalProducts);
-    $('#card-addcount p').text(addProductCount);
-    $('#card-visitors p').text(totalVisitors);
-    $('#card-paycount p').text(payProductCount);
-}
-</script>
-
-
+    <div class="content">
+      <div class="content-pad">
+        <div class="stats-cards" id="kpi">
+          <!-- KPI cards inserted by JS -->
+        </div>
+        <div class="divider"></div>
+        <div class="table-section">
+          <table id="report" class="display" style="width:100%">
+            <thead>
+              <tr>
+                <th>商品ID</th>
+                <th>产品链接</th>
+                <th>搜索曝光量</th>
+                <th>商品访客数</th>
+                <th>商品浏览量</th>
+                <th>加购人数</th>
+                <th>加购件数</th>
+                <th>支付件数</th>
+                <th>支付订单数</th>
+                <th>支付买家数</th>
+                <th>访客到加购转化率(%)</th>
+                <th>加购到支付转化率(%)</th>
+                <th>访客比(%)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
 
 <script>
-(function() {
-  var page = location.pathname.split('/').pop() || 'index.html';
+(function(){
+  // Sidebar behavior
+  document.querySelectorAll('.has-submenu > a').forEach(a => {
+    a.addEventListener('click', function(e){
+      const li = this.parentElement;
+      const sub = li.querySelector('.submenu');
+      if (!sub) return;
+      e.preventDefault();
+      li.classList.toggle('open');
+    });
+  });
 
-  // Highlight current page
-  var links = document.querySelectorAll('.sidebar a[href]');
-  for (var i=0;i<links.length;i++) {
-    if (links[i].getAttribute('href') === page) {
-      links[i].classList.add('active');
-      var p = links[i].closest('.has-submenu');
-      if (p) p.classList.add('open');
+  const state = {
+    granularity: 'week',
+    file: null,
+    table: null
+  };
+
+  $('input[name="gran"]').on('change', function(){
+    state.granularity = this.value;
+    loadPeriods().then(()=> loadData());
+  });
+
+  $('#file').on('change', function(e){
+    state.file = e.target.files[0] || null;
+  });
+
+  $('#upload').on('click', async function(){
+    if (!state.file) { alert('请先选择文件'); return; }
+    const fd = new FormData();
+    fd.append('file', state.file);
+    try {
+      const r = await fetch('/api/ingest', { method:'POST', body: fd, headers: { 'x-file-name': state.file.name } });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.msg || '导入失败');
+      alert('导入成功：' + j.type + ' ' + j.date + ' 共 ' + j.rows + ' 行');
+      // reload periods & data (keep current granularity)
+      await loadPeriods();
+      await loadData();
+    } catch(err){
+      alert(err.message);
     }
-  }
+  });
 
-  // Make sure sidebar sits above content and is clickable
-  var sb = document.querySelector('.sidebar');
-  if (sb) { sb.style.zIndex = 1000; }
-
-  // Parent click: if only one child, go directly; else toggle
-  var parents = document.querySelectorAll('.has-submenu > a');
-  for (var j=0;j<parents.length;j++) {
-    parents[j].addEventListener('click', function(e){
-      var li = this.parentElement;
-      var submenu = li.querySelector('.submenu');
-      if (!submenu) return;
-      var items = submenu.querySelectorAll('a[href]');
-      if (items.length === 1) {
-        window.location.href = items[0].getAttribute('href');
-      } else {
-        e.preventDefault();
-        li.classList.toggle('open');
-      }
+  async function loadPeriods(){
+    const r = await fetch('/api/periods');
+    const j = await r.json();
+    if (!j.ok) return;
+    const list = state.granularity==='week' ? j.weeks : j.months;
+    const $sel = $('#periodSelect');
+    $sel.empty();
+    if (!list || !list.length){
+      $sel.append('<option value="">暂无数据</option>');
+      return;
+    }
+    list.forEach((d,i)=>{
+      $sel.append('<option value="'+d+'">'+d+'</option>');
     });
   }
 
-  // Submenu links: always navigate
-  var subLinks = document.querySelectorAll('.submenu a[href]');
-  for (var k=0;k<subLinks.length;k++) {
-    subLinks[k].addEventListener('click', function(e){
-      // Some browsers may have preventDefault from other handlers; enforce navigation
-      window.location.href = this.getAttribute('href');
-    });
-  }
+  $('#periodSelect').on('change', loadData);
 
-  // If we're on independent-site.html, auto-open the 速卖通菜单（第一个带有"速卖通"文本的父级）
-  if (page === 'independent-site.html') {
-    var groups = document.querySelectorAll('.has-submenu');
-    for (var g=0; g<groups.length; g++) {
-      var txt = groups[g].textContent || '';
-      if (txt.indexOf('速卖通') !== -1 || txt.toLowerCase().indexOf('aliexpress') !== -1) {
-        groups[g].classList.add('open');
-        break;
-      }
+  async function loadData(){
+    const period = $('#periodSelect').val();
+    const qs = new URLSearchParams({ granularity: state.granularity });
+    if (period) qs.set('period_end', period);
+
+    const r = await fetch('/api/stats?'+qs.toString());
+    const j = await r.json();
+    if (!j.ok) { alert(j.msg||'查询失败'); return; }
+
+    renderKPI(j.kpis || {});
+
+    // DataTable
+    const rows = (j.rows||[]).map(x => [
+      x.product_id || '',
+      x.product_link ? '<a href="'+x.product_link+'" target="_blank">'+(x.product_link.split('/').pop() || '链接')+'</a>' : '',
+      x.search_exposure || 0,
+      x.uv || 0,
+      x.pv || 0,
+      x.add_to_cart_users || 0,
+      x.add_to_cart_qty || 0,
+      x.pay_items || 0,
+      x.pay_orders || 0,
+      x.pay_buyers || 0,
+      (x.uv ? ((x.add_to_cart_users||0)/x.uv*100).toFixed(2) : '0.00'),
+      (x.add_to_cart_users ? ((x.pay_buyers||0)/x.add_to_cart_users*100).toFixed(2) : '0.00'),
+      (x.pv ? ((x.uv||0)/x.pv*100).toFixed(2) : '0.00')
+    ]);
+
+    if (state.table) { state.table.clear().rows.add(rows).draw(); }
+    else {
+      state.table = $('#report').DataTable({
+        data: rows,
+        paging: true,
+        pageLength: 25,
+        fixedHeader: true,
+        scrollY: '60vh',
+        scrollCollapse: true,
+        autoWidth: false
+      });
     }
   }
+
+  function card(title, val){
+    return '<div class="stat-card"><h4>'+title+'</h4><p>'+val+'</p></div>';
+  }
+  function renderKPI(k){
+    const html = [
+      card('平均访客到加购转化率', (k.avg_visit_to_atc||0)+'%'),
+      card('平均加购到支付转化率', (k.avg_atc_to_pay||0)+'%'),
+      card('平均访客比', (k.avg_visit_rate||0)+'%'),
+      card('产品总数', k.product_count||0),
+      card('有加购的产品数', k.atc_product_count||0),
+      card('有支付的产品数', k.pay_product_count||0)
+    ].join('');
+    $('#kpi').html(html);
+  }
+
+  // init
+  loadPeriods().then(loadData);
 })();
 </script>
 
