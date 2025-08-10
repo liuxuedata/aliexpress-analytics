@@ -109,8 +109,9 @@
     setStatus('上传中…'); togglePick(true);
     try {
       const fd = new FormData();
-      fd.append('file', file);
-      const r = await fetch('/api/ingest', { method:'POST', body: fd, headers: { 'x-file-name': file.name } });
+      fd.append('file', file, file.name);
+      fd.append('filename', file.name); // 可选：后端也能拿到
+      const r = await fetch('/api/ingest', { method:'POST', body: fd });
       const j = await r.json();
       if (!j.ok) throw new Error((j.step?('[步骤 '+j.step+'] '):'') + (j.msg || '导入失败'));
       setStatus('已入库：' + j.type + ' ' + j.date + '（' + j.rows + ' 行）');
