@@ -68,7 +68,8 @@ module.exports = async (req, res) => {
     const visitorTotal = sum(rows,"uv");
     const visitToAtcRate = visitorTotal ? (sum(rows,"add_to_cart_users")/visitorTotal*100) : 0;
     const atcToPayRate = sum(rows,"add_to_cart_users") ? (sum(rows,"pay_buyers")/sum(rows,"add_to_cart_users")*100) : 0;
-    const visitRate = sum(rows,"pv") ? (visitorTotal / sum(rows,"pv") * 100) : 0;
+    const visitRate = sum(rows,"exposure") ? (visitorTotal / sum(rows,"exposure") * 100) : 0;
+
 
     const kpis = {
       avg_visit_to_atc: +visitToAtcRate.toFixed(2),
