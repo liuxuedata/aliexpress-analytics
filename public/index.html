@@ -151,7 +151,8 @@
       x.pay_items || 0, x.pay_orders || 0, x.pay_buyers || 0,
       (x.uv ? ((x.add_to_cart_users||0)/x.uv*100).toFixed(2) : '0.00'),
       (x.add_to_cart_users ? ((x.pay_buyers||0)/x.add_to_cart_users*100).toFixed(2) : '0.00'),
-      (x.pv ? ((x.uv||0)/x.pv*100).toFixed(2) : '0.00')
+     (x.search_exposure ? ((x.uv||0)/x.search_exposure*100).toFixed(2) : '0.00')
+
     ]);
     if (state.table) state.table.clear().rows.add(rows).draw();
     else state.table = $('#report').DataTable({ data: rows, paging:true, pageLength:25, fixedHeader:true, scrollY:'60vh', scrollCollapse:true, autoWidth:false });
