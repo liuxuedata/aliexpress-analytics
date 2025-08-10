@@ -62,7 +62,7 @@ module.exports = async (req, res) => {
       period_type: periodType,
       period_end: dateStr,
       product_id: String(r[I.productId] || ""),
-      product_link: I.productLink>=0 ? String(r[I.productLink]||"") : null,
+      
       search_exposure: I.searchExpo>=0 ? Number(r[I.searchExpo]||0) : null,
       uv: I.uv>=0 ? Number(r[I.uv]||0) : null,
       pv: I.pv>=0 ? Number(r[I.pv]||0) : null,
