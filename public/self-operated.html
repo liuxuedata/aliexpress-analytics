@@ -29,6 +29,10 @@
 .stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
 .stat-card.clickable,.kpi .card.clickable{cursor:pointer}
 </style>
+<style>/* KPI basic helpers (no extra period controls) */
+.stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
+.stat-card.clickable,.kpi .card.clickable{cursor:pointer}
+.kpi-row{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin:.25rem 0 .75rem}</style>
 </head>
 <body>
 <div class="container">
@@ -585,5 +589,166 @@ $('#metricSel').on('change', fetchAndRenderAll);
   });
 })();
 </script>
+<script>/* === New Products KPI (Self) v3 === */
+(function(){
+  let removeNewFilter = null;
+  let lastData = null;
+
+  function getDT(){
+    if (!window.jQuery || !jQuery.fn || !jQuery.fn.dataTable) return null;
+    try { return window.dataTable || jQuery('#report').DataTable(); } catch(e){ return null; }
+  }
+  async function fetchRange(fromISO, toISO){
+    const qs = new URLSearchParams({ platform:'self' });
+    if (fromISO) qs.set('from', fromISO);
+    if (toISO) qs.set('to', toISO);
+    const r = await fetch('/api/new-products?'+qs.toString());
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.msg||'fetch error');
+    return j;
+  }
+  function parseDateRange(){
+    const input = document.getElementById('dateFilter');
+    if (input && input.value && input.value.includes(' to ')){
+      const [s, e] = input.value.split(' to ');
+      return { from:s, to:e };
+    }
+    // fallback: last 7 days
+    const today = new Date();
+    const to = today.toISOString().slice(0,10);
+    const from = new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
+    return { from, to };
+    }
+  function ensureCard(){
+    const wrap = document.querySelector('.kpi') || document.getElementById('kpi');
+    if (!wrap){
+      // create before table fallback
+      const table = document.querySelector('#report');
+      const host = document.createElement('div');
+      host.className = 'kpi-row';
+      if (table && table.parentNode) table.parentNode.insertBefore(host, table);
+      else document.body.insertBefore(host, document.body.firstChild);
+      wrap = host;
+    }
+    let card = document.getElementById('kpi-new-self-card');
+    if (!card){
+      const div = document.createElement('div');
+      div.className = 'card clickable stat-card';
+      div.id = 'kpi-new-self-card';
+      div.innerHTML = '<h4>本周期新品数</h4><p id="kpi-new-self-count">--</p><a id="kpi-new-self-clear" class="mini-link">清除筛选</a>';
+      wrap.appendChild(div);
+      card = div;
+    }
+    return {
+      card,
+      countEl: document.getElementById('kpi-new-self-count'),
+      clearEl: document.getElementById('kpi-new-self-clear'),
+    };
+  }
+  function applyFilterByIds(ids){
+    const dt = getDT();
+    if (removeNewFilter){ removeNewFilter(); removeNewFilter = null; }
+
+    if (dt && jQuery.fn.dataTable.ext){
+      const ext = jQuery.fn.dataTable.ext;
+      const filterFn = (settings, data, dataIndex) => {
+        let pid = (data[0]||'').toString().trim();
+        if (!pid || /<a/i.test(pid)) {
+          const rowNode = dt.row(dataIndex).node();
+          const cell = rowNode && rowNode.querySelector('td:first-child');
+          if (cell) pid = (cell.textContent||'').trim();
+        }
+        const m = pid.match(/(\d{6,})/g);
+        if (m && m.length) pid = m[m.length-1];
+        return ids.has(pid);
+      };
+      ext.search.push(filterFn);
+      dt.draw();
+      removeNewFilter = () => {
+        const pos = ext.search.findIndex(f => f === filterFn);
+        if (pos > -1) ext.search.splice(pos, 1);
+        dt.draw();
+      };
+    } else {
+      const table = document.querySelector('#report');
+      if (!table || !table.tBodies[0]) return;
+      const rows = Array.from(table.tBodies[0].rows);
+      const original = new Map();
+      rows.forEach(tr => {
+        const td = tr.cells[0];
+        let pid = td ? td.textContent.trim() : '';
+        const m = pid.match(/(\d{6,})/g);
+        if (m && m.length) pid = m[m.length-1];
+        if (!original.has(tr)) original.set(tr, tr.style.display);
+        tr.style.display = ids.has(pid) ? '' : 'none';
+      });
+      removeNewFilter = () => { for (const [tr, disp] of original) tr.style.display = disp; };
+    }
+  }
+  async function refreshFromPageRange(){
+    const ui = ensureCard();
+    const { from, to } = parseDateRange();
+    try{
+      lastData = await fetchRange(from, to);
+      ui.countEl.textContent = lastData.new_count || 0;
+      ui.card.onclick = () => {
+        if (!lastData.items || !lastData.items.length) return;
+        const ids = new Set(lastData.items.map(x => String(x.product_id)));
+        applyFilterByIds(ids);
+        ui.clearEl.style.display = 'inline';
+      };
+      ui.clearEl.onclick = (e) => {
+        e.stopPropagation();
+        if (removeNewFilter) removeNewFilter();
+        ui.clearEl.style.display = 'none';
+      };
+    }catch(e){
+      console.warn('[Self KPI] fetch failed:', e);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    // Initial after table rendered
+    const obs = new MutationObserver(()=>{
+      const tb = document.querySelector('#report tbody');
+      const kpiHost = document.querySelector('.kpi') || document.getElementById('kpi') || document.querySelector('.kpi-row');
+      if (kpiHost && tb && tb.children.length){
+        obs.disconnect();
+        refreshFromPageRange();
+        // Hook dateFilter changes
+        const input = document.getElementById('dateFilter');
+        if (input && !input._newkpi_hook){
+          input._newkpi_hook = true;
+          input.addEventListener('change', refreshFromPageRange);
+          input.addEventListener('blur', refreshFromPageRange);
+        }
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn && !refreshBtn._newkpi_hook){
+          refreshBtn._newkpi_hook = true;
+          refreshBtn.addEventListener('click', () => {
+            // Wait progress text to change then refresh
+            const prog = document.getElementById('progress');
+            if (!prog) return;
+            const pObs = new MutationObserver(()=>{
+              if ((prog.textContent||'').trim().length){
+                pObs.disconnect();
+                refreshFromPageRange();
+              }
+            });
+            pObs.observe(prog, { childList:true, characterData:true, subtree:true });
+          });
+        }
+      }
+    });
+    obs.observe(document.body, { childList:true, subtree:true });
+
+    // Also watch tbody changes (whenever数据明细重绘)
+    const tbody = document.querySelector('#report tbody');
+    if (tbody){
+      const tObs = new MutationObserver(()=>{ refreshFromPageRange(); });
+      tObs.observe(tbody, { childList:true });
+    }
+  });
+})();</script>
 </body>
 </html>

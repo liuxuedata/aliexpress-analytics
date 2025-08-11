@@ -22,6 +22,10 @@
 .stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
 .stat-card.clickable,.kpi .card.clickable{cursor:pointer}
 </style>
+<style>/* KPI basic helpers (no extra period controls) */
+.stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
+.stat-card.clickable,.kpi .card.clickable{cursor:pointer}
+.kpi-row{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin:.25rem 0 .75rem}</style>
 </head>
 <body class="fm">
 <div class="container">
@@ -510,5 +514,157 @@
   obs.observe(document.body, { childList:true, subtree:true });
 })();
 </script>
+<script>/* === New Products KPI (Managed) v3 === */
+(function(){
+  let removeNewFilter = null;
+  let lastData = null;
+
+  // Helpers
+  function getReportTable(){
+    // Prefer #report; fallback first table with tbody rows
+    let t = document.querySelector('#report');
+    if (t && t.tBodies && t.tBodies[0] && t.tBodies[0].rows.length) return t;
+    t = Array.from(document.querySelectorAll('table')).find(x => x.tBodies && x.tBodies[0] && x.tBodies[0].rows.length);
+    return t || null;
+  }
+  function getDT(table){
+    if (!window.jQuery || !jQuery.fn || !jQuery.fn.dataTable) return null;
+    if (jQuery.fn.dataTable.isDataTable(table)) return jQuery(table).DataTable();
+    try { return jQuery('#report').DataTable(); } catch(e){ return null; }
+  }
+  async function fetchNew(periodISO){
+    const qs = new URLSearchParams({ platform:'managed' });
+    if (periodISO) { qs.set('from', periodISO); qs.set('to', periodISO); }
+    const r = await fetch('/api/new-products?'+qs.toString());
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.msg||'fetch error');
+    return j;
+  }
+  function getSelectedWeekISO(){
+    // Read from the page's own weekly selector
+    const sel = document.getElementById('periodSelect');
+    if (sel && sel.value) return sel.value.slice(0,10);
+    if (window._periodA) return String(window._periodA).slice(0,10);
+    return null;
+  }
+  function ensureKpiCard(){
+    // Prefer existing KPI container
+    let host = document.getElementById('kpi');
+    const table = getReportTable();
+    if (!host){
+      // Create a row before the table as fallback
+      host = document.createElement('div');
+      host.className = 'kpi-row';
+      if (table && table.parentNode) table.parentNode.insertBefore(host, table);
+      else document.body.insertBefore(host, document.body.firstChild);
+    }
+    let card = document.getElementById('kpi-new-managed-card');
+    if (!card){
+      const html = '<div id="kpi-new-managed-card" class="stat-card clickable" title="点击只看该周新品">'
+                 +   '<h4>本周期新品数</h4>'
+                 +   '<p><span id="kpi-new-managed-count">--</span>'
+                 +   '<a id="kpi-new-managed-clear" class="mini-link">清除筛选</a></p>'
+                 + '</div>';
+      host.insertAdjacentHTML('beforeend', html);
+      card = document.getElementById('kpi-new-managed-card');
+    }
+    return {
+      card,
+      countEl: document.getElementById('kpi-new-managed-count'),
+      clearEl: document.getElementById('kpi-new-managed-clear')
+    };
+  }
+  function applyFilterByIds(ids){
+    const table = getReportTable();
+    const dt = getDT(table);
+    // clear old
+    if (removeNewFilter){ removeNewFilter(); removeNewFilter = null; }
+
+    if (dt && jQuery.fn.dataTable.ext){
+      const ext = jQuery.fn.dataTable.ext;
+      const filterFn = (settings, data, dataIndex) => {
+        // First column: product link/id
+        let pid = (data[0]||'').toString().trim();
+        if (!pid || /<a/i.test(pid)) {
+          const rowNode = dt.row(dataIndex).node();
+          const cell = rowNode && rowNode.querySelector('td:first-child');
+          if (cell) pid = (cell.textContent||'').trim();
+        }
+        const m = pid.match(/(\d{6,})/g);
+        if (m && m.length) pid = m[m.length-1];
+        return ids.has(pid);
+      };
+      ext.search.push(filterFn);
+      dt.draw();
+      removeNewFilter = () => {
+        const pos = ext.search.findIndex(f => f === filterFn);
+        if (pos > -1) ext.search.splice(pos,1);
+        dt.draw();
+      };
+    } else if (table){
+      const rows = Array.from(table.tBodies[0].rows);
+      const original = new Map();
+      rows.forEach(tr => {
+        const td = tr.cells[0];
+        let pid = td ? td.textContent.trim() : '';
+        const m = pid.match(/(\d{6,})/g);
+        if (m && m.length) pid = m[m.length-1];
+        if (!original.has(tr)) original.set(tr, tr.style.display);
+        tr.style.display = ids.has(pid) ? '' : 'none';
+      });
+      removeNewFilter = () => { for (const [tr, disp] of original) tr.style.display = disp; };
+    }
+  }
+  async function updateForCurrentWeek(){
+    const ui = ensureKpiCard();
+    if (!ui.card) return;
+    const weekISO = getSelectedWeekISO();
+    try{
+      lastData = await fetchNew(weekISO);
+      ui.countEl.textContent = lastData.new_count || 0;
+      // (Re)bind click
+      ui.card.onclick = () => {
+        if (!lastData.items || !lastData.items.length) return;
+        const ids = new Set(lastData.items.map(x => String(x.product_id)));
+        applyFilterByIds(ids);
+        ui.clearEl.style.display = 'inline';
+      };
+      ui.clearEl.onclick = (e) => {
+        e.stopPropagation();
+        if (removeNewFilter) removeNewFilter();
+        ui.clearEl.style.display = 'none';
+      };
+    }catch(e){
+      console.warn('[Managed KPI] fetch failed:', e);
+    }
+  }
+
+  // Init when table rendered
+  document.addEventListener('DOMContentLoaded', function(){
+    const obs = new MutationObserver(()=>{
+      const tb = document.querySelector('#report tbody');
+      // also ensure KPI host
+      const kpiHost = document.getElementById('kpi') || document.querySelector('.kpi-row');
+      if ((tb && tb.children.length) && kpiHost){
+        obs.disconnect();
+        updateForCurrentWeek();
+        // Hook page's own period selector to refresh KPI
+        const sel = document.getElementById('periodSelect');
+        if (sel && !sel._newkpi_hook){
+          sel._newkpi_hook = true;
+          sel.addEventListener('change', updateForCurrentWeek);
+        }
+      }
+    });
+    obs.observe(document.body, { childList:true, subtree:true });
+
+    // Also refresh when table changes (user点击刷新/切换周期导致数据重绘)
+    const tbody = document.querySelector('#report tbody');
+    if (tbody){
+      const tObs = new MutationObserver(()=>{ updateForCurrentWeek(); });
+      tObs.observe(tbody, { childList:true });
+    }
+  });
+})();</script>
 </body>
 </html>
