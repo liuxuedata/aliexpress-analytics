@@ -1,4 +1,3 @@
-
 const multiparty = require("multiparty");
 const { createClient } = require("@supabase/supabase-js");
 const xlsx = require("xlsx");
@@ -10,38 +9,80 @@ function supa() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-const isMonthEnd = (d) => { const dt = new Date(d); const last = new Date(dt.getFullYear(), dt.getMonth()+1, 0).getDate(); return dt.getDate() === last; };
-const isWeekEnd = (d) => new Date(d).getDay() === 0;
-function detectType(dateStr, rowCount){ const d=new Date(dateStr); const m=isMonthEnd(d), w=isWeekEnd(d); if(m && !w) return "month"; if(!m && w) return "week"; return rowCount<300?"week":"month"; }
+/** —— 使用 UTC 判断，避免时区导致的日期偏移 —— */
+const toUTC = (iso) => new Date(`${iso}T00:00:00Z`);
+const isMonthEndUTC = (iso) => {
+  const d = toUTC(iso);
+  const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  return d.getUTCDate() === last;
+};
+const isSundayUTC = (iso) => toUTC(iso).getUTCDay() === 0;
+
+/** 保留原来的类型推断（周/月底都满足时按行数兜底判断） */
+function detectType(dateStr, rowCount) {
+  const m = isMonthEndUTC(dateStr), w = isSundayUTC(dateStr);
+  if (m && !w) return "month";
+  if (!m && w) return "week";
+  // 都满足或都不满足时，用行数做个兜底：少行=周，多行=月
+  return rowCount < 300 ? "week" : "month";
+}
 
 module.exports = async (req, res) => {
-  if (req.method !== "POST") return res.status(405).json({ ok:false, msg:"Only POST" });
+  if (req.method !== "POST") return res.status(405).json({ ok: false, msg: "Only POST" });
+
   let step = "init";
   try {
     const supabase = supa();
-    step="parse-multipart";
+
+    step = "parse-multipart";
     const form = new multiparty.Form();
     const fileBuffer = await new Promise((resolve, reject) => {
-      form.parse(req, (err, fields, files) => {
+      form.parse(req, (err, _fields, files) => {
         if (err) return reject(err);
         if (!files || !files.file || !files.file[0]) return reject(new Error("未收到文件：请检查 FormData.append('file', file)"));
-        const fs = require("fs"); const p = files.file[0].path; const buf = fs.readFileSync(p); resolve(buf);
+        const fs = require("fs");
+        const p = files.file[0].path;
+        const buf = fs.readFileSync(p);
+        resolve(buf);
       });
     });
 
-    step="read-xlsx";
+    step = "read-xlsx";
     const wb = xlsx.read(fileBuffer, { type: "buffer" });
     const ws = wb.Sheets["汇总指标"] || wb.Sheets[wb.SheetNames[0]];
     const arr = xlsx.utils.sheet_to_json(ws, { header: 1 });
+
     if (!arr || !arr.length) throw new Error("Excel 为空或找不到工作表");
 
-    const header = arr[0]; const rows = arr.slice(1).filter(r => r && r.length);
-    const rawDate = rows[0][1]; const ds = String(rawDate); const dateStr = ds.includes("-") ? ds : `${ds.slice(0,4)}-${ds.slice(4,6)}-${ds.slice(6,8)}`;
+    const header = arr[0];
+    const rows = arr.slice(1).filter(r => r && r.length);
 
-    // 索引
-    const norm = s => String(s||"").replace(/[\s%（）()]/g, "").toLowerCase();
+    // 这里按你现有报表结构取统计日期；若是数值型日期(Excel 序号/yyyymmdd)也做了归一
+    const rawDate = rows[0][1];
+    const ds = String(rawDate);
+    const dateStr = ds.includes("-") ? ds : `${ds.slice(0,4)}-${ds.slice(4,6)}-${ds.slice(6,8)}`;
+
+    /** —— 新增：强校验，只允许周日或月底 —— */
+    const onSunday = isSundayUTC(dateStr);
+    const onMonthEnd = isMonthEndUTC(dateStr);
+    if (!onSunday && !onMonthEnd) {
+      // 友好的错误提示
+      const w = ["日","一","二","三","四","五","六"][toUTC(dateStr).getUTCDay()];
+      return res.status(400).json({
+        ok: false,
+        step: "validate-date",
+        msg: `统计日期必须为【周日】或【当月最后一天】。检测到：${dateStr}（周${w}），已拒绝入库。`
+      });
+    }
+
+    // —— 原逻辑：定位列、映射字段 ——
+    const norm = s => String(s || "").replace(/[\s%（）()]/g, "").toLowerCase();
     const H = header.map(norm);
-    const idx = (aliases) => { for (const a of aliases){ const i=H.indexOf(norm(a)); if(i!==-1) return i; } for(let i=0;i<H.length;i++){ if(aliases.some(a=>H[i].includes(norm(a)))) return i; } return -1; };
+    const idx = (aliases) => {
+      for (const a of aliases) { const i = H.indexOf(norm(a)); if (i !== -1) return i; }
+      for (let i = 0; i < H.length; i++) { if (aliases.some(a => H[i].includes(norm(a)))) return i; }
+      return -1;
+    };
     const I = {
       productId: idx(["商品ID","商品id","productid","商品编号"]),
       productLink: idx(["产品链接","商品链接","链接","producturl","url"]),
@@ -62,25 +103,29 @@ module.exports = async (req, res) => {
       period_type: periodType,
       period_end: dateStr,
       product_id: String(r[I.productId] || ""),
-      
-      search_exposure: I.searchExpo>=0 ? Number(r[I.searchExpo]||0) : null,
-      uv: I.uv>=0 ? Number(r[I.uv]||0) : null,
-      pv: I.pv>=0 ? Number(r[I.pv]||0) : null,
-      add_to_cart_users: I.atcUsers>=0 ? Number(r[I.atcUsers]||0) : null,
-      add_to_cart_qty: I.atcQty>=0 ? Number(r[I.atcQty]||0) : null,
-      pay_items: I.payItems>=0 ? Number(r[I.payItems]||0) : null,
-      pay_orders: I.payOrders>=0 ? Number(r[I.payOrders]||0) : null,
-      pay_buyers: I.payBuyers>=0 ? Number(r[I.payBuyers]||0) : null
-    })).filter(x=>x.product_id);
+      product_link: I.productLink >= 0 ? String(r[I.productLink] || "") : null,
+      search_exposure: I.searchExpo >= 0 ? Number(r[I.searchExpo] || 0) : null,
+      uv: I.uv >= 0 ? Number(r[I.uv] || 0) : null,
+      pv: I.pv >= 0 ? Number(r[I.pv] || 0) : null,
+      add_to_cart_users: I.atcUsers >= 0 ? Number(r[I.atcUsers] || 0) : null,
+      add_to_cart_qty: I.atcQty >= 0 ? Number(r[I.atcQty] || 0) : null,
+      pay_items: I.payItems >= 0 ? Number(r[I.payItems] || 0) : null,
+      pay_orders: I.payOrders >= 0 ? Number(r[I.payOrders] || 0) : null,
+      pay_buyers: I.payBuyers >= 0 ? Number(r[I.payBuyers] || 0) : null
+    })).filter(x => x.product_id);
 
-    step="upsert";
+    step = "upsert";
     const { error } = await supabase
       .from("managed_stats")
       .upsert(payload, { onConflict: "period_type,period_end,product_id" });
+
     if (error) throw error;
-    return res.status(200).json({ ok:true, type: periodType, date: dateStr, rows: payload.length });
-  } catch(e){
+
+    return res.status(200).json({ ok: true, type: periodType, date: dateStr, rows: payload.length });
+  } catch (e) {
     console.error("ingest-error step=", step, e);
-    return res.status(500).json({ ok:false, step, msg: e.message });
+    const code = step === "validate-date" ? 400 : 500;
+    return res.status(code).json({ ok: false, step, msg: e.message });
   }
 };
+
