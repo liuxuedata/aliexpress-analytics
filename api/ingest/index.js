@@ -1,5 +1,8 @@
 
-// pages/api/ingest/index.js  —— 单文件（诊断版，动态 import，任何报错都返回 JSON）
+// pages/api/ingest/index.js —— 单文件版（multiparty 解析表单）
+// 依赖：multiparty、xlsx、@supabase/supabase-js
+// 说明：兼容不同列头；不写入 product_link；支持 ?dry_run=1
+
 export const config = { api: { bodyParser: false } };
 
 function toNumber(v){
@@ -48,29 +51,30 @@ export default async function handler(req, res){
     return res.status(405).json({ ok:false, msg:"Use POST with form-data: file + period_end(optional)" });
   }
 
-  let formidable, XLSX, createClient, fs;
+  // 动态导入依赖，确保任何错误都能返回 JSON
+  let multiparty, XLSX, fs, createClient;
   try {
-    formidable = (await import("formidable")).default;
+    multiparty = (await import("multiparty")).default;
     XLSX = (await import("xlsx")).default;
     fs = (await import("fs")).default;
     ({ createClient } = await import("@supabase/supabase-js"));
   } catch (e) {
-    return res.status(500).json({ ok:false, stage:"import", msg: e.message, stack: String(e.stack||"").split("\n").slice(0,5).join("\n") });
+    return res.status(500).json({ ok:false, stage:"import", msg:e.message });
   }
 
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
   let supabase;
   try{
-    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession:false } });
   }catch(e){
     return res.status(500).json({ ok:false, stage:"supabase", msg:e.message });
   }
 
-  // parse multipart
+  // 解析 multipart/form-data
   let fields, files;
   try {
-    const form = formidable({ multiples:false, keepExtensions:true, uploadDir:"/tmp" });
+    const form = new multiparty.Form({ uploadDir: "/tmp", maxFields: 1000 });
     ({ fields, files } = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => err ? reject(err) : resolve({ fields, files }));
     }));
@@ -79,20 +83,22 @@ export default async function handler(req, res){
   }
 
   try {
-    const f = files.file || files.excel || files.upload;
-    if (!f) return res.status(400).json({ ok:false, stage:"input", msg:"缺少文件字段(file/excel/upload)" });
+    const fx = files.file || files.excel || files.upload;
+    if (!fx) return res.status(400).json({ ok:false, stage:"input", msg:"缺少文件字段(file/excel/upload)" });
 
-    const fp = Array.isArray(f) ? f[0].filepath || f[0].path : f.filepath || f.path;
-    const ofn = Array.isArray(f) ? f[0].originalFilename || f[0].name : f.originalFilename || f.name;
+    // multiparty 把字段/文件都放在数组里
+    const f0 = Array.isArray(fx) ? fx[0] : fx;
+    const fp = f0.filepath || f0.path;
+    const ofn = f0.originalFilename || f0.filename || f0.name;
     if (!fp) return res.status(400).json({ ok:false, stage:"input", msg:"无法读取临时文件路径" });
 
-    const explicit = fields.period_end ? String(fields.period_end) : null;
+    const explicit = fields.period_end && fields.period_end[0] ? String(fields.period_end[0]) : null;
     const period_end = explicit || parseDateFromFilename(ofn);
     if (!period_end) return res.status(400).json({ ok:false, stage:"period", msg:"无法确定周期（period_end 或 文件名包含 YYYYMMDD）" });
 
     const buf = await fs.promises.readFile(fp);
 
-    // Read rows
+    // 读取 Excel
     let rows = [];
     try {
       const wb = XLSX.read(buf, { type: "buffer" });
@@ -106,7 +112,7 @@ export default async function handler(req, res){
     }
     if (!rows.length) return res.status(400).json({ ok:false, stage:"xlsx", msg:"Excel 为空" });
 
-    // Build records
+    // 构建记录
     const records = [];
     for (const row of rows){
       const pidMatch = String(pickText(row, SYNONYMS.product_id)).match(/(\d{6,})/);
@@ -144,7 +150,7 @@ export default async function handler(req, res){
       });
     }
 
-    const dry = (req.query?.dry_run === "1" || fields.dry_run === "1");
+    const dry = (req.query?.dry_run === "1" || (fields.dry_run && fields.dry_run[0] === "1"));
     if (dry) return res.status(200).json({ ok:true, dry_run:true, period_end, count:records.length, sample:records.slice(0,10) });
 
     // Upsert
@@ -154,9 +160,8 @@ export default async function handler(req, res){
       .select("product_id");
 
     if (error) return res.status(500).json({ ok:false, stage:"upsert", msg:error.message });
-
     return res.status(200).json({ ok:true, period_end, count: data?.length || records.length });
   } catch (e) {
-    return res.status(500).json({ ok:false, stage:"unknown", msg:e.message, stack: String(e.stack||"").split("\n").slice(0,5).join("\n") });
+    return res.status(500).json({ ok:false, stage:"unknown", msg:e.message });
   }
 }
