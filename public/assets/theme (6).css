@@ -1,0 +1,168 @@
+
+/* =====================================================================
+   Unified Light Theme (white content + dark sidebar)
+   Drop-in replacement for assets/theme.css
+   Works for: index.html (全托管) and self-operated.html (自运营)
+   ===================================================================== */
+
+/* ------ CSS Variables (Light) ------ */
+:root{
+  --bg: #f3f4f6;                   /* app background */
+  --panel: #ffffff;                /* white panels */
+  --panel-border: #e5e7eb;         /* light border */
+  --brand: #1e40af;                /* deep brand blue */
+  --blue: #2563eb;                 /* accent blue */
+  --orange: #f97316;               /* accent orange */
+  --text: #111827;                 /* primary text (very dark) */
+  --muted: #6b7280;                /* muted gray text */
+  --thead-bg: #f8fafc;             /* table head */
+  --row-odd: #ffffff;              /* zebra row odd */
+  --row-even: #f9fafb;             /* zebra row even */
+  --row-hover: #eef2f7;            /* row hover */
+  --shadow: 0 8px 24px rgba(16,24,40,.06);
+}
+
+*{ box-sizing:border-box }
+html, body{ height:100% }
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+
+/* ------ Sidebar (kept dark) ------ */
+.sidebar{
+  width:220px;
+  background:#0f172a;
+  color:#fff;
+  padding:16px;
+  height:100vh;
+  overflow:auto;
+  border-right:1px solid #1f2937;
+  position:sticky; top:0; z-index:1000;
+}
+.sidebar h3{ margin:0 0 10px; font-size:16px }
+.sidebar ul{ list-style:none; padding-left:0; margin:0 }
+.sidebar li{ margin-bottom:10px }
+.sidebar a{
+  display:block; text-decoration:none;
+  color:#94a3b8; font-size:14px; padding:6px 8px; border-radius:6px;
+}
+.sidebar a:hover{ color:#fff; background:#0b1a3b }
+.sidebar .submenu{ list-style:none; padding-left:14px; display:none }
+.sidebar .has-submenu>a{ cursor:pointer }
+.sidebar .has-submenu.open .submenu{ display:block }
+.sidebar .submenu a.active{ color:#fff; background:var(--brand) }
+
+/* ------ Layout ------ */
+.container{ display:flex; min-height:100vh }
+.main{
+  flex:1; display:flex; flex-direction:column; gap:12px;
+  padding:16px; background:#ffffff;
+}
+
+/* generic paddings + panels */
+.content-pad{ padding:12px }
+.panel{
+  background:var(--panel);
+  border:1px solid var(--panel-border);
+  border-radius:12px;
+  padding:12px;
+  box-shadow: var(--shadow);
+}
+.controls{ display:flex; align-items:center; gap:8px }
+.sel, select, input[type="text"]{
+  padding:6px 8px; border:1px solid var(--panel-border);
+  border-radius:8px; background:#fff; color:var(--text);
+}
+.upload-btn, .btn{
+  padding:6px 12px; border-radius:8px; border:1px solid var(--panel-border);
+  background:#fff; color:var(--text); cursor:pointer;
+}
+.upload-btn:hover, .btn:hover{ background:#f8fafc }
+
+/* Divider */
+.divider{ height:1px; background:var(--panel-border); margin:8px 0 12px }
+
+/* ------ KPI Cards (index.html) ------ */
+.stat-card{
+  background:#fff; border:1px solid var(--panel-border);
+  border-radius:14px; padding:12px 14px; box-shadow:var(--shadow);
+}
+.stat-card h4{ margin:0 0 6px; color:#334155; font-size:12px; letter-spacing:.2px }
+.stat-card p{ margin:0; color:#0f172a; font-size:28px; font-weight:900; line-height:1.1 }
+#kpi{ display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px }
+
+/* ------ Tables: DataTables High-Contrast Light ------ */
+#report_wrapper{ background:#fff; border-radius:12px; padding:8px; border:1px solid var(--panel-border); box-shadow:var(--shadow) }
+
+/* thead + fixed header */
+table.dataTable thead th{
+  background:var(--thead-bg) !important;
+  color:var(--text) !important;
+  border-bottom:1px solid var(--panel-border) !important;
+  font-weight:800;
+}
+.fixedHeader-floating, .fixedHeader-floating th{
+  background:var(--thead-bg) !important;
+  color:var(--text) !important;
+  border-bottom:1px solid var(--panel-border) !important;
+}
+
+/* body cells */
+table.dataTable tbody td,
+table.dataTable thead th{
+  border-color:var(--panel-border) !important;
+}
+table.dataTable tbody td{
+  color:var(--text) !important;
+}
+
+/* zebra + hover */
+table.dataTable.stripe tbody tr:nth-child(odd){ background:var(--row-odd) !important }
+table.dataTable.stripe tbody tr:nth-child(even){ background:var(--row-even) !important }
+table.dataTable tbody tr:hover td{ background:var(--row-hover) !important }
+
+/* links inside table */
+#report a, #report a:visited{
+  color:#1d4ed8; background:transparent; font-weight:700;
+}
+#report a:hover{ color:#1e3a8a; text-decoration:underline }
+
+/* —— REMOVE first-column special background from old theme (fix asymmetry) —— */
+#report.dataTable tbody td:first-child,
+.DTFC_Cloned tbody td{
+  background:transparent !important;
+  color:var(--text) !important;
+  border-color:var(--panel-border) !important;
+  font-weight:700;
+}
+#report thead th:first-child{
+  background:var(--thead-bg) !important;
+  color:var(--text) !important;
+  border-bottom:1px solid var(--panel-border) !important;
+  font-weight:800 !important;
+}
+#report.dataTable tbody tr:hover td:first-child{ background:var(--row-hover) !important }
+
+/* DataTables header buttons/sort state */
+table.dataTable thead th.sorting_asc,
+table.dataTable thead th.sorting_desc{
+  background:var(--thead-bg) !important;
+  color:#0f172a !important;
+}
+
+/* scroll shadows protection (optional) */
+.dataTables_scrollBody{ border-top:1px solid var(--panel-border) }
+
+/* Badges */
+.badge{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:4px 8px; font-size:12px; border-radius:999px;
+  color:#0f172a; background:#e0e7ff;
+}
+
+/* Misc small improvements */
+.small{ font-size:12px; color:var(--muted) }
+.label{ color:#334155; font-weight:600 }
