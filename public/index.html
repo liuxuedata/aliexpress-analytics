@@ -1,0 +1,441 @@
+
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>速卖通全托管数据分析</title>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css">
+  <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+<style>/* New KPI minimal helpers */
+.stat-card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
+.stat-card.clickable{cursor:pointer}</style>
+</head>
+<body class="fm">
+<div class="container">
+  <nav class="sidebar" id="sidebar">
+    <h3>产品导航</h3>
+    <ul>
+      <li class="has-submenu open">
+        <a href="#">速卖通</a>
+        <ul class="submenu">
+          <li><a href="index.html" class="active">全托管</a></li>
+          <li><a href="self-operated.html">自运营</a></li>
+        </ul>
+      </li>
+      <li><a href="#">TikTok Shop</a></li>
+      <li><a href="#">亚马逊</a></li>
+      <li class="has-submenu open">
+        <a href="#">独立站</a>
+        <ul class="submenu">
+          <li><a href="independent-site.html">数据分析</a></li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+
+  <main class="main">
+    <div class="upload-section">
+      <div class="upload-top">
+        <div style="font-size:28px;font-weight:800;">速卖通全托管数据分析</div>
+        <div class="controls">
+          <label class="badge">时间粒度</label>
+          <label><input type="radio" name="gran" value="week" checked> 周</label>
+          <label><input type="radio" name="gran" value="month"> 月</label>
+
+          <select id="periodSelect" class="sel"><option value="">加载中...</option></select>
+   <label for="file" id="pickLabel" class="upload-btn">选择文件</label>
+          <input type="file" id="file" accept=".xlsx,.xls" />
+          
+
+       
+          <span id="status" class="notice"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="content-pad">
+        <div class="stats-cards" id="kpi"></div>
+        <div class="divider"></div>
+        
+<div class="tabs">
+  <div class="tab active" data-tab="detail">明细表</div>
+  <div class="tab" data-tab="analysis">运营分析</div>
+</div>
+
+<section id="detail" class="content-pad">
+  <div class="table-section">
+          <table id="report" class="display" style="width:100%">
+            <thead>
+              <tr>
+                <th>商品ID</th>
+<th>搜索曝光量</th>
+                <th>商品访客数</th>
+                <th>商品浏览量</th>
+                <th>加购人数</th>
+                <th>加购件数</th>
+                <th>支付件数</th>
+                <th>支付订单数</th>
+                <th>支付买家数</th>
+                <th>访客到加购转化率(%)</th>
+                <th>加购到支付转化率(%)</th>
+                <th>访客比(%)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+</section>
+
+<section id="analysis" class="content-pad" style="display:none;">
+  <div class="grid grid-2">
+    
+        <div class="grid grid-2">
+          <div class="panel">
+            <h3>转化漏斗（A vs B）</h3>
+            <div id="funnel" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>周期对比（曝光 / 加购件数 / 支付订单数）</h3>
+            <div id="sumCompareBar" style="width:100%;height:320px;"></div>
+          </div>
+        </div>
+        <div class="grid grid-2" style="margin-top:16px;">
+          <div class="panel">
+            <h3>Top10 访客比（UV/曝光）· A</h3>
+            <div id="vrBar" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>Top10 加购→支付 转化率 · A</h3>
+            <div id="payBar" style="width:100%;height:320px;"></div>
+          </div>
+        </div>
+        
+  </div>
+</section>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  document.querySelectorAll('.has-submenu > a').forEach(a => {
+    a.addEventListener('click', function(e){
+      const li = this.parentElement;
+      const sub = li.querySelector('.submenu');
+      if (!sub) return;
+      e.preventDefault();
+      li.classList.toggle('open');
+    });
+  });
+
+  const state = { granularity: 'week', table: null, uploading: false };
+
+  $('input[name="gran"]').on('change', function(){
+    state.granularity = this.value;
+    loadPeriods().then(loadData);
+  });
+
+  $('#file').on('change', async function(e){
+    const file = e.target.files[0];
+    if (!file) return;
+    await autoUpload(file);
+    e.target.value = '';
+  });
+
+  async function autoUpload(file){
+    if (state.uploading) return;
+    state.uploading = true;
+    setStatus('上传中…'); togglePick(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file, file.name);
+      fd.append('filename', file.name); // 可选：后端也能拿到
+      const r = await fetch('/api/ingest', { method:'POST', body: fd });
+      const j = await r.json();
+      if (!j.ok) throw new Error((j.step?('[步骤 '+j.step+'] '):'') + (j.msg || '导入失败'));
+      setStatus('已入库：' + j.type + ' ' + j.date + '（' + j.rows + ' 行）');
+      await loadPeriods(); await loadData();
+    } catch(err){
+      alert(err.message);
+      setStatus('上传失败：' + err.message);
+    } finally {
+      togglePick(false); setTimeout(()=> setStatus(''), 5000); state.uploading = false;
+    }
+  }
+  function togglePick(disabled){ $('#pickLabel').css({ opacity: disabled?.6:1, pointerEvents: disabled?'none':'auto' }).text(disabled?'上传中…':'选择文件'); }
+  function setStatus(t){ $('#status').text(t||''); }
+
+  async function loadPeriods(){
+    const r = await fetch('/api/periods'); const j = await r.json();
+    const list = (state.granularity==='week' ? j.weeks : j.months) || [];
+    state.periods = list.slice();
+    state.periods = list.slice();
+    const $sel = $('#periodSelect').empty();
+    if (!list.length){ $sel.append('<option value="">暂无数据</option>'); return; }
+    list.forEach(d=> $sel.append('<option value="'+d+'">'+d+'</option>'));
+  }
+
+  $('#periodSelect').on('change', loadData);
+
+  
+  async function loadData(){
+    const period = $('#periodSelect').val();
+    const qsA = new URLSearchParams({ granularity: state.granularity });
+    if (period) qsA.set('period_end', period);
+
+    // Determine previous period by index in state.periods
+    let prev = '';
+    if (state.periods && period){
+      const idx = state.periods.indexOf(period);
+      if (idx > 0) prev = state.periods[idx-1];
+    }
+    const qsB = new URLSearchParams({ granularity: state.granularity });
+    if (prev) qsB.set('period_end', prev);
+
+    // Fetch current (A) and previous (B) in parallel (B optional)
+    const [ra, rb] = await Promise.all([ fetch('/api/stats?'+qsA.toString()), prev? fetch('/api/stats?'+qsB.toString()) : Promise.resolve(null) ]);
+    const ja = await ra.json();
+    const jb = rb ? await rb.json() : { ok:true, rows:[] };
+    if (!ja.ok){ alert(ja.msg||'查询失败'); return; }
+
+    // render KPI for current period (A)
+    try{ renderKPI(ja.kpis || {}); }catch(e){}
+
+    window._rowsA = (ja.rows||[]);
+    window._rowsB = (jb.rows||[]);
+    window._periodA = period || '';
+    window._periodB = prev || '';
+
+    // table uses current period A
+    const rows = window._rowsA.map(x => [
+      (x.product_link ? '<a href="'+x.product_link+'" target="_blank">'+(x.product_id||'')+'</a>' : (x.product_id||'')),
+      
+      x.search_exposure || 0, x.uv || 0, x.pv || 0,
+      x.add_to_cart_users || 0, x.add_to_cart_qty || 0,
+      x.pay_items || 0, x.pay_orders || 0, x.pay_buyers || 0,
+      (x.uv ? ((x.add_to_cart_users||0)/x.uv*100).toFixed(2) : '0.00'),
+      (x.add_to_cart_users ? ((x.pay_buyers||0)/x.add_to_cart_users*100).toFixed(2) : '0.00'),
+     (x.search_exposure ? ((x.uv||0)/x.search_exposure*100).toFixed(2) : '0.00')
+
+    ]);
+    if (state.table) state.table.clear().rows.add(rows).draw();
+    else state.table = $('#report').DataTable({ data: rows, paging:true, searching:true, info:true, order:[[2,'desc']], fixedHeader:true, scrollY:'60vh', scrollCollapse:true, autoWidth:false });
+    renderAnalysis(window._rowsA, window._rowsB);
+  }
+
+  function card(title, val){ return '<div class="stat-card"><h4>'+title+'</h4><p>'+val+'</p></div>'; }
+  function renderKPI(k){
+    $('#kpi').html([
+      card('平均访客到加购转化率', (k.avg_visit_to_atc||0)+'%'),
+      card('平均加购到支付转化率', (k.avg_atc_to_pay||0)+'%'),
+      card('平均访客比', (k.avg_visit_rate||0)+'%'),
+      card('产品总数', k.product_count||0),
+      card('有加购的产品数', k.atc_product_count||0),
+      card('有支付的产品数', k.pay_product_count||0)
+    ].join(''));
+  }
+
+  loadPeriods().then(loadData);
+})();
+
+  // ---- Tabs switch ----
+  $(document).on('click', '.tabs .tab', function(){
+    $('.tabs .tab').removeClass('active');
+    $(this).addClass('active');
+    const tab = $(this).data('tab');
+    $('#detail, #analysis').hide();
+    $('#'+tab).show();
+    setTimeout(()=>{ if(tab==='analysis'){ ratioChart && ratioChart.resize(); topChart && topChart.resize(); }}, 30);
+  });
+
+  // ---- Analysis charts ----
+  let ratioChart=null, topChart=null;
+  function renderAnalysis(rowsA, rowsB){
+  if (!Array.isArray(rowsA)) rowsA = []; if (!Array.isArray(rowsB)) rowsB = [];
+  const COLOR_A = '#60a5fa', COLOR_B = '#f59e0b';
+  const nameA = window._periodA || '当前周期', nameB = window._periodB || '上一周期';
+  const toNum=v=>{ if(v===null||v===undefined) return 0; const n=Number(String(v).replace(/,/g,'')); return isNaN(n)?0:n; };
+
+  const sum = rows => rows.reduce((a,x)=>({ 
+    exp:a.exp+toNum(x.search_exposure||0),
+    uv:a.uv+toNum(x.uv||0),
+    atc_users:a.atc_users+toNum(x.add_to_cart_users||0),
+    atc_qty:a.atc_qty+toNum(x.add_to_cart_qty||0),
+    pay_buyers:a.pay_buyers+toNum(x.pay_buyers||0),
+    pay_orders:a.pay_orders+toNum(x.pay_orders||0)
+  }), {exp:0,uv:0,atc_users:0,atc_qty:0,pay_buyers:0,pay_orders:0});
+
+  const A = sum(rowsA), B = sum(rowsB);
+
+  // Dual funnel
+  try{
+    const el = document.getElementById('funnel'); if (el){
+      const chart = echarts.init(el, null, {backgroundColor:'transparent'});
+      chart.setOption({
+        tooltip:{trigger:'item',formatter:'{a} - {b}: {c}'},
+        legend:{ data:[nameA,nameB], textStyle:{color:'#374151'} },
+        series:[
+          { name:nameA, type:'funnel', left:'5%', width:'40%', sort:'none', label:{color:'#374151'}, itemStyle:{color:COLOR_A},
+            data:[{name:'曝光',value:A.exp},{name:'访客',value:A.uv},{name:'加购人数',value:A.atc_users},{name:'支付买家数',value:A.pay_buyers}]},
+          { name:nameB, type:'funnel', left:'55%', width:'40%', sort:'none', label:{color:'#374151'}, itemStyle:{color:COLOR_B},
+            data:[{name:'曝光',value:B.exp},{name:'访客',value:B.uv},{name:'加购人数',value:B.atc_users},{name:'支付买家数',value:B.pay_buyers}]}
+        ]
+      });
+      window.addEventListener('resize', ()=>chart.resize());
+    }
+  }catch(e){ console.warn(e); }
+
+  // Grouped sum comparison
+  try{
+    const el = document.getElementById('sumCompareBar'); if (el){
+      const chart = echarts.init(el, null, {backgroundColor:'transparent'});
+      chart.setOption({
+        tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+        legend:{ data:[nameA,nameB], textStyle:{color:'#374151'} },
+        xAxis:{ type:'category', data:['曝光量','加购数(件)','支付数(订单)'], axisLabel:{color:'#374151'} },
+        yAxis:{ type:'value', axisLabel:{color:'#374151'} },
+        series:[
+          { name:nameA, type:'bar', data:[A.exp, A.atc_qty, A.pay_orders], barMaxWidth:28, itemStyle:{color:COLOR_A} },
+          { name:nameB, type:'bar', data:[B.exp, B.atc_qty, B.pay_orders], barMaxWidth:28, itemStyle:{color:COLOR_B} }
+        ],
+        grid:{ left:40, right:20, top:30, bottom:40 }
+      });
+      window.addEventListener('resize', ()=>chart.resize());
+    }
+  }catch(e){ console.warn(e); }
+
+  // Top charts for A
+  function topByRate(rows, denKey, numKey, elId, minDen){
+    const list = rows.map(x=>{
+      const den = toNum(x[denKey]||0), num = toNum(x[numKey]||0);
+      const rate = den>0 ? num/den : 0;
+      return { id:String(x.product_id||''), rate, den };
+    }).filter(o=>o.den>=(minDen||1)).sort((a,b)=>b.rate-a.rate).slice(0,10);
+    const names = list.map(o=>o.id), vals = list.map(o=>Number((o.rate*100).toFixed(2)));
+    const el = document.getElementById(elId); if (!el) return;
+    const chart = echarts.init(el, null, {backgroundColor:'transparent'});
+    chart.setOption({
+      tooltip:{trigger:'axis',axisPointer:{type:'shadow'},formatter:(p)=> p[0].name+': '+p[0].value+'%'},
+      xAxis:{type:'category',data:names,axisLabel:{color:'#374151',rotate:45}},
+      yAxis:{type:'value',axisLabel:{color:'#374151',formatter:'{value}%'}},
+      series:[{type:'bar',data:vals,barMaxWidth:24,itemStyle:{color:COLOR_A}}],
+      grid:{left:40,right:20,top:30,bottom:60}
+    });
+    window.addEventListener('resize', ()=>chart.resize());
+  }
+  topByRate(rowsA,'search_exposure','uv','vrBar',50);
+  topByRate(rowsA,'add_to_cart_users','pay_buyers','payBar',5);
+}
+</script>
+
+<script>window.addEventListener("resize", ()=>{ if(state.table) state.table.columns.adjust().draw(false); });</script>
+<script>/* === New Products KPI (Managed) === */
+(function(){
+  // Adds a new KPI card "本周期新品数" and enables click-to-filter in the DataTable
+  let removeNewFilter = null; // function to clear DT filter
+
+  async function fetchManagedNewCount(periodEnd){
+    try{
+      const qs = new URLSearchParams({ platform:'managed' });
+      if (periodEnd) { qs.set('from', periodEnd); qs.set('to', periodEnd); }
+      const r = await fetch('/api/new-products?' + qs.toString());
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.msg||'fetch error');
+      return j;
+    }catch(e){ console.warn('[NewKPI managed] fetch error', e); return { ok:false, items:[], new_count:0 }; }
+  }
+
+  function ensureNewCard(){
+    const wrap = document.getElementById('kpi');
+    if (!wrap) return null;
+    // if already exists, return it
+    let card = document.getElementById('kpi-new-managed-card');
+    if (card) return card;
+    const html = '<div id="kpi-new-managed-card" class="stat-card clickable" title="点击只看本周期新品">'
+               +   '<h4>本周期新品数</h4>'
+               +   '<p><span id="kpi-new-managed-count">--</span>'
+               +   '<a id="kpi-new-managed-clear" class="mini-link">清除筛选</a></p>'
+               + '</div>';
+    wrap.insertAdjacentHTML('beforeend', html);
+    return document.getElementById('kpi-new-managed-card');
+  }
+
+  function addDtFilterByIds(productIdSet){
+    if (!window.jQuery || !jQuery.fn || !jQuery.fn.dataTable) return null;
+    if (!window.state || !state.table) return null;
+    const dt = state.table; // already a DataTable instance
+    const filterFn = (settings, data, dataIndex) => {
+      // Try first column text; fallback to DOM query
+      let pid = (data[0]||'').toString().trim();
+      if (!pid || /<a/i.test(pid)) {
+        // Extract text inside the link (product id)
+        const rowNode = dt.row(dataIndex).node();
+        const cell = rowNode && rowNode.querySelector('td:first-child');
+        if (cell) pid = (cell.textContent||'').trim();
+      }
+      // Extract numeric ID
+      const m = pid.match(/(\d{6,})/g);
+      if (m && m.length) pid = m[m.length-1];
+      return productIdSet.has(pid);
+    };
+    const ext = jQuery.fn.dataTable.ext;
+    ext._newProductsManaged = ext._newProductsManaged || [];
+    ext.search.push(filterFn);
+    dt.draw();
+    return () => {
+      const i = ext.search.indexOf(filterFn);
+      if (i > -1) ext.search.splice(i,1);
+      dt.draw();
+    };
+  }
+
+  async function installManagedNewKPI(){
+    const period = (window._periodA || document.getElementById('periodSelect')?.value || '').trim();
+    const card = ensureNewCard();
+    if (!card) return;
+    const countEl = document.getElementById('kpi-new-managed-count');
+    const clearEl = document.getElementById('kpi-new-managed-clear');
+
+    // fetch and fill
+    const res = await fetchManagedNewCount(period);
+    const cnt = res.new_count || 0;
+    countEl.textContent = cnt;
+
+    // bind click to filter
+    card.addEventListener('click', function(){
+      if (!res.items || !res.items.length) return;
+      if (removeNewFilter) removeNewFilter(); // reset previous
+      const ids = new Set(res.items.map(x => String(x.product_id)));
+      removeNewFilter = addDtFilterByIds(ids);
+      if (removeNewFilter) clearEl.style.display = 'inline';
+    });
+
+    clearEl.addEventListener('click', function(e){
+      e.stopPropagation();
+      if (removeNewFilter) removeNewFilter();
+      removeNewFilter = null;
+      this.style.display = 'none';
+    });
+  }
+
+  // Trigger once the table is drawn
+  const observer = new MutationObserver(()=>{
+    const tableBody = document.querySelector('#report tbody');
+    if (tableBody && tableBody.children.length){
+      observer.disconnect();
+      installManagedNewKPI();
+    }
+  });
+  observer.observe(document.body, { childList:true, subtree:true });
+})();</script>
+</body>
+</html>
