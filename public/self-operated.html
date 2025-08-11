@@ -19,9 +19,16 @@
   
   
 <link rel="stylesheet" href="assets/theme.css?v=20250810b">
-<style>/* New KPI self */
-.kpi .card.clickable{cursor:pointer}
-.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}</style>
+<style>
+/* NewKPICtrl */
+.kpi-ctrl{display:flex;gap:.5rem;align-items:center;margin:.25rem 0 .5rem;color:#334155;font:500 13px/1 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
+.kpi-ctrl button{border:1px solid #e5e7eb;background:#fff;border-radius:8px;padding:.25rem .5rem;cursor:pointer}
+.kpi-ctrl button:hover{background:#f8fafc}
+.kpi-ctrl input[type="date"]{border:1px solid #e5e7eb;border-radius:8px;padding:.25rem .5rem}
+.kpi-ctrl .hint{font-size:12px;color:#64748b}
+.stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
+.stat-card.clickable,.kpi .card.clickable{cursor:pointer}
+</style>
 </head>
 <body>
 <div class="container">
@@ -431,128 +438,152 @@ $('#metricSel').on('change', fetchAndRenderAll);
 })();
 </script>
 
-<script>/* === New Products KPI (Self-operated) === */
+<script>
+/* === New Products KPI (Self) v2 === */
 (function(){
-  let removeNewFilter = null; // function to clear DT filter
+  let removeNewFilter = null;
+  let lastData = null;
 
-  async function fetchSelfNew(startISO, endISO){
-    try{
-      const qs = new URLSearchParams({ platform:'self' });
-      if (startISO) qs.set('from', startISO);
-      if (endISO) qs.set('to', endISO);
-      const r = await fetch('/api/new-products?' + qs.toString());
-      const j = await r.json();
-      if (!j.ok) throw new Error(j.msg||'fetch error');
-      return j;
-    }catch(e){ console.warn('[NewKPI self] fetch error', e); return { ok:false, items:[], new_count:0 }; }
-  }
-
-  function ensureSelfCard(){
-    const wrap = document.querySelector('.kpi');
-    if (!wrap) return null;
-    let card = document.getElementById('kpi-new-self-card');
-    if (card) return card;
-    const div = document.createElement('div');
-    div.className = 'card clickable';
-    div.id = 'kpi-new-self-card';
-    div.innerHTML = '<h4>本周期新品数</h4><p id="kpi-new-self-count">--</p><a id="kpi-new-self-clear" class="mini-link">清除筛选</a>';
-    wrap.appendChild(div);
-    return div;
-  }
-
-  function addDtFilterByIds(productIdSet){
+  function dtInstance(){
     if (!window.jQuery || !jQuery.fn || !jQuery.fn.dataTable) return null;
-    if (!window.dataTable) return null;
-    const dt = window.dataTable;
-    const filterFn = (settings, data, dataIndex) => {
-      let pid = (data[0]||'').toString().trim();
-      if (!pid || /<a/i.test(pid)) {
-        const rowNode = dt.row(dataIndex).node();
-        const cell = rowNode && rowNode.querySelector('td:first-child');
-        if (cell) pid = (cell.textContent||'').trim();
-      }
-      const m = pid.match(/(\d{6,})/g);
-      if (m && m.length) pid = m[m.length-1];
-      return productIdSet.has(pid);
-    };
-    const ext = jQuery.fn.dataTable.ext;
-    ext._newProductsSelf = ext._newProductsSelf || [];
-    ext.search.push(filterFn);
-    dt.draw();
-    return () => {
-      const i = ext.search.indexOf(filterFn);
-      if (i > -1) ext.search.splice(i,1);
-      dt.draw();
+    try { return window.dataTable || jQuery('#report').DataTable(); } catch(e){ return null; }
+  }
+
+  async function fetchRange(fromISO, toISO){
+    const qs = new URLSearchParams({ platform:'self' });
+    if (fromISO) qs.set('from', fromISO);
+    if (toISO) qs.set('to', toISO);
+    const r = await fetch('/api/new-products?'+qs.toString());
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.msg||'fetch error');
+    return j;
+  }
+
+  function ensureCardAndControls(){
+    const kpiWrap = document.querySelector('.kpi');
+    if (!kpiWrap) return {};
+    let card = document.getElementById('kpi-new-self-card');
+    if (!card){
+      const div = document.createElement('div');
+      div.className = 'card clickable';
+      div.id = 'kpi-new-self-card';
+      div.innerHTML = '<h4>本周期新品数</h4><p id="kpi-new-self-count">--</p><a id="kpi-new-self-clear" class="mini-link">清除筛选</a>';
+      kpiWrap.appendChild(div);
+      card = div;
+    }
+    let ctrl = document.getElementById('kpi-new-self-ctrl');
+    if (!ctrl){
+      ctrl = document.createElement('div');
+      ctrl.id = 'kpi-new-self-ctrl';
+      ctrl.className = 'kpi-ctrl';
+      ctrl.innerHTML = ''
+        + '<label>开始：</label><input type="date" id="kpi-self-from" />'
+        + '<label>结束：</label><input type="date" id="kpi-self-to" />'
+        + '<button type="button" id="kpi-self-apply">统计</button>'
+        + '<span class="hint">选择任意日期段统计新品</span>';
+      kpiWrap.appendChild(ctrl);
+    }
+    return {
+      card,
+      countEl: document.getElementById('kpi-new-self-count'),
+      clearEl: document.getElementById('kpi-new-self-clear'),
+      from: document.getElementById('kpi-self-from'),
+      to: document.getElementById('kpi-self-to'),
+      apply: document.getElementById('kpi-self-apply'),
     };
   }
 
-  async function installSelfNewKPI(){
-    const input = document.getElementById('dateFilter');
-    let startISO, endISO;
-    if (input && input.value && input.value.includes(' to ')){
-      const [s,e] = input.value.split(' to ');
-      startISO = s; endISO = e;
+  function applyDtFilter(ids){
+    const dt = dtInstance();
+    if (removeNewFilter){ removeNewFilter(); removeNewFilter = null; }
+
+    if (dt && jQuery.fn.dataTable.ext){
+      const ext = jQuery.fn.dataTable.ext;
+      const filterFn = (settings, data, dataIndex) => {
+        let pid = (data[0]||'').toString().trim();
+        if (!pid || /<a/i.test(pid)) {
+          const rowNode = dt.row(dataIndex).node();
+          const cell = rowNode && rowNode.querySelector('td:first-child');
+          if (cell) pid = (cell.textContent||'').trim();
+        }
+        const m = pid.match(/(\d{6,})/g);
+        if (m && m.length) pid = m[m.length-1];
+        return ids.has(pid);
+      };
+      ext.search.push(filterFn);
+      dt.draw();
+      removeNewFilter = () => {
+        const pos = ext.search.findIndex(f => f === filterFn);
+        if (pos > -1) ext.search.splice(pos, 1);
+        dt.draw();
+      };
     } else {
-      const today = new Date();
-      endISO = today.toISOString().slice(0,10);
-      startISO = new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
+      const table = document.querySelector('#report');
+      if (!table || !table.tBodies[0]) return;
+      const rows = Array.from(table.tBodies[0].rows);
+      const original = new Map();
+      rows.forEach(tr => {
+        const td = tr.cells[0];
+        let pid = td ? td.textContent.trim() : '';
+        const m = pid.match(/(\d{6,})/g);
+        if (m && m.length) pid = m[m.length-1];
+        if (!original.has(tr)) original.set(tr, tr.style.display);
+        tr.style.display = ids.has(pid) ? '' : 'none';
+      });
+      removeNewFilter = () => { for (const [tr, disp] of original) tr.style.display = disp; };
     }
+  }
 
-    const card = ensureSelfCard();
-    if (!card) return;
-    const countEl = document.getElementById('kpi-new-self-count');
-    const clearEl = document.getElementById('kpi-new-self-clear');
+  async function refresh(fromISO, toISO){
+    const ui = ensureCardAndControls();
+    if (!ui.card) return;
+    if (!fromISO || !toISO){
+      const input = document.getElementById('dateFilter');
+      if (input && input.value && input.value.includes(' to ')){
+        const [s, e] = input.value.split(' to ');
+        fromISO = fromISO || s;
+        toISO = toISO || e;
+      } else {
+        const today = new Date();
+        toISO = toISO || today.toISOString().slice(0,10);
+        fromISO = fromISO || new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
+      }
+    }
+    ui.from.value = fromISO;
+    ui.to.value = toISO;
 
-    const res = await fetchSelfNew(startISO, endISO);
-    countEl.textContent = res.new_count || 0;
+    lastData = await fetchRange(fromISO, toISO);
+    ui.countEl.textContent = lastData.new_count || 0;
 
-    card.addEventListener('click', function(){
-      if (!res.items || !res.items.length) return;
-      if (removeNewFilter) removeNewFilter();
-      const ids = new Set(res.items.map(x => String(x.product_id)));
-      removeNewFilter = addDtFilterByIds(ids);
-      if (removeNewFilter) clearEl.style.display = 'inline';
-    });
-
-    clearEl.addEventListener('click', function(e){
+    ui.card.onclick = () => {
+      if (!lastData.items || !lastData.items.length) return;
+      const ids = new Set(lastData.items.map(x => String(x.product_id)));
+      applyDtFilter(ids);
+      ui.clearEl.style.display = 'inline';
+    };
+    ui.clearEl.onclick = (e) => {
       e.stopPropagation();
       if (removeNewFilter) removeNewFilter();
-      removeNewFilter = null;
-      this.style.display = 'none';
-    });
-  }
+      ui.clearEl.style.display = 'none';
+    };
 
-  // After initial render and on refresh
-  function hookRefresh(){
-    const btn = document.getElementById('refreshBtn');
-    if (btn && !btn._hooked){
-      btn._hooked = true;
-      btn.addEventListener('click', ()=>{
-        // Wait for table to re-render by watching #progress text
-        const prog = document.getElementById('progress');
-        const obs = new MutationObserver(()=>{
-          if ((prog.textContent||'').includes('条') || (prog.textContent||'').includes('完成')){
-            obs.disconnect();
-            installSelfNewKPI();
-          }
-        });
-        obs.observe(prog, { childList:true, characterData:true, subtree:true });
-      });
-    }
+    ui.apply.onclick = async () => {
+      await refresh(ui.from.value, ui.to.value);
+    };
   }
 
   document.addEventListener('DOMContentLoaded', function(){
-    // Wait table ready
-    const tableObs = new MutationObserver(()=>{
+    const obs = new MutationObserver(()=>{
       const tb = document.querySelector('#report tbody');
-      if (tb && tb.children.length){
-        tableObs.disconnect();
-        installSelfNewKPI();
-        hookRefresh();
+      const kpiHost = document.querySelector('.kpi');
+      if (kpiHost && tb && tb.children.length){
+        obs.disconnect();
+        refresh(null, null);
       }
     });
-    tableObs.observe(document.body, { childList:true, subtree:true });
+    obs.observe(document.body, { childList:true, subtree:true });
   });
-})();</script>
+})();
+</script>
 </body>
 </html>

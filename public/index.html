@@ -12,9 +12,16 @@
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
-<style>/* New KPI minimal helpers */
-.stat-card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
-.stat-card.clickable{cursor:pointer}</style>
+<style>
+/* NewKPICtrl */
+.kpi-ctrl{display:flex;gap:.5rem;align-items:center;margin:.25rem 0 .5rem;color:#334155;font:500 13px/1 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
+.kpi-ctrl button{border:1px solid #e5e7eb;background:#fff;border-radius:8px;padding:.25rem .5rem;cursor:pointer}
+.kpi-ctrl button:hover{background:#f8fafc}
+.kpi-ctrl input[type="date"]{border:1px solid #e5e7eb;border-radius:8px;padding:.25rem .5rem}
+.kpi-ctrl .hint{font-size:12px;color:#64748b}
+.stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
+.stat-card.clickable,.kpi .card.clickable{cursor:pointer}
+</style>
 </head>
 <body class="fm">
 <div class="container">
@@ -338,104 +345,170 @@
 </script>
 
 <script>window.addEventListener("resize", ()=>{ if(state.table) state.table.columns.adjust().draw(false); });</script>
-<script>/* === New Products KPI (Managed) === */
+<script>
+/* === New Products KPI (Managed) v2 === */
 (function(){
-  // Adds a new KPI card "本周期新品数" and enables click-to-filter in the DataTable
-  let removeNewFilter = null; // function to clear DT filter
+  let removeNewFilter = null;
+  let lastData = null;
+  let currentISO = null;
+  const ext = (window.jQuery && jQuery.fn && jQuery.fn.dataTable && jQuery.fn.dataTable.ext) ? jQuery.fn.dataTable.ext : null;
 
-  async function fetchManagedNewCount(periodEnd){
-    try{
-      const qs = new URLSearchParams({ platform:'managed' });
-      if (periodEnd) { qs.set('from', periodEnd); qs.set('to', periodEnd); }
-      const r = await fetch('/api/new-products?' + qs.toString());
-      const j = await r.json();
-      if (!j.ok) throw new Error(j.msg||'fetch error');
-      return j;
-    }catch(e){ console.warn('[NewKPI managed] fetch error', e); return { ok:false, items:[], new_count:0 }; }
+  function getReportTable(){
+    let t = document.querySelector('#report');
+    if (t && t.tBodies && t.tBodies[0] && t.tBodies[0].rows.length) return t;
+    t = Array.from(document.querySelectorAll('table')).find(x => x.tBodies && x.tBodies[0] && x.tBodies[0].rows.length);
+    return t || null;
   }
 
-  function ensureNewCard(){
-    const wrap = document.getElementById('kpi');
-    if (!wrap) return null;
-    // if already exists, return it
-    let card = document.getElementById('kpi-new-managed-card');
-    if (card) return card;
-    const html = '<div id="kpi-new-managed-card" class="stat-card clickable" title="点击只看本周期新品">'
-               +   '<h4>本周期新品数</h4>'
-               +   '<p><span id="kpi-new-managed-count">--</span>'
-               +   '<a id="kpi-new-managed-clear" class="mini-link">清除筛选</a></p>'
-               + '</div>';
-    wrap.insertAdjacentHTML('beforeend', html);
-    return document.getElementById('kpi-new-managed-card');
-  }
-
-  function addDtFilterByIds(productIdSet){
+  function dtInstance(table){
     if (!window.jQuery || !jQuery.fn || !jQuery.fn.dataTable) return null;
-    if (!window.state || !state.table) return null;
-    const dt = state.table; // already a DataTable instance
-    const filterFn = (settings, data, dataIndex) => {
-      // Try first column text; fallback to DOM query
-      let pid = (data[0]||'').toString().trim();
-      if (!pid || /<a/i.test(pid)) {
-        // Extract text inside the link (product id)
-        const rowNode = dt.row(dataIndex).node();
-        const cell = rowNode && rowNode.querySelector('td:first-child');
-        if (cell) pid = (cell.textContent||'').trim();
-      }
-      // Extract numeric ID
-      const m = pid.match(/(\d{6,})/g);
-      if (m && m.length) pid = m[m.length-1];
-      return productIdSet.has(pid);
+    if (jQuery.fn.dataTable.isDataTable(table)) return jQuery(table).DataTable();
+    try { return jQuery('#report').DataTable(); } catch(e){ return null; }
+  }
+
+  function snapToSunday(iso){
+    if (!iso) return null;
+    const d = new Date(iso+"T00:00:00Z");
+    const wd = d.getUTCDay();
+    const sunday = new Date(d.getTime() - wd*86400000);
+    return sunday.toISOString().slice(0,10);
+  }
+  function shiftWeek(iso, delta){
+    const d = new Date(iso+"T00:00:00Z");
+    const n = new Date(d.getTime() + delta*7*86400000);
+    return n.toISOString().slice(0,10);
+  }
+
+  async function fetchNew(periodISO){
+    const qs = new URLSearchParams({ platform:'managed' });
+    if (periodISO){ qs.set('from', periodISO); qs.set('to', periodISO); }
+    const r = await fetch('/api/new-products?'+qs.toString());
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.msg||'fetch error');
+    return j;
+  }
+
+  function ensureCardAndControls(){
+    const kpiWrap = document.getElementById('kpi');
+    if (!kpiWrap) return {};
+    let card = document.getElementById('kpi-new-managed-card');
+    if (!card){
+      const html = '<div id="kpi-new-managed-card" class="stat-card clickable" title="点击只看本周期新品">'
+                 +   '<h4>本周期新品数</h4>'
+                 +   '<p><span id="kpi-new-managed-count">--</span>'
+                 +   '<a id="kpi-new-managed-clear" class="mini-link">清除筛选</a></p>'
+                 + '</div>';
+      kpiWrap.insertAdjacentHTML('beforeend', html);
+      card = document.getElementById('kpi-new-managed-card');
+    }
+    let ctrl = document.getElementById('kpi-new-managed-ctrl');
+    if (!ctrl){
+      ctrl = document.createElement('div');
+      ctrl.id = 'kpi-new-managed-ctrl';
+      ctrl.className = 'kpi-ctrl';
+      ctrl.innerHTML = ''
+        + '<button type="button" id="kpi-mg-prev">上一周</button>'
+        + '<label>周末日：</label>'
+        + '<input type="date" id="kpi-mg-date" />'
+        + '<button type="button" id="kpi-mg-next">下一周</button>'
+        + '<span class="hint">选择周末日（自动对齐周日）</span>';
+      kpiWrap.appendChild(ctrl);
+    }
+    return {
+      card,
+      countEl: document.getElementById('kpi-new-managed-count'),
+      clearEl: document.getElementById('kpi-new-managed-clear'),
+      input: document.getElementById('kpi-mg-date'),
+      prev: document.getElementById('kpi-mg-prev'),
+      next: document.getElementById('kpi-mg-next'),
     };
-    const ext = jQuery.fn.dataTable.ext;
-    ext._newProductsManaged = ext._newProductsManaged || [];
-    ext.search.push(filterFn);
-    dt.draw();
-    return () => {
-      const i = ext.search.indexOf(filterFn);
-      if (i > -1) ext.search.splice(i,1);
+  }
+
+  function applyDtFilter(ids){
+    const table = getReportTable();
+    const dt = dtInstance(table);
+    if (removeNewFilter){ removeNewFilter(); removeNewFilter = null; }
+
+    if (dt && jQuery.fn.dataTable.ext){
+      const ext = jQuery.fn.dataTable.ext;
+      const filterFn = (settings, data, dataIndex) => {
+        let pid = (data[0]||'').toString().trim();
+        if (!pid || /<a/i.test(pid)) {
+          const rowNode = dt.row(dataIndex).node();
+          const cell = rowNode && rowNode.querySelector('td:first-child');
+          if (cell) pid = (cell.textContent||'').trim();
+        }
+        const m = pid.match(/(\d{6,})/g);
+        if (m && m.length) pid = m[m.length-1];
+        return ids.has(pid);
+      };
+      ext.search.push(filterFn);
       dt.draw();
+      removeNewFilter = () => {
+        const pos = ext.search.findIndex(f => f === filterFn);
+        if (pos > -1) ext.search.splice(pos, 1);
+        dt.draw();
+      };
+    } else if (table){
+      const rows = Array.from(table.tBodies[0].rows);
+      const original = new Map();
+      rows.forEach(tr => {
+        const td = tr.cells[0];
+        let pid = td ? td.textContent.trim() : '';
+        const m = pid.match(/(\d{6,})/g);
+        if (m && m.length) pid = m[m.length-1];
+        if (!original.has(tr)) original.set(tr, tr.style.display);
+        tr.style.display = ids.has(pid) ? '' : 'none';
+      });
+      removeNewFilter = () => { for (const [tr, disp] of original) tr.style.display = disp; };
+    }
+  }
+
+  async function refresh(periodISO){
+    const ui = ensureCardAndControls();
+    if (!ui.card) return;
+
+    let iso = periodISO;
+    if (!iso){
+      const latest = await fetchNew(null);
+      iso = latest.range && (latest.range.to || latest.range.from) || null;
+      lastData = latest;
+    } else {
+      lastData = await fetchNew(iso);
+    }
+    currentISO = snapToSunday(iso || currentISO);
+    if (ui.input) ui.input.value = currentISO || '';
+    if (ui.countEl) ui.countEl.textContent = lastData.new_count || 0;
+
+    ui.card.onclick = () => {
+      if (!lastData.items || !lastData.items.length) return;
+      const ids = new Set(lastData.items.map(x => String(x.product_id)));
+      applyDtFilter(ids);
+      if (ui.clearEl) ui.clearEl.style.display = 'inline';
     };
+    if (ui.clearEl){
+      ui.clearEl.onclick = (e) => {
+        e.stopPropagation();
+        if (removeNewFilter) removeNewFilter();
+        ui.clearEl.style.display = 'none';
+      };
+    }
+    if (ui.prev) ui.prev.onclick = async () => { await refresh(shiftWeek(currentISO, -1)); };
+    if (ui.next) ui.next.onclick = async () => { await refresh(shiftWeek(currentISO, +1)); };
+    if (ui.input) ui.input.onchange = async () => { await refresh(ui.input.value); };
   }
 
-  async function installManagedNewKPI(){
-    const period = (window._periodA || document.getElementById('periodSelect')?.value || '').trim();
-    const card = ensureNewCard();
-    if (!card) return;
-    const countEl = document.getElementById('kpi-new-managed-count');
-    const clearEl = document.getElementById('kpi-new-managed-clear');
-
-    // fetch and fill
-    const res = await fetchManagedNewCount(period);
-    const cnt = res.new_count || 0;
-    countEl.textContent = cnt;
-
-    // bind click to filter
-    card.addEventListener('click', function(){
-      if (!res.items || !res.items.length) return;
-      if (removeNewFilter) removeNewFilter(); // reset previous
-      const ids = new Set(res.items.map(x => String(x.product_id)));
-      removeNewFilter = addDtFilterByIds(ids);
-      if (removeNewFilter) clearEl.style.display = 'inline';
-    });
-
-    clearEl.addEventListener('click', function(e){
-      e.stopPropagation();
-      if (removeNewFilter) removeNewFilter();
-      removeNewFilter = null;
-      this.style.display = 'none';
-    });
-  }
-
-  // Trigger once the table is drawn
-  const observer = new MutationObserver(()=>{
-    const tableBody = document.querySelector('#report tbody');
-    if (tableBody && tableBody.children.length){
-      observer.disconnect();
-      installManagedNewKPI();
+  const obs = new MutationObserver(()=>{
+    const tb = document.querySelector('#report tbody');
+    const kpiHost = document.getElementById('kpi');
+    if (kpiHost && tb && tb.children.length){
+      obs.disconnect();
+      const initISO = (window._periodA || document.getElementById('periodSelect')?.value || '').trim() || null;
+      refresh(initISO);
     }
   });
-  observer.observe(document.body, { childList:true, subtree:true });
-})();</script>
+  obs.observe(document.body, { childList:true, subtree:true });
+})();
+</script>
 </body>
 </html>
