@@ -1,4 +1,4 @@
-// pages/api/ingest/index.js —— 方案1（只改 ingest）：不写入转换率列，multiparty 解析
+// pages/api/ingest/index.js —— 方案1B（只改 ingest）：写入 DB 现有字段名
 export const config = { api: { bodyParser: false } };
 
 function toNumber(v){ if (v==null||v==='') return 0; if (typeof v==='number') return Number.isFinite(v)?v:0; const n=Number(String(v).replace(/,/g,'').trim()); return Number.isFinite(n)?n:0; }
@@ -58,14 +58,15 @@ export default async function handler(req,res){
         product_id: m[0],
         period_type: 'week',
         period_end,
-        impressions:       pickNumber(row,SYNONYMS.impressions),
-        visitors:          pickNumber(row,SYNONYMS.visitors),
-        pageviews:         pickNumber(row,SYNONYMS.pageviews),
-        add_to_cart_users: pickNumber(row,SYNONYMS.add_to_cart_users),
-        add_to_cart_qty:   pickNumber(row,SYNONYMS.add_to_cart_qty),
-        pay_items:         pickNumber(row,SYNONYMS.pay_items),
-        pay_orders:        pickNumber(row,SYNONYMS.pay_orders),
-        pay_buyers:        pickNumber(row,SYNONYMS.pay_buyers),
+        // 写 DB 现有字段名：
+        search_exposure: pickNumber(row,SYNONYMS.impressions),
+        uv:              pickNumber(row,SYNONYMS.visitors),
+        pv:              pickNumber(row,SYNONYMS.pageviews),
+        atc_users:       pickNumber(row,SYNONYMS.add_to_cart_users),
+        atc_qty:         pickNumber(row,SYNONYMS.add_to_cart_qty),
+        pay_items:       pickNumber(row,SYNONYMS.pay_items),
+        pay_orders:      pickNumber(row,SYNONYMS.pay_orders),
+        pay_buyers:      pickNumber(row,SYNONYMS.pay_buyers),
       });
     }
 
