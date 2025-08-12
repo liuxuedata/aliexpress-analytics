@@ -36,12 +36,16 @@
 <body class="fm">
 <div class="container">
   <nav class="sidebar" id="sidebar">
+    <div class="site-header"><span id="currentSite">全托管 A站</span><button id="addSite" class="add-site-btn">+</button></div>
     <h3>产品导航</h3>
     <ul>
       <li class="has-submenu open">
         <a href="#">速卖通</a>
         <ul class="submenu">
-          <li><a href="index.html" class="active">全托管</a></li>
+          <li class="has-submenu open">
+            <a href="#">全托管</a>
+            <ul class="submenu" id="managedSites"></ul>
+          </li>
           <li><a href="self-operated.html">自运营</a></li>
         </ul>
       </li>
@@ -60,6 +64,7 @@
     <div class="upload-section">
       <div class="upload-top">
         <div style="font-size:28px;font-weight:800;">速卖通全托管数据分析</div>
+        <div id="userArea" class="user-area"></div>
         <div class="controls">
           <label class="badge">时间粒度</label>
           <label><input type="radio" name="gran" value="week" checked> 周</label>
@@ -815,5 +820,43 @@
     }
   });
 })();</script>
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  const siteListKey='managedSites';
+  const currentSiteKey='currentSite';
+  let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
+  if(!Array.isArray(sites)||!sites.length){sites=['A站','B站','C站'];}
+  const listEl=document.getElementById('managedSites');
+  function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));}
+  function render(){
+    listEl.innerHTML='';
+    sites.forEach((name,idx)=>{
+      const li=document.createElement('li');
+      const a=document.createElement('a');
+      a.href='index.html';
+      a.textContent=name;
+      a.addEventListener('click',(e)=>{e.preventDefault();localStorage.setItem(currentSiteKey,name);updateCurrent();});
+      a.addEventListener('dblclick',()=>{const n=prompt('修改站点名',name);if(n){sites[idx]=n;save();render();updateCurrent();}});
+      li.appendChild(a);listEl.appendChild(li);
+    });
+  }
+  function updateCurrent(){
+    const name=localStorage.getItem(currentSiteKey)||sites[0];
+    document.getElementById('currentSite').textContent='全托管 '+name;
+    localStorage.setItem(currentSiteKey,name);
+  }
+  document.getElementById('addSite').addEventListener('click',()=>{
+    const n=prompt('新增站点名');
+    if(n){sites.push(n);save();render();updateCurrent();}
+  });
+  render();updateCurrent();
+  const userArea=document.getElementById('userArea');
+  function refreshUser(){
+    const u=localStorage.getItem('username');
+    if(u){userArea.textContent=u;}else{userArea.innerHTML='<a href="login.html">登录</a>';}
+  }
+  refreshUser();
+});
+</script>
 </body>
 </html>

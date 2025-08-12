@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>登录/注册</title>
+  <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+</head>
+<body class="fm">
+  <div class="container" style="justify-content:center;align-items:center;">
+    <main class="main" style="max-width:400px;">
+      <h2>登录/注册</h2>
+      <div class="content-pad">
+        <input type="text" id="username" placeholder="用户名" class="sel" style="width:100%;margin-bottom:8px;">
+        <input type="password" id="password" placeholder="密码" class="sel" style="width:100%;margin-bottom:8px;">
+        <div class="controls" style="justify-content:flex-end;">
+          <button id="loginBtn" class="btn">登录</button>
+          <button id="registerBtn" class="btn">注册</button>
+        </div>
+      </div>
+    </main>
+  </div>
+<script>
+function handleAuth(){
+  const u=document.getElementById('username').value.trim();
+  if(u){localStorage.setItem('username',u);window.location.href='index.html';}
+}
+ document.getElementById('loginBtn').onclick=handleAuth;
+ document.getElementById('registerBtn').onclick=handleAuth;
+</script>
+</body>
+</html>
