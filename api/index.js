@@ -1,0 +1,69 @@
+// /api/independent/stats/index.js
+import { createClient } from '@supabase/supabase-js';
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+
+function parseDate(s, fallback) {
+  const d = s ? new Date(s) : null;
+  if (d && !isNaN(d.getTime())) return d.toISOString().slice(0,10);
+  return fallback;
+}
+
+export default async function handler(req, res) {
+  const { site, from, to, limit = '500' } = req.query;
+  const today = new Date();
+  const toDate = parseDate(to, new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString().slice(0,10));
+  const fromDate = parseDate(from, new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29).toISOString().slice(0,10));
+
+  if (!site) return res.status(400).json({ error: 'missing site param, e.g. ?site=poolsvacuum.com' });
+
+  // table data
+  let { data: table, error: e1 } = await supabase
+    .from('independent_landing_metrics')
+    .select('*')
+    .eq('site', site)
+    .gte('day', fromDate).lte('day', toDate)
+    .order('day', { ascending: false })
+    .limit(Number(limit));
+
+  if (e1) return res.status(500).json({ error: e1.message });
+
+  // daily summary series
+  let { data: series, error: e2 } = await supabase
+    .from('independent_landing_summary_by_day')
+    .select('*')
+    .eq('site', site)
+    .gte('day', fromDate).lte('day', toDate)
+    .order('day', { ascending: true });
+
+  if (e2) return res.status(500).json({ error: e2.message });
+
+  // top landing pages by conversions
+  let { data: topPages, error: e3 } = await supabase
+    .from('independent_landing_metrics')
+    .select('landing_path, landing_url, conversions, conv_value, clicks, impr, cost')
+    .eq('site', site)
+    .gte('day', fromDate).lte('day', toDate);
+
+  if (e3) return res.status(500).json({ error: e3.message });
+
+  const byPath = {};
+  for (const r of topPages) {
+    const key = r.landing_path;
+    if (!byPath[key]) byPath[key] = { path: key, url: r.landing_url, conversions: 0, conv_value: 0, clicks: 0, impr: 0, cost: 0 };
+    byPath[key].conversions += Number(r.conversions||0);
+    byPath[key].conv_value += Number(r.conv_value||0);
+    byPath[key].clicks += Number(r.clicks||0);
+    byPath[key].impr += Number(r.impr||0);
+    byPath[key].cost += Number(r.cost||0);
+  }
+  const topList = Object.values(byPath)
+    .map(x => ({ ...x,
+      ctr: x.impr>0 ? x.clicks/x.impr : 0,
+      cpa: x.conversions>0 ? x.cost/x.conversions : 0,
+      roas: x.cost>0 ? x.conv_value/x.cost : 0
+    }))
+    .sort((a,b)=> b.conversions - a.conversions)
+    .slice(0, 50);
+
+  res.status(200).json({ ok:true, from: fromDate, to: toDate, table, series, topList });
+}
