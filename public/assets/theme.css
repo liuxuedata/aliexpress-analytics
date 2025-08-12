@@ -32,7 +32,7 @@ body{
 }
 
 /* ------ Top Navigation ------ */
-.top-nav{background:var(--brand);color:#fff;}
+.top-nav{background:var(--brand);color:#fff;position:sticky;top:0;z-index:1000;width:100%;}
 .top-nav .nav-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;padding:8px 16px;}
 .top-nav .top-menu{list-style:none;margin:0;padding:0;display:flex;gap:20px;}
 .top-nav .top-menu>li{position:relative;}
