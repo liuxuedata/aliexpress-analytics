@@ -16,33 +16,27 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
-  
-  
-<link rel="stylesheet" href="assets/theme.css?v=20250810b">
-<style>
-/* NewKPICtrl */
-.kpi-ctrl{display:flex;gap:.5rem;align-items:center;margin:.25rem 0 .5rem;color:#334155;font:500 13px/1 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
-.kpi-ctrl button{border:1px solid #e5e7eb;background:#fff;border-radius:8px;padding:.25rem .5rem;cursor:pointer}
-.kpi-ctrl button:hover{background:#f8fafc}
-.kpi-ctrl input[type="date"]{border:1px solid #e5e7eb;border-radius:8px;padding:.25rem .5rem}
-.kpi-ctrl .hint{font-size:12px;color:#64748b}
-.stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
-.stat-card.clickable,.kpi .card.clickable{cursor:pointer}
-</style>
-<style>/* KPI basic helpers (no extra period controls) */
-.stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
-.stat-card.clickable,.kpi .card.clickable{cursor:pointer}
-.kpi-row{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin:.25rem 0 .75rem}</style>
-<style>/* KPI basic helpers */
-.stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
-.stat-card.clickable,.kpi .card.clickable{cursor:pointer}
-.kpi-row{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin:.25rem 0 .75rem}
-/* Force hide any old period controls if they still exist */
-#kpi-new-self-ctrl, #kpi-new-managed-ctrl, .kpi .kpi-ctrl { display: none !important; }</style>
+
+  <!-- 主题样式（沿用你现有的） -->
+  <link rel="stylesheet" href="assets/theme.css?v=20250810b">
+  <style>
+    /* NewKPICtrl */
+    .kpi-ctrl{display:flex;gap:.5rem;align-items:center;margin:.25rem 0 .5rem;color:#334155;font:500 13px/1 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
+    .kpi-ctrl button{border:1px solid #e5e7eb;background:#fff;border-radius:8px;padding:.25rem .5rem;cursor:pointer}
+    .kpi-ctrl button:hover{background:#f8fafc}
+    .kpi-ctrl input[type="date"]{border:1px solid #e5e7eb;border-radius:8px;padding:.25rem .5rem}
+    .kpi-ctrl .hint{font-size:12px;color:#64748b}
+    .stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
+    .stat-card.clickable,.kpi .card.clickable{cursor:pointer}
+    /* KPI basic helpers */
+    .kpi-row{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin:.25rem 0 .75rem}
+    /* Force hide any old period controls if they still exist */
+    #kpi-new-self-ctrl, #kpi-new-managed-ctrl, .kpi .kpi-ctrl { display: none !important; }
+  </style>
 </head>
 <body>
 <div class="container">
-  <!-- 左侧导航（和你现有结构一致） -->
+  <!-- 左侧导航 -->
   <nav class="sidebar" id="sidebar">
     <h3>产品导航</h3>
     <ul>
@@ -75,10 +69,9 @@
           <span id="progress" class="progress"></span>
         </div>
         <div class="controls">
-       <span>粒度：</span>
-<span class="sel" style="background:#1f2937;color:#fff;border-color:#334155;cursor:not-allowed">按日</span>
-<input type="hidden" id="granularity" value="day">
-
+          <span>粒度：</span>
+          <span class="sel" style="background:#1f2937;color:#fff;border-color:#334155;cursor:not-allowed">按日</span>
+          <input type="hidden" id="granularity" value="day">
           <span>日期：</span>
           <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
           <button id="refreshBtn" class="btn">刷新</button>
@@ -161,6 +154,11 @@ const AXIS_LABEL = { color: '#E5E7EB', fontWeight: 700, fontSize: 12 };
 const GRID_LINE  = 'rgba(148,163,184,0.18)';
 
 /* ---------- 上传 Excel → 入库 ---------- */
+// NOTE: 这里已支持 4 个字段：
+//  - 支付商品件数（→ pay_items，兼容“支付件数/付款件数/成交件数”）
+//  - 下单商品件数（→ order_items）
+//  - 平均停留时长（秒）（→ avg_stay_seconds）
+//  - 搜索点击率（% 数值）（→ search_ctr）
 $('#fileInput').on('change', function(e) {
   const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();
@@ -188,11 +186,16 @@ $('#fileInput').on('change', function(e) {
         views:      findIdx(/^(商品浏览量|浏览量|pv|page views)$/i),
         add_people: findIdx(/^(商品加购人数|加购人数|加购买家数)$/i),
         add_count:  findIdx(/^(商品加购件数|加购件数)$/i),
-        pay_items:  findIdx(/^支付件数$/i),
+        // ✅ 支付商品件数：兼容“支付件数/付款件数/成交件数/支付商品件数”
+        pay_items:  (function(){ const rs=[/^支付商品件数$/i,/^支付件数$/i,/^付款件数$/i,/^成交件数$/i]; for (const re of rs){const i=findIdx(re); if(i!==-1) return i;} return -1; })(),
         pay_orders: findIdx(/^(支付订单数|下单人数|订单数)$/i),
         pay_buyers: findIdx(/^(支付买家数|支付人数|成交人数)$/i),
         fav_people: findIdx(/^(收藏人数|收藏买家数|收藏用户数)$/i),
-        fav_count:  findIdx(/^(收藏件数|收藏量)$/i)
+        fav_count:  findIdx(/^(收藏件数|收藏量)$/i),
+        // ✅ 新增：下单商品件数 / 平均停留时长 / 搜索点击率
+        order_items: findIdx(/^(下单商品件数|下单件数|下单商品数|下单商品数量)$/i),
+        avg_stay_seconds: findIdx(/^(平均停留时长(\(秒\))?|平均停留时间|平均访问时长)$/i),
+        search_ctr: findIdx(/^(搜索点击率(\(%\))?|点击率(\(%\))?|搜索点击率|点击率)$/i),
       };
       if (idx.product_id<0 || idx.stat_date<0) throw new Error('缺少必填：商品ID / 统计时间');
 
@@ -205,6 +208,8 @@ $('#fileInput').on('change', function(e) {
         const visitors = (idx.visitors !== -1 ? toNum(r[idx.visitors])
                         : ((idx.visitors_new !== -1 ? toNum(r[idx.visitors_new]) : 0)
                         + (idx.visitors_old !== -1 ? toNum(r[idx.visitors_old]) : 0)));
+        // 将“12.3%”型点击率转成 12.3
+        const pct = (x) => { const n = String(x ?? '').trim(); if (!n) return 0; return toNum(n.replace('%','')); };
         const row = {
           product_id: pid, stat_date: sd,
           exposure:  idx.exposure  === -1 ? 0 : toNum(r[idx.exposure]),
@@ -215,6 +220,10 @@ $('#fileInput').on('change', function(e) {
           pay_items: idx.pay_items === -1 ? 0 : toNum(r[idx.pay_items]),
           pay_orders:idx.pay_orders=== -1 ? 0 : toNum(r[idx.pay_orders]),
           pay_buyers:idx.pay_buyers=== -1 ? 0 : toNum(r[idx.pay_buyers]),
+          // 新增字段
+          order_items: idx.order_items === -1 ? 0 : toNum(r[idx.order_items]),
+          avg_stay_seconds: idx.avg_stay_seconds === -1 ? 0 : toNum(r[idx.avg_stay_seconds]),
+          search_ctr: idx.search_ctr === -1 ? 0 : pct(r[idx.search_ctr]),
         };
         if (idx.fav_people !== -1) row.fav_people = toNum(r[idx.fav_people]);
         if (idx.fav_count  !== -1) row.fav_count  = toNum(r[idx.fav_count]);
@@ -336,7 +345,9 @@ async function renderTable(rows, granularity) {
     const conv1 = r.exposure>0 ? ((r.visitors/r.exposure)*100).toFixed(2) : '0.00';
     const conv2 = r.visitors>0 ? ((r.add_people/r.visitors)*100).toFixed(2) : '0.00';
     const conv3 = r.add_people>0 ? ((r.pay_buyers/r.add_people)*100).toFixed(2) : '0.00';
-    return [link, r.bucket_label || r.bucket, conv1 + '%', conv2 + '%', conv3 + '%', r.exposure, r.visitors, r.views, r.add_people, r.add_count, r.pay_items, r.pay_orders, r.pay_buyers];
+    const ctr = (r.search_ctr==null || r.search_ctr===undefined) ? '' : Number(r.search_ctr).toFixed(2) + '%';
+    const stay = (r.avg_stay_seconds==null || r.avg_stay_seconds===undefined) ? '' : Math.round(r.avg_stay_seconds);
+    return [link, r.bucket_label || r.bucket, conv1 + '%', conv2 + '%', conv3 + '%', r.exposure, r.visitors, r.views, r.add_people, r.order_items, r.pay_items, r.pay_buyers, ctr, stay];
   });
   window.dataTable = $('#report').DataTable({
     data,
@@ -345,8 +356,13 @@ async function renderTable(rows, granularity) {
       { title: granularity==='day' ? '日期' : (granularity==='week' ? '周范围' : '月份范围') },
       { title: '访客比(%)' }, { title: '加购比(%)' }, { title: '支付比(%)' },
       { title: '曝光量' }, { title: '访客数' }, { title: '浏览量' },
-      { title: '加购人数' }, { title: '加购件数' }, { title: '支付件数' },
-      { title: '支付订单数' }, { title: '支付买家数' }
+      { title: '加购人数' },
+      // 去掉“加购件数、支付订单数”，新增三列：
+      { title: '下单商品件数' },
+      { title: '支付件数' },
+      { title: '支付买家数' },
+      { title: '搜索点击率(%)' },
+      { title: '平均停留时长(秒)' }
     ],
     order: [[1,'desc']], scrollX:true, scrollY:'calc(100vh - 420px)', scrollCollapse:true, fixedHeader:true, fixedColumns:{leftColumns:1}
   });
@@ -388,375 +404,8 @@ $('#metricSel').on('change', fetchAndRenderAll);
 })();
 </script>
 
-
-
+<!-- ====== New Products KPI (Self) ====== -->
 <script>
-(function() {
-  var page = location.pathname.split('/').pop() || 'index.html';
-
-  // Highlight current page
-  var links = document.querySelectorAll('.sidebar a[href]');
-  for (var i=0;i<links.length;i++) {
-    if (links[i].getAttribute('href') === page) {
-      links[i].classList.add('active');
-      var p = links[i].closest('.has-submenu');
-      if (p) p.classList.add('open');
-    }
-  }
-
-  // Make sure sidebar sits above content and is clickable
-  var sb = document.querySelector('.sidebar');
-  if (sb) { sb.style.zIndex = 1000; }
-
-  // Parent click: if only one child, go directly; else toggle
-  var parents = document.querySelectorAll('.has-submenu > a');
-  for (var j=0;j<parents.length;j++) {
-    parents[j].addEventListener('click', function(e){
-      var li = this.parentElement;
-      var submenu = li.querySelector('.submenu');
-      if (!submenu) return;
-      var items = submenu.querySelectorAll('a[href]');
-      if (items.length === 1) {
-        window.location.href = items[0].getAttribute('href');
-      } else {
-        e.preventDefault();
-        li.classList.toggle('open');
-      }
-    });
-  }
-
-  // Submenu links: always navigate
-  var subLinks = document.querySelectorAll('.submenu a[href]');
-  for (var k=0;k<subLinks.length;k++) {
-    subLinks[k].addEventListener('click', function(e){
-      // Some browsers may have preventDefault from other handlers; enforce navigation
-      window.location.href = this.getAttribute('href');
-    });
-  }
-
-  // If we're on independent-site.html, auto-open the 速卖通菜单（第一个带有"速卖通"文本的父级）
-  if (page === 'independent-site.html') {
-    var groups = document.querySelectorAll('.has-submenu');
-    for (var g=0; g<groups.length; g++) {
-      var txt = groups[g].textContent || '';
-      if (txt.indexOf('速卖通') !== -1 || txt.toLowerCase().indexOf('aliexpress') !== -1) {
-        groups[g].classList.add('open');
-        break;
-      }
-    }
-  }
-})();
-</script>
-
-<script>
-/* === New Products KPI (Self) v2 === */
-(function(){
-  let removeNewFilter = null;
-  let lastData = null;
-
-  function dtInstance(){
-    if (!window.jQuery || !jQuery.fn || !jQuery.fn.dataTable) return null;
-    try { return window.dataTable || jQuery('#report').DataTable(); } catch(e){ return null; }
-  }
-
-  async function fetchRange(fromISO, toISO){
-    const qs = new URLSearchParams({ platform:'self' });
-    if (fromISO) qs.set('from', fromISO);
-    if (toISO) qs.set('to', toISO);
-    const r = await fetch('/api/new-products?'+qs.toString());
-    const j = await r.json();
-    if (!j.ok) throw new Error(j.msg||'fetch error');
-    return j;
-  }
-
-  function ensureCardAndControls(){
-    const kpiWrap = document.querySelector('.kpi');
-    if (!kpiWrap) return {};
-    let card = document.getElementById('kpi-new-self-card');
-    if (!card){
-      const div = document.createElement('div');
-      div.className = 'card clickable';
-      div.id = 'kpi-new-self-card';
-      div.innerHTML = '<h4>本周期新品数</h4><p id="kpi-new-self-count">--</p><a id="kpi-new-self-clear" class="mini-link">清除筛选</a>';
-      kpiWrap.appendChild(div);
-      card = div;
-    }
-    let ctrl = document.getElementById('kpi-new-self-ctrl');
-    if (!ctrl){
-      ctrl = document.createElement('div');
-      ctrl.id = 'kpi-new-self-ctrl';
-      ctrl.className = 'kpi-ctrl';
-      ctrl.innerHTML = ''
-        + '<label>开始：</label><input type="date" id="kpi-self-from" />'
-        + '<label>结束：</label><input type="date" id="kpi-self-to" />'
-        + '<button type="button" id="kpi-self-apply">统计</button>'
-        + '<span class="hint">选择任意日期段统计新品</span>';
-      kpiWrap.appendChild(ctrl);
-    }
-    return {
-      card,
-      countEl: document.getElementById('kpi-new-self-count'),
-      clearEl: document.getElementById('kpi-new-self-clear'),
-      from: document.getElementById('kpi-self-from'),
-      to: document.getElementById('kpi-self-to'),
-      apply: document.getElementById('kpi-self-apply'),
-    };
-  }
-
-  function applyDtFilter(ids){
-    const dt = dtInstance();
-    if (removeNewFilter){ removeNewFilter(); removeNewFilter = null; }
-
-    if (dt && jQuery.fn.dataTable.ext){
-      const ext = jQuery.fn.dataTable.ext;
-      const filterFn = (settings, data, dataIndex) => {
-        let pid = (data[0]||'').toString().trim();
-        if (!pid || /<a/i.test(pid)) {
-          const rowNode = dt.row(dataIndex).node();
-          const cell = rowNode && rowNode.querySelector('td:first-child');
-          if (cell) pid = (cell.textContent||'').trim();
-        }
-        const m = pid.match(/(\d{6,})/g);
-        if (m && m.length) pid = m[m.length-1];
-        return ids.has(pid);
-      };
-      ext.search.push(filterFn);
-      dt.draw();
-      removeNewFilter = () => {
-        const pos = ext.search.findIndex(f => f === filterFn);
-        if (pos > -1) ext.search.splice(pos, 1);
-        dt.draw();
-      };
-    } else {
-      const table = document.querySelector('#report');
-      if (!table || !table.tBodies[0]) return;
-      const rows = Array.from(table.tBodies[0].rows);
-      const original = new Map();
-      rows.forEach(tr => {
-        const td = tr.cells[0];
-        let pid = td ? td.textContent.trim() : '';
-        const m = pid.match(/(\d{6,})/g);
-        if (m && m.length) pid = m[m.length-1];
-        if (!original.has(tr)) original.set(tr, tr.style.display);
-        tr.style.display = ids.has(pid) ? '' : 'none';
-      });
-      removeNewFilter = () => { for (const [tr, disp] of original) tr.style.display = disp; };
-    }
-  }
-
-  async function refresh(fromISO, toISO){
-    const ui = ensureCardAndControls();
-    if (!ui.card) return;
-    if (!fromISO || !toISO){
-      const input = document.getElementById('dateFilter');
-      if (input && input.value && input.value.includes(' to ')){
-        const [s, e] = input.value.split(' to ');
-        fromISO = fromISO || s;
-        toISO = toISO || e;
-      } else {
-        const today = new Date();
-        toISO = toISO || today.toISOString().slice(0,10);
-        fromISO = fromISO || new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
-      }
-    }
-    ui.from.value = fromISO;
-    ui.to.value = toISO;
-
-    lastData = await fetchRange(fromISO, toISO);
-    ui.countEl.textContent = lastData.new_count || 0;
-
-    ui.card.onclick = () => {
-      if (!lastData.items || !lastData.items.length) return;
-      const ids = new Set(lastData.items.map(x => String(x.product_id)));
-      applyDtFilter(ids);
-      ui.clearEl.style.display = 'inline';
-    };
-    ui.clearEl.onclick = (e) => {
-      e.stopPropagation();
-      if (removeNewFilter) removeNewFilter();
-      ui.clearEl.style.display = 'none';
-    };
-
-    ui.apply.onclick = async () => {
-      await refresh(ui.from.value, ui.to.value);
-    };
-  }
-
-  document.addEventListener('DOMContentLoaded', function(){
-    const obs = new MutationObserver(()=>{
-      const tb = document.querySelector('#report tbody');
-      const kpiHost = document.querySelector('.kpi');
-      if (kpiHost && tb && tb.children.length){
-        obs.disconnect();
-        refresh(null, null);
-      }
-    });
-    obs.observe(document.body, { childList:true, subtree:true });
-  });
-})();
-</script>
-<script>/* === New Products KPI (Self) v3 === */
-(function(){
-  let removeNewFilter = null;
-  let lastData = null;
-
-  function getDT(){
-    if (!window.jQuery || !jQuery.fn || !jQuery.fn.dataTable) return null;
-    try { return window.dataTable || jQuery('#report').DataTable(); } catch(e){ return null; }
-  }
-  async function fetchRange(fromISO, toISO){
-    const qs = new URLSearchParams({ platform:'self' });
-    if (fromISO) qs.set('from', fromISO);
-    if (toISO) qs.set('to', toISO);
-    const r = await fetch('/api/new-products?'+qs.toString());
-    const j = await r.json();
-    if (!j.ok) throw new Error(j.msg||'fetch error');
-    return j;
-  }
-  function parseDateRange(){
-    const input = document.getElementById('dateFilter');
-    if (input && input.value && input.value.includes(' to ')){
-      const [s, e] = input.value.split(' to ');
-      return { from:s, to:e };
-    }
-    // fallback: last 7 days
-    const today = new Date();
-    const to = today.toISOString().slice(0,10);
-    const from = new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
-    return { from, to };
-    }
-  function ensureCard(){
-    const wrap = document.querySelector('.kpi') || document.getElementById('kpi');
-    if (!wrap){
-      // create before table fallback
-      const table = document.querySelector('#report');
-      const host = document.createElement('div');
-      host.className = 'kpi-row';
-      if (table && table.parentNode) table.parentNode.insertBefore(host, table);
-      else document.body.insertBefore(host, document.body.firstChild);
-      wrap = host;
-    }
-    let card = document.getElementById('kpi-new-self-card');
-    if (!card){
-      const div = document.createElement('div');
-      div.className = 'card clickable stat-card';
-      div.id = 'kpi-new-self-card';
-      div.innerHTML = '<h4>本周期新品数</h4><p id="kpi-new-self-count">--</p><a id="kpi-new-self-clear" class="mini-link">清除筛选</a>';
-      wrap.appendChild(div);
-      card = div;
-    }
-    return {
-      card,
-      countEl: document.getElementById('kpi-new-self-count'),
-      clearEl: document.getElementById('kpi-new-self-clear'),
-    };
-  }
-  function applyFilterByIds(ids){
-    const dt = getDT();
-    if (removeNewFilter){ removeNewFilter(); removeNewFilter = null; }
-
-    if (dt && jQuery.fn.dataTable.ext){
-      const ext = jQuery.fn.dataTable.ext;
-      const filterFn = (settings, data, dataIndex) => {
-        let pid = (data[0]||'').toString().trim();
-        if (!pid || /<a/i.test(pid)) {
-          const rowNode = dt.row(dataIndex).node();
-          const cell = rowNode && rowNode.querySelector('td:first-child');
-          if (cell) pid = (cell.textContent||'').trim();
-        }
-        const m = pid.match(/(\d{6,})/g);
-        if (m && m.length) pid = m[m.length-1];
-        return ids.has(pid);
-      };
-      ext.search.push(filterFn);
-      dt.draw();
-      removeNewFilter = () => {
-        const pos = ext.search.findIndex(f => f === filterFn);
-        if (pos > -1) ext.search.splice(pos, 1);
-        dt.draw();
-      };
-    } else {
-      const table = document.querySelector('#report');
-      if (!table || !table.tBodies[0]) return;
-      const rows = Array.from(table.tBodies[0].rows);
-      const original = new Map();
-      rows.forEach(tr => {
-        const td = tr.cells[0];
-        let pid = td ? td.textContent.trim() : '';
-        const m = pid.match(/(\d{6,})/g);
-        if (m && m.length) pid = m[m.length-1];
-        if (!original.has(tr)) original.set(tr, tr.style.display);
-        tr.style.display = ids.has(pid) ? '' : 'none';
-      });
-      removeNewFilter = () => { for (const [tr, disp] of original) tr.style.display = disp; };
-    }
-  }
-  async function refreshFromPageRange(){
-    const ui = ensureCard();
-    const { from, to } = parseDateRange();
-    try{
-      lastData = await fetchRange(from, to);
-      ui.countEl.textContent = lastData.new_count || 0;
-      ui.card.onclick = () => {
-        if (!lastData.items || !lastData.items.length) return;
-        const ids = new Set(lastData.items.map(x => String(x.product_id)));
-        applyFilterByIds(ids);
-        ui.clearEl.style.display = 'inline';
-      };
-      ui.clearEl.onclick = (e) => {
-        e.stopPropagation();
-        if (removeNewFilter) removeNewFilter();
-        ui.clearEl.style.display = 'none';
-      };
-    }catch(e){
-      console.warn('[Self KPI] fetch failed:', e);
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', function(){
-    // Initial after table rendered
-    const obs = new MutationObserver(()=>{
-      const tb = document.querySelector('#report tbody');
-      const kpiHost = document.querySelector('.kpi') || document.getElementById('kpi') || document.querySelector('.kpi-row');
-      if (kpiHost && tb && tb.children.length){
-        obs.disconnect();
-        refreshFromPageRange();
-        // Hook dateFilter changes
-        const input = document.getElementById('dateFilter');
-        if (input && !input._newkpi_hook){
-          input._newkpi_hook = true;
-          input.addEventListener('change', refreshFromPageRange);
-          input.addEventListener('blur', refreshFromPageRange);
-        }
-        const refreshBtn = document.getElementById('refreshBtn');
-        if (refreshBtn && !refreshBtn._newkpi_hook){
-          refreshBtn._newkpi_hook = true;
-          refreshBtn.addEventListener('click', () => {
-            // Wait progress text to change then refresh
-            const prog = document.getElementById('progress');
-            if (!prog) return;
-            const pObs = new MutationObserver(()=>{
-              if ((prog.textContent||'').trim().length){
-                pObs.disconnect();
-                refreshFromPageRange();
-              }
-            });
-            pObs.observe(prog, { childList:true, characterData:true, subtree:true });
-          });
-        }
-      }
-    });
-    obs.observe(document.body, { childList:true, subtree:true });
-
-    // Also watch tbody changes (whenever数据明细重绘)
-    const tbody = document.querySelector('#report tbody');
-    if (tbody){
-      const tObs = new MutationObserver(()=>{ refreshFromPageRange(); });
-      tObs.observe(tbody, { childList:true });
-    }
-  });
-})();</script>
-<script>/* === New Products KPI (Self) v3.1 === */
 (function(){
   let removeNewFilter = null;
   let lastData = null;
@@ -880,7 +529,6 @@ $('#metricSel').on('change', fetchAndRenderAll);
       const kpiHost = document.querySelector('.kpi') || document.getElementById('kpi') || document.querySelector('.kpi-row');
       if (kpiHost && tb && tb.children.length){
         obs.disconnect();
-        // Remove any leftover control immediately
         const ghost = document.getElementById('kpi-new-self-ctrl');
         if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost);
         refreshFromPageRange();
@@ -915,6 +563,7 @@ $('#metricSel').on('change', fetchAndRenderAll);
       tObs.observe(tbody, { childList:true });
     }
   });
-})();</script>
+})();
+</script>
 </body>
 </html>
