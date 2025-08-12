@@ -90,23 +90,22 @@
 
       <!-- 汇总对比 -->
       <section id="analysis" class="content-pad" style="display:none;">
-        <div class="panel">
-          <h3>周期 A vs 周期 B · 总量曲线（按天）</h3>
-          <div class="controls" style="margin-bottom:8px;">
-            <span>维度：</span>
-            <select id="metricSel" class="sel">
-              <option value="exposure_sum">曝光量总和</option>
-              <option value="visitors_sum">访客数总和</option>
-              <option value="add_people_sum">加购人数总和</option>
-              <option value="fav_sum">收藏总数</option>
-              <option value="orders_sum">下单总数</option>
-            </select>
-            <span class="notice">A = 当前选择；B = 上一周期（向前平移同长度）。</span>
+        <div class="grid grid-2">
+          <div class="panel" style="grid-column:1/-1;">
+            <h3>周期 A vs 周期 B · 总量曲线（按天）</h3>
+            <div class="controls" style="margin-bottom:8px;">
+              <span>维度：</span>
+              <select id="metricSel" class="sel">
+                <option value="exposure_sum">曝光量总和</option>
+                <option value="visitors_sum">访客数总和</option>
+                <option value="add_people_sum">加购人数总和</option>
+                <option value="fav_sum">收藏总数</option>
+                <option value="orders_sum">下单总数</option>
+              </select>
+              <span class="notice">A = 当前选择；B = 上一周期（向前平移同长度）。</span>
+            </div>
+            <div id="lineChart" style="width:100%;height:360px;"></div>
           </div>
-          <div id="lineChart" style="width:100%;height:360px;"></div>
-        </div>
-
-        <div class="grid grid-2" style="margin-top:16px;">
           <div class="panel">
             <h3>平均比率对比（A vs B）</h3>
             <div id="ratioBar" style="width:100%;height:300px;"></div>

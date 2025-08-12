@@ -108,6 +108,10 @@ body{
   background:#fff; color:var(--text); cursor:pointer;
 }
 .upload-btn:hover, .btn:hover{ background:#f8fafc }
+input[type="file"]{ display:none }
+
+.grid{ display:grid; gap:16px }
+.grid-2{ grid-template-columns:repeat(auto-fit,minmax(320px,1fr)) }
 
 /* Divider */
 .divider{ height:1px; background:var(--panel-border); margin:8px 0 12px }
