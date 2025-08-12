@@ -1,10 +1,11 @@
 /**
- * Adaptive ingest for managed stats (auto-pruning)
+ * Adaptive ingest for managed stats (auto-pruning + period_type)
  * - Detects existing columns; only writes those.
+ * - Auto-writes period_type = day/week/month if such a column exists.
  * - On "Could not find the 'X' column ..." errors from Supabase,
- *   it will auto-prune that column and retry the upsert until success.
+ *   auto-prune that column and retry until success.
  * - Keeps: multiparty parsing, XLSX reading, ?dry_run=1 support.
- * - Excludes: product_link + any "rate" columns.
+ * - Excludes: product_link + any "rate" columns from writes.
  *
  * Deploy at: /api/ingest/index.js (Vercel @vercel/node or Node serverless)
  */
@@ -105,6 +106,7 @@ function buildColumnMapper(existingCols){
   return {
     product_id: S(['product_id','item_id','pid']),
     period_col: S(['period_end','stat_date','date','period_key','period']),
+    period_type: S(['period_type','granularity','period_kind','ptype','period_level']),
     search_exposure: S(['search_exposure','impressions']),
     uv: S(['uv','visitors']),
     pv: S(['pv','views']),
@@ -119,19 +121,16 @@ function buildColumnMapper(existingCols){
 async function detectExistingColumns(supabase){
   const setFromEnv = (process.env.MANAGED_STATS_COLS||'').split(',').map(s=>s.trim()).filter(Boolean);
   if (setFromEnv.length){
-    // Start from env list; will be auto-pruned on first upsert if any are wrong.
     return new Set(setFromEnv);
   }
   const { data, error } = await supabase.from(TABLE).select('*').limit(1);
   if (error){
-    // Unknown schema; start with a superset and prune on upsert.
-    return new Set(['product_id','period_end','stat_date','date','search_exposure','impressions','uv','visitors','pv','views','add_to_cart_users','atc_users','add_to_cart_qty','atc_qty','pay_items','pay_orders','pay_buyers']);
+    return new Set(['product_id','period_end','stat_date','date','period_type','granularity','search_exposure','impressions','uv','visitors','pv','views','add_to_cart_users','atc_users','add_to_cart_qty','atc_qty','pay_items','pay_orders','pay_buyers']);
   }
   if (Array.isArray(data) && data.length){
     return new Set(Object.keys(data[0]));
   }
-  // Empty table; start with broad set and prune automatically.
-  return new Set(['product_id','period_end','stat_date','date','search_exposure','impressions','uv','visitors','pv','views','add_to_cart_users','atc_users','add_to_cart_qty','atc_qty','pay_items','pay_orders','pay_buyers']);
+  return new Set(['product_id','period_end','stat_date','date','period_type','granularity','search_exposure','impressions','uv','visitors','pv','views','add_to_cart_users','atc_users','add_to_cart_qty','atc_qty','pay_items','pay_orders','pay_buyers']);
 }
 
 function parseMultipart(req){
@@ -166,7 +165,7 @@ function parseWorkbook(filePath){
   if (!periodISO){
     periodISO = new Date().toISOString().slice(0,10);
   }
-  const type = isMonthEnd(periodISO) ? 'month' : (isSunday(periodISO) ? 'week' : 'day');
+  const periodType = isMonthEnd(periodISO) ? 'month' : (isSunday(periodISO) ? 'week' : 'day');
 
   const rows = sheet.slice(1).filter(r => r && r.length).map(r => normalizeRow(r, idx))
     .filter(x => x.product_id);
@@ -177,15 +176,15 @@ function parseWorkbook(filePath){
     const key = row.product_id + '__' + periodISO;
     map.set(key, row);
   }
-  return { periodISO, type, rows: Array.from(map.values()) };
+  return { periodISO, periodType, rows: Array.from(map.values()) };
 }
 
-/** Construct filtered payload using mapper and set of allowed columns */
-function buildPayload(rows, periodISO, mapper, allowed){
+function buildPayload(rows, periodISO, periodType, mapper, allowed){
   return rows.map(r => {
     const out = {};
     if (allowed.has(mapper.product_id)) out[mapper.product_id] = String(r.product_id);
     if (allowed.has(mapper.period_col)) out[mapper.period_col] = periodISO;
+    if (allowed.has(mapper.period_type)) out[mapper.period_type] = periodType;
 
     const pairs = [
       ['search_exposure','search_exposure'],
@@ -207,20 +206,16 @@ function buildPayload(rows, periodISO, mapper, allowed){
   });
 }
 
-/** Try upsert; if "unknown column" error, prune it and retry (loop) */
 async function upsertWithAutoPrune(supabase, payload, allowedCols){
   const CHUNK = 1000;
   let upserted = 0;
   const pruneRe = /Could not find the '([^']+)' column/i;
 
-  // Clone payload once so we can mutate column sets safely
   let currentAllowed = new Set(allowedCols);
   let current = payload.map(obj => ({...obj}));
 
   while (true){
-    // Split into chunks and try all; if any chunk hits missing column, capture and prune, then retry whole flow.
     let missingCol = null;
-
     for (let i = 0; i < current.length; i += CHUNK){
       const chunk = current.slice(i, i + CHUNK);
       const { error } = await supabase.from(TABLE).upsert(chunk);
@@ -234,20 +229,15 @@ async function upsertWithAutoPrune(supabase, payload, allowedCols){
       }
       upserted += chunk.length;
     }
-
     if (!missingCol){
       return { upserted };
     }
-
-    // prune the missing column and retry from scratch
     if (!currentAllowed.has(missingCol)){
-      // Defensive: if it's not in set, still try to drop from payload keys
       current = current.map(row => { const r = {...row}; delete r[missingCol]; return r; });
     }else{
       currentAllowed.delete(missingCol);
       current = current.map(row => { const r = {...row}; delete r[missingCol]; return r; });
     }
-    // Reset counter because we will re-attempt; in effect we count only the final successful batch
     upserted = 0;
   }
 }
@@ -264,26 +254,24 @@ module.exports = async (req, res) => {
     const dryRun = (req.url && /\bdry_run=1\b/.test(req.url)) ? true : false;
 
     const { filePath } = await parseMultipart(req);
-    const { periodISO, type, rows } = parseWorkbook(filePath);
+    const { periodISO, periodType, rows } = parseWorkbook(filePath);
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
     const detected = await detectExistingColumns(supabase);
     const mapper = buildColumnMapper(detected);
 
-    // Build initial allowed column set = detected + mapped names to cover synonyms (will be pruned if wrong)
     const allowed = new Set(detected);
     Object.values(mapper).forEach(c => allowed.add(c));
 
-    const payload = buildPayload(rows, periodISO, mapper, allowed);
+    const payload = buildPayload(rows, periodISO, periodType, mapper, allowed);
 
     if (dryRun){
-      // Return which columns would be written (union keys of payload)
       const keys = new Set();
       payload.slice(0,1).forEach(o => Object.keys(o).forEach(k => keys.add(k)));
       return res.status(200).json({
         ok: true,
-        type,
         date: periodISO,
+        period_type: periodType,
         rows: rows.length,
         dry_run: true,
         table: TABLE,
@@ -297,8 +285,8 @@ module.exports = async (req, res) => {
     }
     return res.status(200).json({
       ok: true,
-      type,
       date: periodISO,
+      period_type: periodType,
       rows: rows.length,
       table: TABLE
     });
