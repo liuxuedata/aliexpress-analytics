@@ -1,24 +1,31 @@
 /**
- * Adaptive ingest for managed stats (auto-pruning + period_type)
- * - Detects existing columns; only writes those.
- * - Auto-writes period_type = day/week/month if such a column exists.
- * - On "Could not find the 'X' column ..." errors from Supabase,
- *   auto-prune that column and retry until success.
- * - Keeps: multiparty parsing, XLSX reading, ?dry_run=1 support.
- * - Excludes: product_link + any "rate" columns from writes.
+ * Ingest for managed_stats — schema-aligned (auto-pruning + period_type + extras)
+ * Matches columns provided by user:
+ *   period_type (text), period_end (date), product_id (text),
+ *   search_exposure(bigint), uv(bigint), pv(bigint),
+ *   add_to_cart_users(bigint), add_to_cart_qty(bigint), fav_users(bigint),
+ *   pay_items(bigint), pay_orders(bigint), pay_buyers(bigint),
+ *   suborders_30d(bigint), is_warehouse(boolean), is_premium(boolean),
+ *   inserted_at(timestamptz) [auto by DB]
+ * Excludes from writes: product_link, pay_rate, rank_percent, visitor_to_add, add_to_pay, visitor_ratio.
  *
- * Deploy at: /api/ingest/index.js (Vercel @vercel/node or Node serverless)
+ * Other features:
+ * - Detects/validates existing columns; upsert auto-prunes unknown columns and retries.
+ * - Auto computes period_type=day/week/month; writes period_end as the detected date.
+ * - Supports multiparty, xlsx, ?dry_run=1.
+ *
+ * Deploy: /api/ingest/index.js
  */
 'use strict';
 
 const multiparty = require('multiparty');
-const fs = require('fs');
 const XLSX = require('xlsx');
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TABLE = process.env.MANAGED_TABLE_NAME || 'managed_stats';
+const REQUIRE_BOUNDARY = String(process.env.REQUIRE_PERIOD_BOUNDARY || '0') === '1'; // 可选：要求周日或月底
 
 function toNum(v){
   if (v === null || v === undefined || v === '') return 0;
@@ -26,15 +33,18 @@ function toNum(v){
   const n = parseFloat(String(v).replace(/,/g,'').trim());
   return Number.isNaN(n) ? 0 : n;
 }
+function toBool(v){
+  if (typeof v === 'boolean') return v;
+  const s = String(v||'').trim().toLowerCase();
+  if (s === 'true' || s === '1' || s === 'yes' || s === 'y') return true;
+  if (s === 'false' || s === '0' || s === 'no' || s === 'n') return false;
+  return false;
+}
 function excelDateToISO(n){
   if (typeof n !== 'number') return null;
-  const utc_days = Math.floor(n - 25569);
-  const utc_value = utc_days * 86400;
-  const d = new Date(utc_value * 1000);
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth()+1).padStart(2,'0');
-  const day = String(d.getUTCDate()).padStart(2,'0');
-  return `${y}-${m}-${day}`;
+  const base = new Date(Date.UTC(1899,11,30)); // Excel epoch
+  const d = new Date(base.getTime() + Math.round(n)*86400000);
+  return d.toISOString().slice(0,10);
 }
 function parseDateToISO(v){
   if (v === null || v === undefined || v === '') return null;
@@ -54,6 +64,7 @@ function isMonthEnd(iso){
   return next.getUTCDate() === 1;
 }
 
+// Header mapping
 function headerIndex(headers){
   const find = (regexArr) => {
     for (const re of regexArr){
@@ -70,28 +81,35 @@ function headerIndex(headers){
     pv:         find([/^(商品)?浏览量$|^浏览量$|^pv$|^page ?views?$/i]),
     add_to_cart_users: find([/^(商品)?加购人数$|^加购买家数$|^加购人?数$/i, /^atc[_ ]?users?$/i]),
     add_to_cart_qty:   find([/^(商品)?加购件数$|^加购量$|^加购数量$/i, /^atc[_ ]?qty$/i]),
+    fav_users: find([/^收藏人数$|^关注人数$|^favor(it|)e(d)? users?$/i]),
     pay_items:  find([/^支付件数$/i]),
     pay_orders: find([/^(支付订单数|下单人数|订单数)$/i]),
     pay_buyers: find([/^(支付买家数|支付人数|成交人数)$/i]),
+    suborders_30d: find([/^近?30[天日]?(子)?订单(数)?$/i, /^suborders[_ ]?30d$/i]),
+    is_warehouse: find([/^是否(前置)?仓$/i, /^is[_ ]?warehouse$/i]),
+    is_premium: find([/^是否(高端|优选)$/i, /^is[_ ]?premium$/i]),
     product_link: find([/^商品链接$|^链接$|^url$|^product ?link$/i])
   };
 }
 
 function normalizeRow(row, idx){
   const pid = String(row[idx.product_id] ?? '').trim();
-  const sd  = idx.stat_date === -1 ? null : parseDateToISO(row[idx.stat_date]);
-  return {
+  const o = {
     product_id: pid,
-    stat_date: sd,
     search_exposure: idx.search_exposure === -1 ? 0 : toNum(row[idx.search_exposure]),
     uv:              idx.uv             === -1 ? 0 : toNum(row[idx.uv]),
     pv:              idx.pv             === -1 ? 0 : toNum(row[idx.pv]),
     add_to_cart_users: idx.add_to_cart_users === -1 ? 0 : toNum(row[idx.add_to_cart_users]),
     add_to_cart_qty:   idx.add_to_cart_qty   === -1 ? 0 : toNum(row[idx.add_to_cart_qty]),
-    pay_items:  idx.pay_items  === -1 ? 0 : toNum(row[idx.pay_items]),
-    pay_orders: idx.pay_orders === -1 ? 0 : toNum(row[idx.pay_orders]),
-    pay_buyers: idx.pay_buyers === -1 ? 0 : toNum(row[idx.pay_buyers]),
+    fav_users:   idx.fav_users   === -1 ? 0 : toNum(row[idx.fav_users]),
+    pay_items:   idx.pay_items   === -1 ? 0 : toNum(row[idx.pay_items]),
+    pay_orders:  idx.pay_orders  === -1 ? 0 : toNum(row[idx.pay_orders]),
+    pay_buyers:  idx.pay_buyers  === -1 ? 0 : toNum(row[idx.pay_buyers]),
+    suborders_30d: idx.suborders_30d === -1 ? 0 : toNum(row[idx.suborders_30d]),
+    is_warehouse: idx.is_warehouse === -1 ? false : toBool(row[idx.is_warehouse]),
+    is_premium:   idx.is_premium   === -1 ? false : toBool(row[idx.is_premium]),
   };
+  return o;
 }
 
 function choose(existingCols, candidates){
@@ -112,25 +130,42 @@ function buildColumnMapper(existingCols){
     pv: S(['pv','views']),
     add_to_cart_users: S(['add_to_cart_users','atc_users']),
     add_to_cart_qty: S(['add_to_cart_qty','atc_qty']),
+    fav_users: S(['fav_users','favorites','wish_users']),
     pay_items: S(['pay_items']),
     pay_orders: S(['pay_orders']),
-    pay_buyers: S(['pay_buyers'])
+    pay_buyers: S(['pay_buyers']),
+    suborders_30d: S(['suborders_30d','suborders30d']),
+    is_warehouse: S(['is_warehouse','is_wh','warehouse_flag']),
+    is_premium: S(['is_premium','premium_flag']),
   };
 }
 
 async function detectExistingColumns(supabase){
-  const setFromEnv = (process.env.MANAGED_STATS_COLS||'').split(',').map(s=>s.trim()).filter(Boolean);
-  if (setFromEnv.length){
-    return new Set(setFromEnv);
+  const fromEnv = (process.env.MANAGED_STATS_COLS||'').split(',').map(s=>s.trim()).filter(Boolean);
+  if (fromEnv.length){
+    return new Set(fromEnv);
   }
   const { data, error } = await supabase.from(TABLE).select('*').limit(1);
   if (error){
-    return new Set(['product_id','period_end','stat_date','date','period_type','granularity','search_exposure','impressions','uv','visitors','pv','views','add_to_cart_users','atc_users','add_to_cart_qty','atc_qty','pay_items','pay_orders','pay_buyers']);
+    // Start with wide set; auto-prune on upsert
+    return new Set([
+      'product_id','period_end','stat_date','date','period_type','granularity',
+      'search_exposure','impressions','uv','visitors','pv','views',
+      'add_to_cart_users','atc_users','add_to_cart_qty','atc_qty',
+      'fav_users','pay_items','pay_orders','pay_buyers',
+      'suborders_30d','is_warehouse','is_premium'
+    ]);
   }
   if (Array.isArray(data) && data.length){
     return new Set(Object.keys(data[0]));
   }
-  return new Set(['product_id','period_end','stat_date','date','period_type','granularity','search_exposure','impressions','uv','visitors','pv','views','add_to_cart_users','atc_users','add_to_cart_qty','atc_qty','pay_items','pay_orders','pay_buyers']);
+  return new Set([
+    'product_id','period_end','stat_date','date','period_type','granularity',
+    'search_exposure','impressions','uv','visitors','pv','views',
+    'add_to_cart_users','atc_users','add_to_cart_qty','atc_qty',
+    'fav_users','pay_items','pay_orders','pay_buyers',
+    'suborders_30d','is_warehouse','is_premium'
+  ]);
 }
 
 function parseMultipart(req){
@@ -165,6 +200,10 @@ function parseWorkbook(filePath){
   if (!periodISO){
     periodISO = new Date().toISOString().slice(0,10);
   }
+  if (REQUIRE_BOUNDARY){
+    const ok = isMonthEnd(periodISO) || isSunday(periodISO);
+    if (!ok) throw new Error(`统计日期 ${periodISO} 非周日或月底，已拒绝导入（可设置 REQUIRE_PERIOD_BOUNDARY=0 关闭校验）`);
+  }
   const periodType = isMonthEnd(periodISO) ? 'month' : (isSunday(periodISO) ? 'week' : 'day');
 
   const rows = sheet.slice(1).filter(r => r && r.length).map(r => normalizeRow(r, idx))
@@ -192,14 +231,19 @@ function buildPayload(rows, periodISO, periodType, mapper, allowed){
       ['pv','pv'],
       ['add_to_cart_users','add_to_cart_users'],
       ['add_to_cart_qty','add_to_cart_qty'],
+      ['fav_users','fav_users'],
       ['pay_items','pay_items'],
       ['pay_orders','pay_orders'],
-      ['pay_buyers','pay_buyers']
+      ['pay_buyers','pay_buyers'],
+      ['suborders_30d','suborders_30d'],
+      ['is_warehouse','is_warehouse'],
+      ['is_premium','is_premium'],
     ];
     for (const [norm, mapKey] of pairs){
       const dbCol = mapper[mapKey];
       if (allowed.has(dbCol)){
-        out[dbCol] = toNum(r[norm] || 0);
+        const v = (norm === 'is_warehouse' || norm === 'is_premium') ? !!r[norm] : toNum(r[norm] || 0);
+        out[dbCol] = v;
       }
     }
     return out;
@@ -221,10 +265,7 @@ async function upsertWithAutoPrune(supabase, payload, allowedCols){
       const { error } = await supabase.from(TABLE).upsert(chunk);
       if (error){
         const m = String(error.message || error).match(pruneRe);
-        if (m && m[1]){
-          missingCol = m[1];
-          break;
-        }
+        if (m && m[1]){ missingCol = m[1]; break; }
         return { error };
       }
       upserted += chunk.length;
