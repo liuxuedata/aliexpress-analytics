@@ -34,6 +34,7 @@
 #kpi-new-self-ctrl, #kpi-new-managed-ctrl, .kpi .kpi-ctrl { display: none !important; }</style>
 </head>
 <body class="fm">
+<header class="top-nav"><div class="nav-inner"><div class="nav-title">速卖通</div><div id="userArea" class="user-area"></div></div></header>
 <div class="container">
   <nav class="sidebar" id="sidebar">
     <div class="site-header"><span id="currentSite">全托管 A站</span><button id="addSite" class="add-site-btn">+</button></div>
@@ -64,7 +65,6 @@
     <div class="upload-section">
       <div class="upload-top">
         <div style="font-size:28px;font-weight:800;">速卖通全托管数据分析</div>
-        <div id="userArea" class="user-area"></div>
         <div class="controls">
           <label class="badge">时间粒度</label>
           <label><input type="radio" name="gran" value="week" checked> 周</label>
@@ -827,6 +827,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
   if(!Array.isArray(sites)||!sites.length){sites=['A站','B站','C站'];}
   const listEl=document.getElementById('managedSites');
+  const currentSiteEl=document.getElementById('currentSite');
   function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));}
   function render(){
     listEl.innerHTML='';
@@ -842,9 +843,15 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
   function updateCurrent(){
     const name=localStorage.getItem(currentSiteKey)||sites[0];
-    document.getElementById('currentSite').textContent='全托管 '+name;
+    currentSiteEl.textContent='全托管 '+name;
     localStorage.setItem(currentSiteKey,name);
   }
+  currentSiteEl.addEventListener('dblclick',()=>{
+    const cur=localStorage.getItem(currentSiteKey)||sites[0];
+    const idx=sites.indexOf(cur);
+    const n=prompt('修改站点名',cur);
+    if(n){sites[idx]=n;save();localStorage.setItem(currentSiteKey,n);render();updateCurrent();}
+  });
   document.getElementById('addSite').addEventListener('click',()=>{
     const n=prompt('新增站点名');
     if(n){sites.push(n);save();render();updateCurrent();}

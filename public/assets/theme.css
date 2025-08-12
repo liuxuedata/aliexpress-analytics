@@ -31,16 +31,23 @@ body{
   font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
 }
 
+/* ------ Top Navigation ------ */
+.top-nav{background:var(--brand);color:#fff;}
+.top-nav .nav-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;padding:8px 16px;}
+.top-nav .nav-title{font-size:20px;font-weight:700;}
+.top-nav .user-area{margin-left:0;}
+.top-nav .user-area a{color:#fff;text-decoration:none;}
+
 /* ------ Sidebar (kept dark) ------ */
 .sidebar{
   width:220px;
   background:#0f172a;
   color:#fff;
   padding:16px;
-  height:100vh;
+  height:calc(100vh - 50px);
   overflow:auto;
   border-right:1px solid #1f2937;
-  position:sticky; top:0; z-index:1000;
+  position:sticky; top:50px; z-index:1000;
 }
 .sidebar h3{ margin:0 0 10px; font-size:16px }
 .site-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
@@ -59,11 +66,10 @@ body{
 .sidebar .submenu a.active{ color:#fff; background:var(--brand) }
 
 /* ------ Layout ------ */
-.container{ display:flex; min-height:100vh }
+.container{ display:flex; min-height:calc(100vh - 50px); max-width:1200px; margin:0 auto }
 .main{
   flex:1; display:flex; flex-direction:column; gap:12px;
   padding:16px; background:#ffffff;
-  max-width:1200px; margin:0 auto; /* center main content */
 }
 
 /* generic paddings + panels */
