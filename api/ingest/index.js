@@ -1,16 +1,12 @@
 /**
- * Adaptive ingest for managed stats
- * - Only writes columns that actually exist in the DB table.
+ * Adaptive ingest for managed stats (auto-pruning)
+ * - Detects existing columns; only writes those.
+ * - On "Could not find the 'X' column ..." errors from Supabase,
+ *   it will auto-prune that column and retry the upsert until success.
  * - Keeps: multiparty parsing, XLSX reading, ?dry_run=1 support.
- * - Excludes: product_link and any "rate" columns from writes.
+ * - Excludes: product_link + any "rate" columns.
  *
- * Deploy path: /api/ingest/index.js (Vercel @vercel/node)
- *
- * Env vars needed:
- *   SUPABASE_URL
- *   SUPABASE_SERVICE_ROLE_KEY
- *   MANAGED_TABLE_NAME (optional, default: "managed_stats")
- *   MANAGED_STATS_COLS (optional, comma-separated override when table is empty)
+ * Deploy at: /api/ingest/index.js (Vercel @vercel/node or Node serverless)
  */
 'use strict';
 
@@ -57,7 +53,6 @@ function isMonthEnd(iso){
   return next.getUTCDate() === 1;
 }
 
-/** Map various header names to normalized keys used internally */
 function headerIndex(headers){
   const find = (regexArr) => {
     for (const re of regexArr){
@@ -81,11 +76,10 @@ function headerIndex(headers){
   };
 }
 
-/** Normalize one excel row -> normalized object */
 function normalizeRow(row, idx){
   const pid = String(row[idx.product_id] ?? '').trim();
   const sd  = idx.stat_date === -1 ? null : parseDateToISO(row[idx.stat_date]);
-  const o = {
+  return {
     product_id: pid,
     stat_date: sd,
     search_exposure: idx.search_exposure === -1 ? 0 : toNum(row[idx.search_exposure]),
@@ -97,20 +91,15 @@ function normalizeRow(row, idx){
     pay_orders: idx.pay_orders === -1 ? 0 : toNum(row[idx.pay_orders]),
     pay_buyers: idx.pay_buyers === -1 ? 0 : toNum(row[idx.pay_buyers]),
   };
-  // NEVER include product_link or any rate columns in writes
-  return o;
 }
 
-/** Choose the first column name that exists in the table columns */
 function choose(existingCols, candidates){
   for (const c of candidates){
     if (existingCols.has(c)) return c;
   }
-  // if none matched, return the first (so caller may decide to drop if absent)
   return candidates[0];
 }
 
-/** Build a mapper from normalized -> actual DB column names */
 function buildColumnMapper(existingCols){
   const S = (arr) => choose(existingCols, arr);
   return {
@@ -127,25 +116,24 @@ function buildColumnMapper(existingCols){
   };
 }
 
-/** Detect table columns by sampling one row; fallback to env override */
 async function detectExistingColumns(supabase){
   const setFromEnv = (process.env.MANAGED_STATS_COLS||'').split(',').map(s=>s.trim()).filter(Boolean);
   if (setFromEnv.length){
+    // Start from env list; will be auto-pruned on first upsert if any are wrong.
     return new Set(setFromEnv);
   }
   const { data, error } = await supabase.from(TABLE).select('*').limit(1);
   if (error){
-    // last resort: assume the "long name" schema
-    return new Set(['product_id','period_end','search_exposure','uv','pv','add_to_cart_users','add_to_cart_qty','pay_items','pay_orders','pay_buyers']);
+    // Unknown schema; start with a superset and prune on upsert.
+    return new Set(['product_id','period_end','stat_date','date','search_exposure','impressions','uv','visitors','pv','views','add_to_cart_users','atc_users','add_to_cart_qty','atc_qty','pay_items','pay_orders','pay_buyers']);
   }
   if (Array.isArray(data) && data.length){
     return new Set(Object.keys(data[0]));
   }
-  // table empty -> still try a sane default that covers most installs
-  return new Set(['product_id','period_end','search_exposure','uv','pv','add_to_cart_users','add_to_cart_qty','pay_items','pay_orders','pay_buyers']);
+  // Empty table; start with broad set and prune automatically.
+  return new Set(['product_id','period_end','stat_date','date','search_exposure','impressions','uv','visitors','pv','views','add_to_cart_users','atc_users','add_to_cart_qty','atc_qty','pay_items','pay_orders','pay_buyers']);
 }
 
-/** Parse incoming multipart form and return file path */
 function parseMultipart(req){
   return new Promise((resolve, reject) => {
     const form = new multiparty.Form({ autoFiles: true });
@@ -158,7 +146,6 @@ function parseMultipart(req){
   });
 }
 
-/** Read workbook and produce normalized rows + detected period/date */
 function parseWorkbook(filePath){
   const wb = XLSX.readFile(filePath);
   const sheetName = wb.SheetNames[0];
@@ -169,7 +156,6 @@ function parseWorkbook(filePath){
   if (idx.product_id < 0){
     throw new Error('缺少必填列：商品ID');
   }
-  // Try detect a single period date from the sheet (first non-empty stat_date)
   let periodISO = null;
   if (idx.stat_date !== -1){
     for (let r=1; r<sheet.length; r++){
@@ -178,9 +164,7 @@ function parseWorkbook(filePath){
     }
   }
   if (!periodISO){
-    // fallback: today in UTC
-    const today = new Date();
-    periodISO = today.toISOString().slice(0,10);
+    periodISO = new Date().toISOString().slice(0,10);
   }
   const type = isMonthEnd(periodISO) ? 'month' : (isSunday(periodISO) ? 'week' : 'day');
 
@@ -196,15 +180,13 @@ function parseWorkbook(filePath){
   return { periodISO, type, rows: Array.from(map.values()) };
 }
 
-/** Upsert rows in chunks; only keep allowed columns */
-async function upsertAdaptive(supabase, mapper, existingCols, periodISO, rows, isDryRun){
-  const filtered = rows.map(r => {
+/** Construct filtered payload using mapper and set of allowed columns */
+function buildPayload(rows, periodISO, mapper, allowed){
+  return rows.map(r => {
     const out = {};
-    // include product_id + period column
-    if (existingCols.has(mapper.product_id)) out[mapper.product_id] = String(r.product_id);
-    if (existingCols.has(mapper.period_col)) out[mapper.period_col] = periodISO;
+    if (allowed.has(mapper.product_id)) out[mapper.product_id] = String(r.product_id);
+    if (allowed.has(mapper.period_col)) out[mapper.period_col] = periodISO;
 
-    // include metric columns only if they exist in table
     const pairs = [
       ['search_exposure','search_exposure'],
       ['uv','uv'],
@@ -217,28 +199,57 @@ async function upsertAdaptive(supabase, mapper, existingCols, periodISO, rows, i
     ];
     for (const [norm, mapKey] of pairs){
       const dbCol = mapper[mapKey];
-      if (existingCols.has(dbCol)){
+      if (allowed.has(dbCol)){
         out[dbCol] = toNum(r[norm] || 0);
       }
     }
     return out;
   });
+}
 
-  if (isDryRun){
-    return { upserted: filtered.length };
-  }
-
+/** Try upsert; if "unknown column" error, prune it and retry (loop) */
+async function upsertWithAutoPrune(supabase, payload, allowedCols){
   const CHUNK = 1000;
   let upserted = 0;
-  for (let i = 0; i < filtered.length; i += CHUNK){
-    const chunk = filtered.slice(i, i + CHUNK);
-    const { error } = await supabase.from(TABLE).upsert(chunk); // rely on PK/unique index
-    if (error){
-      return { error };
+  const pruneRe = /Could not find the '([^']+)' column/i;
+
+  // Clone payload once so we can mutate column sets safely
+  let currentAllowed = new Set(allowedCols);
+  let current = payload.map(obj => ({...obj}));
+
+  while (true){
+    // Split into chunks and try all; if any chunk hits missing column, capture and prune, then retry whole flow.
+    let missingCol = null;
+
+    for (let i = 0; i < current.length; i += CHUNK){
+      const chunk = current.slice(i, i + CHUNK);
+      const { error } = await supabase.from(TABLE).upsert(chunk);
+      if (error){
+        const m = String(error.message || error).match(pruneRe);
+        if (m && m[1]){
+          missingCol = m[1];
+          break;
+        }
+        return { error };
+      }
+      upserted += chunk.length;
     }
-    upserted += chunk.length;
+
+    if (!missingCol){
+      return { upserted };
+    }
+
+    // prune the missing column and retry from scratch
+    if (!currentAllowed.has(missingCol)){
+      // Defensive: if it's not in set, still try to drop from payload keys
+      current = current.map(row => { const r = {...row}; delete r[missingCol]; return r; });
+    }else{
+      currentAllowed.delete(missingCol);
+      current = current.map(row => { const r = {...row}; delete r[missingCol]; return r; });
+    }
+    // Reset counter because we will re-attempt; in effect we count only the final successful batch
+    upserted = 0;
   }
-  return { upserted };
 }
 
 module.exports = async (req, res) => {
@@ -256,20 +267,39 @@ module.exports = async (req, res) => {
     const { periodISO, type, rows } = parseWorkbook(filePath);
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
-    const existingCols = await detectExistingColumns(supabase);
-    const mapper = buildColumnMapper(existingCols);
+    const detected = await detectExistingColumns(supabase);
+    const mapper = buildColumnMapper(detected);
 
-    const result = await upsertAdaptive(supabase, mapper, existingCols, periodISO, rows, dryRun);
+    // Build initial allowed column set = detected + mapped names to cover synonyms (will be pruned if wrong)
+    const allowed = new Set(detected);
+    Object.values(mapper).forEach(c => allowed.add(c));
+
+    const payload = buildPayload(rows, periodISO, mapper, allowed);
+
+    if (dryRun){
+      // Return which columns would be written (union keys of payload)
+      const keys = new Set();
+      payload.slice(0,1).forEach(o => Object.keys(o).forEach(k => keys.add(k)));
+      return res.status(200).json({
+        ok: true,
+        type,
+        date: periodISO,
+        rows: rows.length,
+        dry_run: true,
+        table: TABLE,
+        will_write_cols: Array.from(keys).sort()
+      });
+    }
+
+    const result = await upsertWithAutoPrune(supabase, payload, allowed);
     if (result.error){
       return res.status(500).json({ ok:false, step:'upsert', msg: result.error.message || String(result.error) });
     }
-
     return res.status(200).json({
       ok: true,
       type,
       date: periodISO,
       rows: rows.length,
-      dry_run: dryRun,
       table: TABLE
     });
   }catch(err){
