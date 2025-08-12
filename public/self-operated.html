@@ -40,8 +40,8 @@
   <nav class="sidebar" id="sidebar">
     <div class="site-header"><span id="currentSite">自运营 A站</span><button id="addSite" class="add-site-btn">+</button></div>
     <ul class="sub-nav">
-      <li><a href="#" class="active" data-target="summary">运营分析</a></li>
-      <li><a href="#" data-target="detail">详细数据</a></li>
+      <li><a href="#" class="active" data-target="detail">详细数据</a></li>
+      <li><a href="#" data-target="analysis">运营分析</a></li>
       <li><a href="#" data-target="product">产品分析</a></li>
     </ul>
   </nav>
@@ -78,8 +78,18 @@
 
     <!-- 顶部 Tabs -->
     <div class="content">
+      <!-- 明细表 -->
+      <section id="detail" class="content-pad">
+        <div class="panel">
+          <h3>数据明细</h3>
+          <div class="table-wrapper">
+            <table id="report" class="display nowrap" style="width:100%"></table>
+          </div>
+        </div>
+      </section>
+
       <!-- 汇总对比 -->
-      <section id="summary" class="content-pad">
+      <section id="analysis" class="content-pad" style="display:none;">
         <div class="panel">
           <h3>周期 A vs 周期 B · 总量曲线（按天）</h3>
           <div class="controls" style="margin-bottom:8px;">
@@ -106,16 +116,6 @@
             <h3>Top6 加购商品（A & B 同图）</h3>
             <div id="topBar" style="width:100%;height:320px;"></div>
             <div id="topBarLinks" class="legend-list" style="margin-top:6px;"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 明细表 -->
-      <section id="detail" class="content-pad" style="display:none;">
-        <div class="panel">
-          <h3>数据明细</h3>
-          <div class="table-wrapper">
-            <table id="report" class="display nowrap" style="width:100%"></table>
           </div>
         </div>
       </section>
@@ -596,7 +596,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(u){userArea.textContent=u;}else{userArea.innerHTML='<a href="login.html">登录</a>';}
   }
   refreshUser();
-  document.querySelectorAll('.sub-nav a').forEach(a=>{a.addEventListener('click',e=>{e.preventDefault();const t=a.dataset.target;document.querySelectorAll('.sub-nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active');['summary','detail','product'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=id===t?'':'none';});});});
+document.querySelectorAll('.sub-nav a').forEach(a=>{a.addEventListener('click',e=>{e.preventDefault();const t=a.dataset.target;document.querySelectorAll('.sub-nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active');['detail','analysis','product'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=id===t?'':'none';});});});
 });
 </script>
 </body>
