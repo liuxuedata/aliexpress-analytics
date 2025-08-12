@@ -34,25 +34,14 @@
 #kpi-new-self-ctrl, #kpi-new-managed-ctrl, .kpi .kpi-ctrl { display: none !important; }</style>
 </head>
 <body class="fm">
+<header class="top-nav"><div class="nav-inner"><ul class="top-menu"><li><a href="#">速卖通</a><ul class="dropdown"><li class="submenu"><a href="#">全托管</a><ul id="managedMenu"></ul></li><li><a href="self-operated.html">自运营</a></li></ul></li><li><a href="#">亚马逊</a></li><li><a href="#">TikTok Shop</a></li><li><a href="#">Temu</a></li><li><a href="#">Ozon</a></li><li><a href="independent-site.html">独立站</a></li></ul><div id="userArea" class="user-area"></div></div></header>
 <div class="container">
   <nav class="sidebar" id="sidebar">
-    <h3>产品导航</h3>
-    <ul>
-      <li class="has-submenu open">
-        <a href="#">速卖通</a>
-        <ul class="submenu">
-          <li><a href="index.html" class="active">全托管</a></li>
-          <li><a href="self-operated.html">自运营</a></li>
-        </ul>
-      </li>
-      <li><a href="#">TikTok Shop</a></li>
-      <li><a href="#">亚马逊</a></li>
-      <li class="has-submenu open">
-        <a href="#">独立站</a>
-        <ul class="submenu">
-          <li><a href="independent-site.html">数据分析</a></li>
-        </ul>
-      </li>
+    <div class="site-header"><span id="currentSite">全托管 A站</span><button id="addSite" class="add-site-btn">+</button></div>
+    <ul class="sub-nav">
+      <li><a href="#" class="active" data-target="detail">详细数据</a></li>
+      <li><a href="#" data-target="analysis">运营分析</a></li>
+      <li><a href="#" data-target="product">产品分析</a></li>
     </ul>
   </nav>
 
@@ -80,11 +69,6 @@
       <div class="content-pad">
         <div class="stats-cards" id="kpi"></div>
         <div class="divider"></div>
-        
-<div class="tabs">
-  <div class="tab active" data-tab="detail">明细表</div>
-  <div class="tab" data-tab="analysis">运营分析</div>
-</div>
 
 <section id="detail" class="content-pad">
   <div class="table-section">
@@ -112,30 +96,26 @@
 
 <section id="analysis" class="content-pad" style="display:none;">
   <div class="grid grid-2">
-    
-        <div class="grid grid-2">
-          <div class="panel">
-            <h3>转化漏斗（A vs B）</h3>
-            <div id="funnel" style="width:100%;height:320px;"></div>
-          </div>
-          <div class="panel">
-            <h3>周期对比（曝光 / 加购件数 / 支付订单数）</h3>
-            <div id="sumCompareBar" style="width:100%;height:320px;"></div>
-          </div>
-        </div>
-        <div class="grid grid-2" style="margin-top:16px;">
-          <div class="panel">
-            <h3>Top10 访客比（UV/曝光）· A</h3>
-            <div id="vrBar" style="width:100%;height:320px;"></div>
-          </div>
-          <div class="panel">
-            <h3>Top10 加购→支付 转化率 · A</h3>
-            <div id="payBar" style="width:100%;height:320px;"></div>
-          </div>
-        </div>
-        
+    <div class="panel">
+      <h3>转化漏斗（A vs B）</h3>
+      <div id="funnel" style="width:100%;height:320px;"></div>
+    </div>
+    <div class="panel">
+      <h3>周期对比（曝光 / 加购件数 / 支付订单数）</h3>
+      <div id="sumCompareBar" style="width:100%;height:320px;"></div>
+    </div>
+    <div class="panel">
+      <h3>Top10 访客比（UV/曝光）· A</h3>
+      <div id="vrBar" style="width:100%;height:320px;"></div>
+    </div>
+    <div class="panel">
+      <h3>Top10 加购→支付 转化率 · A</h3>
+      <div id="payBar" style="width:100%;height:320px;"></div>
+    </div>
   </div>
 </section>
+
+<section id="product" class="content-pad" style="display:none;"><p>产品分析建设中...</p></section>
 
       </div>
     </div>
@@ -144,16 +124,6 @@
 
 <script>
 (function(){
-  document.querySelectorAll('.has-submenu > a').forEach(a => {
-    a.addEventListener('click', function(e){
-      const li = this.parentElement;
-      const sub = li.querySelector('.submenu');
-      if (!sub) return;
-      e.preventDefault();
-      li.classList.toggle('open');
-    });
-  });
-
   const state = { granularity: 'week', table: null, uploading: false };
 
   $('input[name="gran"]').on('change', function(){
@@ -815,5 +785,51 @@
     }
   });
 })();</script>
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  const siteListKey='managedSites';
+  const currentSiteKey='currentSite';
+  let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
+  if(!Array.isArray(sites)||!sites.length){sites=['A站','B站','C站'];}
+  const menuEl=document.getElementById('managedMenu');
+  const currentSiteEl=document.getElementById('currentSite');
+  function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));}
+  function renderMenu(){
+    menuEl.innerHTML='';
+    sites.forEach((name,idx)=>{
+      const li=document.createElement('li');
+      const a=document.createElement('a');
+      a.href='index.html';
+      a.textContent=name;
+      a.addEventListener('click',(e)=>{e.preventDefault();localStorage.setItem(currentSiteKey,name);window.location.href='index.html';});
+      a.addEventListener('dblclick',()=>{const n=prompt('修改站点名',name);if(n){sites[idx]=n;save();renderMenu();updateCurrent();}});
+      li.appendChild(a);menuEl.appendChild(li);
+    });
+  }
+  function updateCurrent(){
+    const name=localStorage.getItem(currentSiteKey)||sites[0];
+    currentSiteEl.textContent='全托管 '+name;
+    localStorage.setItem(currentSiteKey,name);
+  }
+  currentSiteEl.addEventListener('dblclick',()=>{
+    const cur=localStorage.getItem(currentSiteKey)||sites[0];
+    const idx=sites.indexOf(cur);
+    const n=prompt('修改站点名',cur);
+    if(n){sites[idx]=n;save();renderMenu();localStorage.setItem(currentSiteKey,n);updateCurrent();}
+  });
+  document.getElementById('addSite').addEventListener('click',()=>{
+    const n=prompt('新增站点名');
+    if(n){sites.push(n);save();renderMenu();updateCurrent();}
+  });
+  renderMenu();updateCurrent();
+  const userArea=document.getElementById('userArea');
+  function refreshUser(){
+    const u=localStorage.getItem('username');
+    if(u){userArea.textContent=u;}else{userArea.innerHTML='<a href="login.html">登录</a>';}
+  }
+  refreshUser();
+  document.querySelectorAll('.sub-nav a').forEach(a=>{a.addEventListener('click',e=>{e.preventDefault();const t=a.dataset.target;document.querySelectorAll('.sub-nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active');['detail','analysis','product'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=id===t?'':'none';});});});
+});
+</script>
 </body>
 </html>
