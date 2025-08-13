@@ -4,21 +4,23 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>独立站 · Landing Pages 明细</title>
-  <link rel="stylesheet" href="assets/theme.css">
-  <!-- DataTables & ECharts CDN (可替换为本地) -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/datatables.net-dt/css/jquery.dataTables.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/datatables.net/js/jquery.dataTables.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <!-- DataTables & ECharts CDN -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
 </head>
-<body>
+<body class="fm">
 
 <header class="top-nav"><div class="nav-inner"><ul class="top-menu"><li><a href="#">速卖通</a><ul class="dropdown"><li class="submenu"><a href="#">全托管</a><ul id="managedMenu"></ul></li><li><a href="self-operated.html">自运营</a></li></ul></li><li><a href="#">亚马逊</a></li><li><a href="#">TikTok Shop</a></li><li><a href="#">Temu</a></li><li><a href="#">Ozon</a></li><li><a href="independent-site.html" class="active">独立站</a></li></ul><div id="userArea" class="user-area"></div></div></header>
 
 <div class="container">
   <nav class="sidebar" id="sidebar">
-    <h3>本页</h3>
-    <ul>
+    <div class="site-header"><span>独立站</span></div>
+    <ul class="sub-nav">
       <li><a href="#" data-jump="detail" class="active">明细数据</a></li>
       <li><a href="#" data-jump="analysis">运营分析</a></li>
       <li><a href="#" data-jump="product">产品分析</a></li>
@@ -26,6 +28,7 @@
   </nav>
 
   <main class="main">
+    <div class="content">
     <!-- 控件 -->
     <section class="content-pad">
       <div class="panel">
@@ -41,6 +44,8 @@
       </div>
     </section>
 
+    <div class="divider"></div>
+
     <!-- 运营分析 -->
     <div class="tabs">
       <div class="tab" data-tab="analysis">运营分析</div>
@@ -48,17 +53,19 @@
     </div>
 
     <section id="analysis" class="content-pad" style="display:none;">
-      <div class="grid" style="display:grid;grid-template-columns:1fr;gap:12px;">
+      <div class="grid">
         <div class="panel">
           <h3>Daily 趋势（点击 / 曝光 / 转化价值）</h3>
           <div id="lineChart" style="width:100%;height:360px;"></div>
         </div>
         <div class="panel">
           <h3>Top Landing Pages（按转化数）</h3>
-          <div class="table-wrapper">
-            <table id="topTable" class="display"><thead>
-              <tr><th>路径</th><th>点击</th><th>曝光</th><th>CTR</th><th>转化</th><th>花费</th><th>转化价值</th><th>CPA</th><th>ROAS</th></tr>
-            </thead><tbody></tbody></table>
+          <div class="table-section">
+            <div class="table-wrapper">
+              <table id="topTable" class="display nowrap"><thead>
+                <tr><th>路径</th><th>点击</th><th>曝光</th><th>CTR</th><th>转化</th><th>花费</th><th>转化价值</th><th>CPA</th><th>ROAS</th></tr>
+              </thead><tbody></tbody></table>
+            </div>
           </div>
         </div>
       </div>
@@ -68,18 +75,20 @@
     <section id="detail" class="content-pad">
       <div class="panel">
         <h3>Landing Pages 明细</h3>
-        <div class="table-wrapper">
-          <table id="report" class="display" style="width:100%">
-            <thead>
-              <tr>
-                <th>日期</th><th>页面</th><th>设备</th><th>网络</th><th>Campaign</th>
-                <th>点击</th><th>曝光</th><th>CTR</th><th>Avg CPC</th><th>Cost</th>
-                <th>转化</th><th>Cost/Conv</th><th>All conv</th><th>Conv value</th>
-                <th>All conv rate</th><th>Conv rate</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
+        <div class="table-section">
+          <div class="table-wrapper">
+            <table id="report" class="display nowrap" style="width:100%">
+              <thead>
+                <tr>
+                  <th>日期</th><th>页面</th><th>设备</th><th>网络</th><th>Campaign</th>
+                  <th>点击</th><th>曝光</th><th>CTR</th><th>Avg CPC</th><th>Cost</th>
+                  <th>转化</th><th>Cost/Conv</th><th>All conv</th><th>Conv value</th>
+                  <th>All conv rate</th><th>Conv rate</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
@@ -90,6 +99,7 @@
         <div class="small">（后续可按路径映射到商品，增加售价、毛利、库存、类目等维度的分析）</div>
       </div>
     </section>
+    </div>
   </main>
 </div>
 
@@ -149,6 +159,9 @@
       destroy: true,
       pageLength: 20,
       data: json.table,
+      scrollX: true,
+      fixedHeader: true,
+      autoWidth: false,
       columns: [
         { data: 'day' },
         { data: 'landing_path', render: (v,t,r)=> `<a href="${r.landing_url}" target="_blank">${v}</a>` },
@@ -191,7 +204,7 @@
     const topRows = json.topList.map(r => [
       r.path, r.clicks, r.impr, (r.ctr*100).toFixed(2)+'%', r.conversions, r.cost, r.conv_value, r.cpa.toFixed(2), r.roas.toFixed(2)
     ]);
-    $('#topTable').DataTable({ destroy:true, paging:false, searching:false, info:false, data: topRows });
+    $('#topTable').DataTable({ destroy:true, paging:false, searching:false, info:false, data: topRows, scrollX:true, autoWidth:false });
   }
 
   document.getElementById('refreshBtn').addEventListener('click', load);
