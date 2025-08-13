@@ -100,12 +100,21 @@ async function handleFile(filePath, filename) {
 
   if (!payload.length) return { inserted: 0 };
 
+  // Deduplicate rows that target the same primary key to avoid
+  // "ON CONFLICT DO UPDATE command cannot affect row a second time" errors
+  const byKey = new Map();
+  for (const row of payload) {
+    const key = [row.day, row.site, row.landing_path, row.device, row.network, row.campaign].join('|');
+    if (!byKey.has(key)) byKey.set(key, row);
+  }
+  const deduped = Array.from(byKey.values());
+
   const { data, error } = await supabase
     .from('independent_landing_metrics')
-    .upsert(payload, { onConflict: 'day,site,landing_path,device,network,campaign' });
+    .upsert(deduped, { onConflict: 'day,site,landing_path,device,network,campaign' });
 
   if (error) throw error;
-  return { inserted: data?.length ?? payload.length };
+  return { inserted: data?.length ?? deduped.length };
 }
 
 async function handler(req, res) {
