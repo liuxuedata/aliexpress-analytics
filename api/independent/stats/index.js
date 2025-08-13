@@ -41,7 +41,7 @@ module.exports = async (req, res) => {
     // table data
     let { data: table, error: e1 } = await supabase
       .from('independent_landing_metrics')
-      .select('id, site, day, landing_path, landing_url, device, network, campaign, clicks, impr, ctr, avg_cpc, cost, conversions, cost_per_conv, all_conv, conv_value, all_conv_rate, conv_rate, inserted_at')
+      .select('*')
       .eq('site', site)
       .gte('day', fromDate).lte('day', toDate)
       .order('day', { ascending: false })
@@ -49,21 +49,21 @@ module.exports = async (req, res) => {
 
     if (e1) return res.status(500).json({ error: e1.message });
 
-      table = (table || []).map(r => ({
-        ...r,
-        product: extractName(r.landing_path),
-        clicks: safeNum(r.clicks),
-        impr: safeNum(r.impr),
-        ctr: safeNum(r.ctr),
-        avg_cpc: safeNum(r.avg_cpc),
-        cost: safeNum(r.cost),
-        conversions: safeNum(r.conversions),
-        cost_per_conv: safeNum(r.cost_per_conv),
-        all_conv: safeNum(r.all_conv),
-        conv_value: safeNum(r.conv_value),
-        all_conv_rate: safeNum(r.all_conv_rate),
-        conv_rate: safeNum(r.conv_rate)
-      }));
+    table = (table || []).map(r => ({
+      ...r,
+      product: extractName(r.landing_path),
+      clicks: safeNum(r.clicks),
+      impr: safeNum(r.impr),
+      ctr: safeNum(r.ctr),
+      avg_cpc: safeNum(r.avg_cpc),
+      cost: safeNum(r.cost),
+      conversions: safeNum(r.conversions),
+      cost_per_conv: safeNum(r.cost_per_conv),
+      all_conv: safeNum(r.all_conv),
+      conv_value: safeNum(r.conv_value),
+      all_conv_rate: safeNum(r.all_conv_rate),
+      conv_rate: safeNum(r.conv_rate)
+    }));
 
     // daily summary series
     let { data: series, error: e2 } = await supabase
@@ -73,7 +73,21 @@ module.exports = async (req, res) => {
       .gte('day', fromDate).lte('day', toDate)
       .order('day', { ascending: true });
 
-    if (e2) return res.status(500).json({ error: e2.message });
+    if (e2 && /independent_landing_summary_by_day/.test(e2.message)) {
+      const { data: fallback, error: e2b } = await supabase
+        .from('independent_landing_metrics')
+        .select(
+          'day, clicks:sum(clicks), impr:sum(impr), conversions:sum(conversions), conv_value:sum(conv_value), cost:sum(cost)'
+        )
+        .eq('site', site)
+        .gte('day', fromDate)
+        .lte('day', toDate)
+        .order('day', { ascending: true });
+      if (e2b) return res.status(500).json({ error: e2b.message });
+      series = fallback || [];
+    } else if (e2) {
+      return res.status(500).json({ error: e2.message });
+    }
 
     series = (series || []).map(r => ({
       ...r,
