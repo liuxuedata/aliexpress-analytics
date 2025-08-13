@@ -30,13 +30,30 @@ function safeNum(v){
 
 const PAGE_SIZE = 1000;
 
+function lastWeek() {
+  const today = new Date();
+  const dow = today.getDay();
+  // Monday of this week
+  const mondayThisWeek = new Date(today);
+  mondayThisWeek.setDate(today.getDate() - ((dow + 6) % 7));
+  // Previous week's Monday and Sunday
+  const from = new Date(mondayThisWeek);
+  from.setDate(mondayThisWeek.getDate() - 7);
+  const to = new Date(from);
+  to.setDate(from.getDate() + 6);
+  return {
+    from: from.toISOString().slice(0,10),
+    to: to.toISOString().slice(0,10)
+  };
+}
+
 module.exports = async (req, res) => {
   try {
     const supabase = getClient();
     const { site, from, to, limit = '20000' } = req.query;
-    const today = new Date();
-    const toDate = parseDate(to, new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString().slice(0,10));
-    const fromDate = parseDate(from, new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29).toISOString().slice(0,10));
+    const def = lastWeek();
+    const toDate = parseDate(to, def.to);
+    const fromDate = parseDate(from, def.from);
 
     if (!site) return res.status(400).json({ error: 'missing site param, e.g. ?site=poolsvacuum.com' });
 

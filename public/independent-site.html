@@ -147,8 +147,15 @@
   // 默认站点取 url 参数或从示例取
   siteInput.value = getParam('site') || 'poolsvacuum.com';
   const today = new Date();
-  const toDef = today.toISOString().slice(0,10);
-  const fromDef = new Date(today.getTime() - 29*86400000).toISOString().slice(0,10);
+  const dow = today.getDay();
+  const mondayThisWeek = new Date(today);
+  mondayThisWeek.setDate(today.getDate() - ((dow + 6) % 7));
+  const mondayLastWeek = new Date(mondayThisWeek);
+  mondayLastWeek.setDate(mondayThisWeek.getDate() - 7);
+  const sundayLastWeek = new Date(mondayLastWeek);
+  sundayLastWeek.setDate(mondayLastWeek.getDate() + 6);
+  const fromDef = mondayLastWeek.toISOString().slice(0,10);
+  const toDef = sundayLastWeek.toISOString().slice(0,10);
   fromInput.value = getParam('from') || fromDef;
   toInput.value = getParam('to') || toDef;
 

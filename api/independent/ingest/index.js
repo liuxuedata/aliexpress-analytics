@@ -46,9 +46,12 @@ async function handleFile(filePath, filename) {
     rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
   }
 
-  // Find header row (contains "Landing page", "Campaign", "Day", etc.)
-  let headerIdx = rows.findIndex(r => (r||[]).some(c => String(c||'').trim().toLowerCase() === 'landing page'));
-  if (headerIdx === -1) throw new Error('Header row not found. Make sure the sheet has a "Landing page" column.');
+  // Find header row (contains "Landing page"/"URL", "Campaign", "Day", etc.)
+  let headerIdx = rows.findIndex(r => (r||[]).some(c => {
+    const cell = String(c||'').trim().toLowerCase();
+    return cell === 'landing page' || cell === 'url' || cell === 'website url';
+  }));
+  if (headerIdx === -1) throw new Error('Header row not found. Make sure the sheet has a "Landing page" or "URL" column.');
   const header = rows[headerIdx];
   const dataRows = rows.slice(headerIdx + 1);
 
@@ -63,22 +66,22 @@ async function handleFile(filePath, filename) {
     return -1;
   };
 
-  const cLanding = col('landing page');
-  const cCampaign = col('campaign');
-  const cDay = col('day');
-  const cNetwork = col('network (with search partners)');
-  const cDevice = col('device');
-  const cClicks = col('clicks');
-  const cImpr = col('impr.');
-  const cCTR = col('ctr');
-  const cAvgCPC = col('avg. cpc');
-  const cCost = col('cost');
-  const cConv = col('conversions');
-  const cCostPerConv = col('cost / conv.', 'cost/conv.', 'cost/conv');
-  const cAllConv = col('all conv.', 'all conv');
-  const cConvValue = col('conv. value', 'conv value');
-  const cAllConvRate = col('all conv. rate', 'all conv rate');
-  const cConvRate = col('conv. rate', 'conv rate');
+  const cLanding = col('landing page', 'url', 'website url');
+  const cCampaign = col('campaign', 'campaign name');
+  const cDay = col('day', 'date');
+  const cNetwork = col('network (with search partners)', 'network', 'source', 'platform');
+  const cDevice = col('device', 'device type');
+  const cClicks = col('clicks', 'link clicks');
+  const cImpr = col('impr.', 'impressions');
+  const cCTR = col('ctr', 'click-through rate');
+  const cAvgCPC = col('avg. cpc', 'cpc', 'cost per click');
+  const cCost = col('cost', 'amount spent');
+  const cConv = col('conversions', 'results', 'purchases');
+  const cCostPerConv = col('cost / conv.', 'cost/conv.', 'cost/conv', 'cost per result');
+  const cAllConv = col('all conv.', 'all conv', 'total conv');
+  const cConvValue = col('conv. value', 'conv value', 'purchase value');
+  const cAllConvRate = col('all conv. rate', 'all conv rate', 'total conv rate');
+  const cConvRate = col('conv. rate', 'conv rate', 'conversion rate');
 
   const payload = [];
   for (const r of dataRows) {
