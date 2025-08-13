@@ -147,81 +147,92 @@
   toInput.value = getParam('to') || toDef;
 
   async function load() {
-    const site = siteInput.value.trim();
-    const from = fromInput.value;
-    const to = toInput.value;
-    const url = `/api/independent/stats?site=${encodeURIComponent(site)}&from=${from}&to=${to}`;
-    const res = await fetch(url);
-    const json = await res.json();
-    if (!json.ok) { alert(json.error || '加载失败'); return; }
+    try {
+      const site = siteInput.value.trim();
+      const from = fromInput.value;
+      const to = toInput.value;
+      const url = `/api/independent/stats?site=${encodeURIComponent(site)}&from=${from}&to=${to}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || '加载失败');
 
-    // 明细表
-    const tb = $('#report').DataTable({
-      destroy: true,
-      pageLength: 20,
-      data: json.table,
-      scrollX: true,
-      fixedHeader: true,
-      autoWidth: false,
-      columns: [
-        { data: 'day' },
-        { data: 'landing_path', render: (v,t,r)=> `<a href="${r.landing_url}" target="_blank">${v}</a>` },
-        { data: 'device' },
-        { data: 'network' },
-        { data: 'campaign' },
-        { data: 'clicks' },
-        { data: 'impr' },
-        { data: 'ctr', render: v => (v*100).toFixed(2)+'%' },
-        { data: 'avg_cpc' },
-        { data: 'cost' },
-        { data: 'conversions' },
-        { data: 'cost_per_conv' },
-        { data: 'all_conv' },
-        { data: 'conv_value' },
-        { data: 'all_conv_rate', render: v => (v*100).toFixed(2)+'%' },
-        { data: 'conv_rate', render: v => (v*100).toFixed(2)+'%' },
-      ]
-    });
+      // 明细表
+      $('#report').DataTable({
+        destroy: true,
+        pageLength: 20,
+        data: json.table,
+        scrollX: true,
+        fixedHeader: true,
+        autoWidth: false,
+        columns: [
+          { data: 'day' },
+          { data: 'landing_path', render: (v,t,r)=> `<a href="${r.landing_url}" target="_blank">${v}</a>` },
+          { data: 'device' },
+          { data: 'network' },
+          { data: 'campaign' },
+          { data: 'clicks' },
+          { data: 'impr' },
+          { data: 'ctr', render: v => (v*100).toFixed(2)+'%' },
+          { data: 'avg_cpc' },
+          { data: 'cost' },
+          { data: 'conversions' },
+          { data: 'cost_per_conv' },
+          { data: 'all_conv' },
+          { data: 'conv_value' },
+          { data: 'all_conv_rate', render: v => (v*100).toFixed(2)+'%' },
+          { data: 'conv_rate', render: v => (v*100).toFixed(2)+'%' },
+        ]
+      });
 
-    // 趋势图
-    const days = json.series.map(x=>x.day);
-    const clicks = json.series.map(x=>x.clicks);
-    const impr = json.series.map(x=>x.impr);
-    const value = json.series.map(x=>x.conv_value);
-    const ec = echarts.init(document.getElementById('lineChart'));
-    ec.setOption({
-      tooltip: { trigger: 'axis' },
-      legend: { data:['Clicks','Impr.','Conv value'] },
-      xAxis: { type:'category', data: days },
-      yAxis: [{ type:'value', name:'Clicks / Impr' }, { type:'value', name:'Value', position:'right' }],
-      series: [
-        { name:'Clicks', type:'line', smooth:true, data: clicks },
-        { name:'Impr.', type:'bar', data: impr },
-        { name:'Conv value', type:'line', yAxisIndex:1, smooth:true, data: value },
-      ]
-    });
+      // 趋势图
+      const days = json.series.map(x=>x.day);
+      const clicks = json.series.map(x=>x.clicks);
+      const impr = json.series.map(x=>x.impr);
+      const value = json.series.map(x=>x.conv_value);
+      const ec = echarts.init(document.getElementById('lineChart'));
+      ec.setOption({
+        tooltip: { trigger: 'axis' },
+        legend: { data:['Clicks','Impr.','Conv value'] },
+        xAxis: { type:'category', data: days },
+        yAxis: [{ type:'value', name:'Clicks / Impr' }, { type:'value', name:'Value', position:'right' }],
+        series: [
+          { name:'Clicks', type:'line', smooth:true, data: clicks },
+          { name:'Impr.', type:'bar', data: impr },
+          { name:'Conv value', type:'line', yAxisIndex:1, smooth:true, data: value },
+        ]
+      });
 
-    // Top landing pages
-    const topRows = json.topList.map(r => [
-      r.path, r.clicks, r.impr, (r.ctr*100).toFixed(2)+'%', r.conversions, r.cost, r.conv_value, r.cpa.toFixed(2), r.roas.toFixed(2)
-    ]);
-    $('#topTable').DataTable({ destroy:true, paging:false, searching:false, info:false, data: topRows, scrollX:true, autoWidth:false });
+      // Top landing pages
+      const topRows = json.topList.map(r => [
+        r.path, r.clicks, r.impr, (r.ctr*100).toFixed(2)+'%', r.conversions, r.cost, r.conv_value, r.cpa.toFixed(2), r.roas.toFixed(2)
+      ]);
+      $('#topTable').DataTable({ destroy:true, paging:false, searching:false, info:false, data: topRows, scrollX:true, autoWidth:false });
+    } catch(e) {
+      alert(e.message || '加载失败');
+    }
   }
 
   document.getElementById('refreshBtn').addEventListener('click', load);
   // 上传逻辑
   const fileInput = document.getElementById('fileInput');
   document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
-  fileInput.addEventListener('change', async () => {
-    if (!fileInput.files.length) return;
-    const fd = new FormData();
-    fd.append('file', fileInput.files[0]);
-    const resp = await fetch('/api/independent/ingest', { method: 'POST', body: fd });
-    const json = await resp.json();
-    alert(json.ok ? `上传成功，记录数: ${json.inserted}` : `上传失败: ${json.error}`);
-    fileInput.value = '';
-    if (json.ok) load();
-  });
+    fileInput.addEventListener('change', async () => {
+      if (!fileInput.files.length) return;
+      const fd = new FormData();
+      fd.append('file', fileInput.files[0]);
+      try {
+        const resp = await fetch('/api/independent/ingest', { method: 'POST', body: fd });
+        const json = await resp.json().catch(() => ({ ok:false, error:`HTTP ${resp.status}` }));
+        if (!resp.ok || !json.ok) throw new Error(json.error || '上传失败');
+        alert(`上传成功，记录数: ${json.inserted}`);
+        await load();
+      } catch(e) {
+        alert(`上传失败: ${e.message}`);
+      } finally {
+        fileInput.value = '';
+      }
+    });
   load();
 })();
 </script>

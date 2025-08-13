@@ -134,18 +134,17 @@ export default async function handler(req, res) {
   }
 
   const form = formidable({ multiples: false, keepExtensions: true });
-  form.parse(req, async (err, fields, files) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-      return;
-    }
-    try {
-      const file = files.file;
-      if (!file) throw new Error('No file uploaded. Use form-data field name "file".');
-      const result = await handleFile(file.filepath || file.path, file.originalFilename || file.newFilename || file.name);
-      res.status(200).json({ ok: true, ...result });
-    } catch(e) {
-      res.status(500).json({ ok:false, error: e.message });
-    }
-  });
+  try {
+    const { files } = await new Promise((resolve, reject) => {
+      form.parse(req, (err, fields, files) => {
+        if (err) reject(err); else resolve({ fields, files });
+      });
+    });
+    const file = files.file;
+    if (!file) throw new Error('No file uploaded. Use form-data field name "file".');
+    const result = await handleFile(file.filepath || file.path, file.originalFilename || file.newFilename || file.name);
+    res.status(200).json({ ok: true, ...result });
+  } catch(e) {
+    res.status(500).json({ ok:false, error: e.message });
+  }
 }
