@@ -41,7 +41,7 @@ module.exports = async (req, res) => {
     // table data
     let { data: table, error: e1 } = await supabase
       .from('independent_landing_metrics')
-      .select('day, landing_path, landing_url, device, network, campaign, clicks, impr, ctr, avg_cpc, cost, conversions, cost_per_conv, all_conv, conv_value, all_conv_rate, conv_rate')
+      .select('id, site, day, landing_path, landing_url, device, network, campaign, clicks, impr, ctr, avg_cpc, cost, conversions, cost_per_conv, all_conv, conv_value, all_conv_rate, conv_rate, inserted_at')
       .eq('site', site)
       .gte('day', fromDate).lte('day', toDate)
       .order('day', { ascending: false })
