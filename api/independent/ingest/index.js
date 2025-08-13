@@ -132,11 +132,13 @@ async function handler(req, res) {
         if (err) reject(err); else resolve({ fields, files });
       });
     });
-    const file = files.file;
-    if (!file) throw new Error('No file uploaded. Use form-data field name "file".');
+    const uploaded = Array.isArray(files.file) ? files.file[0] : files.file;
+    if (!uploaded) throw new Error('No file uploaded. Use form-data field name "file".');
+    const filePath = uploaded.filepath || uploaded.path;
+    if (!filePath) throw new Error('Upload failed: file path missing.');
     const result = await handleFile(
-      file.filepath || file.path,
-      file.originalFilename || file.newFilename || file.name
+      filePath,
+      uploaded.originalFilename || uploaded.newFilename || uploaded.name
     );
     res.status(200).json({ ok: true, ...result });
   } catch (e) {
