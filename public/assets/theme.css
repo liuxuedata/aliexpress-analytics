@@ -120,6 +120,17 @@ input[type="file"]{ display:none }
 .table-section{ background:transparent; padding:15px }
 .table-wrapper{ overflow:auto }
 
+/* compact table: smaller text and tighter cells */
+table.dataTable,
+table.dataTable th,
+table.dataTable td{
+  font-size:12px;
+}
+table.dataTable th,
+table.dataTable td{
+  padding:4px 6px;
+}
+
 /* ------ KPI Cards (index.html) ------ */
 .stat-card{
   background:#fff; border:1px solid var(--panel-border);
