@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>独立站 · Landing Pages 明细</title>
   <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <style>
+    #report td:first-child{ text-align:left; }
+    #report td:first-child a.name{ display:inline-block; max-width:180px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  </style>
   <!-- DataTables & ECharts CDN -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css">
@@ -168,22 +172,25 @@
         fixedHeader: true,
         autoWidth: false,
         columns: [
-          { data: 'product', render:(v,t,r)=>`<a href="${r.landing_url}" target="_blank">${shorten(v)}</a>` },
-          { data: 'device' },
-          { data: 'network' },
-          { data: 'campaign' },
-          { data: 'day' },
-          { data: 'clicks', defaultContent: 0 },
-          { data: 'impr', defaultContent: 0 },
-          { data: 'ctr', render: v => (v*100).toFixed(2)+'%', defaultContent: 0 },
-          { data: 'avg_cpc', defaultContent: 0 },
-          { data: 'cost', defaultContent: 0 },
-          { data: 'conversions', defaultContent: 0 },
-          { data: 'cost_per_conv', defaultContent: 0 },
-          { data: 'all_conv', defaultContent: 0 },
-          { data: 'conv_value', defaultContent: 0 },
-          { data: 'all_conv_rate', render: v => (v*100).toFixed(2)+'%', defaultContent: 0 },
-          { data: 'conv_rate', render: v => (v*100).toFixed(2)+'%', defaultContent: 0 },
+          { data: 'product', render:(v,t,r)=>{
+              const name = v || r.landing_path || '';
+              return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
+            } },
+          { data: 'device', render: v => v || '' },
+          { data: 'network', render: v => v || '' },
+          { data: 'campaign', render: v => v || '' },
+          { data: 'day', render: v => v || '' },
+          { data: 'clicks', render: v => v ?? 0 },
+          { data: 'impr', render: v => v ?? 0 },
+          { data: 'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
+          { data: 'avg_cpc', render: v => v ?? 0 },
+          { data: 'cost', render: v => v ?? 0 },
+          { data: 'conversions', render: v => v ?? 0 },
+          { data: 'cost_per_conv', render: v => v ?? 0 },
+          { data: 'all_conv', render: v => v ?? 0 },
+          { data: 'conv_value', render: v => v ?? 0 },
+          { data: 'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
+          { data: 'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
         ]
       });
 

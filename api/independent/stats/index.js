@@ -16,9 +16,11 @@ function parseDate(s, fallback) {
   return fallback;
 }
 
-function extractName(path){
-  const seg = (path||'').split('/').filter(Boolean).pop() || '';
-  return decodeURIComponent(seg);
+function extractName(path) {
+  const p = path || '';
+  const seg = p.split('/').filter(Boolean).pop();
+  const name = seg ? decodeURIComponent(seg) : '';
+  return name || decodeURIComponent(p);
 }
 
 function safeNum(v){
