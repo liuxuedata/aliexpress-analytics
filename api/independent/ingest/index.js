@@ -22,7 +22,7 @@ function parseUrlParts(u) {
 
 function coerceNum(x) {
   if (x === null || x === undefined || x === '' || x === '--') return 0;
-  const n = Number(String(x).toString().replace(/[%,$]/g,''));
+  const n = Number(String(x).replace(/[^0-9.-]/g, ''));
   return Number.isFinite(n) ? n : 0;
 }
 

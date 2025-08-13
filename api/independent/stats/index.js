@@ -16,6 +16,11 @@ function extractName(path){
   return decodeURIComponent(seg);
 }
 
+function safeNum(v){
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
 module.exports = async (req, res) => {
   try {
     const { site, from, to, limit = '500' } = req.query;
@@ -36,16 +41,21 @@ module.exports = async (req, res) => {
 
     if (e1) return res.status(500).json({ error: e1.message });
 
-    table = (table || []).map(r => ({
-      ...r,
-      product: extractName(r.landing_path),
-      conversions: Number(r.conversions || 0),
-      cost_per_conv: Number(r.cost_per_conv || 0),
-      all_conv: Number(r.all_conv || 0),
-      conv_value: Number(r.conv_value || 0),
-      all_conv_rate: Number(r.all_conv_rate || 0),
-      conv_rate: Number(r.conv_rate || 0)
-    }));
+      table = (table || []).map(r => ({
+        ...r,
+        product: extractName(r.landing_path),
+        clicks: safeNum(r.clicks),
+        impr: safeNum(r.impr),
+        ctr: safeNum(r.ctr),
+        avg_cpc: safeNum(r.avg_cpc),
+        cost: safeNum(r.cost),
+        conversions: safeNum(r.conversions),
+        cost_per_conv: safeNum(r.cost_per_conv),
+        all_conv: safeNum(r.all_conv),
+        conv_value: safeNum(r.conv_value),
+        all_conv_rate: safeNum(r.all_conv_rate),
+        conv_rate: safeNum(r.conv_rate)
+      }));
 
     // daily summary series
     let { data: series, error: e2 } = await supabase
@@ -57,6 +67,15 @@ module.exports = async (req, res) => {
 
     if (e2) return res.status(500).json({ error: e2.message });
 
+    series = (series || []).map(r => ({
+      ...r,
+      clicks: safeNum(r.clicks),
+      impr: safeNum(r.impr),
+      conversions: safeNum(r.conversions),
+      conv_value: safeNum(r.conv_value),
+      cost: safeNum(r.cost)
+    }));
+
     // top landing pages by conversions
     let { data: topPages, error: e3 } = await supabase
       .from('independent_landing_metrics')
@@ -66,16 +85,16 @@ module.exports = async (req, res) => {
 
     if (e3) return res.status(500).json({ error: e3.message });
 
-    const byPath = {};
-    for (const r of topPages) {
-      const key = r.landing_path;
-      if (!byPath[key]) byPath[key] = { path: key, url: r.landing_url, conversions: 0, conv_value: 0, clicks: 0, impr: 0, cost: 0 };
-      byPath[key].conversions += Number(r.conversions||0);
-      byPath[key].conv_value += Number(r.conv_value||0);
-      byPath[key].clicks += Number(r.clicks||0);
-      byPath[key].impr += Number(r.impr||0);
-      byPath[key].cost += Number(r.cost||0);
-    }
+      const byPath = {};
+      for (const r of topPages) {
+        const key = r.landing_path;
+        if (!byPath[key]) byPath[key] = { path: key, url: r.landing_url, conversions: 0, conv_value: 0, clicks: 0, impr: 0, cost: 0 };
+        byPath[key].conversions += safeNum(r.conversions);
+        byPath[key].conv_value += safeNum(r.conv_value);
+        byPath[key].clicks += safeNum(r.clicks);
+        byPath[key].impr += safeNum(r.impr);
+        byPath[key].cost += safeNum(r.cost);
+      }
     const topList = Object.values(byPath)
       .map(x => ({
         ...x,
