@@ -46,30 +46,39 @@ async function handleFile(filePath, filename) {
     rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
   }
 
-  // Find header row (contains "Landing page", "Campaign", "Day", "Clicks", "Impr.", "CTR"...)
-  let headerIdx = rows.findIndex(r => (r||[]).some(c => String(c||'').trim() === 'Landing page'));
+  // Find header row (contains "Landing page", "Campaign", "Day", etc.)
+  let headerIdx = rows.findIndex(r => (r||[]).some(c => String(c||'').trim().toLowerCase() === 'landing page'));
   if (headerIdx === -1) throw new Error('Header row not found. Make sure the sheet has a "Landing page" column.');
   const header = rows[headerIdx];
   const dataRows = rows.slice(headerIdx + 1);
 
-  const col = (name) => header.findIndex(h => String(h||'').trim() === name);
+  // Build a case-insensitive header lookup so "Conversions" or "conversions"
+  // (or other locale variations) are detected even if the exact casing differs
+  const headerLC = header.map(h => String(h || '').trim().toLowerCase());
+  const col = (...names) => {
+    for (const n of names) {
+      const idx = headerLC.indexOf(String(n).toLowerCase());
+      if (idx !== -1) return idx;
+    }
+    return -1;
+  };
 
-  const cLanding = col('Landing page');
-  const cCampaign = col('Campaign');
-  const cDay = col('Day');
-  const cNetwork = col('Network (with search partners)');
-  const cDevice = col('Device');
-  const cClicks = col('Clicks');
-  const cImpr = col('Impr.');
-  const cCTR = col('CTR');
-  const cAvgCPC = col('Avg. CPC');
-  const cCost = col('Cost');
-  const cConv = col('Conversions');
-  const cCostPerConv = col('Cost / conv.');
-  const cAllConv = col('All conv.');
-  const cConvValue = col('Conv. value');
-  const cAllConvRate = col('All conv. rate');
-  const cConvRate = col('Conv. rate');
+  const cLanding = col('landing page');
+  const cCampaign = col('campaign');
+  const cDay = col('day');
+  const cNetwork = col('network (with search partners)');
+  const cDevice = col('device');
+  const cClicks = col('clicks');
+  const cImpr = col('impr.');
+  const cCTR = col('ctr');
+  const cAvgCPC = col('avg. cpc');
+  const cCost = col('cost');
+  const cConv = col('conversions');
+  const cCostPerConv = col('cost / conv.', 'cost/conv.', 'cost/conv');
+  const cAllConv = col('all conv.', 'all conv');
+  const cConvValue = col('conv. value', 'conv value');
+  const cAllConvRate = col('all conv. rate', 'all conv rate');
+  const cConvRate = col('conv. rate', 'conv rate');
 
   const payload = [];
   for (const r of dataRows) {
