@@ -39,7 +39,8 @@
           <input type="date" id="from">
           <input type="date" id="to">
           <button id="refreshBtn" class="btn">刷新</button>
-          <a id="uploadLink" class="btn" href="/api/independent/ingest" title="POST xlsx/csv 到此接口，字段名自动识别">上传数据接口</a>
+          <button id="uploadBtn" class="btn">上传数据</button>
+          <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none;">
         </div>
       </div>
     </section>
@@ -208,6 +209,19 @@
   }
 
   document.getElementById('refreshBtn').addEventListener('click', load);
+  // 上传逻辑
+  const fileInput = document.getElementById('fileInput');
+  document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', async () => {
+    if (!fileInput.files.length) return;
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    const resp = await fetch('/api/independent/ingest', { method: 'POST', body: fd });
+    const json = await resp.json();
+    alert(json.ok ? `上传成功，记录数: ${json.inserted}` : `上传失败: ${json.error}`);
+    fileInput.value = '';
+    if (json.ok) load();
+  });
   load();
 })();
 </script>

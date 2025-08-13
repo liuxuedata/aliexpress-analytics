@@ -117,6 +117,17 @@ async function handleFile(filePath, filename) {
 }
 
 export default async function handler(req, res) {
+  if (req.method === 'GET') {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.status(200).end(`<!doctype html><html><body>
+      <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="file" />
+        <button type="submit">Upload</button>
+      </form>
+    </body></html>`);
+    return;
+  }
+
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Use POST with multipart/form-data (file field: file)' });
     return;

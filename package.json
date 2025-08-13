@@ -5,6 +5,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
     "xlsx": "^0.18.5",
-    "multiparty": "^4.2.3"
+    "multiparty": "^4.2.3",
+    "formidable": "^3.5.1"
   }
 }
