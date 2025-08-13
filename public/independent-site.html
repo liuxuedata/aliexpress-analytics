@@ -8,6 +8,9 @@
   <style>
     #report td:first-child{ text-align:left; }
     #report td:first-child a.name{ display:inline-block; max-width:180px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    #columnToggleWrapper{ position:relative; display:inline-block; }
+    #columnMenu{ display:none; position:absolute; top:100%; right:0; background:#fff; border:1px solid #ccc; padding:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); }
+    #columnMenu label{ display:block; margin:4px 0; white-space:nowrap; }
   </style>
   <!-- DataTables & ECharts CDN -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
@@ -46,6 +49,10 @@
           <button id="uploadBtn" class="btn">上传数据</button>
           <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none;">
           <span id="uploadStatus" class="small"></span>
+          <div id="columnToggleWrapper">
+            <button id="columnToggle" class="btn">筛选列</button>
+            <div id="columnMenu" class="small"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -143,6 +150,25 @@
   const siteInput = document.getElementById('site');
   const fromInput = document.getElementById('from');
   const toInput = document.getElementById('to');
+  const columnMenu = document.getElementById('columnMenu');
+  const columnToggle = document.getElementById('columnToggle');
+  const optionalCols = [
+    { idx:1, label:'设备' },
+    { idx:2, label:'网络' },
+    { idx:3, label:'Campaign' }
+  ];
+  optionalCols.forEach(c=>{
+    const lab=document.createElement('label');
+    lab.innerHTML=`<input type="checkbox" data-col="${c.idx}"> ${c.label}`;
+    columnMenu.appendChild(lab);
+  });
+  columnToggle.addEventListener('click',()=>{
+    columnMenu.style.display = columnMenu.style.display==='block' ? 'none' : 'block';
+  });
+  let dt;
+  $('#columnMenu').on('change','input[type=checkbox]',function(){
+    if(dt) dt.column($(this).data('col')).visible(this.checked);
+  });
 
   // 默认站点取 url 参数或从示例取
   siteInput.value = getParam('site') || 'poolsvacuum.com';
@@ -171,7 +197,7 @@
       if (!json.ok) throw new Error(json.error || '加载失败');
 
       // 明细表
-      $('#report').DataTable({
+      dt = $('#report').DataTable({
         destroy: true,
         pageLength: 20,
         data: json.table,
@@ -199,6 +225,9 @@
           { data: 'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
           { data: 'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
         ]
+      });
+      $('#columnMenu input[type=checkbox]').each(function(){
+        dt.column($(this).data('col')).visible(this.checked);
       });
 
       // 趋势图
