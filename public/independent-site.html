@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>独立站 · Landing Pages 明细</title>
-  <link rel="stylesheet" href="assets/theme-unified-0812.css">
+  <link rel="stylesheet" href="assets/theme.css">
   <!-- DataTables & ECharts CDN (可替换为本地) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/datatables.net-dt/css/jquery.dataTables.min.css">
   <script src="https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
@@ -13,33 +13,7 @@
 </head>
 <body>
 
-<header class="topbar">
-  <div class="inner">
-    <div class="brand">电商数据</div>
-    <nav class="menu">
-      <div class="item has-dd">
-        <a href="#">独立站 ▾</a>
-        <div class="dropdown">
-          <a href="independent-site.html?site=A">独立站A</a>
-          <a href="independent-site.html?site=B">独立站B</a>
-          <a href="independent-site.html?site=C">独立站C</a>
-        </div>
-      </div>
-      <div class="item has-dd">
-        <a href="#">AliExpress ▾</a>
-        <div class="dropdown">
-          <a href="index.html?site=A">全托管A</a>
-          <a href="self-operated.html?site=A">自运营A</a>
-        </div>
-      </div>
-      <div class="item"><a href="tiktok.html">TikTok</a></div>
-      <div class="item"><a href="ozon.html">Ozon</a></div>
-    </nav>
-    <div class="right">
-      <a class="btn" href="profile.html">个人页</a>
-    </div>
-  </div>
-</header>
+<header class="top-nav"><div class="nav-inner"><ul class="top-menu"><li><a href="#">速卖通</a><ul class="dropdown"><li class="submenu"><a href="#">全托管</a><ul id="managedMenu"></ul></li><li><a href="self-operated.html">自运营</a></li></ul></li><li><a href="#">亚马逊</a></li><li><a href="#">TikTok Shop</a></li><li><a href="#">Temu</a></li><li><a href="#">Ozon</a></li><li><a href="independent-site.html" class="active">独立站</a></li></ul><div id="userArea" class="user-area"></div></div></header>
 
 <div class="container">
   <nav class="sidebar" id="sidebar">
@@ -51,7 +25,7 @@
     </ul>
   </nav>
 
-  <main class="content">
+  <main class="main">
     <!-- 控件 -->
     <section class="content-pad">
       <div class="panel">
@@ -118,26 +92,6 @@
     </section>
   </main>
 </div>
-
-<script>
-// 顶部下拉开关
-(function(){
-  document.querySelectorAll('.topbar .has-dd > a').forEach(a=>{
-    a.addEventListener('click', function(e){
-      e.preventDefault();
-      const li = this.parentElement;
-      const opened = li.classList.contains('open');
-      document.querySelectorAll('.topbar .has-dd').forEach(i=>i.classList.remove('open'));
-      if (!opened) li.classList.add('open');
-    });
-  });
-  document.addEventListener('click', function(e){
-    if (!e.target.closest('.topbar')) {
-      document.querySelectorAll('.topbar .has-dd').forEach(i=>i.classList.remove('open'));
-    }
-  });
-})();
-</script>
 
 <script>
 // 左侧局部导航切换
