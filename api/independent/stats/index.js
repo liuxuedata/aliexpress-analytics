@@ -28,26 +28,34 @@ function safeNum(v){
   return Number.isFinite(n) ? n : 0;
 }
 
+const PAGE_SIZE = 1000;
+
 module.exports = async (req, res) => {
   try {
     const supabase = getClient();
-    const { site, from, to, limit = '500' } = req.query;
+    const { site, from, to, limit = '20000' } = req.query;
     const today = new Date();
     const toDate = parseDate(to, new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString().slice(0,10));
     const fromDate = parseDate(from, new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29).toISOString().slice(0,10));
 
     if (!site) return res.status(400).json({ error: 'missing site param, e.g. ?site=poolsvacuum.com' });
 
-    // table data
-    let { data: table, error: e1 } = await supabase
-      .from('independent_landing_metrics')
-      .select('*')
-      .eq('site', site)
-      .gte('day', fromDate).lte('day', toDate)
-      .order('day', { ascending: false })
-      .limit(Number(limit));
-
-    if (e1) return res.status(500).json({ error: e1.message });
+    // table data (fetch all pages up to limit)
+    const limitNum = Math.min(Number(limit) || PAGE_SIZE, 20000);
+    let table = [];
+    for (let fromIdx = 0; table.length < limitNum; fromIdx += PAGE_SIZE) {
+      const toIdx = Math.min(fromIdx + PAGE_SIZE - 1, limitNum - 1);
+      const { data, error } = await supabase
+        .from('independent_landing_metrics')
+        .select('*')
+        .eq('site', site)
+        .gte('day', fromDate).lte('day', toDate)
+        .order('day', { ascending: false })
+        .range(fromIdx, toIdx);
+      if (error) return res.status(500).json({ error: error.message });
+      table = table.concat(data);
+      if (!data.length || data.length < PAGE_SIZE) break;
+    }
 
     table = (table || []).map(r => ({
       ...r,
@@ -98,25 +106,31 @@ module.exports = async (req, res) => {
       cost: safeNum(r.cost)
     }));
 
-    // top landing pages by conversions
-    let { data: topPages, error: e3 } = await supabase
-      .from('independent_landing_metrics')
-      .select('landing_path, landing_url, conversions, conv_value, clicks, impr, cost')
-      .eq('site', site)
-      .gte('day', fromDate).lte('day', toDate);
+    // top landing pages by conversions (aggregate all pages)
+    let topPages = [];
+    for (let fromIdx = 0;; fromIdx += PAGE_SIZE) {
+      const toIdx = fromIdx + PAGE_SIZE - 1;
+      const { data, error } = await supabase
+        .from('independent_landing_metrics')
+        .select('landing_path, landing_url, conversions, conv_value, clicks, impr, cost')
+        .eq('site', site)
+        .gte('day', fromDate).lte('day', toDate)
+        .range(fromIdx, toIdx);
+      if (error) return res.status(500).json({ error: error.message });
+      topPages = topPages.concat(data);
+      if (!data.length || data.length < PAGE_SIZE) break;
+    }
 
-    if (e3) return res.status(500).json({ error: e3.message });
-
-      const byPath = {};
-      for (const r of topPages) {
-        const key = r.landing_path;
-        if (!byPath[key]) byPath[key] = { path: key, url: r.landing_url, conversions: 0, conv_value: 0, clicks: 0, impr: 0, cost: 0 };
-        byPath[key].conversions += safeNum(r.conversions);
-        byPath[key].conv_value += safeNum(r.conv_value);
-        byPath[key].clicks += safeNum(r.clicks);
-        byPath[key].impr += safeNum(r.impr);
-        byPath[key].cost += safeNum(r.cost);
-      }
+    const byPath = {};
+    for (const r of topPages) {
+      const key = r.landing_path;
+      if (!byPath[key]) byPath[key] = { path: key, url: r.landing_url, conversions: 0, conv_value: 0, clicks: 0, impr: 0, cost: 0 };
+      byPath[key].conversions += safeNum(r.conversions);
+      byPath[key].conv_value += safeNum(r.conv_value);
+      byPath[key].clicks += safeNum(r.clicks);
+      byPath[key].impr += safeNum(r.impr);
+      byPath[key].cost += safeNum(r.cost);
+    }
     const topList = Object.values(byPath)
       .map(x => ({
         ...x,
