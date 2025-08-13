@@ -65,7 +65,7 @@
           <div class="table-section">
             <div class="table-wrapper">
               <table id="topTable" class="display nowrap"><thead>
-                <tr><th>路径</th><th>点击</th><th>曝光</th><th>CTR</th><th>转化</th><th>花费</th><th>转化价值</th><th>CPA</th><th>ROAS</th></tr>
+                <tr><th>产品</th><th>点击</th><th>曝光</th><th>CTR</th><th>转化</th><th>花费</th><th>转化价值</th><th>CPA</th><th>ROAS</th></tr>
               </thead><tbody></tbody></table>
             </div>
           </div>
@@ -82,7 +82,7 @@
             <table id="report" class="display nowrap" style="width:100%">
               <thead>
                 <tr>
-                  <th>日期</th><th>页面</th><th>设备</th><th>网络</th><th>Campaign</th>
+                  <th>产品</th><th>设备</th><th>网络</th><th>Campaign</th><th>日期</th>
                   <th>点击</th><th>曝光</th><th>CTR</th><th>Avg CPC</th><th>Cost</th>
                   <th>转化</th><th>Cost/Conv</th><th>All conv</th><th>Conv value</th>
                   <th>All conv rate</th><th>Conv rate</th>
@@ -131,6 +131,7 @@
 <script>
 // 页面逻辑：拉取 /api/independent/stats
 (function(){
+  const shorten=(s,l=30)=>{if(!s) return '';return s.length>l?s.slice(0,l)+'…':s;};
   function getParam(name) {
     const url = new URL(window.location.href);
     return url.searchParams.get(name);
@@ -167,22 +168,22 @@
         fixedHeader: true,
         autoWidth: false,
         columns: [
-          { data: 'day' },
-          { data: 'landing_path', render: (v,t,r)=> `<a href="${r.landing_url}" target="_blank">${v}</a>` },
+          { data: 'product', render:(v,t,r)=>`<a href="${r.landing_url}" target="_blank">${shorten(v)}</a>` },
           { data: 'device' },
           { data: 'network' },
           { data: 'campaign' },
-          { data: 'clicks' },
-          { data: 'impr' },
-          { data: 'ctr', render: v => (v*100).toFixed(2)+'%' },
-          { data: 'avg_cpc' },
-          { data: 'cost' },
-          { data: 'conversions' },
-          { data: 'cost_per_conv' },
-          { data: 'all_conv' },
-          { data: 'conv_value' },
-          { data: 'all_conv_rate', render: v => (v*100).toFixed(2)+'%' },
-          { data: 'conv_rate', render: v => (v*100).toFixed(2)+'%' },
+          { data: 'day' },
+          { data: 'clicks', defaultContent: 0 },
+          { data: 'impr', defaultContent: 0 },
+          { data: 'ctr', render: v => (v*100).toFixed(2)+'%', defaultContent: 0 },
+          { data: 'avg_cpc', defaultContent: 0 },
+          { data: 'cost', defaultContent: 0 },
+          { data: 'conversions', defaultContent: 0 },
+          { data: 'cost_per_conv', defaultContent: 0 },
+          { data: 'all_conv', defaultContent: 0 },
+          { data: 'conv_value', defaultContent: 0 },
+          { data: 'all_conv_rate', render: v => (v*100).toFixed(2)+'%', defaultContent: 0 },
+          { data: 'conv_rate', render: v => (v*100).toFixed(2)+'%', defaultContent: 0 },
         ]
       });
 
@@ -206,7 +207,7 @@
 
       // Top landing pages
       const topRows = json.topList.map(r => [
-        r.path, r.clicks, r.impr, (r.ctr*100).toFixed(2)+'%', r.conversions, r.cost, r.conv_value, r.cpa.toFixed(2), r.roas.toFixed(2)
+        shorten(r.product || r.path), r.clicks, r.impr, (r.ctr*100).toFixed(2)+'%', r.conversions, r.cost, r.conv_value, r.cpa.toFixed(2), r.roas.toFixed(2)
       ]);
       $('#topTable').DataTable({ destroy:true, paging:false, searching:false, info:false, data: topRows, scrollX:true, autoWidth:false });
     } catch(e) {

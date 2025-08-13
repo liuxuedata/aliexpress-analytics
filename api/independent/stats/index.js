@@ -11,6 +11,11 @@ function parseDate(s, fallback) {
   return fallback;
 }
 
+function extractName(path){
+  const seg = (path||'').split('/').filter(Boolean).pop() || '';
+  return decodeURIComponent(seg);
+}
+
 module.exports = async (req, res) => {
   try {
     const { site, from, to, limit = '500' } = req.query;
@@ -23,13 +28,24 @@ module.exports = async (req, res) => {
     // table data
     let { data: table, error: e1 } = await supabase
       .from('independent_landing_metrics')
-      .select('*')
+      .select('day, landing_path, landing_url, device, network, campaign, clicks, impr, ctr, avg_cpc, cost, conversions, cost_per_conv, all_conv, conv_value, all_conv_rate, conv_rate')
       .eq('site', site)
       .gte('day', fromDate).lte('day', toDate)
       .order('day', { ascending: false })
       .limit(Number(limit));
 
     if (e1) return res.status(500).json({ error: e1.message });
+
+    table = (table || []).map(r => ({
+      ...r,
+      product: extractName(r.landing_path),
+      conversions: Number(r.conversions || 0),
+      cost_per_conv: Number(r.cost_per_conv || 0),
+      all_conv: Number(r.all_conv || 0),
+      conv_value: Number(r.conv_value || 0),
+      all_conv_rate: Number(r.all_conv_rate || 0),
+      conv_rate: Number(r.conv_rate || 0)
+    }));
 
     // daily summary series
     let { data: series, error: e2 } = await supabase
@@ -61,7 +77,9 @@ module.exports = async (req, res) => {
       byPath[key].cost += Number(r.cost||0);
     }
     const topList = Object.values(byPath)
-      .map(x => ({ ...x,
+      .map(x => ({
+        ...x,
+        product: extractName(x.path),
         ctr: x.impr>0 ? x.clicks/x.impr : 0,
         cpa: x.conversions>0 ? x.cost/x.conversions : 0,
         roas: x.cost>0 ? x.conv_value/x.cost : 0
