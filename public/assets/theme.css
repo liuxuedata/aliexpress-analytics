@@ -116,6 +116,10 @@ input[type="file"]{ display:none }
 /* Divider */
 .divider{ height:1px; background:var(--panel-border); margin:8px 0 12px }
 
+/* Table containers */
+.table-section{ background:transparent; padding:15px }
+.table-wrapper{ overflow:auto }
+
 /* ------ KPI Cards (index.html) ------ */
 .stat-card{
   background:#fff; border:1px solid var(--panel-border);
