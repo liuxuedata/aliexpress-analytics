@@ -237,5 +237,30 @@
 })();
 </script>
 
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const siteListKey='managedSites';
+  let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
+  if(!Array.isArray(sites)||!sites.length){sites=['A站','B站','C站'];localStorage.setItem(siteListKey,JSON.stringify(sites));}
+  const menuEl=document.getElementById('managedMenu');
+  if(menuEl){
+    sites.forEach(name=>{
+      const li=document.createElement('li');
+      const a=document.createElement('a');
+      a.href='index.html';
+      a.textContent=name;
+      a.addEventListener('click',e=>{e.preventDefault();localStorage.setItem('currentSite',name);window.location.href='index.html';});
+      li.appendChild(a);
+      menuEl.appendChild(li);
+    });
+  }
+  const userArea=document.getElementById('userArea');
+  if(userArea){
+    const u=localStorage.getItem('username');
+    if(u){userArea.textContent=u;}else{userArea.innerHTML='<a href="login.html">登录</a>';}
+  }
+});
+</script>
+
 </body>
 </html>

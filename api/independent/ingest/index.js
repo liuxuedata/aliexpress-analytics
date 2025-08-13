@@ -2,7 +2,7 @@
 // Upload Google Ads Landing Pages export (xlsx or csv) and upsert into Supabase
 // Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (recommended) or SUPABASE_ANON_KEY (insert allowed by RLS)
 const { createClient } = require('@supabase/supabase-js');
-const formidable = require('formidable');
+const formidable = require('formidable').default;
 const fs = require('fs');
 const XLSX = require('xlsx');
 
