@@ -1,6 +1,9 @@
 // /api/independent/stats/index.js
-import { createClient } from '@supabase/supabase-js';
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+const { createClient } = require('@supabase/supabase-js');
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
 
 function parseDate(s, fallback) {
   const d = s ? new Date(s) : null;
@@ -8,7 +11,7 @@ function parseDate(s, fallback) {
   return fallback;
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const { site, from, to, limit = '500' } = req.query;
   const today = new Date();
   const toDate = parseDate(to, new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString().slice(0,10));
@@ -65,5 +68,7 @@ export default async function handler(req, res) {
     .sort((a,b)=> b.conversions - a.conversions)
     .slice(0, 50);
 
-  res.status(200).json({ ok:true, from: fromDate, to: toDate, table, series, topList });
+  res.status(200).json({ ok: true, from: fromDate, to: toDate, table, series, topList });
 }
+
+module.exports = handler;

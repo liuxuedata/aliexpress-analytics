@@ -1,23 +1,15 @@
 // /api/independent/ingest/index.js
 // Upload Google Ads Landing Pages export (xlsx or csv) and upsert into Supabase
 // Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE (recommended) or SUPABASE_ANON_KEY (insert allowed by RLS)
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
+const formidable = require('formidable');
+const fs = require('fs');
+const XLSX = require('xlsx');
 
-export const config = {
-  api: {
-    bodyParser: false, // we'll parse multipart manually
-  },
-};
-
-import formidable from 'formidable';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-// optional xlsx support
-import * as XLSX from 'xlsx';
-
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_ANON_KEY);
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_ANON_KEY
+);
 
 function parseUrlParts(u) {
   try {
@@ -116,7 +108,7 @@ async function handleFile(filePath, filename) {
   return { inserted: data?.length ?? payload.length };
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method === 'GET') {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.status(200).end(`<!doctype html><html><body>
@@ -142,9 +134,19 @@ export default async function handler(req, res) {
     });
     const file = files.file;
     if (!file) throw new Error('No file uploaded. Use form-data field name "file".');
-    const result = await handleFile(file.filepath || file.path, file.originalFilename || file.newFilename || file.name);
+    const result = await handleFile(
+      file.filepath || file.path,
+      file.originalFilename || file.newFilename || file.name
+    );
     res.status(200).json({ ok: true, ...result });
-  } catch(e) {
-    res.status(500).json({ ok:false, error: e.message });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
   }
 }
+
+module.exports = handler;
+module.exports.config = {
+  api: {
+    bodyParser: false, // we'll parse multipart manually
+  },
+};
