@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>独立站 · Landing Pages 明细</title>
   <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <link rel="stylesheet" href="assets/login.css">
   <style>
     #report td:first-child{ text-align:left; }
     #report td:first-child a.name{ display:inline-block; max-width:180px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
@@ -21,10 +22,57 @@
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
 </head>
 <body class="fm">
+<div id="loginOverlay" class="login-overlay" style="display:none">
+  <div class="login-container">
+    <div class="login-form-card login-card-enter">
+      <div class="form-header">
+        <div class="form-logo">AI</div>
+        <div class="form-title">跨境电商数据分析平台</div>
+        <div class="form-subtitle">登录账户以继续</div>
+      </div>
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label" for="email">邮箱</label>
+          <input id="email" type="email" class="form-input" required>
+        </div>
+        <div class="form-group password-input-wrapper">
+          <label class="form-label" for="password">密码</label>
+          <input id="password" type="password" class="form-input" required>
+          <span id="password-toggle" class="password-toggle">👁️</span>
+        </div>
+        <button id="loginSubmit" class="login-submit-btn" type="submit">登录</button>
+      </form>
+      <div class="demo-account-tip">
+        <div class="demo-account-header">演示账户</div>
+        <div class="demo-account-info">邮箱：demo@example.com<br>密码：demo123</div>
+      </div>
+    </div>
+  </div>
+</div>
 
-<header class="top-nav"><div class="nav-inner"><ul class="top-menu"><li><a href="#">速卖通</a><ul class="dropdown"><li class="submenu"><a href="#">全托管</a><ul id="managedMenu"></ul></li><li><a href="self-operated.html">自运营</a></li></ul></li><li><a href="#">亚马逊</a></li><li><a href="#">TikTok Shop</a></li><li><a href="#">Temu</a></li><li><a href="#">Ozon</a></li><li><a href="independent-site.html" class="active">独立站</a></li></ul><div id="userArea" class="user-area"></div></div></header>
+<header class="header">
+  <div class="logo-title">跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li><a href="#">速卖通</a>
+        <ul class="dropdown">
+          <li class="submenu"><a href="#">全托管</a>
+            <ul id="managedMenu"></ul>
+          </li>
+          <li><a href="self-operated.html">自运营</a></li>
+        </ul>
+      </li>
+      <li><a href="#">亚马逊</a></li>
+      <li><a href="#">TikTok Shop</a></li>
+      <li><a href="#">Temu</a></li>
+      <li><a href="#">Ozon</a></li>
+      <li><a href="independent-site.html">独立站</a></li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
 
-<div class="container">
+<div class="layout">
   <nav class="sidebar" id="sidebar">
     <div class="site-header"><span>独立站</span></div>
     <ul class="sub-nav">
@@ -34,7 +82,7 @@
     </ul>
   </nav>
 
-  <main class="main">
+  <main class="main mx-auto max-w-container px-6">
     <div class="content">
     <!-- 控件 -->
     <section class="content-pad">
@@ -292,6 +340,8 @@
 })();
 </script>
 
+<script src="assets/login.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
   const siteListKey='managedSites';
@@ -310,10 +360,22 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
   }
   const userArea=document.getElementById('userArea');
-  if(userArea){
-    const u=localStorage.getItem('username');
-    if(u){userArea.textContent=u;}else{userArea.innerHTML='<a href="login.html">登录</a>';}
+  function refreshUser(){
+    const u=JSON.parse(localStorage.getItem('user')||'null');
+    if(u){
+      userArea.innerHTML=`<div class="user-section"><div class="user-menu-trigger">${u.name}</div><div class="user-dropdown" style="display:none"><button class="user-dropdown-item" id="logoutBtn">退出</button></div></div>`;
+      const trigger=userArea.querySelector('.user-menu-trigger');
+      const dropdown=userArea.querySelector('.user-dropdown');
+      trigger.addEventListener('click',()=>{dropdown.style.display=dropdown.style.display==='block'?'none':'block';});
+      document.getElementById('logoutBtn').addEventListener('click',()=>{localStorage.removeItem('user');dropdown.style.display='none';refreshUser();showLoginOverlay();});
+    }else{
+      userArea.innerHTML='<div class="user-section"><span class="user-demo">未登录</span><button class="login-button" id="loginTrigger">登录</button></div>';
+      document.getElementById('loginTrigger').addEventListener('click',showLoginOverlay);
+      showLoginOverlay();
+    }
   }
+  refreshUser();
+  window.addEventListener('user-login', refreshUser);
 });
 </script>
 
