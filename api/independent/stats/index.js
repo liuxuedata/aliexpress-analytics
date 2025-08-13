@@ -1,9 +1,14 @@
 // /api/independent/stats/index.js
 const { createClient } = require('@supabase/supabase-js');
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE
-);
+function getClient() {
+  const url = process.env.SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE;
+  if (!url || !key) throw new Error('Supabase env not configured');
+  return createClient(url, key);
+}
 
 function parseDate(s, fallback) {
   const d = s ? new Date(s) : null;
@@ -23,6 +28,7 @@ function safeNum(v){
 
 module.exports = async (req, res) => {
   try {
+    const supabase = getClient();
     const { site, from, to, limit = '500' } = req.query;
     const today = new Date();
     const toDate = parseDate(to, new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString().slice(0,10));

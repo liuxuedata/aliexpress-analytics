@@ -6,10 +6,15 @@ const formidable = require('formidable').default;
 const fs = require('fs');
 const XLSX = require('xlsx');
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_ANON_KEY
-);
+function getClient() {
+  const url = process.env.SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE ||
+    process.env.SUPABASE_ANON_KEY;
+  if (!url || !key) throw new Error('Supabase env not configured');
+  return createClient(url, key);
+}
 
 function parseUrlParts(u) {
   try {
@@ -109,6 +114,7 @@ async function handleFile(filePath, filename) {
   }
   const deduped = Array.from(byKey.values());
 
+  const supabase = getClient();
   const { data, error } = await supabase
     .from('independent_landing_metrics')
     .upsert(deduped, { onConflict: 'day,site,landing_path,device,network,campaign' });

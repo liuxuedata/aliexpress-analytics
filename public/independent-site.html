@@ -211,6 +211,7 @@
       ]);
       $('#topTable').DataTable({ destroy:true, paging:false, searching:false, info:false, data: topRows, scrollX:true, autoWidth:false });
     } catch(e) {
+      console.error(e);
       alert(e.message || '加载失败');
     }
   }
