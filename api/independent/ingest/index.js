@@ -1,6 +1,6 @@
 // /api/independent/ingest/index.js
 // Upload Google Ads Landing Pages export (xlsx or csv) and upsert into Supabase
-// Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE (recommended) or SUPABASE_ANON_KEY (insert allowed by RLS)
+// Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (recommended) or SUPABASE_ANON_KEY (insert allowed by RLS)
 const { createClient } = require('@supabase/supabase-js');
 const formidable = require('formidable');
 const fs = require('fs');
@@ -8,7 +8,7 @@ const XLSX = require('xlsx');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_ANON_KEY
 );
 
 function parseUrlParts(u) {
@@ -144,9 +144,9 @@ async function handler(req, res) {
   }
 }
 
-module.exports = handler;
-module.exports.config = {
+handler.config = {
   api: {
     bodyParser: false, // we'll parse multipart manually
   },
 };
+module.exports = handler;
