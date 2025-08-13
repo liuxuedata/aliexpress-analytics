@@ -41,6 +41,7 @@
           <button id="refreshBtn" class="btn">刷新</button>
           <button id="uploadBtn" class="btn">上传数据</button>
           <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none;">
+          <span id="uploadStatus" class="small"></span>
         </div>
       </div>
     </section>
@@ -216,23 +217,32 @@
   document.getElementById('refreshBtn').addEventListener('click', load);
   // 上传逻辑
   const fileInput = document.getElementById('fileInput');
-  document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', async () => {
-      if (!fileInput.files.length) return;
-      const fd = new FormData();
-      fd.append('file', fileInput.files[0]);
-      try {
-        const resp = await fetch('/api/independent/ingest', { method: 'POST', body: fd });
-        const json = await resp.json().catch(() => ({ ok:false, error:`HTTP ${resp.status}` }));
-        if (!resp.ok || !json.ok) throw new Error(json.error || '上传失败');
-        alert(`上传成功，记录数: ${json.inserted}`);
-        await load();
-      } catch(e) {
-        alert(`上传失败: ${e.message}`);
-      } finally {
-        fileInput.value = '';
-      }
-    });
+  const uploadBtn = document.getElementById('uploadBtn');
+  const statusEl = document.getElementById('uploadStatus');
+  uploadBtn.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', async () => {
+    if (!fileInput.files.length) return;
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    try {
+      statusEl.textContent = '导入中...';
+      uploadBtn.disabled = true;
+      const resp = await fetch('/api/independent/ingest', { method: 'POST', body: fd });
+      const json = await resp.json().catch(() => ({ ok:false, error:`HTTP ${resp.status}` }));
+      if (!resp.ok || !json.ok) throw new Error(json.error || '上传失败');
+      statusEl.textContent = '导入完成，加载中...';
+      await load();
+      statusEl.textContent = '完成';
+      alert(`上传成功，记录数: ${json.inserted}`);
+    } catch(e) {
+      statusEl.textContent = `上传失败: ${e.message}`;
+      alert(`上传失败: ${e.message}`);
+    } finally {
+      fileInput.value = '';
+      uploadBtn.disabled = false;
+      setTimeout(() => { statusEl.textContent = ''; }, 3000);
+    }
+  });
   load();
 })();
 </script>
