@@ -14,20 +14,37 @@ function setLoginState(state, userData) {
 
 function updateLoginUI(state, userData = {}) {
   const submitBtn = document.getElementById('loginSubmit');
+  const overlay = document.getElementById('loginOverlay');
   switch (state) {
     case loginStates.LOGGING_IN:
       submitBtn.classList.add('button-loading');
       break;
     case loginStates.LOGGED_IN:
       localStorage.setItem('user', JSON.stringify(userData));
-      window.location.href = 'index.html';
+      submitBtn.classList.remove('button-loading');
+      if (window.location.pathname.endsWith('login.html')) {
+        window.location.href = 'index.html';
+      } else if (overlay) {
+        overlay.style.display = 'none';
+        window.dispatchEvent(new Event('user-login'));
+      }
       break;
     case loginStates.LOGIN_ERROR:
       submitBtn.classList.remove('button-loading');
       break;
     default:
-      submitBtn.classList.remove('button-loading');
+      submitBtn && submitBtn.classList.remove('button-loading');
   }
+}
+
+function showLoginOverlay() {
+  const overlay = document.getElementById('loginOverlay');
+  if (overlay) overlay.style.display = 'block';
+}
+
+function hideLoginOverlay() {
+  const overlay = document.getElementById('loginOverlay');
+  if (overlay) overlay.style.display = 'none';
 }
 
 async function handleLogin(e) {
@@ -97,12 +114,18 @@ function togglePasswordVisibility() {
 }
 
 function setupForm() {
-  document.getElementById('loginForm').addEventListener('submit', handleLogin);
+  const form = document.getElementById('loginForm');
+  if (!form) return;
+  form.addEventListener('submit', handleLogin);
   fillDemoAccount();
   document.getElementById('password-toggle').addEventListener('click', togglePasswordVisibility);
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      window.location.href = 'index.html';
+      if (window.location.pathname.endsWith('login.html')) {
+        window.location.href = 'index.html';
+      } else {
+        hideLoginOverlay();
+      }
     }
   });
 }
