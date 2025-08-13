@@ -826,8 +826,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
   renderMenu();updateCurrent();
   const userArea=document.getElementById('userArea');
   function refreshUser(){
-    const u=localStorage.getItem('username');
-    if(u){userArea.textContent=u;}else{userArea.innerHTML='<a href="login.html">登录</a>';}
+    const u=JSON.parse(localStorage.getItem('user')||'null');
+    if(u){
+      userArea.innerHTML=`<div class="user-section"><span class="user-menu-trigger">${u.name}</span></div>`;
+    }else{
+      userArea.innerHTML='<button class="login-button" onclick="window.location.href=\'login.html\'">登录</button>';
+    }
   }
   refreshUser();
   document.querySelectorAll('.sub-nav a').forEach(a=>{a.addEventListener('click',e=>{e.preventDefault();const t=a.dataset.target;document.querySelectorAll('.sub-nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active');['detail','analysis','product'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=id===t?'':'none';});});});

@@ -2,40 +2,37 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <title>登录/注册</title>
-  <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <title>登录</title>
+  <link rel="stylesheet" href="assets/login.css">
 </head>
-<body class="fm">
-<header class="top-nav"><div class="nav-inner"><ul class="top-menu"><li><a href="#">速卖通</a><ul class="dropdown"><li class="submenu"><a href="#">全托管</a><ul id="managedMenu"></ul></li><li><a href="self-operated.html">自运营</a></li></ul></li><li><a href="#">亚马逊</a></li><li><a href="#">TikTok Shop</a></li><li><a href="#">Temu</a></li><li><a href="#">Ozon</a></li><li><a href="independent-site.html">独立站</a></li></ul><div id="userArea" class="user-area"></div></div></header>
-  <div class="container" style="justify-content:center;align-items:center;">
-    <main class="main" style="max-width:400px;">
-      <h2>登录/注册</h2>
-      <div class="content-pad">
-        <input type="text" id="username" placeholder="用户名" class="sel" style="width:100%;margin-bottom:8px;">
-        <input type="password" id="password" placeholder="密码" class="sel" style="width:100%;margin-bottom:8px;">
-        <div class="controls" style="justify-content:flex-end;">
-          <button id="loginBtn" class="btn">登录</button>
-          <button id="registerBtn" class="btn">注册</button>
-        </div>
+<body>
+<div class="login-overlay">
+  <div class="login-container">
+    <div class="login-form-card login-card-enter">
+      <div class="form-header">
+        <div class="form-logo">AI</div>
+        <div class="form-title">跨境电商数据分析平台</div>
+        <div class="form-subtitle">登录账户以继续</div>
       </div>
-    </main>
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label" for="email">邮箱</label>
+          <input id="email" type="email" class="form-input" required>
+        </div>
+        <div class="form-group password-input-wrapper">
+          <label class="form-label" for="password">密码</label>
+          <input id="password" type="password" class="form-input" required>
+          <span id="password-toggle" class="password-toggle">👁️</span>
+        </div>
+        <button id="loginSubmit" class="login-submit-btn" type="submit">登录</button>
+      </form>
+      <div class="demo-account-tip">
+        <div class="demo-account-header">演示账户</div>
+        <div class="demo-account-info">邮箱：demo@example.com<br>密码：demo123</div>
+      </div>
+    </div>
+  </div>
 </div>
-<script>
-document.addEventListener('DOMContentLoaded',()=>{
-  const siteListKey='managedSites';
-  let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
-  if(!Array.isArray(sites)||!sites.length){sites=['A站','B站','C站'];localStorage.setItem(siteListKey,JSON.stringify(sites));}
-  const menuEl=document.getElementById('managedMenu');
-  if(menuEl){sites.forEach(name=>{const li=document.createElement('li');const a=document.createElement('a');a.href='index.html';a.textContent=name;a.addEventListener('click',e=>{e.preventDefault();localStorage.setItem('currentSite',name);window.location.href='index.html';});li.appendChild(a);menuEl.appendChild(li);});}
-  const userArea=document.getElementById('userArea');
-  if(userArea){const u=localStorage.getItem('username');if(u){userArea.textContent=u;}else{userArea.innerHTML='<a href="login.html">登录</a>';}}
-});
-function handleAuth(){
-  const u=document.getElementById('username').value.trim();
-  if(u){localStorage.setItem('username',u);window.location.href='index.html';}
-}
-document.getElementById('loginBtn').onclick=handleAuth;
-document.getElementById('registerBtn').onclick=handleAuth;
-</script>
+<script src="assets/login.js"></script>
 </body>
 </html>
