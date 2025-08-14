@@ -328,3 +328,14 @@ table.dataTable thead th.sorting_desc{
   display:none;
 }
 
+/* Trend cards for analysis page */
+.trend-card.red{background:#fde2e2;}
+.trend-card.blue{background:#dbeafe;}
+.trend-card.green{background:#dcfce7;}
+.trend-card.purple{background:#ede9fe;}
+.tab-nav{display:flex;gap:1rem;margin-bottom:1rem;}
+.tab-nav a{padding:4px 8px;border-radius:4px;color:#4b5563;}
+.tab-nav a.active{background:#4f46e5;color:#fff;}
+.top-list{list-style:none;margin:0;padding:0;}
+.top-list li{margin:4px 0;}
+
