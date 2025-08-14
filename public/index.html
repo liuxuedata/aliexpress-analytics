@@ -1,17 +1,20 @@
 
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>速卖通全托管数据分析</title>
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css">
+  <link rel="stylesheet" href="assets/login.css">
   <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+  <script type="module" src="assets/chart.defaults.js"></script>
+  <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
 <style>
 /* NewKPICtrl */
 .kpi-ctrl{display:flex;gap:.5rem;align-items:center;margin:.25rem 0 .5rem;color:#334155;font:500 13px/1 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
@@ -34,29 +37,65 @@
 #kpi-new-self-ctrl, #kpi-new-managed-ctrl, .kpi .kpi-ctrl { display: none !important; }</style>
 </head>
 <body class="fm">
-<div class="container">
-  <nav class="sidebar" id="sidebar">
-    <h3>产品导航</h3>
-    <ul>
-      <li class="has-submenu open">
-        <a href="#">速卖通</a>
-        <ul class="submenu">
-          <li><a href="index.html" class="active">全托管</a></li>
+<div id="loginOverlay" class="login-overlay" style="display:none">
+  <div class="login-container">
+    <div class="login-form-card login-card-enter">
+      <div class="form-header">
+        <div class="form-logo">AI</div>
+        <div class="form-title">跨境电商数据分析平台</div>
+        <div class="form-subtitle">登录账户以继续</div>
+      </div>
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label" for="email">邮箱</label>
+          <input id="email" type="email" class="form-input" required>
+        </div>
+        <div class="form-group password-input-wrapper">
+          <label class="form-label" for="password">密码</label>
+          <input id="password" type="password" class="form-input" required>
+          <span id="password-toggle" class="password-toggle">👁️</span>
+        </div>
+        <button id="loginSubmit" class="login-submit-btn" type="submit">登录</button>
+      </form>
+      <div class="demo-account-tip">
+        <div class="demo-account-header">演示账户</div>
+        <div class="demo-account-info">邮箱：demo@example.com<br>密码：demo123</div>
+      </div>
+    </div>
+  </div>
+</div>
+<header class="header">
+  <div class="logo-title">跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li><a href="#">速卖通</a>
+        <ul class="dropdown">
+          <li class="submenu"><a href="#">全托管</a>
+            <ul id="managedMenu"></ul>
+          </li>
           <li><a href="self-operated.html">自运营</a></li>
         </ul>
       </li>
-      <li><a href="#">TikTok Shop</a></li>
       <li><a href="#">亚马逊</a></li>
-      <li class="has-submenu open">
-        <a href="#">独立站</a>
-        <ul class="submenu">
-          <li><a href="independent-site.html">数据分析</a></li>
-        </ul>
-      </li>
+      <li><a href="#">TikTok Shop</a></li>
+      <li><a href="#">Temu</a></li>
+      <li><a href="#">Ozon</a></li>
+      <li><a href="independent-site.html">独立站</a></li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="site-header"><span id="currentSite">全托管 A站</span><button id="addSite" class="add-site-btn">+</button></div>
+    <ul class="sub-nav">
+      <li><a href="#" class="active" data-target="detail">详细数据</a></li>
+      <li><a href="#" data-target="analysis">运营分析</a></li>
+      <li><a href="#" data-target="product">产品分析</a></li>
     </ul>
   </nav>
 
-  <main class="main">
+  <main class="main mx-auto max-w-container px-6">
     <div class="upload-section">
       <div class="upload-top">
         <div style="font-size:28px;font-weight:800;">速卖通全托管数据分析</div>
@@ -80,15 +119,11 @@
       <div class="content-pad">
         <div class="stats-cards" id="kpi"></div>
         <div class="divider"></div>
-        
-<div class="tabs">
-  <div class="tab active" data-tab="detail">明细表</div>
-  <div class="tab" data-tab="analysis">运营分析</div>
-</div>
 
 <section id="detail" class="content-pad">
   <div class="table-section">
-          <table id="report" class="display" style="width:100%">
+    <div class="table-wrapper">
+          <table id="report" class="display nowrap" style="width:100%">
             <thead>
               <tr>
                 <th>商品ID</th>
@@ -108,34 +143,31 @@
             <tbody></tbody>
           </table>
         </div>
+      </div>
 </section>
 
 <section id="analysis" class="content-pad" style="display:none;">
   <div class="grid grid-2">
-    
-        <div class="grid grid-2">
-          <div class="panel">
-            <h3>转化漏斗（A vs B）</h3>
-            <div id="funnel" style="width:100%;height:320px;"></div>
-          </div>
-          <div class="panel">
-            <h3>周期对比（曝光 / 加购件数 / 支付订单数）</h3>
-            <div id="sumCompareBar" style="width:100%;height:320px;"></div>
-          </div>
-        </div>
-        <div class="grid grid-2" style="margin-top:16px;">
-          <div class="panel">
-            <h3>Top10 访客比（UV/曝光）· A</h3>
-            <div id="vrBar" style="width:100%;height:320px;"></div>
-          </div>
-          <div class="panel">
-            <h3>Top10 加购→支付 转化率 · A</h3>
-            <div id="payBar" style="width:100%;height:320px;"></div>
-          </div>
-        </div>
-        
+    <div class="panel">
+      <h3>转化漏斗（A vs B）</h3>
+      <div id="funnel" style="width:100%;height:320px;"></div>
+    </div>
+    <div class="panel">
+      <h3>周期对比（曝光 / 加购件数 / 支付订单数）</h3>
+      <div id="sumCompareBar" style="width:100%;height:320px;"></div>
+    </div>
+    <div class="panel">
+      <h3>Top10 访客比（UV/曝光）· A</h3>
+      <div id="vrBar" style="width:100%;height:320px;"></div>
+    </div>
+    <div class="panel">
+      <h3>Top10 加购→支付 转化率 · A</h3>
+      <div id="payBar" style="width:100%;height:320px;"></div>
+    </div>
   </div>
 </section>
+
+<section id="product" class="content-pad" style="display:none;"><p>产品分析建设中...</p></section>
 
       </div>
     </div>
@@ -144,16 +176,6 @@
 
 <script>
 (function(){
-  document.querySelectorAll('.has-submenu > a').forEach(a => {
-    a.addEventListener('click', function(e){
-      const li = this.parentElement;
-      const sub = li.querySelector('.submenu');
-      if (!sub) return;
-      e.preventDefault();
-      li.classList.toggle('open');
-    });
-  });
-
   const state = { granularity: 'week', table: null, uploading: false };
 
   $('input[name="gran"]').on('change', function(){
@@ -814,6 +836,64 @@
       tObs.observe(tbody, { childList:true });
     }
   });
-})();</script>
+  })();</script>
+  <script src="assets/login.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', ()=>{
+  const siteListKey='managedSites';
+  const currentSiteKey='currentSite';
+  let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
+  if(!Array.isArray(sites)||!sites.length){sites=['A站','B站','C站'];}
+  const menuEl=document.getElementById('managedMenu');
+  const currentSiteEl=document.getElementById('currentSite');
+  function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));}
+  function renderMenu(){
+    menuEl.innerHTML='';
+    sites.forEach((name,idx)=>{
+      const li=document.createElement('li');
+      const a=document.createElement('a');
+      a.href='index.html';
+      a.textContent=name;
+      a.addEventListener('click',(e)=>{e.preventDefault();localStorage.setItem(currentSiteKey,name);window.location.href='index.html';});
+      a.addEventListener('dblclick',()=>{const n=prompt('修改站点名',name);if(n){sites[idx]=n;save();renderMenu();updateCurrent();}});
+      li.appendChild(a);menuEl.appendChild(li);
+    });
+  }
+  function updateCurrent(){
+    const name=localStorage.getItem(currentSiteKey)||sites[0];
+    currentSiteEl.textContent='全托管 '+name;
+    localStorage.setItem(currentSiteKey,name);
+  }
+  currentSiteEl.addEventListener('dblclick',()=>{
+    const cur=localStorage.getItem(currentSiteKey)||sites[0];
+    const idx=sites.indexOf(cur);
+    const n=prompt('修改站点名',cur);
+    if(n){sites[idx]=n;save();renderMenu();localStorage.setItem(currentSiteKey,n);updateCurrent();}
+  });
+  document.getElementById('addSite').addEventListener('click',()=>{
+    const n=prompt('新增站点名');
+    if(n){sites.push(n);save();renderMenu();updateCurrent();}
+  });
+  renderMenu();updateCurrent();
+    const userArea=document.getElementById('userArea');
+    function refreshUser(){
+      const u=JSON.parse(localStorage.getItem('user')||'null');
+      if(u){
+        userArea.innerHTML=`<div class="user-section"><div class="user-menu-trigger">${u.name}</div><div class="user-dropdown" style="display:none"><button class="user-dropdown-item" id="logoutBtn">退出</button></div></div>`;
+        const trigger=userArea.querySelector('.user-menu-trigger');
+        const dropdown=userArea.querySelector('.user-dropdown');
+        trigger.addEventListener('click',()=>{dropdown.style.display=dropdown.style.display==='block'?'none':'block';});
+        document.getElementById('logoutBtn').addEventListener('click',()=>{localStorage.removeItem('user');dropdown.style.display='none';refreshUser();showLoginOverlay();});
+      }else{
+        userArea.innerHTML='<div class="user-section"><span class="user-demo">未登录</span><button class="login-button" id="loginTrigger">登录</button></div>';
+        document.getElementById('loginTrigger').addEventListener('click',showLoginOverlay);
+        showLoginOverlay();
+      }
+    }
+    refreshUser();
+    window.addEventListener('user-login', refreshUser);
+  document.querySelectorAll('.sub-nav a').forEach(a=>{a.addEventListener('click',e=>{e.preventDefault();const t=a.dataset.target;document.querySelectorAll('.sub-nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active');['detail','analysis','product'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=id===t?'':'none';});});});
+});
+</script>
 </body>
 </html>

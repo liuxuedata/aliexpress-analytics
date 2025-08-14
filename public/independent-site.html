@@ -1,284 +1,382 @@
-<!DOCTYPE html>
-<html lang="zh">
+<!doctype html>
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <title>独立站数据分析</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>独立站 · Landing Pages 明细</title>
+  <link rel="stylesheet" href="assets/login.css">
+  <style>
+    #report td:first-child{ text-align:left; }
+    #report td:first-child a.name{ display:inline-block; max-width:180px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    #columnToggleWrapper{ position:relative; display:inline-block; }
+    #columnMenu{ display:none; position:absolute; top:100%; right:0; background:#fff; border:1px solid #ccc; padding:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); }
+    #columnMenu label{ display:block; margin:4px 0; white-space:nowrap; }
+  </style>
+  <!-- DataTables & ECharts CDN -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/4.2.2/css/fixedColumns.dataTables.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
-  <script src="https://cdn.datatables.net/fixedcolumns/4.2.2/js/dataTables.fixedColumns.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  
-<link rel="stylesheet" href="assets/theme.css?v=20250810b">
+  <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
 </head>
-<body>
-<div class="container">
-  <nav class="sidebar" id="sidebar">
-    <h3>产品导航</h3>
-    <ul>
-      <li class="has-submenu">
-        <a href="#">速卖通</a>
-        <ul class="submenu">
-          <li><a href="index.html">全托管</a></li>
-          <li><a href="self-operated.html">自运营</a></li>
-        </ul>
-      </li>
-      <li><a href="#">TikTok Shop</a></li>
-      <li><a href="#">亚马逊</a></li>
-      <li class="has-submenu">
-        <a href="#">独立站</a>
-        <ul class="submenu">
-          <li><a href="independent-site.html">数据分析</a></li>
-        </ul>
-      </li>
-    </ul>
-  </nav>
-  <div class="main">
-    <div class="upload-section">
-      <div class="upload-top">
-        <label for="fileInput" class="upload-btn">选择文件</label>
-        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
-        <div>
-          <label>筛选时间：</label>
-          <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
-        </div>
+<body class="fm">
+<div id="loginOverlay" class="login-overlay" style="display:none">
+  <div class="login-container">
+    <div class="login-form-card login-card-enter">
+      <div class="form-header">
+        <div class="form-logo">AI</div>
+        <div class="form-title">跨境电商数据分析平台</div>
+        <div class="form-subtitle">登录账户以继续</div>
       </div>
-      <div class="stats-cards">
-        <div class="stat-card">
-          <h4>平均访客比
-            <span class="info" onclick="showInfo('visitorRate')" title="点击查看公式">?</span>
-          </h4>
-          <p id="avgVisitor">0%</p>
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label" for="email">邮箱</label>
+          <input id="email" type="email" class="form-input" required>
         </div>
-        <div class="stat-card">
-          <h4>平均加购比
-            <span class="info" onclick="showInfo('cartRate')" title="点击查看公式">?</span>
-          </h4>
-          <p id="avgCart">0%</p>
+        <div class="form-group password-input-wrapper">
+          <label class="form-label" for="password">密码</label>
+          <input id="password" type="password" class="form-input" required>
+          <span id="password-toggle" class="password-toggle">👁️</span>
         </div>
-        <div class="stat-card">
-          <h4>平均支付比
-            <span class="info" onclick="showInfo('payRate')" title="点击查看公式">?</span>
-          </h4>
-          <p id="avgPay">0%</p>
-        </div>
-        <div class="stat-card"><h4>商品总数</h4><p id="totalProducts">0</p></div>
-        <div class="stat-card"><h4>加购商品数</h4><p id="cartedProducts">0</p></div>
-        <div class="stat-card"><h4>支付商品数</h4><p id="purchasedProducts">0</p></div>
-      </div>
-    </div>
-    <div class="table-section">
-      <div class="table-wrapper">
-        <table id="report" class="display nowrap" style="width:100%"></table>
+        <button id="loginSubmit" class="login-submit-btn" type="submit">登录</button>
+      </form>
+      <div class="demo-account-tip">
+        <div class="demo-account-header">演示账户</div>
+        <div class="demo-account-info">邮箱：demo@example.com<br>密码：demo123</div>
       </div>
     </div>
   </div>
 </div>
+
+<header class="header">
+  <div class="logo-title">跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li><a href="#">速卖通</a>
+        <ul class="dropdown">
+          <li class="submenu"><a href="#">全托管</a>
+            <ul id="managedMenu"></ul>
+          </li>
+          <li><a href="self-operated.html">自运营</a></li>
+        </ul>
+      </li>
+      <li><a href="#">亚马逊</a></li>
+      <li><a href="#">TikTok Shop</a></li>
+      <li><a href="#">Temu</a></li>
+      <li><a href="#">Ozon</a></li>
+      <li><a href="independent-site.html">独立站</a></li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="site-header"><span>独立站</span></div>
+    <ul class="sub-nav">
+      <li><a href="#" data-jump="detail" class="active">明细数据</a></li>
+      <li><a href="#" data-jump="analysis">运营分析</a></li>
+      <li><a href="#" data-jump="product">产品分析</a></li>
+    </ul>
+  </nav>
+
+  <main class="main mx-auto max-w-container px-6">
+    <div class="content">
+    <!-- 控件 -->
+    <section class="content-pad">
+      <div class="panel">
+        <div class="controls">
+          <label>站点：</label>
+          <input type="text" id="site" value="" placeholder="如：poolsvacuum.com">
+          <label>起止：</label>
+          <input type="date" id="from">
+          <input type="date" id="to">
+          <button id="refreshBtn" class="btn">刷新</button>
+          <button id="uploadBtn" class="btn">上传数据</button>
+          <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none;">
+          <span id="uploadStatus" class="small"></span>
+          <div id="columnToggleWrapper">
+            <button id="columnToggle" class="btn">筛选列</button>
+            <div id="columnMenu" class="small"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- 运营分析 -->
+    <div class="tabs">
+      <div class="tab" data-tab="analysis">运营分析</div>
+      <div class="tab active" data-tab="detail">明细表</div>
+    </div>
+
+    <section id="analysis" class="content-pad" style="display:none;">
+      <div class="grid">
+        <div class="panel">
+          <h3>Daily 趋势（点击 / 曝光 / 转化价值）</h3>
+          <div id="lineChart" style="width:100%;height:360px;"></div>
+        </div>
+        <div class="panel">
+          <h3>Top Landing Pages（按转化数）</h3>
+          <div class="table-section">
+            <div class="table-wrapper">
+              <table id="topTable" class="display nowrap"><thead>
+                <tr><th>产品</th><th>点击</th><th>曝光</th><th>CTR</th><th>转化</th><th>花费</th><th>转化价值</th><th>CPA</th><th>ROAS</th></tr>
+              </thead><tbody></tbody></table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 明细表 -->
+    <section id="detail" class="content-pad">
+      <div class="panel">
+        <h3>Landing Pages 明细</h3>
+        <div class="table-section">
+          <div class="table-wrapper">
+            <table id="report" class="display nowrap" style="width:100%">
+              <thead>
+                <tr>
+                  <th>产品</th><th>设备</th><th>网络</th><th>Campaign</th><th>日期</th>
+                  <th>点击</th><th>曝光</th><th>CTR</th><th>Avg CPC</th><th>Cost</th>
+                  <th>转化</th><th>Cost/Conv</th><th>All conv</th><th>Conv value</th>
+                  <th>All conv rate</th><th>Conv rate</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 产品分析（占位） -->
+    <section id="product" class="content-pad" style="display:none;">
+      <div class="panel"><h3>产品分析</h3>
+        <div class="small">（后续可按路径映射到商品，增加售价、毛利、库存、类目等维度的分析）</div>
+      </div>
+    </section>
+    </div>
+  </main>
+</div>
+
 <script>
-// --- Sidebar: set active & toggle ---
-(function() {
-  var currentPage = window.location.pathname.split('/').pop();
-  if (!currentPage) currentPage = 'independent-site.html';
-  $('.sidebar a[href="' + currentPage + '"]').addClass('active');
-  $('.sidebar a.active').closest('.has-submenu').addClass('open');
-  $('.has-submenu > a').on('click', function(e){
+// 左侧局部导航切换
+(function(){
+  const sb = document.getElementById('sidebar');
+  sb.addEventListener('click', function(e){
+    const a = e.target.closest('a[data-jump]');
+    if (!a) return;
     e.preventDefault();
-    $(this).parent().toggleClass('open');
+    const to = a.getAttribute('data-jump');
+    ['detail','analysis','product'].forEach(id=>{
+      const el = document.getElementById(id);
+      if (el) el.style.display = (id===to ? '' : 'none');
+    });
+    document.querySelectorAll('.tabs .tab').forEach(t=>{
+      t.classList.toggle('active', t.dataset.tab === to);
+    });
+    sb.querySelectorAll('a[data-jump]').forEach(x=>x.classList.remove('active'));
+    a.classList.add('active');
+    setTimeout(()=> window.dispatchEvent(new Event('resize')), 0);
   });
 })();
-
-function showInfo(key) {
-  const infoMap = {
-    visitorRate: '访客比 = 商品访客数 ÷ 搜索曝光量 × 100% （注：独立站若无曝光量字段，则该指标显示为 N/A）',
-    cartRate:   '加购比 = 商品加购人数 ÷ 商品访客数 × 100%',
-    payRate:    '支付比 = 支付买家数 ÷ 商品加购人数 × 100%',
-  };
-  alert(infoMap[key] || '暂无说明');
-}
-
-let table = null;
-let fullData = [];
-let headers = [];
-let idIdx = -1, linkIdx = -1, visitorIdx = -1, exposureIdx = -1, cartIdx = -1, payIdx = -1, orderIdx = -1, timeIdx = -1;
-
-function findIdx(keywords) {
-  return headers.findIndex(h => {
-    const cleanHeader = h.trim().toLowerCase();
-    return keywords.some(k => cleanHeader.includes(k.toLowerCase()));
-  });
-}
-
-function renderTable(data) {
-  const groupedData = {};
-  const uniqueIds = new Set();
-  const cartedIds = new Set();
-  const paidIds = new Set();
-
-  const rows = data.map(row => {
-    const id = idIdx >= 0 ? row[idIdx] : '';
-    const linkRaw = linkIdx >= 0 ? (row[linkIdx] || '') : '';
-    const visitor = visitorIdx >= 0 ? (parseFloat(row[visitorIdx]) || 0) : 0;
-    const exposure = exposureIdx >= 0 ? (parseFloat(row[exposureIdx]) || 0) : 0;
-    const cart = cartIdx >= 0 ? (parseFloat(row[cartIdx]) || 0) : 0;
-    const pay = payIdx >= 0 ? (parseFloat(row[payIdx]) || 0) : 0;
-    const order = orderIdx >= 0 ? (parseFloat(row[orderIdx]) || 0) : 0;
-    const time = timeIdx >= 0 ? (row[timeIdx] || '未知时间') : '未知时间';
-
-    const visitorRate = exposure ? ((visitor/exposure)*100).toFixed(2) : 'N/A';
-    const cartRate = visitor ? ((cart/visitor)*100).toFixed(2) : (visitor === 0 ? '0.00' : '0.00');
-    const payRate = cart ? ((pay/cart)*100).toFixed(2) : (cart === 0 ? '0.00' : '0.00');
-
-    if (!groupedData[time]) groupedData[time] = { v: [], c: [], p: [] };
-    if (visitorRate !== 'N/A') groupedData[time].v.push(+visitorRate);
-    groupedData[time].c.push(+cartRate);
-    groupedData[time].p.push(+payRate);
-
-    if (id) uniqueIds.add(id);
-    if (cart > 0 && id) cartedIds.add(id);
-    if (pay > 0 && id) paidIds.add(id);
-
-    const idCell = linkRaw
-      ? `<a href="${linkRaw}" target="_blank">${id || '查看链接'}</a>`
-      : (id ? id : '');
-
-    return [
-      idCell,
-      visitorRate === 'N/A' ? 'N/A' : (visitorRate + '%'),
-      cartRate + '%',
-      payRate + '%',
-      ...row
-    ];
-  });
-
-  if (table) table.destroy();
-  $('#report').empty();
-  const dynCols = headers.map(h => ({ title: h }));
-  table = $('#report').DataTable({
-    data: rows,
-    columns: [
-      { title: '商品/链接' },
-      { title: '访客比(%) <span class="info" onclick="showInfo(\'visitorRate\')" title="点击查看公式">?</span>' },
-      { title: '加购比(%) <span class="info" onclick="showInfo(\'cartRate\')" title="点击查看公式">?</span>' },
-      { title: '支付比(%) <span class="info" onclick="showInfo(\'payRate\')" title="点击查看公式">?</span>' },
-      ...dynCols
-    ],
-    scrollX: true,
-    scrollY: 'calc(100vh - 330px)',
-    scrollCollapse: true,
-    fixedHeader: true,
-    fixedColumns: {
-      leftColumns: 1
-    }
-  });
-
-  const avg = arr => (arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(2) : '0.00');
-  const allV = [].concat(...Object.values(groupedData).map(d => d.v || []));
-  const allC = [].concat(...Object.values(groupedData).map(d => d.c || []));
-  const allP = [].concat(...Object.values(groupedData).map(d => d.p || []));
-  $('#avgVisitor').text(allV.length ? (avg(allV) + '%') : 'N/A');
-  $('#avgCart').text(avg(allC) + '%');
-  $('#avgPay').text(avg(allP) + '%');
-  $('#totalProducts').text(uniqueIds.size);
-  $('#cartedProducts').text(cartedIds.size);
-  $('#purchasedProducts').text(paidIds.size);
-}
-
-$('#fileInput').on('change', function(e) {
-  const file = e.target.files[0];
-  const reader = new FileReader();
-  reader.onload = function(evt) {
-    const data = new Uint8Array(evt.target.result);
-    const workbook = XLSX.read(data, {type:'array'});
-    const sheet = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
-    if (sheet.length < 2) return alert('表格无有效数据');
-
-    headers = sheet[0];
-
-    idIdx = findIdx(['商品id', '商品ID', 'id', 'sku', '产品id', '变体id']);
-    linkIdx = findIdx(['产品链接', '链接', 'url', 'product url']);
-    visitorIdx = findIdx(['访客数', '访客', 'sessions', 'session', '访问次数']);
-    exposureIdx = findIdx(['曝光量', '展示量', 'impressions', '搜索曝光量', '商品曝光量']);
-    cartIdx = findIdx(['加购人数', '加购', '加入购物车', '添加到购物车人数', 'ATC']);
-    payIdx = findIdx(['支付买家数', '支付人数', '支付买家', '成交人数', 'purchased buyers']);
-    orderIdx = findIdx(['下单买家数', '订单数', '下单人数', '下单买家', '订单']);
-    timeIdx = findIdx(['统计时间', '日期', '数据时间', 'date']);
-
-    // 允许缺少曝光量与链接字段，其余必须存在
-    if (idIdx < 0 || visitorIdx < 0 || cartIdx < 0 || payIdx < 0 || orderIdx < 0 || timeIdx < 0) {
-      alert('请检查上传表格字段，至少需要：商品ID/SKU、访客数、加购人数、支付买家数、下单买家数、日期（可选：曝光量、产品链接）');
-      return;
-    }
-    const body = sheet.slice(1).filter(r => r.length);
-    fullData = body;
-    renderTable(body);
-  };
-  reader.readAsArrayBuffer(file);
-});
 </script>
 
+<script>
+// 页面逻辑：拉取 /api/independent/stats
+(function(){
+  const shorten=(s,l=30)=>{if(!s) return '';return s.length>l?s.slice(0,l)+'…':s;};
+  function getParam(name) {
+    const url = new URL(window.location.href);
+    return url.searchParams.get(name);
+  }
+  const siteInput = document.getElementById('site');
+  const fromInput = document.getElementById('from');
+  const toInput = document.getElementById('to');
+  const columnMenu = document.getElementById('columnMenu');
+  const columnToggle = document.getElementById('columnToggle');
+  const optionalCols = [
+    { idx:1, label:'设备' },
+    { idx:2, label:'网络' },
+    { idx:3, label:'Campaign' }
+  ];
+  optionalCols.forEach(c=>{
+    const lab=document.createElement('label');
+    lab.innerHTML=`<input type="checkbox" data-col="${c.idx}"> ${c.label}`;
+    columnMenu.appendChild(lab);
+  });
+  columnToggle.addEventListener('click',()=>{
+    columnMenu.style.display = columnMenu.style.display==='block' ? 'none' : 'block';
+  });
+  let dt;
+  $('#columnMenu').on('change','input[type=checkbox]',function(){
+    if(dt) dt.column($(this).data('col')).visible(this.checked);
+  });
 
+  // 默认站点取 url 参数或从示例取
+  siteInput.value = getParam('site') || 'poolsvacuum.com';
+  const today = new Date();
+  const dow = today.getDay();
+  const mondayThisWeek = new Date(today);
+  mondayThisWeek.setDate(today.getDate() - ((dow + 6) % 7));
+  const mondayLastWeek = new Date(mondayThisWeek);
+  mondayLastWeek.setDate(mondayThisWeek.getDate() - 7);
+  const sundayLastWeek = new Date(mondayLastWeek);
+  sundayLastWeek.setDate(mondayLastWeek.getDate() + 6);
+  const fromDef = mondayLastWeek.toISOString().slice(0,10);
+  const toDef = sundayLastWeek.toISOString().slice(0,10);
+  fromInput.value = getParam('from') || fromDef;
+  toInput.value = getParam('to') || toDef;
+
+  async function load() {
+    try {
+      const site = siteInput.value.trim();
+      const from = fromInput.value;
+      const to = toInput.value;
+      const url = `/api/independent/stats?site=${encodeURIComponent(site)}&from=${from}&to=${to}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || '加载失败');
+
+      // 明细表
+      dt = $('#report').DataTable({
+        destroy: true,
+        pageLength: 20,
+        data: json.table,
+        scrollX: true,
+        fixedHeader: true,
+        autoWidth: false,
+        columns: [
+          { data: 'product', render:(v,t,r)=>{
+              const name = v || r.landing_path || '';
+              return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
+            } },
+          { data: 'device', render: v => v || '' },
+          { data: 'network', render: v => v || '' },
+          { data: 'campaign', render: v => v || '' },
+          { data: 'day', render: v => v || '' },
+          { data: 'clicks', render: v => v ?? 0 },
+          { data: 'impr', render: v => v ?? 0 },
+          { data: 'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
+          { data: 'avg_cpc', render: v => v ?? 0 },
+          { data: 'cost', render: v => v ?? 0 },
+          { data: 'conversions', render: v => v ?? 0 },
+          { data: 'cost_per_conv', render: v => v ?? 0 },
+          { data: 'all_conv', render: v => v ?? 0 },
+          { data: 'conv_value', render: v => v ?? 0 },
+          { data: 'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
+          { data: 'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
+        ]
+      });
+      $('#columnMenu input[type=checkbox]').each(function(){
+        dt.column($(this).data('col')).visible(this.checked);
+      });
+
+      // 趋势图
+      const days = json.series.map(x=>x.day);
+      const clicks = json.series.map(x=>x.clicks);
+      const impr = json.series.map(x=>x.impr);
+      const value = json.series.map(x=>x.conv_value);
+      const ec = echarts.init(document.getElementById('lineChart'));
+      ec.setOption({
+        tooltip: { trigger: 'axis' },
+        legend: { data:['Clicks','Impr.','Conv value'] },
+        xAxis: { type:'category', data: days },
+        yAxis: [{ type:'value', name:'Clicks / Impr' }, { type:'value', name:'Value', position:'right' }],
+        series: [
+          { name:'Clicks', type:'line', smooth:true, data: clicks },
+          { name:'Impr.', type:'bar', data: impr },
+          { name:'Conv value', type:'line', yAxisIndex:1, smooth:true, data: value },
+        ]
+      });
+
+      // Top landing pages
+      const topRows = json.topList.map(r => [
+        shorten(r.product || r.path), r.clicks, r.impr, (r.ctr*100).toFixed(2)+'%', r.conversions, r.cost, r.conv_value, r.cpa.toFixed(2), r.roas.toFixed(2)
+      ]);
+      $('#topTable').DataTable({ destroy:true, paging:false, searching:false, info:false, data: topRows, scrollX:true, autoWidth:false });
+    } catch(e) {
+      console.error(e);
+      alert(e.message || '加载失败');
+    }
+  }
+
+  document.getElementById('refreshBtn').addEventListener('click', load);
+  // 上传逻辑
+  const fileInput = document.getElementById('fileInput');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const statusEl = document.getElementById('uploadStatus');
+  uploadBtn.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', async () => {
+    if (!fileInput.files.length) return;
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    try {
+      statusEl.textContent = '导入中...';
+      uploadBtn.disabled = true;
+      const resp = await fetch('/api/independent/ingest', { method: 'POST', body: fd });
+      const json = await resp.json().catch(() => ({ ok:false, error:`HTTP ${resp.status}` }));
+      if (!resp.ok || !json.ok) throw new Error(json.error || '上传失败');
+      statusEl.textContent = '导入完成，加载中...';
+      await load();
+      statusEl.textContent = '完成';
+      alert(`上传成功，记录数: ${json.inserted}`);
+    } catch(e) {
+      statusEl.textContent = `上传失败: ${e.message}`;
+      alert(`上传失败: ${e.message}`);
+    } finally {
+      fileInput.value = '';
+      uploadBtn.disabled = false;
+      setTimeout(() => { statusEl.textContent = ''; }, 3000);
+    }
+  });
+  load();
+})();
+</script>
+
+<script src="assets/login.js"></script>
 
 <script>
-(function() {
-  var page = location.pathname.split('/').pop() || 'index.html';
-
-  // Highlight current page
-  var links = document.querySelectorAll('.sidebar a[href]');
-  for (var i=0;i<links.length;i++) {
-    if (links[i].getAttribute('href') === page) {
-      links[i].classList.add('active');
-      var p = links[i].closest('.has-submenu');
-      if (p) p.classList.add('open');
-    }
-  }
-
-  // Make sure sidebar sits above content and is clickable
-  var sb = document.querySelector('.sidebar');
-  if (sb) { sb.style.zIndex = 1000; }
-
-  // Parent click: if only one child, go directly; else toggle
-  var parents = document.querySelectorAll('.has-submenu > a');
-  for (var j=0;j<parents.length;j++) {
-    parents[j].addEventListener('click', function(e){
-      var li = this.parentElement;
-      var submenu = li.querySelector('.submenu');
-      if (!submenu) return;
-      var items = submenu.querySelectorAll('a[href]');
-      if (items.length === 1) {
-        window.location.href = items[0].getAttribute('href');
-      } else {
-        e.preventDefault();
-        li.classList.toggle('open');
-      }
+document.addEventListener('DOMContentLoaded',()=>{
+  const siteListKey='managedSites';
+  let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
+  if(!Array.isArray(sites)||!sites.length){sites=['A站','B站','C站'];localStorage.setItem(siteListKey,JSON.stringify(sites));}
+  const menuEl=document.getElementById('managedMenu');
+  if(menuEl){
+    sites.forEach(name=>{
+      const li=document.createElement('li');
+      const a=document.createElement('a');
+      a.href='index.html';
+      a.textContent=name;
+      a.addEventListener('click',e=>{e.preventDefault();localStorage.setItem('currentSite',name);window.location.href='index.html';});
+      li.appendChild(a);
+      menuEl.appendChild(li);
     });
   }
-
-  // Submenu links: always navigate
-  var subLinks = document.querySelectorAll('.submenu a[href]');
-  for (var k=0;k<subLinks.length;k++) {
-    subLinks[k].addEventListener('click', function(e){
-      // Some browsers may have preventDefault from other handlers; enforce navigation
-      window.location.href = this.getAttribute('href');
-    });
-  }
-
-  // If we're on independent-site.html, auto-open the 速卖通菜单（第一个带有"速卖通"文本的父级）
-  if (page === 'independent-site.html') {
-    var groups = document.querySelectorAll('.has-submenu');
-    for (var g=0; g<groups.length; g++) {
-      var txt = groups[g].textContent || '';
-      if (txt.indexOf('速卖通') !== -1 || txt.toLowerCase().indexOf('aliexpress') !== -1) {
-        groups[g].classList.add('open');
-        break;
-      }
+  const userArea=document.getElementById('userArea');
+  function refreshUser(){
+    const u=JSON.parse(localStorage.getItem('user')||'null');
+    if(u){
+      userArea.innerHTML=`<div class="user-section"><div class="user-menu-trigger">${u.name}</div><div class="user-dropdown" style="display:none"><button class="user-dropdown-item" id="logoutBtn">退出</button></div></div>`;
+      const trigger=userArea.querySelector('.user-menu-trigger');
+      const dropdown=userArea.querySelector('.user-dropdown');
+      trigger.addEventListener('click',()=>{dropdown.style.display=dropdown.style.display==='block'?'none':'block';});
+      document.getElementById('logoutBtn').addEventListener('click',()=>{localStorage.removeItem('user');dropdown.style.display='none';refreshUser();showLoginOverlay();});
+    }else{
+      userArea.innerHTML='<div class="user-section"><span class="user-demo">未登录</span><button class="login-button" id="loginTrigger">登录</button></div>';
+      document.getElementById('loginTrigger').addEventListener('click',showLoginOverlay);
+      showLoginOverlay();
     }
   }
-})();
+  refreshUser();
+  window.addEventListener('user-login', refreshUser);
+});
 </script>
 
 </body>

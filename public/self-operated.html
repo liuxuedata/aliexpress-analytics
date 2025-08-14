@@ -18,6 +18,7 @@
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
 
   <!-- 主题样式（沿用你现有的） -->
+  <link rel="stylesheet" href="assets/login.css">
   <link rel="stylesheet" href="assets/theme.css?v=20250810b">
   <style>
     /* NewKPICtrl */
@@ -34,31 +35,66 @@
     #kpi-new-self-ctrl, #kpi-new-managed-ctrl, .kpi .kpi-ctrl { display: none !important; }
   </style>
 </head>
-<body>
-<div class="container">
-  <!-- 左侧导航 -->
-  <nav class="sidebar" id="sidebar">
-    <h3>产品导航</h3>
-    <ul>
-      <li class="has-submenu">
-        <a href="#">速卖通</a>
-        <ul class="submenu">
-          <li><a href="index.html">全托管</a></li>
-          <li><a href="self-operated.html" class="active">自运营</a></li>
+<body class="fm">
+<div id="loginOverlay" class="login-overlay" style="display:none">
+  <div class="login-container">
+    <div class="login-form-card login-card-enter">
+      <div class="form-header">
+        <div class="form-logo">AI</div>
+        <div class="form-title">跨境电商数据分析平台</div>
+        <div class="form-subtitle">登录账户以继续</div>
+      </div>
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label" for="email">邮箱</label>
+          <input id="email" type="email" class="form-input" required>
+        </div>
+        <div class="form-group password-input-wrapper">
+          <label class="form-label" for="password">密码</label>
+          <input id="password" type="password" class="form-input" required>
+          <span id="password-toggle" class="password-toggle">👁️</span>
+        </div>
+        <button id="loginSubmit" class="login-submit-btn" type="submit">登录</button>
+      </form>
+      <div class="demo-account-tip">
+        <div class="demo-account-header">演示账户</div>
+        <div class="demo-account-info">邮箱：demo@example.com<br>密码：demo123</div>
+      </div>
+    </div>
+  </div>
+</div>
+<header class="header">
+  <div class="logo-title">跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li><a href="#">速卖通</a>
+        <ul class="dropdown">
+          <li class="submenu"><a href="#">全托管</a>
+            <ul id="managedMenu"></ul>
+          </li>
+          <li><a href="self-operated.html">自运营</a></li>
         </ul>
       </li>
-      <li><a href="#">TikTok Shop</a></li>
       <li><a href="#">亚马逊</a></li>
-      <li class="has-submenu">
-        <a href="#">独立站</a>
-        <ul class="submenu">
-          <li><a href="independent-site.html">数据分析</a></li>
-        </ul>
-      </li>
+      <li><a href="#">TikTok Shop</a></li>
+      <li><a href="#">Temu</a></li>
+      <li><a href="#">Ozon</a></li>
+      <li><a href="independent-site.html">独立站</a></li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="site-header"><span id="currentSite">自运营 A站</span><button id="addSite" class="add-site-btn">+</button></div>
+    <ul class="sub-nav">
+      <li><a href="#" class="active" data-target="detail">详细数据</a></li>
+      <li><a href="#" data-target="analysis">运营分析</a></li>
+      <li><a href="#" data-target="product">产品分析</a></li>
     </ul>
   </nav>
 
-  <div class="main">
+  <main class="main mx-auto max-w-container px-6">
     <!-- 顶部：上传 + 全局过滤 -->
     <div class="upload-section">
       <div class="upload-top">
@@ -89,31 +125,35 @@
     </div>
 
     <!-- 顶部 Tabs -->
-    <div class="tabs">
-      <div class="tab active" data-tab="summary">汇总对比</div>
-      <div class="tab" data-tab="detail">明细表</div>
-    </div>
-
     <div class="content">
-      <!-- 汇总对比 -->
-      <section id="summary" class="content-pad">
+      <!-- 明细表 -->
+      <section id="detail" class="content-pad">
         <div class="panel">
-          <h3>周期 A vs 周期 B · 总量曲线（按天）</h3>
-          <div class="controls" style="margin-bottom:8px;">
-            <span>维度：</span>
-            <select id="metricSel" class="sel">
-              <option value="exposure_sum">曝光量总和</option>
-              <option value="visitors_sum">访客数总和</option>
-              <option value="add_people_sum">加购人数总和</option>
-              <option value="fav_sum">收藏总数</option>
-              <option value="orders_sum">下单总数</option>
-            </select>
-            <span class="notice">A = 当前选择；B = 上一周期（向前平移同长度）。</span>
+          <h3>数据明细</h3>
+          <div class="table-wrapper">
+            <table id="report" class="display nowrap" style="width:100%"></table>
           </div>
-          <div id="lineChart" style="width:100%;height:360px;"></div>
         </div>
+      </section>
 
-        <div class="grid grid-2" style="margin-top:16px;">
+      <!-- 汇总对比 -->
+      <section id="analysis" class="content-pad" style="display:none;">
+        <div class="grid grid-2">
+          <div class="panel" style="grid-column:1/-1;">
+            <h3>周期 A vs 周期 B · 总量曲线（按天）</h3>
+            <div class="controls" style="margin-bottom:8px;">
+              <span>维度：</span>
+              <select id="metricSel" class="sel">
+                <option value="exposure_sum">曝光量总和</option>
+                <option value="visitors_sum">访客数总和</option>
+                <option value="add_people_sum">加购人数总和</option>
+                <option value="fav_sum">收藏总数</option>
+                <option value="orders_sum">下单总数</option>
+              </select>
+              <span class="notice">A = 当前选择；B = 上一周期（向前平移同长度）。</span>
+            </div>
+            <div id="lineChart" style="width:100%;height:360px;"></div>
+          </div>
           <div class="panel">
             <h3>平均比率对比（A vs B）</h3>
             <div id="ratioBar" style="width:100%;height:300px;"></div>
@@ -126,27 +166,13 @@
           </div>
         </div>
       </section>
-
-      <!-- 明细表 -->
-      <section id="detail" class="content-pad" style="display:none;">
-        <div class="panel">
-          <h3>数据明细</h3>
-          <div class="table-wrapper">
-            <table id="report" class="display nowrap" style="width:100%"></table>
-          </div>
-        </div>
-      </section>
+      <section id="product" class="content-pad" style="display:none;"><p>产品分析建设中...</p></section>
     </div>
-  </div>
+  </main>
 </div>
 
 <script>
 /* ---------- UI 基础 ---------- */
-(function() { $('.has-submenu > a').on('click', function(e){ e.preventDefault(); $(this).parent().toggleClass('open'); }); })();
-$('.tab').on('click', function(){
-  $('.tab').removeClass('active'); $(this).addClass('active');
-  const id = $(this).data('tab'); $('#summary').toggle(id==='summary'); $('#detail').toggle(id==='detail');
-});
 const toNum = v => { if (v===null||v===undefined) return 0; if (typeof v==='number') return isFinite(v)?v:0; const n=parseFloat(String(v).replace(/,/g,'').trim()); return isNaN(n)?0:n; };
 
 
@@ -573,6 +599,64 @@ $('#metricSel').on('change', fetchAndRenderAll);
     }
   });
 })();
+</script>
+<script src="assets/login.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  const siteListKey='managedSites';
+  const currentSiteKey='currentSite';
+  let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
+  if(!Array.isArray(sites)||!sites.length){sites=['A站','B站','C站'];}
+  const menuEl=document.getElementById('managedMenu');
+  const currentSiteEl=document.getElementById('currentSite');
+  function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));}
+  function renderMenu(){
+    menuEl.innerHTML='';
+    sites.forEach((name,idx)=>{
+      const li=document.createElement('li');
+      const a=document.createElement('a');
+      a.href='index.html';
+      a.textContent=name;
+      a.addEventListener('click',(e)=>{e.preventDefault();localStorage.setItem(currentSiteKey,name);window.location.href='index.html';});
+      a.addEventListener('dblclick',()=>{const n=prompt('修改站点名',name);if(n){sites[idx]=n;save();renderMenu();updateCurrent();}});
+      li.appendChild(a);menuEl.appendChild(li);
+    });
+  }
+  function updateCurrent(){
+    const name=localStorage.getItem(currentSiteKey)||sites[0];
+    currentSiteEl.textContent='自运营 '+name;
+    localStorage.setItem(currentSiteKey,name);
+  }
+  currentSiteEl.addEventListener('dblclick',()=>{
+    const cur=localStorage.getItem(currentSiteKey)||sites[0];
+    const idx=sites.indexOf(cur);
+    const n=prompt('修改站点名',cur);
+    if(n){sites[idx]=n;save();renderMenu();localStorage.setItem(currentSiteKey,n);updateCurrent();}
+  });
+  document.getElementById('addSite').addEventListener('click',()=>{
+    const n=prompt('新增站点名');
+    if(n){sites.push(n);save();renderMenu();updateCurrent();}
+  });
+  renderMenu();updateCurrent();
+  const userArea=document.getElementById('userArea');
+  function refreshUser(){
+    const u=JSON.parse(localStorage.getItem('user')||'null');
+    if(u){
+      userArea.innerHTML=`<div class="user-section"><div class="user-menu-trigger">${u.name}</div><div class="user-dropdown" style="display:none"><button class="user-dropdown-item" id="logoutBtn">退出</button></div></div>`;
+      const trigger=userArea.querySelector('.user-menu-trigger');
+      const dropdown=userArea.querySelector('.user-dropdown');
+      trigger.addEventListener('click',()=>{dropdown.style.display=dropdown.style.display==='block'?'none':'block';});
+      document.getElementById('logoutBtn').addEventListener('click',()=>{localStorage.removeItem('user');dropdown.style.display='none';refreshUser();showLoginOverlay();});
+    }else{
+      userArea.innerHTML='<div class="user-section"><span class="user-demo">未登录</span><button class="login-button" id="loginTrigger">登录</button></div>';
+      document.getElementById('loginTrigger').addEventListener('click',showLoginOverlay);
+      showLoginOverlay();
+    }
+  }
+  refreshUser();
+  window.addEventListener('user-login', refreshUser);
+  document.querySelectorAll('.sub-nav a').forEach(a=>{a.addEventListener('click',e=>{e.preventDefault();const t=a.dataset.target;document.querySelectorAll('.sub-nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active');['detail','analysis','product'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=id===t?'':'none';});});});
+});
 </script>
 </body>
 </html>
