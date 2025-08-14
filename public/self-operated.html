@@ -348,12 +348,32 @@ function updateTopTable(){
   $('#topTable tbody').html(rows||'<tr><td colspan="6" style="text-align:center">暂无数据</td></tr>');
 }
 function renderTrends(){
-  const dummy=[10,20,15,30,25,40,35];
-  const opts=color=>({xAxis:{type:'category',data:['1','2','3','4','5','6','7']},yAxis:{type:'value'},series:[{data:dummy,type:'line',smooth:true,color}]});
-  echarts.init(document.getElementById('expTrend')).setOption(opts('#ef4444'));
-  echarts.init(document.getElementById('visitorTrend')).setOption(opts('#3b82f6'));
-  echarts.init(document.getElementById('cartTrend')).setOption(opts('#10b981'));
-  echarts.init(document.getElementById('payTrend')).setOption(opts('#8b5cf6'));
+  const rowsA=window._rowsA||[], rowsB=window._rowsB||[];
+  const startA=window._startA, startB=window._startB;
+  const days=window._days||7;
+  const A=buildDailyTotals(rowsA, days, startA).A;
+  const B=buildDailyTotals(rowsB, days, startB).A;
+  const x=Array.from({length:days},(_,i)=>`Day${i+1}`);
+  const defs=[
+    {id:'expTrend', key:'exp', color:'#ef4444'},
+    {id:'visitorTrend', key:'vis', color:'#3b82f6'},
+    {id:'cartTrend', key:'add', color:'#10b981'},
+    {id:'payTrend', key:'orders', color:'#8b5cf6'}
+  ];
+  defs.forEach(d=>{
+    const chart=echarts.init(document.getElementById(d.id));
+    chart.setOption({
+      tooltip:{ trigger:'axis' },
+      legend:{ data:['本期','上期'] },
+      xAxis:{ type:'category', data:x },
+      yAxis:{ type:'value' },
+      series:[
+        { name:'本期', type:'line', data:A.map(o=>o[d.key]||0), smooth:true, color:d.color },
+        { name:'上期', type:'line', data:B.map(o=>o[d.key]||0), smooth:true, color:'#94a3b8' }
+      ]
+    });
+    window.addEventListener('resize', ()=>chart.resize());
+  });
 }
 
 $(document).on('click','#topTable .ai-link',function(e){
@@ -469,8 +489,13 @@ async function fetchAndRenderAll() {
     const g = 'day';$('#progress').text('查询中…');
 
     const rowsNowAgg=await fetchAgg(startISO,endISO,g);
-    const {prevStart,prevEnd}=periodShift(startISO,endISO);
+    const {prevStart,prevEnd,days}=periodShift(startISO,endISO);
     const rowsPrevAgg=await fetchAgg(prevStart,prevEnd,g);
+    window._rowsA = rowsNowAgg;
+    window._rowsB = rowsPrevAgg;
+    window._startA = startISO;
+    window._startB = prevStart;
+    window._days = days;
     computeCards(rowsNowAgg);
     await renderTable(rowsNowAgg,g);
 
@@ -487,9 +512,13 @@ $('#refreshBtn').on('click', fetchAndRenderAll);
 $('#metricSel').on('change', fetchAndRenderAll);
 
 (async function initDefault(){
-  const today=new Date(); const end=today.toISOString().slice(0,10);
-  const startDate=new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
-  $('#dateFilter').val(`${startDate} to ${end}`);
+  const today = new Date();
+  const wd = today.getDay(); // 0=Sun
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((wd + 6) % 7)); // 当周周一
+  const startISO = monday.toISOString().slice(0,10);
+  const endISO = today.toISOString().slice(0,10);
+  $('#dateFilter').val(`${startISO} to ${endISO}`);
   await fetchAndRenderAll();
 })();
 </script>

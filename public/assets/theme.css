@@ -348,3 +348,6 @@ table.dataTable thead th.sorting_desc{
 .top-table a{color:#2563eb;text-decoration:none;}
 .top-table .ai-link{color:#8b5cf6;text-decoration:underline;cursor:pointer;}
 
+/* Generic empty state */
+.no-data{padding:1rem;text-align:center;color:var(--muted);}
+

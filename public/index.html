@@ -227,18 +227,28 @@
     const jb = rb ? await rb.json() : { ok:true, rows:[] };
     if (!ja.ok){ alert(ja.msg||'查询失败'); return; }
 
-    // render KPI for current period (A)
-    try{ renderKPI(ja.kpis || {}); }catch(e){}
-
     window._rowsA = (ja.rows||[]);
     window._rowsB = (jb.rows||[]);
     window._periodA = period || '';
     window._periodB = prev || '';
 
+    // 无数据时提示占位并清空表格/图表
+    if (!window._rowsA.length){
+      $('#kpi').html('<div class="no-data">暂无数据</div>');
+      if (state.table) state.table.clear().draw();
+      else $('#report').html('<tbody><tr><td class="no-data">暂无数据</td></tr></tbody>');
+      $('#topTable tbody').html('<tr><td colspan="6">暂无数据</td></tr>');
+      ['expTrend','visitorTrend','cartTrend','payTrend'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML='<div class="no-data">暂无数据</div>'; });
+      return;
+    }
+
+    // render KPI for current period (A)
+    try{ renderKPI(ja.kpis || {}); }catch(e){}
+
     // table uses current period A
     const rows = window._rowsA.map(x => [
       (x.product_link ? '<a href="'+x.product_link+'" target="_blank">'+(x.product_id||'')+'</a>' : (x.product_id||'')),
-      
+
       x.search_exposure || 0, x.uv || 0, x.pv || 0,
       x.add_to_cart_users || 0, x.add_to_cart_qty || 0,
       x.pay_items || 0, x.pay_orders || 0, x.pay_buyers || 0,
