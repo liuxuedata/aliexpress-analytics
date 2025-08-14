@@ -111,12 +111,20 @@
             <div class="panel trend-card purple"><h3>支付数趋势对比</h3><div id="payTrend" class="chart" style="height:240px;"></div></div>
           </div>
           <div class="panel">
-            <h3>Top商品榜单</h3>
-            <div class="grid grid-3 gap-4">
-              <div><h4>Top销售</h4><ul id="topSales" class="top-list"></ul></div>
-              <div><h4>Top加购</h4><ul id="topCart" class="top-list"></ul></div>
-              <div><h4>Top访客</h4><ul id="topVisitor" class="top-list"></ul></div>
+            <div class="top-panel-head">
+              <h3>Top商品榜单</h3>
+              <div class="top-tabs">
+                <button class="active" data-metric="sales">Top销售</button>
+                <button data-metric="cart">Top加购</button>
+                <button data-metric="visitor">Top访客</button>
+              </div>
             </div>
+            <table id="topTable" class="top-table">
+              <thead>
+                <tr><th>排名</th><th>商品ID</th><th id="currLabel">本期销售额</th><th id="prevLabel">上期销售额</th><th>变化</th><th></th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
           </div>
         </div>
         <div id="tab-product" class="tab-panel" style="display:none;"><p>单品诊断建设中...</p></div>
@@ -306,17 +314,38 @@ function computeCards(rows) {
   $('#avgVisitor').text(vr); $('#avgCart').text(cr); $('#avgPay').text(pr);
   $('#totalProducts').text(products.size); $('#cartedProducts').text(pc); $('#purchasedProducts').text(pp);
 }
-function renderTopLists(rows){
-  const topSales=rows.slice().sort((a,b)=> (b.pay_buyers||0)-(a.pay_buyers||0)).slice(0,5);
-  const topCart=rows.slice().sort((a,b)=> (b.add_people||0)-(a.add_people||0)).slice(0,5);
-  const topVisitor=rows.slice().sort((a,b)=> (b.visitors||0)-(a.visitors||0)).slice(0,5);
-  const toLi=(x,i,val)=>{
+let topData=[];let topMetric='sales';
+function renderTopTable(curr, prev){
+  const map={};
+  curr.forEach(r=>{map[r.product_id]={...r};});
+  prev.forEach(r=>{if(!map[r.product_id]) map[r.product_id]={};
+    map[r.product_id].prev_pay_buyers=r.pay_buyers||0;
+    map[r.product_id].prev_add_people=r.add_people||0;
+    map[r.product_id].prev_visitors=r.visitors||0;
+  });
+  topData=Object.keys(map).map(pid=>({
+    product_id:pid,
+    pay_buyers:map[pid].pay_buyers||0,
+    add_people:map[pid].add_people||0,
+    visitors:map[pid].visitors||0,
+    prev_pay_buyers:map[pid].prev_pay_buyers||0,
+    prev_add_people:map[pid].prev_add_people||0,
+    prev_visitors:map[pid].prev_visitors||0
+  }));
+  updateTopTable();
+}
+function updateTopTable(){
+  const metric=topMetric;
+  const mapMetric={sales:['pay_buyers','支付买家数','prev_pay_buyers'],cart:['add_people','加购人数','prev_add_people'],visitor:['visitors','访客数','prev_visitors']};
+  const [key,label,prevKey]=mapMetric[metric];
+  $('#currLabel').text('本期'+label);$('#prevLabel').text('上期'+label);
+  const rows=topData.slice().sort((a,b)=>(b[key]||0)-(a[key]||0)).slice(0,5).map((x,i)=>{
+    const curr=x[key]||0;const prev=x[prevKey]||0;const diff=prev?((curr-prev)/prev*100).toFixed(1)+'%':'—';
+    const cls=prev?((curr-prev)>=0?'pos':'neg'):'neutral';
     const url=`https://www.aliexpress.com/item/${x.product_id}.html`;
-    return `<li><span class="rank">${i+1}</span><a class="name" href="${url}" target="_blank">${x.product_id}</a><span class="value">${val}</span><a href="#" class="ai-link" data-id="${x.product_id}">AI分析</a></li>`;
-  };
-  $('#topSales').html(topSales.map((x,i)=>toLi(x,i,x.pay_buyers||0)).join(''));
-  $('#topCart').html(topCart.map((x,i)=>toLi(x,i,x.add_people||0)).join(''));
-  $('#topVisitor').html(topVisitor.map((x,i)=>toLi(x,i,x.visitors||0)).join(''));
+    return `<tr><td>${i+1}</td><td><a href="${url}" target="_blank">${x.product_id}</a></td><td>${curr}</td><td>${prev}</td><td class="${cls}">${diff}</td><td><a href="#" class="ai-link" data-id="${x.product_id}">AI分析</a></td></tr>`;
+  }).join('');
+  $('#topTable tbody').html(rows||'<tr><td colspan="6" style="text-align:center">暂无数据</td></tr>');
 }
 function renderTrends(){
   const dummy=[10,20,15,30,25,40,35];
@@ -327,10 +356,16 @@ function renderTrends(){
   echarts.init(document.getElementById('payTrend')).setOption(opts('#8b5cf6'));
 }
 
-$(document).on('click','.top-list .ai-link',function(e){
+$(document).on('click','#topTable .ai-link',function(e){
   e.preventDefault();
   const id=$(this).data('id');
   alert('AI分析功能建设中：'+id);
+});
+$(document).on('click','.top-tabs button',function(){
+  $('.top-tabs button').removeClass('active');
+  $(this).addClass('active');
+  topMetric=$(this).data('metric');
+  updateTopTable();
 });
 function buildDailyTotals(rows, days, startISO) {
   const byDay=new Map(); rows.forEach(r=>{ const d=r.bucket; if(!byDay.has(d)) byDay.set(d,{exp:0,vis:0,add:0,fav:0,orders:0}); const a=byDay.get(d); a.exp+=r.exposure||0; a.vis+=r.visitors||0; a.add+=r.add_people||0; a.orders+=r.pay_orders||0; a.fav+=(r.fav_people||r.fav_count||0); });
@@ -434,10 +469,12 @@ async function fetchAndRenderAll() {
     const g = 'day';$('#progress').text('查询中…');
 
     const rowsNowAgg=await fetchAgg(startISO,endISO,g);
+    const {prevStart,prevEnd}=periodShift(startISO,endISO);
+    const rowsPrevAgg=await fetchAgg(prevStart,prevEnd,g);
     computeCards(rowsNowAgg);
     await renderTable(rowsNowAgg,g);
 
-    renderTopLists(rowsNowAgg);
+    renderTopTable(rowsNowAgg, rowsPrevAgg);
     renderTrends();
     $('#progress').text(`共 ${rowsNowAgg.length} 条`);
   } catch (err) {

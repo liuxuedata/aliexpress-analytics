@@ -83,12 +83,20 @@
             <div class="panel trend-card purple"><h3>支付数趋势对比</h3><div id="payTrend" class="chart" style="height:240px;"></div></div>
           </div>
           <div class="panel">
-            <h3>Top商品榜单</h3>
-            <div class="grid grid-3 gap-4">
-              <div><h4>Top销售</h4><ul id="topSales" class="top-list"></ul></div>
-              <div><h4>Top加购</h4><ul id="topCart" class="top-list"></ul></div>
-              <div><h4>Top访客</h4><ul id="topVisitor" class="top-list"></ul></div>
+            <div class="top-panel-head">
+              <h3>Top商品榜单</h3>
+              <div class="top-tabs">
+                <button class="active" data-metric="sales">Top销售</button>
+                <button data-metric="cart">Top加购</button>
+                <button data-metric="visitor">Top访客</button>
+              </div>
             </div>
+            <table id="topTable" class="top-table">
+              <thead>
+                <tr><th>排名</th><th>商品ID</th><th id="currLabel">本期销售额</th><th id="prevLabel">上期销售额</th><th>变化</th><th></th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
           </div>
         </div>
         <div id="tab-product" class="tab-panel" style="display:none;"><p>单品诊断建设中...</p></div>
@@ -242,7 +250,7 @@
     if (state.table) state.table.clear().rows.add(rows).draw();
     else state.table = $('#report').DataTable({ data: rows, paging:true, searching:true, info:true, order:[[2,'desc']], fixedHeader:true, scrollY:'60vh', scrollCollapse:true, autoWidth:false });
     renderAnalysis(window._rowsA, window._rowsB);
-    renderTopLists(window._rowsA);
+    renderTopTable(window._rowsA, window._rowsB);
     renderTrends();
   }
 
@@ -258,17 +266,38 @@
     ].join(''));
   }
 
-  function renderTopLists(rows){
-    const topSales=rows.slice().sort((a,b)=> (b.pay_items||0)-(a.pay_items||0)).slice(0,5);
-    const topCart=rows.slice().sort((a,b)=> (b.add_to_cart_users||0)-(a.add_to_cart_users||0)).slice(0,5);
-    const topVisitor=rows.slice().sort((a,b)=> (b.uv||0)-(a.uv||0)).slice(0,5);
-    const toLi=(x,i,val)=>{
-      const url=x.product_link||`https://www.aliexpress.com/item/${x.product_id}.html`;
-      return `<li><span class="rank">${i+1}</span><a class="name" href="${url}" target="_blank">${x.product_id}</a><span class="value">${val}</span><a href="#" class="ai-link" data-id="${x.product_id}">AI分析</a></li>`;
-    };
-    $('#topSales').html(topSales.map((x,i)=>toLi(x,i,x.pay_items||0)).join(''));
-    $('#topCart').html(topCart.map((x,i)=>toLi(x,i,x.add_to_cart_users||0)).join(''));
-    $('#topVisitor').html(topVisitor.map((x,i)=>toLi(x,i,x.uv||0)).join(''));
+  let topData=[];let topMetric='sales';
+  function renderTopTable(curr, prev){
+    const map={};
+    curr.forEach(r=>{map[r.product_id]={...r};});
+    prev.forEach(r=>{if(!map[r.product_id]) map[r.product_id]={};
+      map[r.product_id]['prev_pay_items']=r.pay_items||0;
+      map[r.product_id]['prev_add_to_cart_users']=r.add_to_cart_users||0;
+      map[r.product_id]['prev_uv']=r.uv||0;
+    });
+    topData=Object.keys(map).map(pid=>({
+      product_id: pid,
+      product_link: map[pid].product_link||`https://www.aliexpress.com/item/${pid}.html`,
+      pay_items: map[pid].pay_items||0,
+      add_to_cart_users: map[pid].add_to_cart_users||0,
+      uv: map[pid].uv||0,
+      prev_pay_items: map[pid].prev_pay_items||0,
+      prev_add_to_cart_users: map[pid].prev_add_to_cart_users||0,
+      prev_uv: map[pid].prev_uv||0
+    }));
+    updateTopTable();
+  }
+  function updateTopTable(){
+    const metric=topMetric;
+    const mapMetric={sales:['pay_items','支付件数','prev_pay_items'],cart:['add_to_cart_users','加购人数','prev_add_to_cart_users'],visitor:['uv','访客数','prev_uv']};
+    const [key,label,prevKey]=mapMetric[metric];
+    $('#currLabel').text('本期'+label);$('#prevLabel').text('上期'+label);
+    const rows=topData.slice().sort((a,b)=>(b[key]||0)-(a[key]||0)).slice(0,5).map((x,i)=>{
+      const curr=x[key]||0;const prev=x[prevKey]||0;const diff=prev?((curr-prev)/prev*100).toFixed(1)+'%':'—';
+      const cls=prev?((curr-prev)>=0?'pos':'neg'):'neutral';
+      return `<tr><td>${i+1}</td><td><a href="${x.product_link}" target="_blank">${x.product_id}</a></td><td>${curr}</td><td>${prev}</td><td class="${cls}">${diff}</td><td><a href="#" class="ai-link" data-id="${x.product_id}">AI分析</a></td></tr>`;
+    }).join('');
+    $('#topTable tbody').html(rows||'<tr><td colspan="6" style="text-align:center">暂无数据</td></tr>');
   }
 
   function renderTrends(){
@@ -287,10 +316,16 @@
     chart('payTrend','#8b5cf6',sum(rowsA,'pay_items'),sum(rowsB,'pay_items'));
   }
 
-  $(document).on('click','.top-list .ai-link',function(e){
+  $(document).on('click','#topTable .ai-link',function(e){
     e.preventDefault();
     const id=$(this).data('id');
     alert('AI分析功能建设中：'+id);
+  });
+  $(document).on('click','.top-tabs button',function(){
+    $('.top-tabs button').removeClass('active');
+    $(this).addClass('active');
+    topMetric=$(this).data('metric');
+    updateTopTable();
   });
 
   loadPeriods().then(loadData);

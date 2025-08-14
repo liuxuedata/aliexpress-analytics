@@ -148,7 +148,7 @@ module.exports = async (req, res) => {
       byPath[key].impr += safeNum(r.impr);
       byPath[key].cost += safeNum(r.cost);
     }
-    const topList = Object.values(byPath)
+    let topList = Object.values(byPath)
       .map(x => ({
         ...x,
         product: extractName(x.path),
@@ -234,6 +234,21 @@ module.exports = async (req, res) => {
       conv_value: safeNum(r.conv_value),
       all_conv_rate: safeNum(r.all_conv_rate),
       conv_rate: safeNum(r.conv_rate)
+    }));
+
+    const prevMap = {};
+    prevTable.forEach(r => {
+      const k = r.landing_path;
+      if (!prevMap[k]) prevMap[k] = { conv_value: 0, conversions: 0, clicks: 0 };
+      prevMap[k].conv_value += safeNum(r.conv_value);
+      prevMap[k].conversions += safeNum(r.conversions);
+      prevMap[k].clicks += safeNum(r.clicks);
+    });
+    topList = topList.map(x => ({
+      ...x,
+      prev_conv_value: prevMap[x.path]?.conv_value || 0,
+      prev_conversions: prevMap[x.path]?.conversions || 0,
+      prev_clicks: prevMap[x.path]?.clicks || 0
     }));
 
     const kpis_prev = await calcKpis(prevTable, prevFrom.toISOString().slice(0,10), prevTo.toISOString().slice(0,10));

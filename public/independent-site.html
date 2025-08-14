@@ -109,20 +109,39 @@
 
     <!-- 运营分析 -->
     <section id="analysis" class="content-pad">
-      <div class="grid">
-        <div class="panel">
-          <h3>Daily 趋势（点击 / 曝光 / 转化价值）</h3>
-          <div id="lineChart" style="width:100%;height:360px;"></div>
-        </div>
-        <div class="panel">
-          <h3>Top商品榜单</h3>
-          <div class="grid grid-3 gap-4">
-            <div><h4>Top销售</h4><ul id="topSales" class="top-list"></ul></div>
-            <div><h4>Top加购</h4><ul id="topCart" class="top-list"></ul></div>
-            <div><h4>Top访客</h4><ul id="topVisitor" class="top-list"></ul></div>
+      <div id="analysisTabs" class="tab-nav">
+        <a href="#" class="active" data-tab="tab-trend">周/月对比</a>
+        <a href="#" data-tab="tab-product">单品诊断</a>
+        <a href="#" data-tab="tab-channel">渠道分析</a>
+        <a href="#" data-tab="tab-region">地区分析</a>
+      </div>
+      <div id="tab-trend" class="tab-panel">
+        <div class="grid">
+          <div class="panel">
+            <h3>Daily 趋势（点击 / 曝光 / 转化价值）</h3>
+            <div id="lineChart" style="width:100%;height:360px;"></div>
+          </div>
+          <div class="panel">
+            <div class="top-panel-head">
+              <h3>Top商品榜单</h3>
+              <div class="top-tabs">
+                <button class="active" data-metric="sales">Top销售</button>
+                <button data-metric="cart">Top加购</button>
+                <button data-metric="visitor">Top访客</button>
+              </div>
+            </div>
+            <table id="topTable" class="top-table">
+              <thead>
+                <tr><th>排名</th><th>商品ID</th><th id="currLabel">本期销售额</th><th id="prevLabel">上期销售额</th><th>变化</th><th></th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
           </div>
         </div>
       </div>
+      <div id="tab-product" class="tab-panel" style="display:none;"><p>单品诊断建设中...</p></div>
+      <div id="tab-channel" class="tab-panel" style="display:none;"><p>渠道分析建设中...</p></div>
+      <div id="tab-region" class="tab-panel" style="display:none;"><p>地区分析建设中...</p></div>
     </section>
 
     <!-- 明细表 -->
@@ -265,25 +284,50 @@
     $('#kpi').html(html);
   }
 
-  function renderTopLists(list){
-    const topSales=list.slice().sort((a,b)=>(b.conv_value||0)-(a.conv_value||0)).slice(0,5);
-    const topCart=list.slice().sort((a,b)=>(b.conversions||0)-(a.conversions||0)).slice(0,5);
-    const topVisitor=list.slice().sort((a,b)=>(b.clicks||0)-(a.clicks||0)).slice(0,5);
-    const toLi=(x,i,val)=>{
+  let topData=[];let topMetric='sales';
+  function renderTopTable(list){topData=list;updateTopTable();}
+  function updateTopTable(){
+    const metric=topMetric;
+    const map={sales:['conv_value','销售额'],cart:['conversions','加购数'],visitor:['clicks','访客数']};
+    const [key,label]=map[metric];
+    const prevKey=metric==='sales'?'prev_conv_value':metric==='cart'?'prev_conversions':'prev_clicks';
+    $('#currLabel').text('本期'+label);$('#prevLabel').text('上期'+label);
+    const rows=topData.slice().sort((a,b)=>(b[key]||0)-(a[key]||0)).slice(0,5).map((x,i)=>{
+      const curr=x[key]||0;const prev=x[prevKey]||0;const diff=prev?((curr-prev)/prev*100).toFixed(1)+'%':'—';
+      const cls=prev?((curr-prev)>=0?'pos':'neg'):'neutral';
       const name=shorten(x.product||x.path||'');
       const url=x.landing_url||x.url||'#';
-      return `<li><span class="rank">${i+1}</span><a class="name" href="${url}" target="_blank">${name}</a><span class="value">${val}</span><a href="#" class="ai-link" data-id="${name}">AI分析</a></li>`;
-    };
-    $('#topSales').html(topSales.map((x,i)=>toLi(x,i,x.conv_value||0)).join(''));
-    $('#topCart').html(topCart.map((x,i)=>toLi(x,i,x.conversions||0)).join(''));
-    $('#topVisitor').html(topVisitor.map((x,i)=>toLi(x,i,x.clicks||0)).join(''));
+      return `<tr><td>${i+1}</td><td><a href="${url}" target="_blank">${name}</a></td><td>${curr}</td><td>${prev}</td><td class="${cls}">${diff}</td><td><a href="#" class="ai-link" data-id="${name}">AI分析</a></td></tr>`;
+    }).join('');
+    $('#topTable tbody').html(rows||'<tr><td colspan="6" style="text-align:center">暂无数据</td></tr>');
   }
 
-  $(document).on('click','.top-list .ai-link',function(e){
+  $(document).on('click','#topTable .ai-link',function(e){
     e.preventDefault();
     const id=$(this).data('id');
     alert('AI分析功能建设中：'+id);
   });
+  $(document).on('click','.top-tabs button',function(){
+    $('.top-tabs button').removeClass('active');
+    $(this).addClass('active');
+    topMetric=$(this).data('metric');
+    updateTopTable();
+  });
+
+  const tabNav=document.getElementById('analysisTabs');
+  if(tabNav){
+    tabNav.addEventListener('click',e=>{
+      const a=e.target.closest('a[data-tab]');
+      if(!a) return;
+      e.preventDefault();
+      tabNav.querySelectorAll('a').forEach(x=>x.classList.remove('active'));
+      a.classList.add('active');
+      const t=a.dataset.tab;
+      document.querySelectorAll('#analysis .tab-panel').forEach(p=>{
+        p.style.display=p.id===t?'':'none';
+      });
+    });
+  }
 
   function aggregateTable(data, showDevice, showNetwork, showCampaign){
     const map = {};
@@ -432,7 +476,7 @@
       });
 
       // Top lists
-      renderTopLists(json.topList || []);
+      renderTopTable(json.topList || []);
 
       tableWrapper.style.display = '';
       loadingEl.style.display = 'none';

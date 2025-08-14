@@ -336,10 +336,15 @@ table.dataTable thead th.sorting_desc{
 .tab-nav{display:flex;gap:1rem;margin-bottom:1rem;}
 .tab-nav a{padding:4px 8px;border-radius:4px;color:#4b5563;}
 .tab-nav a.active{background:#4f46e5;color:#fff;}
-.top-list{list-style:none;margin:0;padding:0;}
-.top-list li{display:flex;align-items:center;gap:8px;margin:4px 0;}
-.top-list li .rank{width:1.5em;text-align:right;color:#64748b;}
-.top-list li .name{flex:1;color:#2563eb;text-decoration:none;}
-.top-list li .value{margin-left:auto;color:#111827;}
-.top-list li .ai-link{margin-left:8px;color:#8b5cf6;text-decoration:underline;cursor:pointer;}
+.top-panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;}
+.top-tabs{display:flex;gap:8px;}
+.top-tabs button{border:1px solid #e5e7eb;background:#fff;padding:4px 8px;border-radius:4px;cursor:pointer;}
+.top-tabs button.active{background:#8b5cf6;color:#fff;border-color:#8b5cf6;}
+.top-table{width:100%;border-collapse:collapse;}
+.top-table th,.top-table td{padding:6px;text-align:center;border-bottom:1px solid #e5e7eb;}
+.top-table td.pos{color:#16a34a;}
+.top-table td.neg{color:#dc2626;}
+.top-table td.neutral{color:#6b7280;}
+.top-table a{color:#2563eb;text-decoration:none;}
+.top-table .ai-link{color:#8b5cf6;text-decoration:underline;cursor:pointer;}
 
