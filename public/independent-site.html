@@ -136,7 +136,8 @@
       <div class="panel">
         <h3>Landing Pages 明细</h3>
         <div class="table-section">
-          <div class="table-wrapper">
+          <div id="tableLoading" class="small" style="padding:1em;text-align:center;">数据加载中...</div>
+          <div class="table-wrapper" style="display:none;">
             <table id="report" class="display nowrap" style="width:100%">
               <thead>
                 <tr>
@@ -198,6 +199,8 @@
   const columnToggle = document.getElementById('columnToggle');
   const networkSel = document.getElementById('networkSel');
   const campaignSel = document.getElementById('campaignSel');
+  const tableWrapper = document.querySelector('#detail .table-wrapper');
+  const loadingEl = document.getElementById('tableLoading');
   const optionalCols = [
     { idx:1, label:'设备' }
   ];
@@ -336,6 +339,9 @@
   }
 
   async function load() {
+    loadingEl.textContent = '数据加载中...';
+    loadingEl.style.display = 'block';
+    tableWrapper.style.display = 'none';
     try {
       const site = siteInput.value.trim();
       const from = fromInput.value;
@@ -374,8 +380,12 @@
         shorten(r.product || r.path), r.clicks, r.impr, (r.ctr*100).toFixed(2)+'%', r.conversions, r.cost, r.conv_value, r.cpa.toFixed(2), r.roas.toFixed(2)
       ]);
       $('#topTable').DataTable({ destroy:true, paging:false, searching:false, info:false, data: topRows, scrollX:true, autoWidth:false });
+
+      tableWrapper.style.display = '';
+      loadingEl.style.display = 'none';
     } catch(e) {
       console.error(e);
+      loadingEl.textContent = '加载失败';
       alert(e.message || '加载失败');
     }
   }
