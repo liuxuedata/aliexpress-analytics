@@ -68,26 +68,24 @@
   <div class="logo-title">跨境电商数据分析平台</div>
   <nav class="header-center">
     <ul class="platform-nav">
-      <li><a href="#">速卖通</a>
+      <li class="ali active"><a href="#">速卖通</a>
         <ul class="dropdown">
-          <li class="submenu"><a href="#">全托管</a>
-            <ul id="managedMenu"></ul>
-          </li>
+          <li class="active"><a href="index.html">全托管</a></li>
           <li><a href="self-operated.html">自运营</a></li>
         </ul>
       </li>
-      <li><a href="#">亚马逊</a></li>
-      <li><a href="#">TikTok Shop</a></li>
-      <li><a href="#">Temu</a></li>
-      <li><a href="#">Ozon</a></li>
-      <li><a href="independent-site.html">独立站</a></li>
+      <li class="amazon"><a href="amazon.html">亚马逊</a></li>
+      <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon"><a href="ozon.html">Ozon</a></li>
+      <li class="independent"><a href="independent-site.html">独立站</a></li>
     </ul>
   </nav>
   <div id="userArea" class="user-section"></div>
 </header>
-<div class="layout">
+<div class="layout container">
   <nav class="sidebar" id="sidebar">
-    <div class="site-header"><span id="currentSite">全托管 A站</span><button id="addSite" class="add-site-btn">+</button></div>
+    <div class="site-header"><span id="currentSite">全托管</span><button id="addSite" class="add-site-btn">+</button></div>
     <ul class="sub-nav">
       <li><a href="#" class="active" data-target="detail">详细数据</a></li>
       <li><a href="#" data-target="analysis">运营分析</a></li>
@@ -95,7 +93,7 @@
     </ul>
   </nav>
 
-  <main class="main mx-auto max-w-container px-6">
+  <main class="main">
     <div class="upload-section">
       <div class="upload-top">
         <div style="font-size:28px;font-weight:800;">速卖通全托管数据分析</div>
@@ -117,7 +115,7 @@
 
     <div class="content">
       <div class="content-pad">
-        <div class="stats-cards" id="kpi"></div>
+        <div id="kpi" class="stats-cards grid gap-4 sm:grid-cols-2 lg:grid-cols-4"></div>
         <div class="divider"></div>
 
 <section id="detail" class="content-pad">
@@ -149,7 +147,7 @@
 <section id="analysis" class="content-pad" style="display:none;">
   <div class="grid grid-2">
     <div class="panel">
-      <h3>转化漏斗（A vs B）</h3>
+      <h3>转化漏斗</h3>
       <div id="funnel" style="width:100%;height:320px;"></div>
     </div>
     <div class="panel">
@@ -157,11 +155,11 @@
       <div id="sumCompareBar" style="width:100%;height:320px;"></div>
     </div>
     <div class="panel">
-      <h3>Top10 访客比（UV/曝光）· A</h3>
+      <h3>Top10 访客比（UV/曝光）</h3>
       <div id="vrBar" style="width:100%;height:320px;"></div>
     </div>
     <div class="panel">
-      <h3>Top10 加购→支付 转化率 · A</h3>
+      <h3>Top10 加购→支付 转化率</h3>
       <div id="payBar" style="width:100%;height:320px;"></div>
     </div>
   </div>
@@ -247,7 +245,7 @@
     if (!ja.ok){ alert(ja.msg||'查询失败'); return; }
 
     // render KPI for current period (A)
-    try{ renderKPI(ja.kpis || {}); }catch(e){}
+    try{ renderKPI(ja.kpis || {}, jb.kpis || {}); }catch(e){}
 
     window._rowsA = (ja.rows||[]);
     window._rowsB = (jb.rows||[]);
@@ -271,15 +269,23 @@
     renderAnalysis(window._rowsA, window._rowsB);
   }
 
-  function card(title, val){ return '<div class="stat-card"><h4>'+title+'</h4><p>'+val+'</p></div>'; }
-  function renderKPI(k){
+  function card(title, cur, prev, isPercent){
+    const diff = (cur - prev) || 0;
+    const arrow = diff >= 0 ? '↑' : '↓';
+    const delta = isPercent ? Math.abs(diff).toFixed(2)+'%' : Math.abs(diff).toString();
+    const curStr = isPercent ? cur.toFixed(2) + '%' : cur;
+    const cls = diff >= 0 ? 'up' : 'down';
+    return `<div class="stat-card"><h4>${title}</h4><p>${curStr}</p><div class="sub"><span class="delta ${cls}">${arrow} ${delta}</span></div></div>`;
+  }
+  function renderKPI(k, p){
+    p = p || {};
     $('#kpi').html([
-      card('平均访客到加购转化率', (k.avg_visit_to_atc||0)+'%'),
-      card('平均加购到支付转化率', (k.avg_atc_to_pay||0)+'%'),
-      card('平均访客比', (k.avg_visit_rate||0)+'%'),
-      card('产品总数', k.product_count||0),
-      card('有加购的产品数', k.atc_product_count||0),
-      card('有支付的产品数', k.pay_product_count||0)
+      card('平均访客到加购转化率', +(k.avg_visit_to_atc||0), +(p.avg_visit_to_atc||0), true),
+      card('平均加购到支付转化率', +(k.avg_atc_to_pay||0), +(p.avg_atc_to_pay||0), true),
+      card('平均访客比', +(k.avg_visit_rate||0), +(p.avg_visit_rate||0), true),
+      card('产品总数', +(k.product_count||0), +(p.product_count||0)),
+      card('有加购的产品数', +(k.atc_product_count||0), +(p.atc_product_count||0)),
+      card('有支付的产品数', +(k.pay_product_count||0), +(p.pay_product_count||0))
     ].join(''));
   }
 
@@ -843,7 +849,7 @@
   const siteListKey='managedSites';
   const currentSiteKey='currentSite';
   let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
-  if(!Array.isArray(sites)||!sites.length){sites=['A站','B站','C站'];}
+  if(!Array.isArray(sites)||!sites.length){sites=['主站'];}
   const menuEl=document.getElementById('managedMenu');
   const currentSiteEl=document.getElementById('currentSite');
   function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));}
@@ -861,7 +867,7 @@
   }
   function updateCurrent(){
     const name=localStorage.getItem(currentSiteKey)||sites[0];
-    currentSiteEl.textContent='全托管 '+name;
+    currentSiteEl.textContent=sites.length>1?'全托管 '+name:'全托管';
     localStorage.setItem(currentSiteKey,name);
   }
   currentSiteEl.addEventListener('dblclick',()=>{
@@ -892,7 +898,22 @@
     }
     refreshUser();
     window.addEventListener('user-login', refreshUser);
-  document.querySelectorAll('.sub-nav a').forEach(a=>{a.addEventListener('click',e=>{e.preventDefault();const t=a.dataset.target;document.querySelectorAll('.sub-nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active');['detail','analysis','product'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=id===t?'':'none';});});});
+  const sb=document.getElementById('sidebar');
+  sb.addEventListener('click',e=>{
+    const li=e.target.closest('li');
+    if(!li) return;
+    const a=li.querySelector('a[data-target]');
+    if(!a) return;
+    e.preventDefault();
+    const t=a.dataset.target;
+    ['detail','analysis','product'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.style.display=id===t?'':'none';
+    });
+    sb.querySelectorAll('a[data-target]').forEach(x=>x.classList.remove('active'));
+    a.classList.add('active');
+    setTimeout(()=>window.dispatchEvent(new Event('resize')),0);
+  });
 });
 </script>
 </body>
