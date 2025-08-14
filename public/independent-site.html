@@ -54,19 +54,17 @@
   <div class="logo-title">跨境电商数据分析平台</div>
   <nav class="header-center">
     <ul class="platform-nav">
-      <li><a href="#">速卖通</a>
+      <li class="ali"><a href="#">速卖通</a>
         <ul class="dropdown">
-          <li class="submenu"><a href="#">全托管</a>
-            <ul id="managedMenu"></ul>
-          </li>
+          <li><a href="index.html">全托管</a></li>
           <li><a href="self-operated.html">自运营</a></li>
         </ul>
       </li>
-      <li><a href="#">亚马逊</a></li>
-      <li><a href="#">TikTok Shop</a></li>
-      <li><a href="#">Temu</a></li>
-      <li><a href="#">Ozon</a></li>
-      <li><a href="independent-site.html">独立站</a></li>
+      <li class="amazon"><a href="amazon.html">亚马逊</a></li>
+      <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon"><a href="ozon.html">Ozon</a></li>
+      <li class="independent active"><a href="independent-site.html">独立站</a></li>
     </ul>
   </nav>
   <div id="userArea" class="user-section"></div>
@@ -212,17 +210,24 @@
   let dt;
   let rawTable = [];
 
-  function card(title,val){
-    return `<div class="stat-card"><h4>${title}</h4><p>${val}</p></div>`;
+  function periodShift(startISO, endISO){
+    const start=new Date(startISO+'T00:00:00'); const end=new Date(endISO+'T00:00:00');
+    const days=Math.round((end-start)/86400000)+1; const prevEnd=new Date(start.getTime()-86400000); const prevStart=new Date(prevEnd.getTime()-(days-1)*86400000); const fmt=d=>d.toISOString().slice(0,10); return {prevStart:fmt(prevStart), prevEnd:fmt(prevEnd)};
   }
-  function renderKPI(k){
+
+  function card(title, cur, prev, isPercent){
+    const diff=(cur-prev)||0; const arrow=diff>=0?'↑':'↓'; const delta=isPercent?Math.abs(diff).toFixed(2)+'%':Math.abs(diff).toString(); const curStr=isPercent?cur.toFixed(2)+'%':cur; const cls=diff>=0?'up':'down';
+    return `<div class="stat-card"><h4>${title}</h4><p>${curStr}</p><div class="sub"><span class="delta ${cls}">${arrow} ${delta}</span></div></div>`;
+  }
+  function renderKPI(k, p){
+    p = p || {};
     $('#kpi').html([
-      card('平均点击率', (k.avg_ctr||0)+'%'),
-      card('平均转化率', (k.avg_conv_rate||0)+'%'),
-      card('曝光商品总数', k.exposure_product_count||0),
-      card('点击商品总数', k.click_product_count||0),
-      card('转化商品总数', k.conversion_product_count||0),
-      card('新品总数', k.new_product_count||0)
+      card('平均点击率', +(k.avg_ctr||0), +(p.avg_ctr||0), true),
+      card('平均转化率', +(k.avg_conv_rate||0), +(p.avg_conv_rate||0), true),
+      card('曝光商品总数', +(k.exposure_product_count||0), +(p.exposure_product_count||0)),
+      card('点击商品总数', +(k.click_product_count||0), +(p.click_product_count||0)),
+      card('转化商品总数', +(k.conversion_product_count||0), +(p.conversion_product_count||0)),
+      card('新品总数', +(k.new_product_count||0), +(p.new_product_count||0))
     ].join(''));
   }
 
@@ -341,13 +346,15 @@
       const from = fromInput.value;
       const to = toInput.value;
       const url = `/api/independent/stats?site=${encodeURIComponent(site)}&from=${from}&to=${to}`;
-      const res = await fetch(url);
+      const { prevStart, prevEnd } = periodShift(from, to);
+      const prevUrl = `/api/independent/stats?site=${encodeURIComponent(site)}&from=${prevStart}&to=${prevEnd}`;
+      const [res, resPrev] = await Promise.all([fetch(url), fetch(prevUrl)]);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
+      const [json, jsonPrev] = await Promise.all([res.json(), resPrev.json()]);
       if (!json.ok) throw new Error(json.error || '加载失败');
 
       rawTable = json.table || [];
-      renderKPI(json.kpis || {});
+      renderKPI(json.kpis || {}, (jsonPrev.ok && jsonPrev.kpis) ? jsonPrev.kpis : {});
       populateFilters();
       buildTable();
 
