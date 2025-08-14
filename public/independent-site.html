@@ -108,15 +108,10 @@
         </div>
       </div>
     </section>
-
+    <div id="kpi" class="stats-cards"></div>
     <div class="divider"></div>
 
     <!-- 运营分析 -->
-    <div class="tabs">
-      <div class="tab" data-tab="analysis">运营分析</div>
-      <div class="tab active" data-tab="detail">明细表</div>
-    </div>
-
     <section id="analysis" class="content-pad" style="display:none;">
       <div class="grid">
         <div class="panel">
@@ -181,9 +176,6 @@
       const el = document.getElementById(id);
       if (el) el.style.display = (id===to ? '' : 'none');
     });
-    document.querySelectorAll('.tabs .tab').forEach(t=>{
-      t.classList.toggle('active', t.dataset.tab === to);
-    });
     sb.querySelectorAll('a[data-jump]').forEach(x=>x.classList.remove('active'));
     a.classList.add('active');
     setTimeout(()=> window.dispatchEvent(new Event('resize')), 0);
@@ -219,6 +211,20 @@
   });
   let dt;
   let rawTable = [];
+
+  function card(title,val){
+    return `<div class="stat-card"><h4>${title}</h4><p>${val}</p></div>`;
+  }
+  function renderKPI(k){
+    $('#kpi').html([
+      card('平均点击率', (k.avg_ctr||0)+'%'),
+      card('平均转化率', (k.avg_conv_rate||0)+'%'),
+      card('曝光商品总数', k.exposure_product_count||0),
+      card('点击商品总数', k.click_product_count||0),
+      card('转化商品总数', k.conversion_product_count||0),
+      card('新品总数', k.new_product_count||0)
+    ].join(''));
+  }
 
   function aggregateTable(data, showDevice, showNetwork, showCampaign){
     const map = {};
@@ -341,6 +347,7 @@
       if (!json.ok) throw new Error(json.error || '加载失败');
 
       rawTable = json.table || [];
+      renderKPI(json.kpis || {});
       populateFilters();
       buildTable();
 

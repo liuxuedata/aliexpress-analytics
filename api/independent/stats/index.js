@@ -159,7 +159,45 @@ module.exports = async (req, res) => {
       .sort((a,b)=> b.conversions - a.conversions)
       .slice(0, 50);
 
-    res.status(200).json({ ok: true, from: fromDate, to: toDate, table, series, topList });
+    // KPI metrics
+    const sum = (arr, k) => arr.reduce((s,r)=> s + safeNum(r[k]), 0);
+    const clickSum = sum(table, 'clicks');
+    const imprSum = sum(table, 'impr');
+    const convSum = sum(table, 'conversions');
+    const exposureSet = new Set();
+    const clickSet = new Set();
+    const convSet = new Set();
+    table.forEach(r=>{
+      const key = r.landing_path;
+      if (safeNum(r.impr) > 0) exposureSet.add(key);
+      if (safeNum(r.clicks) > 0) clickSet.add(key);
+      if (safeNum(r.conversions) > 0) convSet.add(key);
+    });
+    let newCount = 0;
+    try {
+      const { data: firstRows, error: e3 } = await supabase
+        .from('independent_landing_metrics')
+        .select('landing_path, first_day:min(day)')
+        .eq('site', site)
+        .lte('day', toDate)
+        .group('landing_path');
+      if (!e3 && Array.isArray(firstRows)) {
+        newCount = firstRows.filter(r => r.first_day >= fromDate && r.first_day <= toDate).length;
+      }
+    } catch (e) {
+      newCount = 0;
+    }
+
+    const kpis = {
+      avg_ctr: +(imprSum>0 ? (clickSum/imprSum*100).toFixed(2) : 0),
+      avg_conv_rate: +(clickSum>0 ? (convSum/clickSum*100).toFixed(2) : 0),
+      exposure_product_count: exposureSet.size,
+      click_product_count: clickSet.size,
+      conversion_product_count: convSet.size,
+      new_product_count: newCount
+    };
+
+    res.status(200).json({ ok: true, from: fromDate, to: toDate, table, series, topList, kpis });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

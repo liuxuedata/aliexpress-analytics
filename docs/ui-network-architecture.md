@@ -19,7 +19,8 @@ This document outlines how the new Canva-based design integrates with the existi
 - Server can support query parameters `site`, `from`, `to`, `network`, `campaign`, `device` for future server-side paging.
 
 ## API Interface
-- `GET /api/independent/stats` → returns `{ ok, table, series, topList }`.
+- `GET /api/independent/stats` → returns `{ ok, table, series, topList, kpis }`.
+  - `kpis` aggregates average click-through rate, average conversion rate, counts of products with impressions/clicks/conversions, and new-product totals.
 - `POST /api/independent/ingest` → accepts CSV/XLSX uploads.
 - Ensure consistent field names: `clicks`, `impr`, `cost`, `conversions`, `all_conv`, `conv_value`.
 
