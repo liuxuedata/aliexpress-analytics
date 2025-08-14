@@ -33,13 +33,39 @@ body{
 }
 
 /* ------ Top Navigation ------ */
-.header{background:var(--brand);color:#fff;position:sticky;top:0;z-index:2000;width:100%;display:flex;align-items:center;justify-content:space-between;padding:8px 16px;}
-.logo-title{font-weight:700;font-size:16px;color:#fff;}
+.header{
+  background:var(--panel);
+  color:var(--text);
+  position:sticky;
+  top:0;
+  z-index:2000;
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:8px 16px;
+  box-shadow:0 1px 2px rgba(0,0,0,.05);
+}
+.logo-title{font-weight:700;font-size:16px;color:var(--text);}
 .header-center{flex:1;display:flex;justify-content:center;}
 .header-center .platform-nav{list-style:none;margin:0;padding:0;display:flex;gap:20px;}
 .header-center .platform-nav>li{position:relative;}
-.header-center .platform-nav>li>a{color:#fff;text-decoration:none;padding:6px 10px;border-radius:6px;display:block;font-weight:700;}
-.header-center .platform-nav>li>a:hover{background:rgba(255,255,255,0.1);}
+.header-center .platform-nav>li>a{
+  color:var(--text);
+  text-decoration:none;
+  padding:6px 10px;
+  border-radius:6px;
+  display:block;
+  font-weight:700;
+  border:1px solid transparent;
+}
+.header-center .platform-nav>li>a:hover{background:#f3f4f6;}
+.header-center .platform-nav>li.active>a{
+  background:var(--brand);
+  color:#fff;
+  border:1px solid #0b1a3b;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,0.2);
+}
 .header .dropdown{display:none;position:absolute;top:100%;left:0;background:#fff;color:#111;min-width:120px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.15);z-index:2100;}
 .header .dropdown li{position:relative;}
 .header .dropdown a{color:#111;text-decoration:none;padding:6px 12px;display:block;}
@@ -48,7 +74,7 @@ body{
 .header .dropdown li:hover>ul{display:block;}
 .header .dropdown ul{display:none;position:absolute;top:0;left:100%;background:#fff;min-width:120px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.15);z-index:2100;}
 .header .user-section{margin-left:0;}
-.header .user-section a{color:#fff;text-decoration:none;font-weight:700;}
+.header .user-section a{color:var(--text);text-decoration:none;font-weight:700;}
 
 /* ------ Sidebar ------ */
 .sidebar{
