@@ -898,7 +898,20 @@
     }
     refreshUser();
     window.addEventListener('user-login', refreshUser);
-  document.querySelectorAll('.sub-nav a').forEach(a=>{a.addEventListener('click',e=>{e.preventDefault();const t=a.dataset.target;document.querySelectorAll('.sub-nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active');['detail','analysis','product'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=id===t?'':'none';});});});
+  const sb=document.getElementById('sidebar');
+  sb.addEventListener('click',e=>{
+    const a=e.target.closest('a[data-target]');
+    if(!a) return;
+    e.preventDefault();
+    const t=a.dataset.target;
+    ['detail','analysis','product'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.style.display=id===t?'':'none';
+    });
+    sb.querySelectorAll('a[data-target]').forEach(x=>x.classList.remove('active'));
+    a.classList.add('active');
+    setTimeout(()=>window.dispatchEvent(new Event('resize')),0);
+  });
 });
 </script>
 </body>
