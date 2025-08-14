@@ -315,22 +315,25 @@ table.dataTable thead th.sorting_desc{
 
 /* Gradient backgrounds for KPI cards */
 #kpi .stat-card:nth-child(1), .kpi .card:nth-child(1){
-  background:linear-gradient(135deg,#4f46e5,#7c3aed);
+  background:linear-gradient(135deg,#3730a3,#312e81);
 }
 #kpi .stat-card:nth-child(2), .kpi .card:nth-child(2){
-  background:linear-gradient(135deg,#1d4ed8,#0e7490);
+  background:linear-gradient(135deg,#1e3a8a,#0c4a6e);
 }
 #kpi .stat-card:nth-child(3), .kpi .card:nth-child(3){
-  background:linear-gradient(135deg,#0e7490,#047857);
+  background:linear-gradient(135deg,#0c4a6e,#064e3b);
 }
 #kpi .stat-card:nth-child(4), .kpi .card:nth-child(4){
-  background:linear-gradient(135deg,#047857,#3f6212);
+  background:linear-gradient(135deg,#064e3b,#365314);
 }
 #kpi .stat-card:nth-child(5), .kpi .card:nth-child(5){
-  background:linear-gradient(135deg,#3f6212,#ca8a04);
+  background:linear-gradient(135deg,#365314,#92400e);
 }
 #kpi .stat-card:nth-child(6), .kpi .card:nth-child(6){
-  background:linear-gradient(135deg,#ca8a04,#c2410c);
+  background:linear-gradient(135deg,#92400e,#7c2d12);
+}
+#kpi .stat-card:nth-child(7), .kpi .card:nth-child(7){
+  background:linear-gradient(135deg,#7c2d12,#431407);
 }
 
 #kpi .stat-card .sub{ margin-top:4px; font-size:12px; color:#f1f5f9; }
