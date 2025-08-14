@@ -87,7 +87,7 @@
 </header>
 <div class="layout container">
   <nav class="sidebar" id="sidebar">
-    <div class="site-header"><span id="currentSite">全托管 A站</span><button id="addSite" class="add-site-btn">+</button></div>
+    <div class="site-header"><span id="currentSite">全托管</span><button id="addSite" class="add-site-btn">+</button></div>
     <ul class="sub-nav">
       <li><a href="#" class="active" data-target="detail">详细数据</a></li>
       <li><a href="#" data-target="analysis">运营分析</a></li>
@@ -149,7 +149,7 @@
 <section id="analysis" class="content-pad" style="display:none;">
   <div class="grid grid-2">
     <div class="panel">
-      <h3>转化漏斗（A vs B）</h3>
+      <h3>转化漏斗</h3>
       <div id="funnel" style="width:100%;height:320px;"></div>
     </div>
     <div class="panel">
@@ -157,11 +157,11 @@
       <div id="sumCompareBar" style="width:100%;height:320px;"></div>
     </div>
     <div class="panel">
-      <h3>Top10 访客比（UV/曝光）· A</h3>
+      <h3>Top10 访客比（UV/曝光）</h3>
       <div id="vrBar" style="width:100%;height:320px;"></div>
     </div>
     <div class="panel">
-      <h3>Top10 加购→支付 转化率 · A</h3>
+      <h3>Top10 加购→支付 转化率</h3>
       <div id="payBar" style="width:100%;height:320px;"></div>
     </div>
   </div>
@@ -843,7 +843,7 @@
   const siteListKey='managedSites';
   const currentSiteKey='currentSite';
   let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
-  if(!Array.isArray(sites)||!sites.length){sites=['A站','B站','C站'];}
+  if(!Array.isArray(sites)||!sites.length){sites=['主站'];}
   const menuEl=document.getElementById('managedMenu');
   const currentSiteEl=document.getElementById('currentSite');
   function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));}
@@ -861,7 +861,7 @@
   }
   function updateCurrent(){
     const name=localStorage.getItem(currentSiteKey)||sites[0];
-    currentSiteEl.textContent='全托管 '+name;
+    currentSiteEl.textContent=sites.length>1?'全托管 '+name:'全托管';
     localStorage.setItem(currentSiteKey,name);
   }
   currentSiteEl.addEventListener('dblclick',()=>{
