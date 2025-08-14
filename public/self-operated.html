@@ -310,9 +310,13 @@ function renderTopLists(rows){
   const topSales=rows.slice().sort((a,b)=> (b.pay_buyers||0)-(a.pay_buyers||0)).slice(0,5);
   const topCart=rows.slice().sort((a,b)=> (b.add_people||0)-(a.add_people||0)).slice(0,5);
   const topVisitor=rows.slice().sort((a,b)=> (b.visitors||0)-(a.visitors||0)).slice(0,5);
-  $('#topSales').html(topSales.map(x=>`<li>${x.product_id}：${x.pay_buyers||0}</li>`).join(''));
-  $('#topCart').html(topCart.map(x=>`<li>${x.product_id}：${x.add_people||0}</li>`).join(''));
-  $('#topVisitor').html(topVisitor.map(x=>`<li>${x.product_id}：${x.visitors||0}</li>`).join(''));
+  const toLi=(x,i,val)=>{
+    const url=`https://www.aliexpress.com/item/${x.product_id}.html`;
+    return `<li><span class="rank">${i+1}</span><a class="name" href="${url}" target="_blank">${x.product_id}</a><span class="value">${val}</span><a href="#" class="ai-link" data-id="${x.product_id}">AI分析</a></li>`;
+  };
+  $('#topSales').html(topSales.map((x,i)=>toLi(x,i,x.pay_buyers||0)).join(''));
+  $('#topCart').html(topCart.map((x,i)=>toLi(x,i,x.add_people||0)).join(''));
+  $('#topVisitor').html(topVisitor.map((x,i)=>toLi(x,i,x.visitors||0)).join(''));
 }
 function renderTrends(){
   const dummy=[10,20,15,30,25,40,35];
@@ -322,6 +326,12 @@ function renderTrends(){
   echarts.init(document.getElementById('cartTrend')).setOption(opts('#10b981'));
   echarts.init(document.getElementById('payTrend')).setOption(opts('#8b5cf6'));
 }
+
+$(document).on('click','.top-list .ai-link',function(e){
+  e.preventDefault();
+  const id=$(this).data('id');
+  alert('AI分析功能建设中：'+id);
+});
 function buildDailyTotals(rows, days, startISO) {
   const byDay=new Map(); rows.forEach(r=>{ const d=r.bucket; if(!byDay.has(d)) byDay.set(d,{exp:0,vis:0,add:0,fav:0,orders:0}); const a=byDay.get(d); a.exp+=r.exposure||0; a.vis+=r.visitors||0; a.add+=r.add_people||0; a.orders+=r.pay_orders||0; a.fav+=(r.fav_people||r.fav_count||0); });
   const x=[],A=[]; const start=new Date(startISO+'T00:00:00');

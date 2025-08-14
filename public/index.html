@@ -262,19 +262,36 @@
     const topSales=rows.slice().sort((a,b)=> (b.pay_items||0)-(a.pay_items||0)).slice(0,5);
     const topCart=rows.slice().sort((a,b)=> (b.add_to_cart_users||0)-(a.add_to_cart_users||0)).slice(0,5);
     const topVisitor=rows.slice().sort((a,b)=> (b.uv||0)-(a.uv||0)).slice(0,5);
-    $('#topSales').html(topSales.map(x=>'<li>'+x.product_id+'：'+(x.pay_items||0)+'</li>').join(''));
-    $('#topCart').html(topCart.map(x=>'<li>'+x.product_id+'：'+(x.add_to_cart_users||0)+'</li>').join(''));
-    $('#topVisitor').html(topVisitor.map(x=>'<li>'+x.product_id+'：'+(x.uv||0)+'</li>').join(''));
+    const toLi=(x,i,val)=>{
+      const url=x.product_link||`https://www.aliexpress.com/item/${x.product_id}.html`;
+      return `<li><span class="rank">${i+1}</span><a class="name" href="${url}" target="_blank">${x.product_id}</a><span class="value">${val}</span><a href="#" class="ai-link" data-id="${x.product_id}">AI分析</a></li>`;
+    };
+    $('#topSales').html(topSales.map((x,i)=>toLi(x,i,x.pay_items||0)).join(''));
+    $('#topCart').html(topCart.map((x,i)=>toLi(x,i,x.add_to_cart_users||0)).join(''));
+    $('#topVisitor').html(topVisitor.map((x,i)=>toLi(x,i,x.uv||0)).join(''));
   }
 
   function renderTrends(){
-    const dummy=[10,20,15,30,25,40,35];
-    const opts=color=>({xAxis:{type:'category',data:['1','2','3','4','5','6','7']},yAxis:{type:'value'},series:[{data:dummy,type:'line',smooth:true,color}]});
-    echarts.init(document.getElementById('expTrend')).setOption(opts('#ef4444'));
-    echarts.init(document.getElementById('visitorTrend')).setOption(opts('#3b82f6'));
-    echarts.init(document.getElementById('cartTrend')).setOption(opts('#10b981'));
-    echarts.init(document.getElementById('payTrend')).setOption(opts('#8b5cf6'));
+    const rowsA=window._rowsA||[],rowsB=window._rowsB||[];
+    const sum=(arr,key)=>arr.reduce((s,r)=>s+(r[key]||0),0);
+    const chart=(el,color,curr,prev)=>{
+      echarts.init(document.getElementById(el)).setOption({
+        xAxis:{type:'category',data:['本期','上期']},
+        yAxis:{type:'value'},
+        series:[{type:'bar',data:[curr,prev],color}]
+      });
+    };
+    chart('expTrend','#ef4444',sum(rowsA,'search_exposure'),sum(rowsB,'search_exposure'));
+    chart('visitorTrend','#3b82f6',sum(rowsA,'uv'),sum(rowsB,'uv'));
+    chart('cartTrend','#10b981',sum(rowsA,'add_to_cart_users'),sum(rowsB,'add_to_cart_users'));
+    chart('payTrend','#8b5cf6',sum(rowsA,'pay_items'),sum(rowsB,'pay_items'));
   }
+
+  $(document).on('click','.top-list .ai-link',function(e){
+    e.preventDefault();
+    const id=$(this).data('id');
+    alert('AI分析功能建设中：'+id);
+  });
 
   loadPeriods().then(loadData);
 })();

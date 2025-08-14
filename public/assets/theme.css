@@ -337,5 +337,9 @@ table.dataTable thead th.sorting_desc{
 .tab-nav a{padding:4px 8px;border-radius:4px;color:#4b5563;}
 .tab-nav a.active{background:#4f46e5;color:#fff;}
 .top-list{list-style:none;margin:0;padding:0;}
-.top-list li{margin:4px 0;}
+.top-list li{display:flex;align-items:center;gap:8px;margin:4px 0;}
+.top-list li .rank{width:1.5em;text-align:right;color:#64748b;}
+.top-list li .name{flex:1;color:#2563eb;text-decoration:none;}
+.top-list li .value{margin-left:auto;color:#111827;}
+.top-list li .ai-link{margin-left:8px;color:#8b5cf6;text-decoration:underline;cursor:pointer;}
 

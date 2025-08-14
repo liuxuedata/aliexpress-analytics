@@ -10,7 +10,7 @@ This document outlines how the new Canva-based design integrates with the existi
 ### Navigation
 - Global header includes a 速卖通 button with a dropdown for **全托管**, **自运营**, and **独立站**, followed by shortcuts to Amazon, TikTok Shop, Temu, and Ozon.
  - Sidebar for independent-site pages lists **运营分析**, **明细表**, **数据导入**, **系统配置** with filter bar only on the first two.
- - Full-managed and self-operated dashboards now share the same four-item sidebar: **运营分析**, **明细数据**, **数据导入**, **系统设置**。运营分析板块提供 **周/月对比**, **单品诊断**, **渠道分析**, **地区分析** 四个子标签，并附带 Top 销售/加购/访客 榜单。
+ - Full-managed and self-operated dashboards now share the same four-item sidebar: **运营分析**, **明细数据**, **数据导入**, **系统设置**。运营分析板块提供 **周/月对比**, **单品诊断**, **渠道分析**, **地区分析** 四个子标签，并附带 Top 销售/加购/访客 榜单，商品名可跳转至平台商品页并提供 “AI 分析” 快捷入口。
 
 ### Data Charts
 - Line and bar charts use ECharts.
