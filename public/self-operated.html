@@ -34,6 +34,7 @@
     /* Force hide any old period controls if they still exist */
     #kpi-new-self-ctrl, #kpi-new-managed-ctrl, .kpi .kpi-ctrl { display: none !important; }
   </style>
+  <link rel="stylesheet" href="/assets/theme.css">
 </head>
 <body class="fm">
 <div id="loginOverlay" class="login-overlay" style="display:none">
@@ -658,5 +659,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.querySelectorAll('.sub-nav a').forEach(a=>{a.addEventListener('click',e=>{e.preventDefault();const t=a.dataset.target;document.querySelectorAll('.sub-nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active');['detail','analysis','product'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=id===t?'':'none';});});});
 });
 </script>
+  <script src="/assets/polish.js" defer></script>
 </body>
 </html>
