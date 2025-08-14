@@ -8,7 +8,7 @@ This document outlines how the new Canva-based design integrates with the existi
 
 ## UI Modules
 ### Navigation
-- Global header shows platform shortcuts (Amazon, TikTok Shop, Temu, Ozon, 独立站) and user menu.
+- Global header includes a 速卖通 button with a dropdown for **全托管**, **自运营**, and **独立站**, followed by shortcuts to Amazon, TikTok Shop, Temu, and Ozon.
 - Sidebar for independent-site pages lists **运营分析**, **明细表**, **数据导入**, **系统配置** with filter bar only on the first two.
 
 ### Data Charts
@@ -23,8 +23,9 @@ This document outlines how the new Canva-based design integrates with the existi
 - Server can support query parameters `site`, `from`, `to`, `network`, `campaign`, `device` for future server-side paging.
 
 ## API Interface
-- `GET /api/independent/stats` → returns `{ ok, table, series, topList, kpis }`.
+- `GET /api/independent/stats` → returns `{ ok, table, series, topList, kpis, kpis_prev }`.
   - `kpis` aggregates average click-through rate, average conversion rate, counts of products with impressions/clicks/conversions, and new-product totals.
+  - `kpis_prev` mirrors the same fields for the previous period so the UI can display week-over-week comparisons.
 - `POST /api/independent/ingest` → accepts CSV/XLSX uploads.
 - Ensure consistent field names: `clicks`, `impr`, `cost`, `conversions`, `all_conv`, `conv_value`.
 

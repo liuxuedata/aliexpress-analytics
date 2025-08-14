@@ -159,45 +159,86 @@ module.exports = async (req, res) => {
       .sort((a,b)=> b.conversions - a.conversions)
       .slice(0, 50);
 
-    // KPI metrics
-    const sum = (arr, k) => arr.reduce((s,r)=> s + safeNum(r[k]), 0);
-    const clickSum = sum(table, 'clicks');
-    const imprSum = sum(table, 'impr');
-    const convSum = sum(table, 'conversions');
-    const exposureSet = new Set();
-    const clickSet = new Set();
-    const convSet = new Set();
-    table.forEach(r=>{
-      const key = r.landing_path;
-      if (safeNum(r.impr) > 0) exposureSet.add(key);
-      if (safeNum(r.clicks) > 0) clickSet.add(key);
-      if (safeNum(r.conversions) > 0) convSet.add(key);
-    });
-    let newCount = 0;
-    try {
-      const { data: firstRows, error: e3 } = await supabase
-        .from('independent_landing_metrics')
-        .select('landing_path, first_day:min(day)')
-        .eq('site', site)
-        .lte('day', toDate)
-        .group('landing_path');
-      if (!e3 && Array.isArray(firstRows)) {
-        newCount = firstRows.filter(r => r.first_day >= fromDate && r.first_day <= toDate).length;
+    async function calcKpis(tbl, from, to){
+      const sum = (arr, k) => arr.reduce((s,r)=> s + safeNum(r[k]), 0);
+      const clickSum = sum(tbl, 'clicks');
+      const imprSum = sum(tbl, 'impr');
+      const convSum = sum(tbl, 'conversions');
+      const exposureSet = new Set();
+      const clickSet = new Set();
+      const convSet = new Set();
+      tbl.forEach(r=>{
+        const key = r.landing_path;
+        if (safeNum(r.impr) > 0) exposureSet.add(key);
+        if (safeNum(r.clicks) > 0) clickSet.add(key);
+        if (safeNum(r.conversions) > 0) convSet.add(key);
+      });
+      let newCount = 0;
+      try {
+        const { data: firstRows, error: e3 } = await supabase
+          .from('independent_landing_metrics')
+          .select('landing_path, first_day:min(day)')
+          .eq('site', site)
+          .lte('day', to)
+          .group('landing_path');
+        if (!e3 && Array.isArray(firstRows)) {
+          newCount = firstRows.filter(r => r.first_day >= from && r.first_day <= to).length;
+        }
+      } catch (e) {
+        newCount = 0;
       }
-    } catch (e) {
-      newCount = 0;
+      return {
+        avg_ctr: +(imprSum>0 ? (clickSum/imprSum*100).toFixed(2) : 0),
+        avg_conv_rate: +(clickSum>0 ? (convSum/clickSum*100).toFixed(2) : 0),
+        exposure_product_count: exposureSet.size,
+        click_product_count: clickSet.size,
+        conversion_product_count: convSet.size,
+        new_product_count: newCount
+      };
     }
 
-    const kpis = {
-      avg_ctr: +(imprSum>0 ? (clickSum/imprSum*100).toFixed(2) : 0),
-      avg_conv_rate: +(clickSum>0 ? (convSum/clickSum*100).toFixed(2) : 0),
-      exposure_product_count: exposureSet.size,
-      click_product_count: clickSet.size,
-      conversion_product_count: convSet.size,
-      new_product_count: newCount
-    };
+    const kpis = await calcKpis(table, fromDate, toDate);
 
-    res.status(200).json({ ok: true, from: fromDate, to: toDate, table, series, topList, kpis });
+    // previous period calculation
+    const rangeDays = Math.floor((new Date(toDate) - new Date(fromDate)) / (24*60*60*1000)) + 1;
+    const prevTo = new Date(fromDate);
+    prevTo.setDate(prevTo.getDate() - 1);
+    const prevFrom = new Date(prevTo);
+    prevFrom.setDate(prevFrom.getDate() - rangeDays + 1);
+
+    let prevTable = [];
+    for (let fromIdx = 0; prevTable.length < limitNum; fromIdx += PAGE_SIZE) {
+      const toIdx = Math.min(fromIdx + PAGE_SIZE - 1, limitNum - 1);
+      const { data, error } = await supabase
+        .from('independent_landing_metrics')
+        .select('*')
+        .eq('site', site)
+        .gte('day', prevFrom.toISOString().slice(0,10)).lte('day', prevTo.toISOString().slice(0,10))
+        .order('day', { ascending: false })
+        .range(fromIdx, toIdx);
+      if (error) return res.status(500).json({ error: error.message });
+      prevTable = prevTable.concat(data);
+      if (!data.length || data.length < PAGE_SIZE) break;
+    }
+    prevTable = (prevTable || []).map(r => ({
+      ...r,
+      product: extractName(r.landing_path),
+      clicks: safeNum(r.clicks),
+      impr: safeNum(r.impr),
+      ctr: safeNum(r.ctr),
+      avg_cpc: safeNum(r.avg_cpc),
+      cost: safeNum(r.cost),
+      conversions: safeNum(r.conversions),
+      cost_per_conv: safeNum(r.cost_per_conv),
+      all_conv: safeNum(r.all_conv),
+      conv_value: safeNum(r.conv_value),
+      all_conv_rate: safeNum(r.all_conv_rate),
+      conv_rate: safeNum(r.conv_rate)
+    }));
+
+    const kpis_prev = await calcKpis(prevTable, prevFrom.toISOString().slice(0,10), prevTo.toISOString().slice(0,10));
+
+    res.status(200).json({ ok: true, from: fromDate, to: toDate, table, series, topList, kpis, kpis_prev });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

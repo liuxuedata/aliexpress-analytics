@@ -54,7 +54,15 @@
   <div class="logo-title">跨境电商数据分析平台</div>
   <nav class="header-center">
     <ul class="platform-nav">
-      <li><a href="#">Amazon US</a></li>
+      <li><a href="#">速卖通</a>
+        <ul class="dropdown">
+          <li class="submenu"><a href="#">全托管</a>
+            <ul id="managedMenu"></ul>
+          </li>
+          <li><a href="self-operated.html">自运营</a></li>
+        </ul>
+      </li>
+      <li><a href="#">亚马逊</a></li>
       <li><a href="#">TikTok Shop</a></li>
       <li><a href="#">Temu</a></li>
       <li><a href="#">Ozon</a></li>
@@ -239,18 +247,24 @@
   let dt;
   let rawTable = [];
 
-  function card(title,val){
-    return `<div class="stat-card"><h4>${title}</h4><p>${val}</p></div>`;
-  }
-  function renderKPI(k){
-    $('#kpi').html([
-      card('平均点击率', (k.avg_ctr||0)+'%'),
-      card('平均转化率', (k.avg_conv_rate||0)+'%'),
-      card('曝光商品总数', k.exposure_product_count||0),
-      card('点击商品总数', k.click_product_count||0),
-      card('转化商品总数', k.conversion_product_count||0),
-      card('新品总数', k.new_product_count||0)
-    ].join(''));
+  function renderKPI(curr, prev={}){
+    const items=[
+      {key:'avg_ctr', label:'平均点击率', unit:'%'},
+      {key:'avg_conv_rate', label:'平均转化率', unit:'%'},
+      {key:'exposure_product_count', label:'曝光商品总数'},
+      {key:'click_product_count', label:'点击商品总数'},
+      {key:'conversion_product_count', label:'转化商品总数'},
+      {key:'new_product_count', label:'新品总数'}
+    ];
+    const html = items.map((c,i)=>{
+      const cur = curr[c.key] || 0;
+      const prevVal = prev[c.key] || 0;
+      const diff = prevVal ? (((cur - prevVal)/prevVal)*100).toFixed(2) : '0.00';
+      const trend = diff >= 0 ? 'up' : 'down';
+      const display = c.unit ? cur + c.unit : cur;
+      return `<div class="stat-card grad${i+1}"><h4>${c.label}</h4><p>${display}</p><span class="compare ${trend}">${diff}%</span></div>`;
+    }).join('');
+    $('#kpi').html(html);
   }
 
   function aggregateTable(data, showDevice, showNetwork, showCampaign){
@@ -377,7 +391,7 @@
       if (!json.ok) throw new Error(json.error || '加载失败');
 
       rawTable = json.table || [];
-      renderKPI(json.kpis || {});
+      renderKPI(json.kpis || {}, json.kpis_prev || {});
       populateFilters();
       buildTable();
 
@@ -469,6 +483,29 @@ document.addEventListener('DOMContentLoaded',()=>{
   refreshUser();
   window.addEventListener('user-login', refreshUser);
 });
+</script>
+
+<script>
+// populate 全托管站下拉列表
+const siteListKey='managedSites';
+const currentSiteKey='managedCurrentSite';
+const menuEl=document.getElementById('managedMenu');
+let sites=JSON.parse(localStorage.getItem(siteListKey)||'[]');
+if(!sites.length) sites=['A站'];
+function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));}
+function renderMenu(){
+  if(!menuEl) return;
+  menuEl.innerHTML='';
+  sites.forEach((name,idx)=>{
+    const li=document.createElement('li');
+    const a=document.createElement('a');
+    a.href='index.html';
+    a.textContent=name;
+    a.addEventListener('click',e=>{e.preventDefault();localStorage.setItem(currentSiteKey,name);window.location.href='index.html';});
+    li.appendChild(a);menuEl.appendChild(li);
+  });
+}
+renderMenu();
 </script>
 
 </body>
