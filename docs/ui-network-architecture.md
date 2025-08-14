@@ -7,6 +7,10 @@ This document outlines how the new Canva-based design integrates with the existi
 - **Scope**: Front-end UI, API contracts, data flow, and performance considerations.
 
 ## UI Modules
+### Navigation
+- Global header shows platform shortcuts (Amazon, TikTok Shop, Temu, Ozon, 独立站) and user menu.
+- Sidebar for independent-site pages lists **运营分析**, **明细表**, **数据导入**, **系统配置** with filter bar only on the first two.
+
 ### Data Charts
 - Line and bar charts use ECharts.
 - Fetch `/api/independent/stats` for time-series data.

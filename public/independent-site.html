@@ -54,19 +54,11 @@
   <div class="logo-title">跨境电商数据分析平台</div>
   <nav class="header-center">
     <ul class="platform-nav">
-      <li><a href="#">速卖通</a>
-        <ul class="dropdown">
-          <li class="submenu"><a href="#">全托管</a>
-            <ul id="managedMenu"></ul>
-          </li>
-          <li><a href="self-operated.html">自运营</a></li>
-        </ul>
-      </li>
-      <li><a href="#">亚马逊</a></li>
+      <li><a href="#">Amazon US</a></li>
       <li><a href="#">TikTok Shop</a></li>
       <li><a href="#">Temu</a></li>
       <li><a href="#">Ozon</a></li>
-      <li><a href="independent-site.html">独立站</a></li>
+      <li><a href="independent-site.html" class="active">独立站</a></li>
     </ul>
   </nav>
   <div id="userArea" class="user-section"></div>
@@ -76,16 +68,17 @@
   <nav class="sidebar" id="sidebar">
     <div class="site-header"><span>独立站</span></div>
     <ul class="sub-nav">
-      <li><a href="#" data-jump="detail" class="active">明细数据</a></li>
-      <li><a href="#" data-jump="analysis">运营分析</a></li>
-      <li><a href="#" data-jump="product">产品分析</a></li>
+      <li><a href="#" data-jump="analysis" class="active">运营分析</a></li>
+      <li><a href="#" data-jump="detail">明细表</a></li>
+      <li><a href="#" data-jump="import">数据导入</a></li>
+      <li><a href="#" data-jump="config">系统配置</a></li>
     </ul>
   </nav>
 
   <main class="main mx-auto max-w-container px-6">
     <div class="content">
     <!-- 控件 -->
-    <section class="content-pad">
+    <section id="filters" class="content-pad">
       <div class="panel">
         <div class="controls">
           <label>站点：</label>
@@ -98,9 +91,6 @@
           <label>Campaign：</label>
           <select id="campaignSel"><option value="">全部</option></select>
           <button id="refreshBtn" class="btn">刷新</button>
-          <button id="uploadBtn" class="btn">上传数据</button>
-          <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none;">
-          <span id="uploadStatus" class="small"></span>
           <div id="columnToggleWrapper">
             <button id="columnToggle" class="btn">筛选列</button>
             <div id="columnMenu" class="small"></div>
@@ -108,11 +98,9 @@
         </div>
       </div>
     </section>
-    <div id="kpi" class="stats-cards"></div>
-    <div class="divider"></div>
 
     <!-- 运营分析 -->
-    <section id="analysis" class="content-pad" style="display:none;">
+    <section id="analysis" class="content-pad">
       <div class="grid">
         <div class="panel">
           <h3>Daily 趋势（点击 / 曝光 / 转化价值）</h3>
@@ -132,9 +120,11 @@
     </section>
 
     <!-- 明细表 -->
-    <section id="detail" class="content-pad">
+    <section id="detail" class="content-pad" style="display:none;">
       <div class="panel">
         <h3>Landing Pages 明细</h3>
+        <div id="kpi" class="stats-cards"></div>
+        <div class="divider"></div>
         <div class="table-section">
           <div id="tableLoading" class="small" style="padding:1em;text-align:center;">数据加载中...</div>
           <div class="table-wrapper" style="display:none;">
@@ -154,10 +144,42 @@
       </div>
     </section>
 
-    <!-- 产品分析（占位） -->
-    <section id="product" class="content-pad" style="display:none;">
-      <div class="panel"><h3>产品分析</h3>
-        <div class="small">（后续可按路径映射到商品，增加售价、毛利、库存、类目等维度的分析）</div>
+    <!-- 数据导入 -->
+    <section id="import" class="content-pad" style="display:none;">
+      <div class="panel">
+        <h3>数据导入</h3>
+        <div class="import-area" style="text-align:center;padding:2em;border:2px dashed #ccc;">
+          <p>支持 CSV 或 Excel 文件，最大 10MB</p>
+          <button id="uploadBtn" class="btn">选择文件</button>
+          <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none;">
+          <span id="uploadStatus" class="small"></span>
+        </div>
+        <div class="divider"></div>
+        <h4>导入历史</h4>
+        <table id="importHistory" class="display" style="width:100%">
+          <thead><tr><th>文件名</th><th>日期</th><th>记录数</th><th>状态</th></tr></thead>
+          <tbody><tr><td colspan="4" style="text-align:center">暂无数据</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 系统配置 -->
+    <section id="config" class="content-pad" style="display:none;">
+      <div class="panel">
+        <h3>系统配置</h3>
+        <div class="form" style="max-width:400px;">
+          <label>站点名称：<input type="text" class="form-input" placeholder="如：Amazon US"></label>
+          <label>站点 URL：<input type="text" class="form-input" placeholder="https://example.com"></label>
+          <button class="btn" style="margin-top:1em;">保存</button>
+        </div>
+        <div class="divider"></div>
+        <h4>站点列表</h4>
+        <table class="display" style="width:100%">
+          <thead><tr><th>站点</th><th>URL</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td>Amazon US</td><td>https://sellercentral.amazon.com</td><td>启用</td><td><button class="btn small">编辑</button></td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
     </div>
@@ -168,17 +190,19 @@
 // 左侧局部导航切换
 (function(){
   const sb = document.getElementById('sidebar');
+  const filters = document.getElementById('filters');
   sb.addEventListener('click', function(e){
     const a = e.target.closest('a[data-jump]');
     if (!a) return;
     e.preventDefault();
     const to = a.getAttribute('data-jump');
-    ['detail','analysis','product'].forEach(id=>{
+    ['analysis','detail','import','config'].forEach(id=>{
       const el = document.getElementById(id);
       if (el) el.style.display = (id===to ? '' : 'none');
     });
     sb.querySelectorAll('a[data-jump]').forEach(x=>x.classList.remove('active'));
     a.classList.add('active');
+    filters.style.display = (to==='analysis' || to==='detail') ? '' : 'none';
     setTimeout(()=> window.dispatchEvent(new Event('resize')), 0);
   });
 })();
@@ -427,21 +451,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
-  const siteListKey='managedSites';
-  let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
-  if(!Array.isArray(sites)||!sites.length){sites=['A站','B站','C站'];localStorage.setItem(siteListKey,JSON.stringify(sites));}
-  const menuEl=document.getElementById('managedMenu');
-  if(menuEl){
-    sites.forEach(name=>{
-      const li=document.createElement('li');
-      const a=document.createElement('a');
-      a.href='index.html';
-      a.textContent=name;
-      a.addEventListener('click',e=>{e.preventDefault();localStorage.setItem('currentSite',name);window.location.href='index.html';});
-      li.appendChild(a);
-      menuEl.appendChild(li);
-    });
-  }
   const userArea=document.getElementById('userArea');
   function refreshUser(){
     const u=JSON.parse(localStorage.getItem('user')||'null');
