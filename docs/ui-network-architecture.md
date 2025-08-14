@@ -13,9 +13,10 @@ This document outlines how the new Canva-based design integrates with the existi
 - Use lazy rendering and `deferRender` for tables to improve initial load.
 
 ### Filters & Pagination
-- Date pickers and column toggles trigger data reloads.
+- Date pickers plus network/campaign dropdowns trigger data reloads.
+- Device column remains optional via a toggle.
 - Main table uses DataTables with client-side pagination (`pageLength: 20`).
-- Server can support query parameters `site`, `from`, `to`, and optional `campaign`, `network`, `device` for future server-side paging.
+- Server can support query parameters `site`, `from`, `to`, `network`, `campaign`, `device` for future server-side paging.
 
 ## API Interface
 - `GET /api/independent/stats` → returns `{ ok, table, series, topList }`.

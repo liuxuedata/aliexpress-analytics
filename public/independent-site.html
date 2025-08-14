@@ -93,6 +93,10 @@
           <label>起止：</label>
           <input type="date" id="from">
           <input type="date" id="to">
+          <label>网络：</label>
+          <select id="networkSel"><option value="">全部</option></select>
+          <label>Campaign：</label>
+          <select id="campaignSel"><option value="">全部</option></select>
           <button id="refreshBtn" class="btn">刷新</button>
           <button id="uploadBtn" class="btn">上传数据</button>
           <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none;">
@@ -200,10 +204,10 @@
   const toInput = document.getElementById('to');
   const columnMenu = document.getElementById('columnMenu');
   const columnToggle = document.getElementById('columnToggle');
+  const networkSel = document.getElementById('networkSel');
+  const campaignSel = document.getElementById('campaignSel');
   const optionalCols = [
-    { idx:1, label:'设备' },
-    { idx:2, label:'网络' },
-    { idx:3, label:'Campaign' }
+    { idx:1, label:'设备' }
   ];
   optionalCols.forEach(c=>{
     const lab=document.createElement('label');
@@ -216,10 +220,7 @@
   let dt;
   let rawTable = [];
 
-  function aggregateTable(data){
-    const showDevice = $('#columnMenu input[data-col=1]').prop('checked');
-    const showNetwork = $('#columnMenu input[data-col=2]').prop('checked');
-    const showCampaign = $('#columnMenu input[data-col=3]').prop('checked');
+  function aggregateTable(data, showDevice, showNetwork, showCampaign){
     const map = {};
     data.forEach(r=>{
       const keyParts=[r.day, r.landing_path];
@@ -258,7 +259,15 @@
   }
 
   function buildTable(){
-    const data = aggregateTable(rawTable);
+    let data = rawTable;
+    const net = networkSel.value;
+    const camp = campaignSel.value;
+    if(net) data = data.filter(r=>r.network===net);
+    if(camp) data = data.filter(r=>r.campaign===camp);
+    const showDevice = $('#columnMenu input[data-col=1]').prop('checked');
+    const showNetwork = !!net;
+    const showCampaign = !!camp;
+    data = aggregateTable(data, showDevice, showNetwork, showCampaign);
     if(dt) dt.destroy();
     dt = $('#report').DataTable({
       destroy:true,
@@ -289,14 +298,14 @@
         { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
       ]
     });
-    $('#columnMenu input[type=checkbox]').each(function(){
-      dt.column($(this).data('col')).visible(this.checked);
-    });
+    dt.column(1).visible(showDevice);
+    dt.column(2).visible(showNetwork);
+    dt.column(3).visible(showCampaign);
   }
 
-  $('#columnMenu').on('change','input[type=checkbox]',function(){
-    buildTable();
-  });
+  $('#columnMenu').on('change','input[type=checkbox]', buildTable);
+  networkSel.addEventListener('change', buildTable);
+  campaignSel.addEventListener('change', buildTable);
 
   // 默认站点取 url 参数或从示例取
   siteInput.value = getParam('site') || 'poolsvacuum.com';
@@ -313,6 +322,13 @@
   fromInput.value = getParam('from') || fromDef;
   toInput.value = getParam('to') || toDef;
 
+  function populateFilters(){
+    const nets = Array.from(new Set(rawTable.map(r=>r.network).filter(Boolean))).sort();
+    networkSel.innerHTML = '<option value="">全部</option>' + nets.map(n=>`<option value="${n}">${n}</option>`).join('');
+    const camps = Array.from(new Set(rawTable.map(r=>r.campaign).filter(Boolean))).sort();
+    campaignSel.innerHTML = '<option value="">全部</option>' + camps.map(c=>`<option value="${c}">${c}</option>`).join('');
+  }
+
   async function load() {
     try {
       const site = siteInput.value.trim();
@@ -325,6 +341,7 @@
       if (!json.ok) throw new Error(json.error || '加载失败');
 
       rawTable = json.table || [];
+      populateFilters();
       buildTable();
 
       // 趋势图
