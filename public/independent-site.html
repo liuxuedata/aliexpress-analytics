@@ -93,6 +93,10 @@
           <label>起止：</label>
           <input type="date" id="from">
           <input type="date" id="to">
+          <label>网络：</label>
+          <select id="networkSel"><option value="">全部</option></select>
+          <label>Campaign：</label>
+          <select id="campaignSel"><option value="">全部</option></select>
           <button id="refreshBtn" class="btn">刷新</button>
           <button id="uploadBtn" class="btn">上传数据</button>
           <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none;">
@@ -104,15 +108,10 @@
         </div>
       </div>
     </section>
-
+    <div id="kpi" class="stats-cards"></div>
     <div class="divider"></div>
 
     <!-- 运营分析 -->
-    <div class="tabs">
-      <div class="tab" data-tab="analysis">运营分析</div>
-      <div class="tab active" data-tab="detail">明细表</div>
-    </div>
-
     <section id="analysis" class="content-pad" style="display:none;">
       <div class="grid">
         <div class="panel">
@@ -177,9 +176,6 @@
       const el = document.getElementById(id);
       if (el) el.style.display = (id===to ? '' : 'none');
     });
-    document.querySelectorAll('.tabs .tab').forEach(t=>{
-      t.classList.toggle('active', t.dataset.tab === to);
-    });
     sb.querySelectorAll('a[data-jump]').forEach(x=>x.classList.remove('active'));
     a.classList.add('active');
     setTimeout(()=> window.dispatchEvent(new Event('resize')), 0);
@@ -200,10 +196,10 @@
   const toInput = document.getElementById('to');
   const columnMenu = document.getElementById('columnMenu');
   const columnToggle = document.getElementById('columnToggle');
+  const networkSel = document.getElementById('networkSel');
+  const campaignSel = document.getElementById('campaignSel');
   const optionalCols = [
-    { idx:1, label:'设备' },
-    { idx:2, label:'网络' },
-    { idx:3, label:'Campaign' }
+    { idx:1, label:'设备' }
   ];
   optionalCols.forEach(c=>{
     const lab=document.createElement('label');
@@ -214,9 +210,108 @@
     columnMenu.style.display = columnMenu.style.display==='block' ? 'none' : 'block';
   });
   let dt;
-  $('#columnMenu').on('change','input[type=checkbox]',function(){
-    if(dt) dt.column($(this).data('col')).visible(this.checked);
-  });
+  let rawTable = [];
+
+  function card(title,val){
+    return `<div class="stat-card"><h4>${title}</h4><p>${val}</p></div>`;
+  }
+  function renderKPI(k){
+    $('#kpi').html([
+      card('平均点击率', (k.avg_ctr||0)+'%'),
+      card('平均转化率', (k.avg_conv_rate||0)+'%'),
+      card('曝光商品总数', k.exposure_product_count||0),
+      card('点击商品总数', k.click_product_count||0),
+      card('转化商品总数', k.conversion_product_count||0),
+      card('新品总数', k.new_product_count||0)
+    ].join(''));
+  }
+
+  function aggregateTable(data, showDevice, showNetwork, showCampaign){
+    const map = {};
+    data.forEach(r=>{
+      const keyParts=[r.day, r.landing_path];
+      if(showDevice) keyParts.push(r.device||'');
+      if(showNetwork) keyParts.push(r.network||'');
+      if(showCampaign) keyParts.push(r.campaign||'');
+      const key=keyParts.join('|');
+      if(!map[key]){
+        map[key]={
+          product:r.product,
+          landing_path:r.landing_path,
+          landing_url:r.landing_url,
+          day:r.day,
+          device: showDevice ? r.device : '',
+          network: showNetwork ? r.network : '',
+          campaign: showCampaign ? r.campaign : '',
+          clicks:0, impr:0, cost:0, conversions:0, all_conv:0, conv_value:0
+        };
+      }
+      const m=map[key];
+      m.clicks+=r.clicks||0;
+      m.impr+=r.impr||0;
+      m.cost+=r.cost||0;
+      m.conversions+=r.conversions||0;
+      m.all_conv+=r.all_conv||0;
+      m.conv_value+=r.conv_value||0;
+    });
+    return Object.values(map).map(m=>{
+      m.ctr = m.impr>0 ? m.clicks/m.impr : 0;
+      m.avg_cpc = m.clicks>0 ? m.cost/m.clicks : 0;
+      m.conv_rate = m.clicks>0 ? m.conversions/m.clicks : 0;
+      m.cost_per_conv = m.conversions>0 ? m.cost/m.conversions : 0;
+      m.all_conv_rate = m.clicks>0 ? m.all_conv/m.clicks : 0;
+      return m;
+    }).sort((a,b)=> b.day.localeCompare(a.day));
+  }
+
+  function buildTable(){
+    let data = rawTable;
+    const net = networkSel.value;
+    const camp = campaignSel.value;
+    if(net) data = data.filter(r=>r.network===net);
+    if(camp) data = data.filter(r=>r.campaign===camp);
+    const showDevice = $('#columnMenu input[data-col=1]').prop('checked');
+    const showNetwork = !!net;
+    const showCampaign = !!camp;
+    data = aggregateTable(data, showDevice, showNetwork, showCampaign);
+    if(dt) dt.destroy();
+    dt = $('#report').DataTable({
+      destroy:true,
+      pageLength:20,
+      data,
+      scrollX:true,
+      fixedHeader:true,
+      autoWidth:false,
+      columns:[
+        { data:'product', render:(v,t,r)=>{
+            const name = v || r.landing_path || '';
+            return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
+          }},
+        { data:'device', render: v => v || '' },
+        { data:'network', render: v => v || '' },
+        { data:'campaign', render: v => v || '' },
+        { data:'day', render: v => v || '' },
+        { data:'clicks', render: v => v ?? 0 },
+        { data:'impr', render: v => v ?? 0 },
+        { data:'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
+        { data:'avg_cpc', render: v => v ?? 0 },
+        { data:'cost', render: v => v ?? 0 },
+        { data:'conversions', render: v => v ?? 0 },
+        { data:'cost_per_conv', render: v => v ?? 0 },
+        { data:'all_conv', render: v => v ?? 0 },
+        { data:'conv_value', render: v => v ?? 0 },
+        { data:'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
+        { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
+      ]
+    });
+    dt.column(1).visible(showDevice);
+    dt.column(2).visible(showNetwork);
+    dt.column(3).visible(showCampaign);
+  }
+
+  $('#columnMenu').on('change','input[type=checkbox]', buildTable);
+  networkSel.addEventListener('change', buildTable);
+  campaignSel.addEventListener('change', buildTable);
 
   // 默认站点取 url 参数或从示例取
   siteInput.value = getParam('site') || 'poolsvacuum.com';
@@ -233,6 +328,13 @@
   fromInput.value = getParam('from') || fromDef;
   toInput.value = getParam('to') || toDef;
 
+  function populateFilters(){
+    const nets = Array.from(new Set(rawTable.map(r=>r.network).filter(Boolean))).sort();
+    networkSel.innerHTML = '<option value="">全部</option>' + nets.map(n=>`<option value="${n}">${n}</option>`).join('');
+    const camps = Array.from(new Set(rawTable.map(r=>r.campaign).filter(Boolean))).sort();
+    campaignSel.innerHTML = '<option value="">全部</option>' + camps.map(c=>`<option value="${c}">${c}</option>`).join('');
+  }
+
   async function load() {
     try {
       const site = siteInput.value.trim();
@@ -244,39 +346,10 @@
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || '加载失败');
 
-      // 明细表
-      dt = $('#report').DataTable({
-        destroy: true,
-        pageLength: 20,
-        data: json.table,
-        scrollX: true,
-        fixedHeader: true,
-        autoWidth: false,
-        columns: [
-          { data: 'product', render:(v,t,r)=>{
-              const name = v || r.landing_path || '';
-              return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
-            } },
-          { data: 'device', render: v => v || '' },
-          { data: 'network', render: v => v || '' },
-          { data: 'campaign', render: v => v || '' },
-          { data: 'day', render: v => v || '' },
-          { data: 'clicks', render: v => v ?? 0 },
-          { data: 'impr', render: v => v ?? 0 },
-          { data: 'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
-          { data: 'avg_cpc', render: v => v ?? 0 },
-          { data: 'cost', render: v => v ?? 0 },
-          { data: 'conversions', render: v => v ?? 0 },
-          { data: 'cost_per_conv', render: v => v ?? 0 },
-          { data: 'all_conv', render: v => v ?? 0 },
-          { data: 'conv_value', render: v => v ?? 0 },
-          { data: 'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
-          { data: 'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
-        ]
-      });
-      $('#columnMenu input[type=checkbox]').each(function(){
-        dt.column($(this).data('col')).visible(this.checked);
-      });
+      rawTable = json.table || [];
+      renderKPI(json.kpis || {});
+      populateFilters();
+      buildTable();
 
       // 趋势图
       const days = json.series.map(x=>x.day);
