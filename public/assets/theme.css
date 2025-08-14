@@ -303,18 +303,44 @@ table.dataTable thead th.sorting_desc{
 }
 
 /* KPI: full-managed (#kpi .stat-card) */
-#kpi .stat-card{
-  background: var(--kpi-bg);
-  border: 1px solid var(--kpi-border);
+#kpi .stat-card,
+.kpi .card{
+  border: none;
   box-shadow: var(--shadow);
+  color: #fff;
+}
+#kpi .stat-card h4, #kpi .stat-card p,
+.kpi .card h4, .kpi .card p{ color:#fff; }
+
+/* Gradient backgrounds for KPI cards */
+#kpi .stat-card:nth-child(1), .kpi .card:nth-child(1){
+  background:linear-gradient(135deg,#6366f1,#8b5cf6);
+}
+#kpi .stat-card:nth-child(2), .kpi .card:nth-child(2){
+  background:linear-gradient(135deg,#3b82f6,#06b6d4);
+}
+#kpi .stat-card:nth-child(3), .kpi .card:nth-child(3){
+  background:linear-gradient(135deg,#06b6d4,#10b981);
+}
+#kpi .stat-card:nth-child(4), .kpi .card:nth-child(4){
+  background:linear-gradient(135deg,#10b981,#84cc16);
+}
+#kpi .stat-card:nth-child(5), .kpi .card:nth-child(5){
+  background:linear-gradient(135deg,#84cc16,#facc15);
+}
+#kpi .stat-card:nth-child(6), .kpi .card:nth-child(6){
+  background:linear-gradient(135deg,#facc15,#f97316);
 }
 
-/* KPI: self-operated (.kpi .card) */
-.kpi .card{
-  background: var(--kpi-bg);
-  border: 1px solid var(--kpi-border);
-  box-shadow: var(--shadow);
-}
+#kpi .stat-card .sub{ margin-top:4px; font-size:12px; color:#f1f5f9; }
+#kpi .stat-card .delta{ margin-left:6px; font-size:12px; font-weight:700; }
+#kpi .stat-card .delta.up{ color:#bbf7d0; }
+#kpi .stat-card .delta.down{ color:#fecaca; }
+
+/* Override self-operated KPI sub/delta colors for contrast */
+.kpi .card .sub{ color:#f1f5f9; }
+.kpi .card .delta.up{ color:#bbf7d0; }
+.kpi .card .delta.down{ color:#fecaca; }
 
 /* Segmented tabs for "明细表 / 运营分析" (works for various markup) */
 .tabs, .tab-group, .segmented, .btn-group.tabs, .switch-group{

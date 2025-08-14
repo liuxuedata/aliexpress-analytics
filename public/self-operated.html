@@ -76,7 +76,7 @@
       <li class="amazon"><a href="amazon.html">亚马逊</a></li>
       <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
       <li class="temu"><a href="temu.html">Temu</a></li>
-      <li class="ozon"><a href="#">Ozon</a></li>
+      <li class="ozon"><a href="ozon.html">Ozon</a></li>
       <li class="independent"><a href="independent-site.html">独立站</a></li>
     </ul>
   </nav>
@@ -113,12 +113,12 @@
       </div>
       <div class="divider"></div>
       <div class="kpi">
-        <div class="card"><h4>平均访客比</h4><p id="avgVisitor">0%</p></div>
-        <div class="card"><h4>平均加购比</h4><p id="avgCart">0%</p></div>
-        <div class="card"><h4>平均支付比</h4><p id="avgPay">0%</p></div>
-        <div class="card"><h4>商品总数</h4><p id="totalProducts">0</p></div>
-        <div class="card"><h4>加购商品数</h4><p id="cartedProducts">0</p></div>
-        <div class="card"><h4>支付商品数</h4><p id="purchasedProducts">0</p></div>
+        <div class="card"><h4>平均访客比</h4><p id="avgVisitor">0%</p><div class="sub" id="avgVisitorChange"></div></div>
+        <div class="card"><h4>平均加购比</h4><p id="avgCart">0%</p><div class="sub" id="avgCartChange"></div></div>
+        <div class="card"><h4>平均支付比</h4><p id="avgPay">0%</p><div class="sub" id="avgPayChange"></div></div>
+        <div class="card"><h4>商品总数</h4><p id="totalProducts">0</p><div class="sub" id="totalProductsChange"></div></div>
+        <div class="card"><h4>加购商品数</h4><p id="cartedProducts">0</p><div class="sub" id="cartedProductsChange"></div></div>
+        <div class="card"><h4>支付商品数</h4><p id="purchasedProducts">0</p><div class="sub" id="purchasedProductsChange"></div></div>
       </div>
     </div>
 
@@ -292,19 +292,35 @@ function periodShift(startISO, endISO) {
   const fmt = d => d.toISOString().slice(0,10);
   return { prevStart: fmt(prevStart), prevEnd: fmt(prevEnd), days };
 }
-function computeCards(rows) {
-  if (!rows.length) {
-    $('#avgVisitor').text('0%'); $('#avgCart').text('0%'); $('#avgPay').text('0%');
-    $('#totalProducts').text(0); $('#cartedProducts').text(0); $('#purchasedProducts').text(0); return;
+function computeCards(rows, prevRows) {
+  function summarize(rs){
+    if (!rs.length) return {vr:0,cr:0,pr:0,total:0,pc:0,pp:0};
+    const sum = rs.reduce((a,b)=>({exposure:a.exposure+b.exposure,visitors:a.visitors+b.visitors,add_people:a.add_people+b.add_people,pay_buyers:a.pay_buyers+b.pay_buyers}), {exposure:0,visitors:0,add_people:0,pay_buyers:0});
+    const products=new Map(); rs.forEach(r=>{ if(!products.has(r.product_id)) products.set(r.product_id,{exp:0,add:0,pay:0}); const acc=products.get(r.product_id); acc.exp+=r.exposure||0; acc.add+=r.add_people||0; acc.pay+=r.pay_buyers||0; });
+    let pe=0,pc=0,pp=0; products.forEach(v=>{ if(v.exp>0)pe++; if(v.add>0)pc++; if(v.pay>0)pp++; });
+    const vr=sum.exposure>0?((sum.visitors/sum.exposure)*100):0;
+    const cr=sum.visitors>0?((sum.add_people/sum.visitors)*100):0;
+    const pr=sum.add_people>0?((sum.pay_buyers/sum.add_people)*100):0;
+    return {vr,cr,pr,total:products.size,pc,pp};
   }
-  const sum = rows.reduce((a,b)=>({exposure:a.exposure+b.exposure,visitors:a.visitors+b.visitors,add_people:a.add_people+b.add_people,pay_buyers:a.pay_buyers+b.pay_buyers}), {exposure:0,visitors:0,add_people:0,pay_buyers:0});
-  const products=new Map(); rows.forEach(r=>{ if(!products.has(r.product_id)) products.set(r.product_id,{exp:0,add:0,pay:0}); const acc=products.get(r.product_id); acc.exp+=r.exposure||0; acc.add+=r.add_people||0; acc.pay+=r.pay_buyers||0; });
-  let pe=0,pc=0,pp=0; products.forEach(v=>{ if(v.exp>0)pe++; if(v.add>0)pc++; if(v.pay>0)pp++; });
-  const vr=sum.exposure>0?((sum.visitors/sum.exposure)*100).toFixed(2)+'%':'0%';
-  const cr=sum.visitors>0?((sum.add_people/sum.visitors)*100).toFixed(2)+'%':'0%';
-  const pr=sum.add_people>0?((sum.pay_buyers/sum.add_people)*100).toFixed(2)+'%':'0%';
-  $('#avgVisitor').text(vr); $('#avgCart').text(cr); $('#avgPay').text(pr);
-  $('#totalProducts').text(products.size); $('#cartedProducts').text(pc); $('#purchasedProducts').text(pp);
+  function setDelta(id,diff,isPercent){
+    const el=document.getElementById(id); if(!el)return;
+    const arrow=diff>=0?'↑':'↓';
+    const cls=diff>=0?'delta up':'delta down';
+    const val=isPercent?Math.abs(diff).toFixed(2)+'%':Math.abs(diff).toString();
+    el.innerHTML=`<span class="${cls}">${arrow} ${val}</span>`;
+  }
+  const cur=summarize(rows), prev=summarize(prevRows||[]);
+  $('#avgVisitor').text(cur.vr.toFixed(2)+'%');
+  $('#avgCart').text(cur.cr.toFixed(2)+'%');
+  $('#avgPay').text(cur.pr.toFixed(2)+'%');
+  $('#totalProducts').text(cur.total); $('#cartedProducts').text(cur.pc); $('#purchasedProducts').text(cur.pp);
+  setDelta('avgVisitorChange', cur.vr-prev.vr, true);
+  setDelta('avgCartChange', cur.cr-prev.cr, true);
+  setDelta('avgPayChange', cur.pr-prev.pr, true);
+  setDelta('totalProductsChange', cur.total-prev.total, false);
+  setDelta('cartedProductsChange', cur.pc-prev.pc, false);
+  setDelta('purchasedProductsChange', cur.pp-prev.pp, false);
 }
 function buildDailyTotals(rows, days, startISO) {
   const byDay=new Map(); rows.forEach(r=>{ const d=r.bucket; if(!byDay.has(d)) byDay.set(d,{exp:0,vis:0,add:0,fav:0,orders:0}); const a=byDay.get(d); a.exp+=r.exposure||0; a.vis+=r.visitors||0; a.add+=r.add_people||0; a.orders+=r.pay_orders||0; a.fav+=(r.fav_people||r.fav_count||0); });
@@ -407,13 +423,15 @@ async function fetchAndRenderAll() {
     else { const today=new Date(); endISO=today.toISOString().slice(0,10); startISO=new Date(today.getTime()-6*86400000).toISOString().slice(0,10); $('#dateFilter').val(`${startISO} to ${endISO}`); }
     const g = 'day';$('#progress').text('查询中…');
 
-    const rowsNowAgg=await fetchAgg(startISO,endISO,g);
-    computeCards(rowsNowAgg);
-    await renderTable(rowsNowAgg,g);
-
     const { prevStart, prevEnd, days }=periodShift(startISO,endISO);
-    const rowsA=await fetchAgg(startISO,endISO,'day');
-    const rowsB=await fetchAgg(prevStart,prevEnd,'day');
+    const [rowsNowAgg, rowsPrevAgg, rowsA, rowsB] = await Promise.all([
+      fetchAgg(startISO,endISO,g),
+      fetchAgg(prevStart,prevEnd,g),
+      fetchAgg(startISO,endISO,'day'),
+      fetchAgg(prevStart,prevEnd,'day')
+    ]);
+    computeCards(rowsNowAgg, rowsPrevAgg);
+    await renderTable(rowsNowAgg,g);
     const metricKey=(function(k){ if(k==='exposure_sum')return 'exp'; if(k==='visitors_sum')return 'vis'; if(k==='add_people_sum')return 'add'; if(k==='orders_sum')return 'orders'; if(k==='fav_sum')return 'fav'; })(document.getElementById('metricSel').value);
     drawLineChartDaily(rowsA,rowsB,days,startISO,prevStart,metricKey);
     drawRatioBar(rowsA,rowsB);

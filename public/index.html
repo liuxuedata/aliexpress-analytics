@@ -77,7 +77,7 @@
       <li class="amazon"><a href="amazon.html">亚马逊</a></li>
       <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
       <li class="temu"><a href="temu.html">Temu</a></li>
-      <li class="ozon"><a href="#">Ozon</a></li>
+      <li class="ozon"><a href="ozon.html">Ozon</a></li>
       <li class="independent"><a href="independent-site.html">独立站</a></li>
     </ul>
   </nav>
@@ -245,7 +245,7 @@
     if (!ja.ok){ alert(ja.msg||'查询失败'); return; }
 
     // render KPI for current period (A)
-    try{ renderKPI(ja.kpis || {}); }catch(e){}
+    try{ renderKPI(ja.kpis || {}, jb.kpis || {}); }catch(e){}
 
     window._rowsA = (ja.rows||[]);
     window._rowsB = (jb.rows||[]);
@@ -269,15 +269,23 @@
     renderAnalysis(window._rowsA, window._rowsB);
   }
 
-  function card(title, val){ return '<div class="stat-card"><h4>'+title+'</h4><p>'+val+'</p></div>'; }
-  function renderKPI(k){
+  function card(title, cur, prev, isPercent){
+    const diff = (cur - prev) || 0;
+    const arrow = diff >= 0 ? '↑' : '↓';
+    const delta = isPercent ? Math.abs(diff).toFixed(2)+'%' : Math.abs(diff).toString();
+    const curStr = isPercent ? cur.toFixed(2) + '%' : cur;
+    const cls = diff >= 0 ? 'up' : 'down';
+    return `<div class="stat-card"><h4>${title}</h4><p>${curStr}</p><div class="sub"><span class="delta ${cls}">${arrow} ${delta}</span></div></div>`;
+  }
+  function renderKPI(k, p){
+    p = p || {};
     $('#kpi').html([
-      card('平均访客到加购转化率', (k.avg_visit_to_atc||0)+'%'),
-      card('平均加购到支付转化率', (k.avg_atc_to_pay||0)+'%'),
-      card('平均访客比', (k.avg_visit_rate||0)+'%'),
-      card('产品总数', k.product_count||0),
-      card('有加购的产品数', k.atc_product_count||0),
-      card('有支付的产品数', k.pay_product_count||0)
+      card('平均访客到加购转化率', +(k.avg_visit_to_atc||0), +(p.avg_visit_to_atc||0), true),
+      card('平均加购到支付转化率', +(k.avg_atc_to_pay||0), +(p.avg_atc_to_pay||0), true),
+      card('平均访客比', +(k.avg_visit_rate||0), +(p.avg_visit_rate||0), true),
+      card('产品总数', +(k.product_count||0), +(p.product_count||0)),
+      card('有加购的产品数', +(k.atc_product_count||0), +(p.atc_product_count||0)),
+      card('有支付的产品数', +(k.pay_product_count||0), +(p.pay_product_count||0))
     ].join(''));
   }
 
