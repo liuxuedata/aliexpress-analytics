@@ -32,9 +32,9 @@
   <nav class="sidebar">
     <div class="site-header"><span id="currentSite">运营分析</span></div>
     <ul class="sub-nav">
-      <li><a href="index.html">详细数据</a></li>
+      <li><a id="detailLink" href="index.html">详细数据</a></li>
       <li><a class="active" href="#">运营分析</a></li>
-      <li><a href="product-analysis.html">产品分析</a></li>
+      <li><a id="productLink" href="product-analysis.html">产品分析</a></li>
     </ul>
   </nav>
   <main class="main">
@@ -51,32 +51,69 @@
   </main>
 </div>
 <script>
-// 示例数据：本周 vs 上周，每天的指标值
-const days=['周一','周二','周三','周四','周五','周六','周日'];
-const data={
-  exp:{cur:[120,132,101,134,90,230,210],prev:[220,182,191,234,290,330,310]},
-  uv:{cur:[150,232,201,154,190,330,410],prev:[120,282,111,234,220,340,310]},
-  atc:{cur:[320,332,301,334,390,330,320],prev:[220,182,191,234,290,330,310]},
-  pay:{cur:[220,182,191,234,290,330,310],prev:[150,232,201,154,190,330,410]}
-};
-function render(id,m){
-  const chart=echarts.init(document.getElementById(id));
-  chart.setOption({
-    tooltip:{trigger:'axis'},
-    legend:{data:['本周','上周']},
-    xAxis:{type:'category',data:days},
-    yAxis:{type:'value'},
-    series:[
-      {name:'本周',type:'line',data:m.cur},
-      {name:'上周',type:'line',data:m.prev}
-    ]
-  });
-  window.addEventListener('resize',()=>chart.resize());
+const params = new URLSearchParams(location.search);
+const mode = params.get('mode');
+const detailLink = document.getElementById('detailLink');
+const productLink = document.getElementById('productLink');
+if (mode === 'self') {
+  if (detailLink) detailLink.href = 'self-operated.html';
+  if (productLink) productLink.href = 'self-operated.html#product';
+  // 自运营：按天曲线对比
+  const days = ['8/2','8/3','8/4','8/5','8/6','8/7','8/8'];
+  const data = {
+    exp:{cur:[120,132,101,134,90,230,210],prev:[220,182,191,234,290,330,310]},
+    uv:{cur:[150,232,201,154,190,330,410],prev:[120,282,111,234,220,340,310]},
+    atc:{cur:[320,332,301,334,390,330,320],prev:[220,182,191,234,290,330,310]},
+    pay:{cur:[220,182,191,234,290,330,310],prev:[150,232,201,154,190,330,410]}
+  };
+  function renderLine(id,m){
+    const chart = echarts.init(document.getElementById(id));
+    chart.setOption({
+      tooltip:{trigger:'axis'},
+      legend:{data:['本周期','上一周期']},
+      xAxis:{type:'category',data:days},
+      yAxis:{type:'value'},
+      series:[
+        {name:'本周期',type:'line',smooth:true,data:m.cur},
+        {name:'上一周期',type:'line',smooth:true,data:m.prev}
+      ]
+    });
+    window.addEventListener('resize',()=>chart.resize());
+  }
+  renderLine('expChart',data.exp);
+  renderLine('uvChart',data.uv);
+  renderLine('atcChart',data.atc);
+  renderLine('payChart',data.pay);
+} else {
+  // 全托管：汇总柱状图对比
+  const data = {
+    exp:{cur:1200,prev:1000},
+    uv:{cur:800,prev:850},
+    atc:{cur:300,prev:260},
+    pay:{cur:150,prev:140}
+  };
+  function renderBar(id,m){
+    const chart = echarts.init(document.getElementById(id));
+    chart.setOption({
+      tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+      xAxis:{type:'category',data:['本周期','上一周期']},
+      yAxis:{type:'value'},
+      series:[{
+        type:'bar',
+        data:[
+          {value:m.cur,itemStyle:{color:'#3b82f6'}},
+          {value:m.prev,itemStyle:{color:'#94a3b8'}}
+        ],
+        label:{show:true,position:'top'}
+      }]
+    });
+    window.addEventListener('resize',()=>chart.resize());
+  }
+  renderBar('expChart',data.exp);
+  renderBar('uvChart',data.uv);
+  renderBar('atcChart',data.atc);
+  renderBar('payChart',data.pay);
 }
-render('expChart',data.exp);
-render('uvChart',data.uv);
-render('atcChart',data.atc);
-render('payChart',data.pay);
 </script>
 </body>
 </html>
