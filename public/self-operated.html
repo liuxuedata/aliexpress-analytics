@@ -623,21 +623,19 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
   refreshUser();
   window.addEventListener('user-login', refreshUser);
-  const sb=document.getElementById('sidebar');
-  sb.addEventListener('click',e=>{
-    const li=e.target.closest('li');
-    if(!li) return;
-    const a=li.querySelector('a[data-target]');
-    if(!a) return;
-    e.preventDefault();
-    const t=a.dataset.target;
-    ['detail','analysis','product'].forEach(id=>{
-      const el=document.getElementById(id);
-      if(el) el.style.display=id===t?'':'none';
+  const sbLinks=document.querySelectorAll('#sidebar a[data-target]');
+  sbLinks.forEach(a=>{
+    a.addEventListener('click',e=>{
+      e.preventDefault();
+      const t=a.dataset.target;
+      ['detail','analysis','product'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el) el.style.display=id===t?'':'none';
+      });
+      sbLinks.forEach(x=>x.classList.remove('active'));
+      a.classList.add('active');
+      setTimeout(()=>window.dispatchEvent(new Event('resize')),0);
     });
-    sb.querySelectorAll('a[data-target]').forEach(x=>x.classList.remove('active'));
-    a.classList.add('active');
-    setTimeout(()=>window.dispatchEvent(new Event('resize')),0);
   });
 });
 </script>
