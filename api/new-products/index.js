@@ -10,16 +10,18 @@ function supa() {
 const pad2 = n => (n < 10 ? "0" + n : "" + n);
 const toMMDD = iso => { const d = new Date(iso + "T00:00:00Z"); return pad2(d.getUTCMonth()+1)+pad2(d.getUTCDate()); };
 
-function viewOf(platform){
-  if (platform === "managed") return "managed_new_products";
-  if (platform === "self")    return "ae_self_new_products";
-  throw new Error("platform must be 'managed' or 'self'");
-}
-function statsTableOf(platform){
-  if (platform === "managed") return "managed_stats";
-  if (platform === "self")    return "ae_self_operated_daily";
-  throw new Error("platform must be 'managed' or 'self'");
-}
+  function viewOf(platform){
+    if (platform === "managed") return "managed_new_products";
+    if (platform === "self")    return "ae_self_new_products";
+    if (platform === "indep")  return "independent_new_products";
+    throw new Error("platform must be 'managed', 'self', or 'indep'");
+  }
+  function statsTableOf(platform){
+    if (platform === "managed") return "managed_stats";
+    if (platform === "self")    return "ae_self_operated_daily";
+    if (platform === "indep")  return "independent_landing_metrics";
+    throw new Error("platform must be 'managed', 'self', or 'indep'");
+  }
 
 module.exports = async (req, res) => {
   if (req.method !== "GET") return res.status(405).json({ ok:false, msg:"Only GET" });
@@ -33,20 +35,31 @@ module.exports = async (req, res) => {
     let { from, to } = req.query;
     const limit = Math.max(1, Math.min(parseInt(req.query.limit||"500",10)||500, 5000));
 
-    // 自动取该平台最近一周（按周末日）
+    // 自动取该平台最近一天（按统计表日期列）
     if (!from || !to) {
+      let dateCol = 'period_end';
+      let altCol = 'stat_date';
+      if (platform === 'indep') {
+        dateCol = 'day';
+        altCol = '';
+      }
+      const selCols = [dateCol, altCol].filter(Boolean).join(',');
       const { data: lastRows, error: lastErr } = await supabase
-        .from(statsTable).select("period_end, stat_date").order("period_end", { ascending:false }).limit(1);
+        .from(statsTable)
+        .select(selCols)
+        .order(dateCol, { ascending: false })
+        .limit(1);
       if (lastErr) throw lastErr;
       const last = lastRows && lastRows[0];
-      const iso = (last?.period_end || last?.stat_date || "").slice(0,10);
-      if (!iso) return res.status(200).json({ ok:true, platform, range:null, new_count:0, items:[] });
+      const iso = (last?.[dateCol] || last?.[altCol] || '').slice(0, 10);
+      if (!iso) return res.status(200).json({ ok: true, platform, range: null, new_count: 0, items: [] });
       from = to = iso;
     }
 
+    const idCol = platform === 'indep' ? 'product_link' : 'product_id';
     const { data, error } = await supabase
       .from(view)
-      .select("product_id, first_seen")
+      .select(`${idCol}, first_seen`)
       .gte("first_seen", from)
       .lte("first_seen", to)
       .order("first_seen", { ascending: true })
@@ -54,7 +67,7 @@ module.exports = async (req, res) => {
     if (error) throw error;
 
     const items = (data||[]).map(r => ({
-      product_id: r.product_id,
+      product_id: r[idCol],
       first_seen: r.first_seen,
       first_seen_mmdd: toMMDD(r.first_seen)
     }));

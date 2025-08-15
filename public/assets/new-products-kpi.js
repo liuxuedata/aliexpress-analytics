@@ -3,16 +3,18 @@
   const pad2 = n => (n<10? "0"+n : ""+n);
   const toMMDD = iso => { const d=new Date(iso+"T00:00:00Z"); return pad2(d.getUTCMonth()+1)+pad2(d.getUTCDate()); };
 
-  function guessPlatform(){
-    try{
-      const s = (document.currentScript && document.currentScript.dataset.platform)||"";
-      if (s) return s;
-    }catch(e){}
-    const p = location.pathname.toLowerCase();
-    if (p.includes("self")) return "self";
-    if (p.includes("self-operated")) return "self";
-    return "managed";
-  }
+    function guessPlatform(){
+      try{
+        const s = (document.currentScript && document.currentScript.dataset.platform)||"";
+        if (s) return s;
+      }catch(e){}
+      const p = location.pathname.toLowerCase();
+      if (p.includes("self")) return "self";
+      if (p.includes("self-operated")) return "self";
+      if (p.includes("independent")) return "indep";
+      if (p.includes("indep")) return "indep";
+      return "managed";
+    }
 
   function findMainTable(){
     const cand = ['#managed-table','#self-table','#detail-table','#data-table','.dataTable','.table','table'];
@@ -142,13 +144,14 @@
     return () => { for (const [tr, disp] of original) tr.style.display = disp; };
   }
 
-  function currentPeriodFromGlobals(platform){
-    try{
-      if (platform==='managed' && window.currentManagedPeriodEnd) return window.currentManagedPeriodEnd;
-      if (platform==='self' && window.currentSelfPeriodEnd) return window.currentSelfPeriodEnd;
-    }catch(e){}
-    return null;
-  }
+    function currentPeriodFromGlobals(platform){
+      try{
+        if (platform==='managed' && window.currentManagedPeriodEnd) return window.currentManagedPeriodEnd;
+        if (platform==='self' && window.currentSelfPeriodEnd) return window.currentSelfPeriodEnd;
+        if (platform==='indep' && window.currentIndepPeriodEnd) return window.currentIndepPeriodEnd;
+      }catch(e){}
+      return null;
+    }
 
   async function bootstrap(){
     const platform = guessPlatform();

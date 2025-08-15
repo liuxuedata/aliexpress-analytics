@@ -8,12 +8,13 @@
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css">
   <link rel="stylesheet" href="assets/login.css">
-  <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <link rel="stylesheet" href="assets/theme.css?v=20250812-deep">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
   <script type="module" src="assets/chart.defaults.js"></script>
+  <script src="assets/product-meta.js"></script>
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
 <style>
 /* NewKPICtrl */
@@ -88,8 +89,8 @@
     <div class="site-header"><span id="currentSite">全托管</span><button id="addSite" class="add-site-btn">+</button></div>
     <ul class="sub-nav">
       <li><a href="#" class="active" data-target="detail">详细数据</a></li>
-      <li><a href="#" data-target="analysis">运营分析</a></li>
-      <li><a href="#" data-target="product">产品分析</a></li>
+      <li><a href="operation-analysis.html?mode=fm">运营分析</a></li>
+      <li><a href="product-analysis.html?mode=fm">产品分析</a></li>
     </ul>
   </nav>
 
@@ -165,7 +166,15 @@
   </div>
 </section>
 
-<section id="product" class="content-pad" style="display:none;"><p>产品分析建设中...</p></section>
+<section id="product" class="content-pad" style="display:none;">
+  <div class="panel">
+    <div class="kpi-ctrl">
+      <label>选择商品</label>
+      <select id="productSelect"></select>
+    </div>
+    <div id="productKpi" class="kpi-row"></div>
+  </div>
+</section>
 
       </div>
     </div>
@@ -176,8 +185,16 @@
 (function(){
   const state = { granularity: 'week', table: null, uploading: false };
 
+  // 初始化粒度：若本地存储有记录则使用
+  const storedGran = localStorage.getItem('fmGranularity');
+  if (storedGran) {
+    state.granularity = storedGran;
+    $("input[name='gran'][value='"+storedGran+"']").prop('checked', true);
+  }
+
   $('input[name="gran"]').on('change', function(){
     state.granularity = this.value;
+    localStorage.setItem('fmGranularity', state.granularity);
     loadPeriods().then(loadData);
   });
 
@@ -215,10 +232,16 @@
     const r = await fetch('/api/periods'); const j = await r.json();
     const list = (state.granularity==='week' ? j.weeks : j.months) || [];
     state.periods = list.slice();
-    state.periods = list.slice();
     const $sel = $('#periodSelect').empty();
     if (!list.length){ $sel.append('<option value="">暂无数据</option>'); return; }
     list.forEach(d=> $sel.append('<option value="'+d+'">'+d+'</option>'));
+    const stored = localStorage.getItem('fmPeriod');
+    if (stored && list.includes(stored)) {
+      $sel.val(stored);
+    } else {
+      $sel.val(list[0]);
+      localStorage.setItem('fmPeriod', list[0]);
+    }
   }
 
   $('#periodSelect').on('change', loadData);
@@ -226,6 +249,8 @@
   
   async function loadData(){
     const period = $('#periodSelect').val();
+    localStorage.setItem('fmPeriod', period || '');
+    localStorage.setItem('fmGranularity', state.granularity);
     const qsA = new URLSearchParams({ granularity: state.granularity });
     if (period) qsA.set('period_end', period);
 
@@ -254,8 +279,8 @@
 
     // table uses current period A
     const rows = window._rowsA.map(x => [
-      (x.product_link ? '<a href="'+x.product_link+'" target="_blank">'+(x.product_id||'')+'</a>' : (x.product_id||'')),
-      
+      '<a data-pid="'+(x.product_id||'')+'" data-link="'+(x.product_link || ('https://aliexpress.com/item/'+x.product_id+'.html'))+'" href="'+(x.product_link || ('https://aliexpress.com/item/'+x.product_id+'.html'))+'" target="_blank">'+(x.product_id||'')+'</a>',
+
       x.search_exposure || 0, x.uv || 0, x.pv || 0,
       x.add_to_cart_users || 0, x.add_to_cart_qty || 0,
       x.pay_items || 0, x.pay_orders || 0, x.pay_buyers || 0,
@@ -266,7 +291,9 @@
     ]);
     if (state.table) state.table.clear().rows.add(rows).draw();
     else state.table = $('#report').DataTable({ data: rows, paging:true, searching:true, info:true, order:[[2,'desc']], fixedHeader:true, scrollY:'60vh', scrollCollapse:true, autoWidth:false });
+    populateProductNames(document.getElementById('report'));
     renderAnalysis(window._rowsA, window._rowsB);
+    renderProduct(window._rowsA, window._rowsB);
   }
 
   function card(title, cur, prev, isPercent){
@@ -286,6 +313,33 @@
       card('产品总数', +(k.product_count||0), +(p.product_count||0)),
       card('有加购的产品数', +(k.atc_product_count||0), +(p.atc_product_count||0)),
       card('有支付的产品数', +(k.pay_product_count||0), +(p.pay_product_count||0))
+    ].join(''));
+  }
+
+  function renderProduct(rowsA, rowsB){
+    const ids = Array.from(new Set((rowsA||[]).map(x=>x.product_id))).filter(Boolean);
+    const $sel = $('#productSelect').off('change').empty();
+    if (!ids.length){ $('#productKpi').empty(); return; }
+    ids.forEach(id=> $sel.append(`<option value="${id}" data-pid="${id}">${id}</option>`));
+    populateProductNames($sel[0]);
+    $sel.on('change', ()=> updateProductKpi($sel.val(), rowsA, rowsB));
+    updateProductKpi(ids[0], rowsA, rowsB);
+  }
+
+  function updateProductKpi(pid, rowsA, rowsB){
+    const sum = rows => rows.reduce((a,x)=>({
+      exp:a.exp + (+x.search_exposure||0),
+      uv: a.uv + (+x.uv||0),
+      add:a.add + (+x.add_to_cart_users||0),
+      pay:a.pay + (+x.pay_buyers||0)
+    }), {exp:0,uv:0,add:0,pay:0});
+    const cur = sum((rowsA||[]).filter(x=>String(x.product_id)===String(pid)));
+    const prev = sum((rowsB||[]).filter(x=>String(x.product_id)===String(pid)));
+    $('#productKpi').html([
+      card('曝光量', cur.exp, prev.exp),
+      card('访客数', cur.uv, prev.uv),
+      card('加购人数', cur.add, prev.add),
+      card('支付买家数', cur.pay, prev.pay)
     ].join(''));
   }
 
