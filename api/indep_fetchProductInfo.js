@@ -11,9 +11,12 @@ module.exports = async (req, res) => {
   if (!url) return res.status(400).json({ error: 'Missing url parameter' });
 
   const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_KEY = process.env.SUPABASE_KEY;
+  const SUPABASE_KEY =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE ||
+    process.env.SUPABASE_ANON_KEY;
   if (!SUPABASE_URL || !SUPABASE_KEY) {
-    return res.status(500).json({ error: 'Supabase credentials are not configured' });
+    return res.status(500).json({ error: 'Supabase env not configured' });
   }
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 

@@ -69,7 +69,9 @@ module.exports = async (req, res) => {
       if (e0) throw e0;
       newSet = new Set((newRows || []).map(r => r.product_id));
     } catch (e) {
-      return res.status(500).json({ error: e.message });
+      console.error('independent_new_products lookup failed', e.message);
+      // If the table doesn't exist, continue without new-product tracking
+      newSet = new Set();
     }
 
     // table data (fetch all pages up to limit)
