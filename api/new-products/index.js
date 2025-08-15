@@ -56,9 +56,10 @@ module.exports = async (req, res) => {
       from = to = iso;
     }
 
+    const idCol = platform === 'indep' ? 'product_link' : 'product_id';
     const { data, error } = await supabase
       .from(view)
-      .select("product_id, first_seen")
+      .select(`${idCol}, first_seen`)
       .gte("first_seen", from)
       .lte("first_seen", to)
       .order("first_seen", { ascending: true })
@@ -66,7 +67,7 @@ module.exports = async (req, res) => {
     if (error) throw error;
 
     const items = (data||[]).map(r => ({
-      product_id: r.product_id,
+      product_id: r[idCol],
       first_seen: r.first_seen,
       first_seen_mmdd: toMMDD(r.first_seen)
     }));

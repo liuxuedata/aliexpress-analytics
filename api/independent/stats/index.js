@@ -63,11 +63,11 @@ module.exports = async (req, res) => {
     try {
       const { data: newRows, error: e0 } = await supabase
         .from('independent_new_products')
-        .select('product_id, first_seen')
+        .select('product_link, first_seen')
         .gte('first_seen', fromDate)
         .lte('first_seen', toDate);
       if (e0) throw e0;
-      newSet = new Set((newRows || []).map(r => r.product_id));
+      newSet = new Set((newRows || []).map(r => r.product_link));
     } catch (e) {
       console.error('independent_new_products lookup failed', e.message);
       // If the table doesn't exist, continue without new-product tracking
@@ -108,7 +108,7 @@ module.exports = async (req, res) => {
     }));
 
     if (onlyNew) {
-      table = table.filter(r => newSet.has(r.landing_path));
+      table = table.filter(r => newSet.has(r.landing_url));
     }
 
     // daily summary series
@@ -175,7 +175,7 @@ module.exports = async (req, res) => {
 
     const byPath = {};
     for (const r of topPages) {
-      if (onlyNew && !newSet.has(r.landing_path)) continue;
+      if (onlyNew && !newSet.has(r.landing_url)) continue;
       const key = r.landing_path;
       if (!byPath[key]) byPath[key] = { path: key, url: r.landing_url, conversions: 0, conv_value: 0, clicks: 0, impr: 0, cost: 0 };
       byPath[key].conversions += safeNum(r.conversions);
@@ -209,7 +209,7 @@ module.exports = async (req, res) => {
       if (safeNum(r.clicks) > 0) clickSet.add(key);
       if (safeNum(r.conversions) > 0) convSet.add(key);
     });
-    const newRows = table.filter(r => newSet.has(r.landing_path));
+    const newRows = table.filter(r => newSet.has(r.landing_url));
     const newImpr = sum(newRows, 'impr');
     const newClicks = sum(newRows, 'clicks');
     const newConv = sum(newRows, 'conversions');

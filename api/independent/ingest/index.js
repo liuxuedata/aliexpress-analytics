@@ -136,7 +136,7 @@ async function handleFile(filePath, filename) {
   // Track first_seen date for each product (landing_path) in a separate table
   const firstSeenMap = new Map();
   for (const row of deduped) {
-    const key = row.landing_path;
+    const key = row.landing_url;
     const day = row.day;
     const prev = firstSeenMap.get(key);
     if (!prev || day < prev) firstSeenMap.set(key, day);
@@ -145,13 +145,13 @@ async function handleFile(filePath, filename) {
     const ids = Array.from(firstSeenMap.keys());
     const { data: existed, error: e1 } = await supabase
       .from('independent_new_products')
-      .select('product_id')
-      .in('product_id', ids);
+      .select('product_link')
+      .in('product_link', ids);
     if (e1) throw e1;
-    const existSet = new Set((existed || []).map(r => r.product_id));
+    const existSet = new Set((existed || []).map(r => r.product_link));
     const insertRows = [];
-    firstSeenMap.forEach((day, pid) => {
-      if (!existSet.has(pid)) insertRows.push({ product_id: pid, first_seen: day });
+    firstSeenMap.forEach((day, link) => {
+      if (!existSet.has(link)) insertRows.push({ product_link: link, first_seen: day });
     });
     if (insertRows.length) {
       const { error: e2 } = await supabase
