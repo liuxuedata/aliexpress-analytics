@@ -133,34 +133,30 @@ async function handleFile(filePath, filename) {
 
   if (error) throw error;
 
-  // Track first_seen date for each product (landing_path) in a separate table
-  // We determine the earliest "day" that a landing_url appears in the metrics table
-  const uniqueLinks = Array.from(new Set(deduped.map(r => r.landing_url)));
-  if (uniqueLinks.length) {
+  // Track first_seen_date for each product (landing_url) in a registry table.
+  // According to the spec, we scan records in ascending day order and record
+  // the first day a product appears if it does not yet exist in the registry.
+  const sorted = deduped.slice().sort((a, b) => a.day.localeCompare(b.day));
+  const firstByLink = {};
+  for (const row of sorted) {
+    if (!firstByLink[row.landing_url]) firstByLink[row.landing_url] = row.day;
+  }
+  const links = Object.keys(firstByLink);
+  if (links.length) {
     const { data: existed, error: e1 } = await supabase
       .from('independent_new_products')
       .select('product_link')
-      .in('product_link', uniqueLinks);
+      .in('product_link', links);
     if (e1) throw e1;
     const existSet = new Set((existed || []).map(r => r.product_link));
-    const toCheck = uniqueLinks.filter(link => !existSet.has(link));
-    if (toCheck.length) {
-      const { data: earliest, error: e2 } = await supabase
-        .from('independent_landing_metrics')
-        .select('landing_url, first_seen:min(day)')
-        .in('landing_url', toCheck)
-        .group('landing_url');
+    const insertRows = links
+      .filter(link => !existSet.has(link))
+      .map(link => ({ product_link: link, first_seen_date: firstByLink[link] }));
+    if (insertRows.length) {
+      const { error: e2 } = await supabase
+        .from('independent_new_products')
+        .insert(insertRows);
       if (e2) throw e2;
-      const insertRows = (earliest || []).map(r => ({
-        product_link: r.landing_url,
-        first_seen: r.first_seen,
-      }));
-      if (insertRows.length) {
-        const { error: e3 } = await supabase
-          .from('independent_new_products')
-          .insert(insertRows);
-        if (e3) throw e3;
-      }
     }
   }
 

@@ -59,17 +59,17 @@ module.exports = async (req, res) => {
     const idCol = platform === 'indep' ? 'product_link' : 'product_id';
     const { data, error } = await supabase
       .from(view)
-      .select(`${idCol}, first_seen`)
-      .gte("first_seen", from)
-      .lte("first_seen", to)
-      .order("first_seen", { ascending: true })
+      .select(`${idCol}, first_seen_date`)
+      .gte("first_seen_date", from)
+      .lte("first_seen_date", to)
+      .order("first_seen_date", { ascending: true })
       .limit(limit);
     if (error) throw error;
 
     const items = (data||[]).map(r => ({
       product_id: r[idCol],
-      first_seen: r.first_seen,
-      first_seen_mmdd: toMMDD(r.first_seen)
+      first_seen: r.first_seen_date,
+      first_seen_mmdd: toMMDD(r.first_seen_date)
     }));
 
     res.status(200).json({ ok:true, platform, range:{from,to}, new_count: items.length, items });

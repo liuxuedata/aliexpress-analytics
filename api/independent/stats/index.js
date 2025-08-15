@@ -63,9 +63,9 @@ module.exports = async (req, res) => {
     try {
       const { data: newRows, error: e0 } = await supabase
         .from('independent_new_products')
-        .select('product_link, first_seen')
-        .gte('first_seen', fromDate)
-        .lte('first_seen', toDate);
+        .select('product_link, first_seen_date')
+        .gte('first_seen_date', fromDate)
+        .lte('first_seen_date', toDate);
       if (e0) throw e0;
       newSet = new Set((newRows || []).map(r => r.product_link));
     } catch (e) {
