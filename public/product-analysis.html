@@ -63,8 +63,16 @@ document.addEventListener('DOMContentLoaded',()=>{
   const prodLink=document.getElementById('productLink');
   const platformNav=document.querySelector('.platform-nav');
   platformNav.querySelectorAll('li').forEach(li=>li.classList.remove('active'));
-  if(mode==='indep'){
-    platformNav.querySelector('li.independent')?.classList.add('active');
+  const platformMap={
+    indep:'li.independent',
+    ozon:'li.ozon',
+    amazon:'li.amazon',
+    tiktok:'li.tiktok',
+    temu:'li.temu'
+  };
+  const selector=platformMap[mode];
+  if(selector){
+    platformNav.querySelector(selector)?.classList.add('active');
   }else{
     const aliLi=platformNav.querySelector('li.ali');
     aliLi?.classList.add('active');
@@ -91,6 +99,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   }else if(mode==='indep'){
     if(detailLink)detailLink.href='independent-site.html';
     if(analysisLink)analysisLink.removeAttribute('href');
+  }else if(mode==='ozon'){
+    if(detailLink)detailLink.href='ozon.html';
+    if(analysisLink)analysisLink.href='ozon-operation-analysis.html';
   }else{
     if(analysisLink)analysisLink.href='operation-analysis.html';
   }
