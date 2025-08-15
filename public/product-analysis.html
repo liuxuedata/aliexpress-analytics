@@ -242,8 +242,19 @@ document.addEventListener('DOMContentLoaded',()=>{
       const getExp=r=>mode==='indep'?Number(r.impr||0):Number(r.exposure||0);
       rowsA.forEach(r=>{const id=getId(r);expMap.set(id,(expMap.get(id)||0)+getExp(r)); if(mode==='indep' && r.landing_url) linkMap.set(id,r.landing_url);});
       const ids=Array.from(expMap.keys()).sort((a,b)=>expMap.get(b)-expMap.get(a));
-      const sel=document.getElementById('productSelect'); sel.innerHTML=''; ids.forEach(id=>{const o=document.createElement('option');o.value=id;o.textContent=id;o.setAttribute('data-pid',id);sel.appendChild(o);});
-      if(mode!=='indep') populateProductNames(sel);
+      const sel=document.getElementById('productSelect'); sel.innerHTML='';
+      ids.forEach(id=>{
+        const o=document.createElement('option');
+        o.value=id; o.textContent=id;
+        if(mode==='indep'){
+          const link=linkMap.get(id);
+          if(link){ o.dataset.url=link; o.dataset.api='/api/indep_fetchProductInfo'; }
+        }else{
+          o.setAttribute('data-pid',id);
+        }
+        sel.appendChild(o);
+      });
+      populateProductNames(sel);
       if(!ids.length){document.getElementById('kpi').innerHTML=''; setProdLink('', ''); return;}
       const pid=ids[0]; sel.value=pid; update(pid);
       sel.onchange=()=>update(sel.value);
@@ -278,18 +289,13 @@ document.addEventListener('DOMContentLoaded',()=>{
         ].join('');
         line(pid);
         const url = mode==='indep' ? linkMap.get(pid) : `https://aliexpress.com/item/${pid}.html`;
-        if(mode==='indep'){
-          setProdLink(pid,url);
+        const api = mode==='indep' ? '/api/indep_fetchProductInfo' : undefined;
+        getProductMeta(pid,url,api).then(m=>{
+          setProdLink(m.title||pid,url);
           const img=document.getElementById('productImg');
-          img.style.display='none';
-        }else{
-          getProductMeta(pid,url).then(m=>{
-            setProdLink(m.title||pid,url);
-            const img=document.getElementById('productImg');
-            img.src=m.image||'';
-            img.style.display=m.image?'':'none';
-          });
-        }
+          img.src=m.image||'';
+          img.style.display=m.image?'':'none';
+        });
       }
     }
     loadData();
