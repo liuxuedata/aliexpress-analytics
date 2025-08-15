@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>产品分析</title>
+  <link rel="stylesheet" href="assets/theme.css?v=20250812-deep">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="assets/product-meta.js"></script>
+  <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
+</head>
+<body>
+<header class="header">
+  <div class="logo-title">跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li class="ali active"><a href="#">速卖通</a>
+        <ul class="dropdown">
+          <li><a href="index.html">全托管</a></li>
+          <li><a href="self-operated.html">自运营</a></li>
+        </ul>
+      </li>
+      <li class="amazon"><a href="amazon.html">亚马逊</a></li>
+      <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon"><a href="ozon.html">Ozon</a></li>
+      <li class="independent"><a href="independent-site.html">独立站</a></li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+<div class="layout container">
+  <nav class="sidebar" id="sidebar">
+    <div class="site-header"><span id="currentSite"></span><button id="addSite" class="add-site-btn">+</button></div>
+    <ul class="sub-nav">
+      <li><a id="detailLink" href="index.html">详细数据</a></li>
+      <li><a id="analysisLink" href="operation-analysis.html">运营分析</a></li>
+      <li><a class="active" href="#">产品分析</a></li>
+    </ul>
+  </nav>
+  <main class="main">
+    <div class="content">
+      <section class="content-pad">
+        <div id="ctrl" class="controls" style="margin-bottom:12px;"></div>
+        <div class="controls" style="margin-bottom:12px;flex-wrap:wrap;"><label>产品</label><select id="productSelect" class="sel" style="width:200px;flex:0 0 200px;"></select><img id="productImg" style="width:40px;height:40px;object-fit:cover;margin-left:8px;display:none;"/><a id="productLink" href="#" target="_blank" style="margin-left:8px;display:none;word-break:break-all;white-space:normal;flex:1 1 auto;"></a></div>
+        <div id="kpi" class="kpi-row"></div>
+        <div id="lineWrap" class="panel" style="margin-top:16px;display:none;">
+          <h3>曝光趋势</h3>
+          <div id="expLine" style="width:100%;height:260px;"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const params=new URLSearchParams(location.search);
+  const mode=params.get('mode');
+  const detailLink=document.getElementById('detailLink');
+  const analysisLink=document.getElementById('analysisLink');
+  const prodLink=document.getElementById('productLink');
+  function setProdLink(text,url){
+    if(text && url){
+      prodLink.textContent=text;
+      prodLink.href=url;
+      prodLink.title=url;
+      prodLink.style.display='';
+    }else{
+      prodLink.style.display='none';
+    }
+  }
+  if(mode==='self'){
+    if(detailLink)detailLink.href='self-operated.html';
+    if(analysisLink)analysisLink.href='operation-analysis.html?mode=self';
+  }else if(mode==='indep'){
+    if(detailLink)detailLink.href='independent-site.html';
+    if(analysisLink)analysisLink.removeAttribute('href');
+  }else{
+    if(analysisLink)analysisLink.href='operation-analysis.html';
+  }
+
+  const siteListKey='managedSites';
+  const currentSiteKey='currentSite';
+  let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
+  if(!Array.isArray(sites)||!sites.length){sites=mode==='self'?['A站','B站','C站']:['主站'];}
+  const currentSiteEl=document.getElementById('currentSite');
+  function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));}
+  function updateCurrent(){
+    const name=localStorage.getItem(currentSiteKey)||sites[0];
+    if(mode==='self'){
+      currentSiteEl.textContent='自运营 '+name;
+    }else if(mode==='indep'){
+      currentSiteEl.textContent='独立站';
+    }else{
+      currentSiteEl.textContent=sites.length>1?'全托管 '+name:'全托管';
+    }
+    localStorage.setItem(currentSiteKey,name);
+  }
+  currentSiteEl.addEventListener('dblclick',()=>{
+    if(mode==='indep')return;
+    const cur=localStorage.getItem(currentSiteKey)||sites[0];
+    const idx=sites.indexOf(cur);
+    const n=prompt('修改站点名',cur);
+    if(n){sites[idx]=n;save();localStorage.setItem(currentSiteKey,n);updateCurrent();}
+  });
+  document.getElementById('addSite').addEventListener('click',()=>{
+    if(mode==='indep')return;
+    const n=prompt('新增站点名');
+    if(n){sites.push(n);save();updateCurrent();}
+  });
+  updateCurrent();
+
+  if(mode==='self' || mode==='indep'){
+    setupSelf(mode);
+  }else{
+    setupFM();
+  }
+
+  function card(title,cur,prev){
+    const diff=(cur-prev)||0;
+    const arrow=diff>=0?'↑':'↓';
+    const delta=Math.abs(diff);
+    const cls=diff>=0?'up':'down';
+    return `<div class="stat-card"><h4>${title}</h4><p>${cur}</p><div class="sub"><span class="delta ${cls}">${arrow} ${delta}</span></div></div>`;
+  }
+
+  function setupFM(){
+    const ctrl=document.getElementById('ctrl');
+    ctrl.innerHTML='<label>粒度</label><label><input type="radio" name="gran" value="week"> 周</label><label><input type="radio" name="gran" value="month"> 月</label><select id="periodSelect" class="sel"></select>';
+    const state={ granularity: localStorage.getItem('fmGranularity')||'week', periods: [] };
+    document.querySelector(`input[name="gran"][value="${state.granularity}"]`).checked=true;
+    document.querySelectorAll('input[name="gran"]').forEach(r=>r.addEventListener('change',e=>{state.granularity=e.target.value;localStorage.setItem('fmGranularity',state.granularity);loadPeriods();}));
+    document.getElementById('periodSelect').addEventListener('change',loadData);
+    function loadPeriods(){
+      fetch('/api/periods').then(r=>r.json()).then(j=>{
+        const list=(state.granularity==='week'?j.weeks:j.months)||[];
+        state.periods=list.slice();
+        const sel=document.getElementById('periodSelect');
+        sel.innerHTML='';
+        if(!list.length){sel.innerHTML='<option value="">暂无数据</option>';return;}
+        list.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o);});
+        const stored=localStorage.getItem('fmPeriod');
+        if(stored && list.includes(stored)) sel.value=stored; else {sel.value=list[0]; localStorage.setItem('fmPeriod',list[0]);}
+        loadData();
+      });
+    }
+    async function loadData(){
+      const period=document.getElementById('periodSelect').value;
+      localStorage.setItem('fmPeriod',period||'');
+      const idx=state.periods.indexOf(period); const prev=idx>0?state.periods[idx-1]:'';
+      const qsA=new URLSearchParams({granularity:state.granularity}); if(period)qsA.set('period_end',period);
+      const qsB=new URLSearchParams({granularity:state.granularity}); if(prev)qsB.set('period_end',prev);
+      const [ja,jb]=await Promise.all([
+        fetch('/api/stats?'+qsA.toString()).then(r=>r.json()),
+        prev?fetch('/api/stats?'+qsB.toString()).then(r=>r.json()):Promise.resolve({rows:[]})
+      ]);
+      const rowsA=ja.rows||[]; const rowsB=jb.rows||[];
+      renderProductFM(rowsA,rowsB);
+    }
+    function renderProductFM(rowsA,rowsB){
+      const expMap=new Map();
+      rowsA.forEach(r=>expMap.set(r.product_id,(expMap.get(r.product_id)||0)+Number(r.search_exposure||0)));
+      const ids=Array.from(expMap.keys()).sort((a,b)=>expMap.get(b)-expMap.get(a));
+      const sel=document.getElementById('productSelect');
+      sel.innerHTML='';
+      ids.forEach(id=>{const o=document.createElement('option');o.value=id;o.textContent=id;o.setAttribute('data-pid',id);sel.appendChild(o);});
+      populateProductNames(sel);
+      if(!ids.length){document.getElementById('kpi').innerHTML=''; setProdLink('',''); return;}
+      const pid=ids[0]; sel.value=pid; update(pid);
+      sel.onchange=()=>update(sel.value);
+      function sum(rows,pid){
+        return rows.filter(x=>String(x.product_id)===String(pid)).reduce((a,x)=>({
+          exp:a.exp+Number(x.search_exposure||0),
+          uv:a.uv+Number(x.uv||0),
+          add:a.add+Number(x.add_to_cart_users||0),
+          pay:a.pay+Number(x.pay_buyers||0)
+        }),{exp:0,uv:0,add:0,pay:0});
+      }
+      function update(pid){
+        const cur=sum(rowsA,pid); const prev=sum(rowsB,pid);
+        document.getElementById('kpi').innerHTML=[
+          card('曝光量',cur.exp,prev.exp),
+          card('访客数',cur.uv,prev.uv),
+          card('加购人数',cur.add,prev.add),
+          card('支付买家数',cur.pay,prev.pay)
+        ].join('');
+        const url=`https://aliexpress.com/item/${pid}.html`;
+        getProductMeta(pid,url).then(m=>{
+          setProdLink(m.title||pid,url);
+          const img=document.getElementById('productImg');
+          img.src=m.image||'';
+          img.style.display=m.image?'':'none';
+        });
+      }
+    }
+    loadPeriods();
+  }
+
+  function setupSelf(mode){
+    document.getElementById('lineWrap').style.display='block';
+    const ctrl=document.getElementById('ctrl');
+    ctrl.innerHTML='<input id="dateRange" class="date-filter" placeholder="选择日期范围">';
+    const input=document.getElementById('dateRange');
+    const key=mode==='indep'?'indepPeriod':'selfPeriod';
+    const fp=flatpickr(input,{mode:'range',dateFormat:'Y-m-d',onClose:ds=>{if(ds.length===2)loadData();}});
+    const stored=localStorage.getItem(key);
+    if(stored && stored.includes(' to ')) input.value=stored; else {
+      const today=new Date(); const end=today.toISOString().slice(0,10); const start=new Date(today.getTime()-6*86400000).toISOString().slice(0,10); const def=`${start} to ${end}`; input.value=def; localStorage.setItem(key,def);
+    }
+    async function loadData(){
+      const val=input.value; if(!val.includes(' to '))return; const [startISO,endISO]=val.split(' to '); localStorage.setItem(key,`${startISO} to ${endISO}`);
+      const {prevStart,prevEnd,days}=periodShift(startISO,endISO);
+      const [rowsA,rowsB]=await Promise.all([
+        fetchAgg(startISO,endISO),
+        fetchAgg(prevStart,prevEnd)
+      ]);
+      renderProductSelf(rowsA,rowsB,days,startISO,prevStart);
+    }
+    function fetchAgg(start,end){
+      if(mode==='indep'){
+        const site=params.get('site')||localStorage.getItem('indepSite')||'poolsvacuum.com';
+        localStorage.setItem('indepSite',site);
+        const url=`/api/independent/stats?site=${encodeURIComponent(site)}&from=${start}&to=${end}`;
+        return fetch(url).then(r=>r.json()).then(j=>j.table||[]);
+      }
+      const url=`/api/ae_query?start=${start}&end=${end}&granularity=day`;
+      return fetch(url).then(r=>r.json()).then(j=>j.rows||[]);
+    }
+    function periodShift(startISO,endISO){
+      const start=new Date(startISO+'T00:00:00'); const end=new Date(endISO+'T00:00:00');
+      const days=Math.round((end-start)/86400000)+1;
+      const prevEnd=new Date(start.getTime()-86400000);
+      const prevStart=new Date(prevEnd.getTime()-(days-1)*86400000);
+      const fmt=d=>d.toISOString().slice(0,10);
+      return{prevStart:fmt(prevStart),prevEnd:fmt(prevEnd),days};
+    }
+    function renderProductSelf(rowsA,rowsB,days,startA,startB){
+      const expMap=new Map();
+      const linkMap=new Map();
+      const getId=r=>mode==='indep'?r.product:r.product_id;
+      const getExp=r=>mode==='indep'?Number(r.impr||0):Number(r.exposure||0);
+      rowsA.forEach(r=>{const id=getId(r);expMap.set(id,(expMap.get(id)||0)+getExp(r)); if(mode==='indep' && r.landing_url) linkMap.set(id,r.landing_url);});
+      const ids=Array.from(expMap.keys()).sort((a,b)=>expMap.get(b)-expMap.get(a));
+      const sel=document.getElementById('productSelect'); sel.innerHTML='';
+      ids.forEach(id=>{
+        const o=document.createElement('option');
+        o.value=id; o.textContent=id;
+        if(mode==='indep'){
+          const link=linkMap.get(id);
+          if(link){ o.dataset.url=link; o.dataset.api='/api/indep_fetchProductInfo'; }
+        }else{
+          o.setAttribute('data-pid',id);
+        }
+        sel.appendChild(o);
+      });
+      populateProductNames(sel);
+      if(!ids.length){document.getElementById('kpi').innerHTML=''; setProdLink('', ''); return;}
+      const pid=ids[0]; sel.value=pid; update(pid);
+      sel.onchange=()=>update(sel.value);
+      function sum(rows,pid){
+        return rows.filter(r=>String(getId(r))===String(pid)).reduce((a,r)=>({
+          exp:a.exp+getExp(r),
+          uv:a.uv+Number(mode==='indep'?r.clicks||0:r.visitors||0),
+          add:a.add+Number(mode==='indep'?0:r.add_people||0),
+          pay:a.pay+Number(mode==='indep'?r.conversions||0:r.pay_buyers||0)
+        }),{exp:0,uv:0,add:0,pay:0});
+      }
+      function line(pid){
+        const mapA=new Map(); rowsA.filter(r=>String(getId(r))===String(pid)).forEach(r=>{const d=mode==='indep'?r.day:r.bucket; mapA.set(d,getExp(r));});
+        const mapB=new Map(); rowsB.filter(r=>String(getId(r))===String(pid)).forEach(r=>{const d=mode==='indep'?r.day:r.bucket; mapB.set(d,getExp(r));});
+        const labels=[], a=[], b=[];
+        for(let i=0;i<days;i++){
+          const da=new Date(startA+'T00:00:00'); da.setDate(da.getDate()+i); const isoA=da.toISOString().slice(0,10);
+          const db=new Date(startB+'T00:00:00'); db.setDate(db.getDate()+i); const isoB=db.toISOString().slice(0,10);
+          labels.push(isoA); a.push(mapA.get(isoA)||0); b.push(mapB.get(isoB)||0);
+        }
+        const chart=echarts.init(document.getElementById('expLine'));
+        chart.setOption({tooltip:{trigger:'axis'},legend:{data:['本周期','上一周期']},xAxis:{type:'category',data:labels},yAxis:{type:'value'},series:[{name:'本周期',type:'line',smooth:true,data:a},{name:'上一周期',type:'line',smooth:true,data:b}]});
+        window.addEventListener('resize',()=>chart.resize());
+      }
+      function update(pid){
+        const cur=sum(rowsA,pid); const prev=sum(rowsB,pid);
+        document.getElementById('kpi').innerHTML=[
+          card('曝光量',cur.exp,prev.exp),
+          card('访客数',cur.uv,prev.uv),
+          card('加购人数',cur.add,prev.add),
+          card('支付买家数',cur.pay,prev.pay)
+        ].join('');
+        line(pid);
+        const url = mode==='indep' ? linkMap.get(pid) : `https://aliexpress.com/item/${pid}.html`;
+        const api = mode==='indep' ? '/api/indep_fetchProductInfo' : undefined;
+        getProductMeta(pid,url,api).then(m=>{
+          const linkText = mode==='indep' ? url : (m.title||pid);
+          setProdLink(linkText||'',url);
+          const img=document.getElementById('productImg');
+          img.src=m.image||'';
+          img.style.display=m.image?'':'none';
+        });
+      }
+    }
+    loadData();
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>运营分析</title>
+  <link rel="stylesheet" href="assets/theme.css?v=20250812-deep">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
+</head>
+<body>
+<header class="header">
+  <div class="logo-title">跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li class="ali active"><a href="#">速卖通</a>
+        <ul class="dropdown">
+          <li><a href="index.html">全托管</a></li>
+          <li><a href="self-operated.html">自运营</a></li>
+        </ul>
+      </li>
+      <li class="amazon"><a href="amazon.html">亚马逊</a></li>
+      <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon"><a href="ozon.html">Ozon</a></li>
+      <li class="independent"><a href="independent-site.html">独立站</a></li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+<div class="layout container">
+  <nav class="sidebar" id="sidebar">
+    <div class="site-header"><span id="currentSite"></span><button id="addSite" class="add-site-btn">+</button></div>
+    <ul class="sub-nav">
+      <li><a id="detailLink" href="index.html">详细数据</a></li>
+      <li><a class="active" href="#">运营分析</a></li>
+      <li><a id="productLink" href="product-analysis.html">产品分析</a></li>
+    </ul>
+  </nav>
+  <main class="main">
+    <div class="content">
+      <section class="content-pad">
+        <div id="ctrl" class="controls" style="margin-bottom:12px;"></div>
+        <div class="grid grid-2">
+          <div class="panel"><h3>曝光量</h3><div id="expChart" style="width:100%;height:260px;"></div></div>
+          <div class="panel"><h3>访客数</h3><div id="uvChart" style="width:100%;height:260px;"></div></div>
+          <div class="panel"><h3>加购人数</h3><div id="atcChart" style="width:100%;height:260px;"></div></div>
+          <div class="panel"><h3>支付买家数</h3><div id="payChart" style="width:100%;height:260px;"></div></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const params=new URLSearchParams(location.search);
+  const mode=params.get('mode');
+  const detailLink=document.getElementById('detailLink');
+  const productLink=document.getElementById('productLink');
+  if(mode==='self'){
+    if(detailLink)detailLink.href='self-operated.html';
+    if(productLink)productLink.href='product-analysis.html?mode=self';
+  }
+
+  const siteListKey='managedSites';
+  const currentSiteKey='currentSite';
+  let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
+  if(!Array.isArray(sites)||!sites.length){sites=mode==='self'?['A站','B站','C站']:['主站'];}
+  const currentSiteEl=document.getElementById('currentSite');
+  function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));}
+  function updateCurrent(){
+    const name=localStorage.getItem(currentSiteKey)||sites[0];
+    if(mode==='self'){
+      currentSiteEl.textContent='自运营 '+name;
+    }else{
+      currentSiteEl.textContent=sites.length>1?'全托管 '+name:'全托管';
+    }
+    localStorage.setItem(currentSiteKey,name);
+  }
+  currentSiteEl.addEventListener('dblclick',()=>{
+    const cur=localStorage.getItem(currentSiteKey)||sites[0];
+    const idx=sites.indexOf(cur);
+    const n=prompt('修改站点名',cur);
+    if(n){sites[idx]=n;save();localStorage.setItem(currentSiteKey,n);updateCurrent();}
+  });
+  document.getElementById('addSite').addEventListener('click',()=>{
+    const n=prompt('新增站点名');
+    if(n){sites.push(n);save();updateCurrent();}
+  });
+  updateCurrent();
+
+  if(mode==='self'){
+    setupSelf();
+  }else{
+    setupFM();
+  }
+
+  function setupFM(){
+    const ctrl=document.getElementById('ctrl');
+    ctrl.innerHTML='<label>粒度</label><label><input type="radio" name="gran" value="week"> 周</label><label><input type="radio" name="gran" value="month"> 月</label><select id="periodSelect" class="sel"></select>';
+    const state={ granularity: localStorage.getItem('fmGranularity')||'week', periods: [] };
+    document.querySelector(`input[name="gran"][value="${state.granularity}"]`).checked=true;
+    document.querySelectorAll('input[name="gran"]').forEach(r=>r.addEventListener('change',e=>{
+      state.granularity=e.target.value; localStorage.setItem('fmGranularity',state.granularity); loadPeriods();
+    }));
+    document.getElementById('periodSelect').addEventListener('change',loadData);
+
+    async function loadPeriods(){
+      const r=await fetch('/api/periods'); const j=await r.json();
+      const list=(state.granularity==='week'?j.weeks:j.months)||[];
+      state.periods=list.slice();
+      const sel=document.getElementById('periodSelect');
+      sel.innerHTML='';
+      if(!list.length){sel.innerHTML='<option value="">暂无数据</option>';return;}
+      list.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o);});
+      const stored=localStorage.getItem('fmPeriod');
+      if(stored && list.includes(stored)) sel.value=stored; else {sel.value=list[0]; localStorage.setItem('fmPeriod',list[0]);}
+      loadData();
+    }
+
+    async function loadData(){
+      const period=document.getElementById('periodSelect').value;
+      localStorage.setItem('fmPeriod', period || '');
+      const idx=state.periods.indexOf(period);
+      const prev=idx>0?state.periods[idx-1]:'';
+      const qsA=new URLSearchParams({granularity:state.granularity});
+      if(period)qsA.set('period_end',period);
+      const qsB=new URLSearchParams({granularity:state.granularity});
+      if(prev)qsB.set('period_end',prev);
+      const [ra,rb]=await Promise.all([
+        fetch('/api/stats?'+qsA.toString()),
+        prev?fetch('/api/stats?'+qsB.toString()):Promise.resolve(null)
+      ]);
+      const ja=await ra.json();
+      const jb=rb?await rb.json():{rows:[]};
+      const rowsA=ja.rows||[]; const rowsB=jb.rows||[];
+      function sumExp(rows){return rows.reduce((s,r)=>s+Number(r.search_exposure||r.exposure||r.pv||0),0);} 
+      const sum= (rows,key)=>rows.reduce((s,r)=>s+Number(r[key]||0),0);
+      renderBar('expChart',{cur:sumExp(rowsA),prev:sumExp(rowsB)});
+      renderBar('uvChart',{cur:sum(rowsA,'uv'),prev:sum(rowsB,'uv')});
+      renderBar('atcChart',{cur:sum(rowsA,'add_to_cart_users'),prev:sum(rowsB,'add_to_cart_users')});
+      renderBar('payChart',{cur:sum(rowsA,'pay_buyers'),prev:sum(rowsB,'pay_buyers')});
+    }
+
+    function renderBar(id,m){
+      const chart=echarts.init(document.getElementById(id));
+      chart.setOption({
+        tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+        xAxis:{type:'category',data:['本周期','上一周期']},
+        yAxis:{type:'value'},
+        series:[{
+          type:'bar',
+          data:[{value:m.cur,itemStyle:{color:'#3b82f6'}},{value:m.prev,itemStyle:{color:'#94a3b8'}}],
+          label:{show:true,position:'top'}
+        }]
+      });
+      window.addEventListener('resize',()=>chart.resize());
+    }
+
+    loadPeriods();
+  }
+
+  function setupSelf(){
+    const ctrl=document.getElementById('ctrl');
+    ctrl.innerHTML='<input id="dateRange" class="date-filter" placeholder="选择日期范围">';
+    const input=document.getElementById('dateRange');
+    const fp=flatpickr(input,{mode:'range',dateFormat:'Y-m-d',onClose:ds=>{if(ds.length===2)loadData();}});
+    const stored=localStorage.getItem('selfPeriod');
+    if(stored && stored.includes(' to ')){
+      input.value=stored;
+    }else{
+      const today=new Date(); const end=today.toISOString().slice(0,10);
+      const start=new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
+      const def=`${start} to ${end}`;
+      input.value=def; localStorage.setItem('selfPeriod',def);
+    }
+    loadData();
+
+    async function loadData(){
+      const val=input.value; if(!val.includes(' to '))return; const [startISO,endISO]=val.split(' to ');
+      localStorage.setItem('selfPeriod', `${startISO} to ${endISO}`);
+      const {prevStart,prevEnd,days}=periodShift(startISO,endISO);
+      const [rowsCur,rowsPrev]=await Promise.all([
+        fetchAgg(startISO,endISO),
+        fetchAgg(prevStart,prevEnd)
+      ]);
+      const agg=rows=>({
+        exp:aggregate(rows,'exposure'),
+        uv:aggregate(rows,'visitors'),
+        atc:aggregate(rows,'add_people'),
+        pay:aggregate(rows,'pay_buyers')
+      });
+      const curAgg=agg(rowsCur); const prevAgg=agg(rowsPrev);
+      const labels=[], expCur=[], expPrev=[], uvCur=[], uvPrev=[], atcCur=[], atcPrev=[], payCur=[], payPrev=[];
+      for(let i=0;i<days;i++){
+        const d=addDays(startISO,i); const dp=addDays(prevStart,i);
+        labels.push(formatMD(d));
+        expCur.push(curAgg.exp[d]||0); expPrev.push(prevAgg.exp[dp]||0);
+        uvCur.push(curAgg.uv[d]||0); uvPrev.push(prevAgg.uv[dp]||0);
+        atcCur.push(curAgg.atc[d]||0); atcPrev.push(prevAgg.atc[dp]||0);
+        payCur.push(curAgg.pay[d]||0); payPrev.push(prevAgg.pay[dp]||0);
+      }
+      renderLine('expChart',labels,expCur,expPrev);
+      renderLine('uvChart',labels,uvCur,uvPrev);
+      renderLine('atcChart',labels,atcCur,atcPrev);
+      renderLine('payChart',labels,payCur,payPrev);
+    }
+
+    function fetchAgg(start,end){
+      const url=`/api/ae_query?start=${start}&end=${end}&granularity=day`;
+      return fetch(url).then(r=>r.json()).then(j=>j.rows||[]);
+    }
+    function periodShift(startISO,endISO){
+      const start=new Date(startISO+'T00:00:00'); const end=new Date(endISO+'T00:00:00');
+      const days=Math.round((end-start)/86400000)+1;
+      const prevEnd=new Date(start.getTime()-86400000);
+      const prevStart=new Date(prevEnd.getTime()-(days-1)*86400000);
+      const fmt=d=>d.toISOString().slice(0,10);
+      return{prevStart:fmt(prevStart),prevEnd:fmt(prevEnd),days};
+    }
+    function aggregate(rows,key){
+      const m={}; rows.forEach(r=>{const d=r.bucket; m[d]=(m[d]||0)+Number(r[key]||0);}); return m;
+    }
+    function addDays(startISO,n){const d=new Date(startISO); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10);} 
+    function formatMD(iso){const d=new Date(iso); return (d.getMonth()+1)+'/'+d.getDate();}
+    function renderLine(id,labels,cur,prev){
+      const chart=echarts.init(document.getElementById(id));
+      chart.setOption({
+        tooltip:{trigger:'axis'},
+        legend:{data:['本周期','上一周期']},
+        xAxis:{type:'category',data:labels},
+        yAxis:{type:'value'},
+        series:[{name:'本周期',type:'line',smooth:true,data:cur},{name:'上一周期',type:'line',smooth:true,data:prev}]
+      });
+      window.addEventListener('resize',()=>chart.resize());
+    }
+  }
+});
+</script>
+</body>
+</html>
