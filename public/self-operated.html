@@ -16,6 +16,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+  <script src="assets/product-meta.js"></script>
 
   <!-- 主题样式（沿用你现有的） -->
   <link rel="stylesheet" href="assets/login.css">
@@ -393,7 +394,10 @@ async function drawTop6Both(rowsA, rowsB){
   chart.off('click'); chart.on('click', p=>{ const id=ids[p.dataIndex]; if(id) window.open(`https://aliexpress.com/item/${id}.html`,'_blank'); });
   window.addEventListener('resize', ()=>chart.resize());
   const linksDiv=document.getElementById('topBarLinks');
-  if(linksDiv){ linksDiv.innerHTML=ids.map(id=>`<a href="https://aliexpress.com/item/${id}.html" target="_blank">#${id}</a>`).join(' '); }
+  if(linksDiv){
+    linksDiv.innerHTML=ids.map(id=>`<a data-pid="${id}" data-link="https://aliexpress.com/item/${id}.html" href="https://aliexpress.com/item/${id}.html" target="_blank">${id}</a>`).join(' ');
+    populateProductNames(linksDiv);
+  }
 }
 
 function renderProductChart(rowsA, rowsB, days, startA, startB){
@@ -401,7 +405,8 @@ function renderProductChart(rowsA, rowsB, days, startA, startB){
   const ids = Array.from(new Set((rowsA||[]).map(r=>r.product_id))).filter(Boolean);
   sel.empty();
   if (!ids.length){ const c=echarts.init(document.getElementById('selfProductLine')); c.clear(); return; }
-  ids.forEach(id=> sel.append(`<option value="${id}">${id}</option>`));
+  ids.forEach(id=> sel.append(`<option value="${id}" data-pid="${id}">${id}</option>`));
+  populateProductNames(sel[0]);
   function draw(pid){
     const mapA=new Map(); rowsA.filter(r=>r.product_id==pid).forEach(r=>mapA.set(r.bucket,r.exposure||0));
     const mapB=new Map(); rowsB.filter(r=>r.product_id==pid).forEach(r=>mapB.set(r.bucket,r.exposure||0));
@@ -431,7 +436,7 @@ function renderProductChart(rowsA, rowsB, days, startA, startB){
 async function renderTable(rows, granularity) {
   if (window.dataTable) window.dataTable.destroy(); $('#report').empty();
   const data = rows.map(r => {
-    const link = r.product_id ? `<a href="https://aliexpress.com/item/${r.product_id}.html" target="_blank">${r.product_id}</a>` : '';
+    const link = r.product_id ? `<a data-pid="${r.product_id}" data-link="https://aliexpress.com/item/${r.product_id}.html" href="https://aliexpress.com/item/${r.product_id}.html" target="_blank">${r.product_id}</a>` : '';
     const conv1 = r.exposure>0 ? ((r.visitors/r.exposure)*100).toFixed(2) : '0.00';
     const conv2 = r.visitors>0 ? ((r.add_people/r.visitors)*100).toFixed(2) : '0.00';
     const conv3 = r.add_people>0 ? ((r.pay_buyers/r.add_people)*100).toFixed(2) : '0.00';
@@ -456,6 +461,7 @@ async function renderTable(rows, granularity) {
     ],
     order: [[1,'desc']], scrollX:true, scrollY:'calc(100vh - 420px)', scrollCollapse:true, fixedHeader:true, fixedColumns:{leftColumns:1}
   });
+  populateProductNames(document.getElementById('report'));
 }
 async function fetchAndRenderAll() {
   try {

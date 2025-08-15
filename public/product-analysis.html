@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="assets/product-meta.js"></script>
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
 </head>
 <body>
@@ -43,7 +44,7 @@
     <div class="content">
       <section class="content-pad">
         <div id="ctrl" class="controls" style="margin-bottom:12px;"></div>
-        <div class="controls" style="margin-bottom:12px;"><label>产品</label><select id="productSelect" class="sel"></select><a id="productLink" href="#" target="_blank" style="margin-left:8px;display:none;"></a></div>
+        <div class="controls" style="margin-bottom:12px;"><label>产品</label><select id="productSelect" class="sel"></select><img id="productImg" style="width:40px;height:40px;object-fit:cover;margin-left:8px;display:none;"/><a id="productLink" href="#" target="_blank" style="margin-left:8px;display:none;"></a></div>
         <div id="kpi" class="kpi-row"></div>
         <div id="lineWrap" class="panel" style="margin-top:16px;display:none;">
           <h3>曝光趋势</h3>
@@ -163,7 +164,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       const ids=Array.from(expMap.keys()).sort((a,b)=>expMap.get(b)-expMap.get(a));
       const sel=document.getElementById('productSelect');
       sel.innerHTML='';
-      ids.forEach(id=>{const o=document.createElement('option');o.value=id;o.textContent=id;sel.appendChild(o);});
+      ids.forEach(id=>{const o=document.createElement('option');o.value=id;o.textContent=id;o.setAttribute('data-pid',id);sel.appendChild(o);});
+      populateProductNames(sel);
       if(!ids.length){document.getElementById('kpi').innerHTML=''; setProdLink('',''); return;}
       const pid=ids[0]; sel.value=pid; update(pid);
       sel.onchange=()=>update(sel.value);
@@ -183,7 +185,13 @@ document.addEventListener('DOMContentLoaded',()=>{
           card('加购人数',cur.add,prev.add),
           card('支付买家数',cur.pay,prev.pay)
         ].join('');
-        setProdLink(pid, `https://aliexpress.com/item/${pid}.html`);
+        const url=`https://aliexpress.com/item/${pid}.html`;
+        getProductMeta(pid,url).then(m=>{
+          setProdLink(m.title||pid,url);
+          const img=document.getElementById('productImg');
+          img.src=m.image||'';
+          img.style.display=m.image?'':'none';
+        });
       }
     }
     loadPeriods();
@@ -234,7 +242,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       const getExp=r=>mode==='indep'?Number(r.impr||0):Number(r.exposure||0);
       rowsA.forEach(r=>{const id=getId(r);expMap.set(id,(expMap.get(id)||0)+getExp(r)); if(mode==='indep' && r.landing_url) linkMap.set(id,r.landing_url);});
       const ids=Array.from(expMap.keys()).sort((a,b)=>expMap.get(b)-expMap.get(a));
-      const sel=document.getElementById('productSelect'); sel.innerHTML=''; ids.forEach(id=>{const o=document.createElement('option');o.value=id;o.textContent=id;sel.appendChild(o);});
+      const sel=document.getElementById('productSelect'); sel.innerHTML=''; ids.forEach(id=>{const o=document.createElement('option');o.value=id;o.textContent=id;o.setAttribute('data-pid',id);sel.appendChild(o);});
+      if(mode!=='indep') populateProductNames(sel);
       if(!ids.length){document.getElementById('kpi').innerHTML=''; setProdLink('', ''); return;}
       const pid=ids[0]; sel.value=pid; update(pid);
       sel.onchange=()=>update(sel.value);
@@ -269,7 +278,18 @@ document.addEventListener('DOMContentLoaded',()=>{
         ].join('');
         line(pid);
         const url = mode==='indep' ? linkMap.get(pid) : `https://aliexpress.com/item/${pid}.html`;
-        setProdLink(pid, url);
+        if(mode==='indep'){
+          setProdLink(pid,url);
+          const img=document.getElementById('productImg');
+          img.style.display='none';
+        }else{
+          getProductMeta(pid,url).then(m=>{
+            setProdLink(m.title||pid,url);
+            const img=document.getElementById('productImg');
+            img.src=m.image||'';
+            img.style.display=m.image?'':'none';
+          });
+        }
       }
     }
     loadData();
