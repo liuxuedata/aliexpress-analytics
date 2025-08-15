@@ -184,8 +184,16 @@
 (function(){
   const state = { granularity: 'week', table: null, uploading: false };
 
+  // 初始化粒度：若本地存储有记录则使用
+  const storedGran = localStorage.getItem('fmGranularity');
+  if (storedGran) {
+    state.granularity = storedGran;
+    $("input[name='gran'][value='"+storedGran+"']").prop('checked', true);
+  }
+
   $('input[name="gran"]').on('change', function(){
     state.granularity = this.value;
+    localStorage.setItem('fmGranularity', state.granularity);
     loadPeriods().then(loadData);
   });
 
@@ -223,10 +231,16 @@
     const r = await fetch('/api/periods'); const j = await r.json();
     const list = (state.granularity==='week' ? j.weeks : j.months) || [];
     state.periods = list.slice();
-    state.periods = list.slice();
     const $sel = $('#periodSelect').empty();
     if (!list.length){ $sel.append('<option value="">暂无数据</option>'); return; }
     list.forEach(d=> $sel.append('<option value="'+d+'">'+d+'</option>'));
+    const stored = localStorage.getItem('fmPeriod');
+    if (stored && list.includes(stored)) {
+      $sel.val(stored);
+    } else {
+      $sel.val(list[0]);
+      localStorage.setItem('fmPeriod', list[0]);
+    }
   }
 
   $('#periodSelect').on('change', loadData);
@@ -234,6 +248,8 @@
   
   async function loadData(){
     const period = $('#periodSelect').val();
+    localStorage.setItem('fmPeriod', period || '');
+    localStorage.setItem('fmGranularity', state.granularity);
     const qsA = new URLSearchParams({ granularity: state.granularity });
     if (period) qsA.set('period_end', period);
 
