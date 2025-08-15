@@ -290,7 +290,7 @@
       columns:[
         { data:'product', render:(v,t,r)=>{
             const name = v || r.landing_path || '';
-            return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
+            return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${name}</a>`;
           }},
         { data:'device', render: v => v || '' },
         { data:'network', render: v => v || '' },

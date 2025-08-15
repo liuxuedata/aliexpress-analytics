@@ -278,8 +278,8 @@
 
     // table uses current period A
     const rows = window._rowsA.map(x => [
-      (x.product_link ? '<a href="'+x.product_link+'" target="_blank">'+(x.product_id||'')+'</a>' : (x.product_id||'')),
-      
+      '<a href="'+(x.product_link || ('https://aliexpress.com/item/'+x.product_id+'.html'))+'" target="_blank">'+(x.product_id||'')+'</a>',
+
       x.search_exposure || 0, x.uv || 0, x.pv || 0,
       x.add_to_cart_users || 0, x.add_to_cart_qty || 0,
       x.pay_items || 0, x.pay_orders || 0, x.pay_buyers || 0,
