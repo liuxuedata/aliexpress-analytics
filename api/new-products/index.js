@@ -35,14 +35,24 @@ module.exports = async (req, res) => {
     let { from, to } = req.query;
     const limit = Math.max(1, Math.min(parseInt(req.query.limit||"500",10)||500, 5000));
 
-    // 自动取该平台最近一周（按周末日）
+    // 自动取该平台最近一天（按统计表日期列）
     if (!from || !to) {
+      let dateCol = 'period_end';
+      let altCol = 'stat_date';
+      if (platform === 'indep') {
+        dateCol = 'day';
+        altCol = '';
+      }
+      const selCols = [dateCol, altCol].filter(Boolean).join(',');
       const { data: lastRows, error: lastErr } = await supabase
-        .from(statsTable).select("period_end, stat_date").order("period_end", { ascending:false }).limit(1);
+        .from(statsTable)
+        .select(selCols)
+        .order(dateCol, { ascending: false })
+        .limit(1);
       if (lastErr) throw lastErr;
       const last = lastRows && lastRows[0];
-      const iso = (last?.period_end || last?.stat_date || "").slice(0,10);
-      if (!iso) return res.status(200).json({ ok:true, platform, range:null, new_count:0, items:[] });
+      const iso = (last?.[dateCol] || last?.[altCol] || '').slice(0, 10);
+      if (!iso) return res.status(200).json({ ok: true, platform, range: null, new_count: 0, items: [] });
       from = to = iso;
     }
 

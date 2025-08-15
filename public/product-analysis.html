@@ -44,7 +44,7 @@
     <div class="content">
       <section class="content-pad">
         <div id="ctrl" class="controls" style="margin-bottom:12px;"></div>
-        <div class="controls" style="margin-bottom:12px;"><label>产品</label><select id="productSelect" class="sel"></select><img id="productImg" style="width:40px;height:40px;object-fit:cover;margin-left:8px;display:none;"/><a id="productLink" href="#" target="_blank" style="margin-left:8px;display:none;"></a></div>
+        <div class="controls" style="margin-bottom:12px;flex-wrap:wrap;"><label>产品</label><select id="productSelect" class="sel" style="width:200px;flex:0 0 200px;"></select><img id="productImg" style="width:40px;height:40px;object-fit:cover;margin-left:8px;display:none;"/><a id="productLink" href="#" target="_blank" style="margin-left:8px;display:none;word-break:break-all;white-space:normal;flex:1 1 auto;"></a></div>
         <div id="kpi" class="kpi-row"></div>
         <div id="lineWrap" class="panel" style="margin-top:16px;display:none;">
           <h3>曝光趋势</h3>
@@ -65,6 +65,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(text && url){
       prodLink.textContent=text;
       prodLink.href=url;
+      prodLink.title=url;
       prodLink.style.display='';
     }else{
       prodLink.style.display='none';
@@ -291,7 +292,8 @@ document.addEventListener('DOMContentLoaded',()=>{
         const url = mode==='indep' ? linkMap.get(pid) : `https://aliexpress.com/item/${pid}.html`;
         const api = mode==='indep' ? '/api/indep_fetchProductInfo' : undefined;
         getProductMeta(pid,url,api).then(m=>{
-          setProdLink(m.title||pid,url);
+          const linkText = mode==='indep' ? url : (m.title||pid);
+          setProdLink(linkText||'',url);
           const img=document.getElementById('productImg');
           img.src=m.image||'';
           img.style.display=m.image?'':'none';
