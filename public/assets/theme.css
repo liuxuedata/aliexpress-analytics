@@ -177,7 +177,7 @@ table.dataTable td{
 
 /* ------ KPI Cards (index.html) ------ */
 .stat-card{
-  background:#fff; border:1px solid var(--panel-border);
+  background:var(--kpi-bg); border:1px solid var(--kpi-border);
   border-radius:14px; padding:12px 14px; box-shadow:var(--shadow);
 }
 .stat-card h4{ margin:0 0 6px; color:#334155; font-size:12px; letter-spacing:.2px }
@@ -274,8 +274,8 @@ table.dataTable thead th.sorting_desc{
 .kpi::-webkit-scrollbar-thumb{ background:#e5e7eb; border-radius:999px }
 
 .kpi .card{
-  background:#fff;
-  border:1px solid var(--panel-border);
+  background:var(--kpi-bg);
+  border:1px solid var(--kpi-border);
   border-radius:14px;
   padding:12px 14px;
   min-width:200px;         /* keep readable width */
@@ -299,8 +299,8 @@ table.dataTable thead th.sorting_desc{
 
 /* New variable for KPI background */
 :root{
-  --kpi-bg: #f8fafc;           /* slightly darker than white */
-  --kpi-border: #e5e7eb;
+  --kpi-bg: #f1f5f9;           /* darker KPI background */
+  --kpi-border: #d1d5db;       /* matching darker border */
 }
 
 /* KPI: full-managed (#kpi .stat-card) */
@@ -315,22 +315,25 @@ table.dataTable thead th.sorting_desc{
 
 /* Gradient backgrounds for KPI cards */
 #kpi .stat-card:nth-child(1), .kpi .card:nth-child(1){
-  background:linear-gradient(135deg,#4f46e5,#7c3aed);
+  background:linear-gradient(135deg,#4338ca,#3730a3);
 }
 #kpi .stat-card:nth-child(2), .kpi .card:nth-child(2){
-  background:linear-gradient(135deg,#1d4ed8,#0e7490);
+  background:linear-gradient(135deg,#1e40af,#0c4a6e);
 }
 #kpi .stat-card:nth-child(3), .kpi .card:nth-child(3){
-  background:linear-gradient(135deg,#0e7490,#047857);
+  background:linear-gradient(135deg,#0f766e,#065f46);
 }
 #kpi .stat-card:nth-child(4), .kpi .card:nth-child(4){
-  background:linear-gradient(135deg,#047857,#3f6212);
+  background:linear-gradient(135deg,#166534,#365314);
 }
 #kpi .stat-card:nth-child(5), .kpi .card:nth-child(5){
-  background:linear-gradient(135deg,#3f6212,#ca8a04);
+  background:linear-gradient(135deg,#365314,#713f12);
 }
 #kpi .stat-card:nth-child(6), .kpi .card:nth-child(6){
-  background:linear-gradient(135deg,#ca8a04,#c2410c);
+  background:linear-gradient(135deg,#713f12,#7f1d1d);
+}
+#kpi .stat-card:nth-child(7), .kpi .card:nth-child(7){
+  background:linear-gradient(135deg,#7f1d1d,#9f1239);
 }
 
 #kpi .stat-card .sub{ margin-top:4px; font-size:12px; color:#f1f5f9; }
