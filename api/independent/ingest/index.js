@@ -132,6 +132,35 @@ async function handleFile(filePath, filename) {
     .upsert(deduped, { onConflict: 'day,site,landing_path,device,network,campaign' });
 
   if (error) throw error;
+
+  // Track first_seen date for each product (landing_path) in a separate table
+  const firstSeenMap = new Map();
+  for (const row of deduped) {
+    const key = row.landing_path;
+    const day = row.day;
+    const prev = firstSeenMap.get(key);
+    if (!prev || day < prev) firstSeenMap.set(key, day);
+  }
+  if (firstSeenMap.size) {
+    const ids = Array.from(firstSeenMap.keys());
+    const { data: existed, error: e1 } = await supabase
+      .from('independent_new_products')
+      .select('product_id')
+      .in('product_id', ids);
+    if (e1) throw e1;
+    const existSet = new Set((existed || []).map(r => r.product_id));
+    const insertRows = [];
+    firstSeenMap.forEach((day, pid) => {
+      if (!existSet.has(pid)) insertRows.push({ product_id: pid, first_seen: day });
+    });
+    if (insertRows.length) {
+      const { error: e2 } = await supabase
+        .from('independent_new_products')
+        .insert(insertRows);
+      if (e2) throw e2;
+    }
+  }
+
   return { inserted: data?.length ?? deduped.length };
 }
 

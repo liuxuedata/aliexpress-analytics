@@ -10,16 +10,18 @@ function supa() {
 const pad2 = n => (n < 10 ? "0" + n : "" + n);
 const toMMDD = iso => { const d = new Date(iso + "T00:00:00Z"); return pad2(d.getUTCMonth()+1)+pad2(d.getUTCDate()); };
 
-function viewOf(platform){
-  if (platform === "managed") return "managed_new_products";
-  if (platform === "self")    return "ae_self_new_products";
-  throw new Error("platform must be 'managed' or 'self'");
-}
-function statsTableOf(platform){
-  if (platform === "managed") return "managed_stats";
-  if (platform === "self")    return "ae_self_operated_daily";
-  throw new Error("platform must be 'managed' or 'self'");
-}
+  function viewOf(platform){
+    if (platform === "managed") return "managed_new_products";
+    if (platform === "self")    return "ae_self_new_products";
+    if (platform === "indep")  return "independent_new_products";
+    throw new Error("platform must be 'managed', 'self', or 'indep'");
+  }
+  function statsTableOf(platform){
+    if (platform === "managed") return "managed_stats";
+    if (platform === "self")    return "ae_self_operated_daily";
+    if (platform === "indep")  return "independent_landing_metrics";
+    throw new Error("platform must be 'managed', 'self', or 'indep'");
+  }
 
 module.exports = async (req, res) => {
   if (req.method !== "GET") return res.status(405).json({ ok:false, msg:"Only GET" });

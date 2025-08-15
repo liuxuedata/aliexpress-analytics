@@ -50,12 +50,27 @@ function lastWeek() {
 module.exports = async (req, res) => {
   try {
     const supabase = getClient();
-    const { site, from, to, limit = '20000' } = req.query;
+    const { site, from, to, limit = '20000', only_new } = req.query;
     const def = lastWeek();
     const toDate = parseDate(to, def.to);
     const fromDate = parseDate(from, def.from);
+    const onlyNew = String(only_new || '') === '1';
 
     if (!site) return res.status(400).json({ error: 'missing site param, e.g. ?site=poolsvacuum.com' });
+
+    // Fetch new product registrations within range
+    let newSet = new Set();
+    try {
+      const { data: newRows, error: e0 } = await supabase
+        .from('independent_new_products')
+        .select('product_id, first_seen')
+        .gte('first_seen', fromDate)
+        .lte('first_seen', toDate);
+      if (e0) throw e0;
+      newSet = new Set((newRows || []).map(r => r.product_id));
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
 
     // table data (fetch all pages up to limit)
     const limitNum = Math.min(Number(limit) || PAGE_SIZE, 20000);
@@ -90,6 +105,10 @@ module.exports = async (req, res) => {
       conv_rate: safeNum(r.conv_rate)
     }));
 
+    if (onlyNew) {
+      table = table.filter(r => newSet.has(r.landing_path));
+    }
+
     // daily summary series
     let { data: series, error: e2 } = await supabase
       .from('independent_landing_summary_by_day')
@@ -123,6 +142,20 @@ module.exports = async (req, res) => {
       cost: safeNum(r.cost)
     }));
 
+    if (onlyNew) {
+      const byDay = {};
+      table.forEach(r => {
+        const d = r.day;
+        if (!byDay[d]) byDay[d] = { day: d, clicks: 0, impr: 0, conversions: 0, conv_value: 0, cost: 0 };
+        byDay[d].clicks += safeNum(r.clicks);
+        byDay[d].impr += safeNum(r.impr);
+        byDay[d].conversions += safeNum(r.conversions);
+        byDay[d].conv_value += safeNum(r.conv_value);
+        byDay[d].cost += safeNum(r.cost);
+      });
+      series = Object.values(byDay).sort((a,b)=> a.day.localeCompare(b.day));
+    }
+
     // top landing pages by conversions (aggregate all pages)
     let topPages = [];
     for (let fromIdx = 0;; fromIdx += PAGE_SIZE) {
@@ -140,6 +173,7 @@ module.exports = async (req, res) => {
 
     const byPath = {};
     for (const r of topPages) {
+      if (onlyNew && !newSet.has(r.landing_path)) continue;
       const key = r.landing_path;
       if (!byPath[key]) byPath[key] = { path: key, url: r.landing_url, conversions: 0, conv_value: 0, clicks: 0, impr: 0, cost: 0 };
       byPath[key].conversions += safeNum(r.conversions);
@@ -173,20 +207,10 @@ module.exports = async (req, res) => {
       if (safeNum(r.clicks) > 0) clickSet.add(key);
       if (safeNum(r.conversions) > 0) convSet.add(key);
     });
-    let newCount = 0;
-    try {
-      const { data: firstRows, error: e3 } = await supabase
-        .from('independent_landing_metrics')
-        .select('landing_path, first_day:min(day)')
-        .eq('site', site)
-        .lte('day', toDate)
-        .group('landing_path');
-      if (!e3 && Array.isArray(firstRows)) {
-        newCount = firstRows.filter(r => r.first_day >= fromDate && r.first_day <= toDate).length;
-      }
-    } catch (e) {
-      newCount = 0;
-    }
+    const newRows = table.filter(r => newSet.has(r.landing_path));
+    const newImpr = sum(newRows, 'impr');
+    const newClicks = sum(newRows, 'clicks');
+    const newConv = sum(newRows, 'conversions');
 
     const kpis = {
       avg_ctr: +(imprSum>0 ? (clickSum/imprSum*100).toFixed(2) : 0),
@@ -194,7 +218,10 @@ module.exports = async (req, res) => {
       exposure_product_count: exposureSet.size,
       click_product_count: clickSet.size,
       conversion_product_count: convSet.size,
-      new_product_count: newCount
+      new_product_count: newSet.size,
+      new_impr: newImpr,
+      new_clicks: newClicks,
+      new_conversions: newConv
     };
 
     res.status(200).json({ ok: true, from: fromDate, to: toDate, table, series, topList, kpis });
