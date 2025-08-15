@@ -76,7 +76,7 @@
     <ul class="sub-nav">
       <li><a href="#" data-jump="detail" class="active">明细数据</a></li>
       <li><a href="#" data-jump="analysis">运营分析</a></li>
-      <li><a href="#" data-jump="product">产品分析</a></li>
+      <li><a href="product-analysis.html?mode=indep">产品分析</a></li>
     </ul>
   </nav>
 
@@ -319,7 +319,7 @@
   campaignSel.addEventListener('change', buildTable);
 
   // 默认站点取 url 参数或从示例取
-  siteInput.value = getParam('site') || 'poolsvacuum.com';
+  siteInput.value = getParam('site') || localStorage.getItem('indepSite') || 'poolsvacuum.com';
   const today = new Date();
   const dow = today.getDay();
   const mondayThisWeek = new Date(today);
@@ -343,6 +343,7 @@
   async function load() {
     try {
       const site = siteInput.value.trim();
+      localStorage.setItem('indepSite', site);
       const from = fromInput.value;
       const to = toInput.value;
       const url = `/api/independent/stats?site=${encodeURIComponent(site)}&from=${from}&to=${to}`;
