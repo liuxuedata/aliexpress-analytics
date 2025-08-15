@@ -164,7 +164,15 @@
           </div>
         </div>
       </section>
-      <section id="product" class="content-pad" style="display:none;"><p>产品分析建设中...</p></section>
+      <section id="product" class="content-pad" style="display:none;">
+        <div class="panel">
+          <div class="kpi-ctrl">
+            <label>选择商品</label>
+            <select id="selfProductSelect"></select>
+          </div>
+          <div id="selfProductLine" style="width:100%;height:360px;"></div>
+        </div>
+      </section>
     </div>
   </main>
 </div>
@@ -387,6 +395,39 @@ async function drawTop6Both(rowsA, rowsB){
   const linksDiv=document.getElementById('topBarLinks');
   if(linksDiv){ linksDiv.innerHTML=ids.map(id=>`<a href="https://aliexpress.com/item/${id}.html" target="_blank">#${id}</a>`).join(' '); }
 }
+
+function renderProductChart(rowsA, rowsB, days, startA, startB){
+  const sel = $('#selfProductSelect').off('change');
+  const ids = Array.from(new Set((rowsA||[]).map(r=>r.product_id))).filter(Boolean);
+  sel.empty();
+  if (!ids.length){ const c=echarts.init(document.getElementById('selfProductLine')); c.clear(); return; }
+  ids.forEach(id=> sel.append(`<option value="${id}">${id}</option>`));
+  function draw(pid){
+    const mapA=new Map(); rowsA.filter(r=>r.product_id==pid).forEach(r=>mapA.set(r.bucket,r.exposure||0));
+    const mapB=new Map(); rowsB.filter(r=>r.product_id==pid).forEach(r=>mapB.set(r.bucket,r.exposure||0));
+    const x=[], a=[], b=[];
+    for(let i=0;i<days;i++){
+      const da=new Date(startA+'T00:00:00'); da.setDate(da.getDate()+i); const isoA=da.toISOString().slice(0,10);
+      const db=new Date(startB+'T00:00:00'); db.setDate(db.getDate()+i); const isoB=db.toISOString().slice(0,10);
+      x.push(isoA); a.push(mapA.get(isoA)||0); b.push(mapB.get(isoB)||0);
+    }
+    const chart=echarts.init(document.getElementById('selfProductLine'));
+    chart.setOption({
+      tooltip:{ trigger:'axis', backgroundColor:'#0b1220', borderColor:GRID_LINE, textStyle:{ color:'#E5E7EB' } },
+      legend:{ data:['周期A','周期B'], textStyle:{ color:'#E5E7EB', fontWeight:700 } },
+      grid:{ left:40, right:16, top:36, bottom:24 },
+      xAxis:{ type:'category', data:x, axisLabel:AXIS_LABEL, axisLine:{ lineStyle:{ color:GRID_LINE }}, splitLine:{ show:true, lineStyle:{ color:GRID_LINE } } },
+      yAxis:{ type:'value', axisLabel:AXIS_LABEL, axisLine:{ lineStyle:{ color:GRID_LINE }}, splitLine:{ lineStyle:{ color:GRID_LINE } } },
+      series:[
+        { name:'周期A', type:'line', data:a, smooth:true, showSymbol:false, lineStyle:{ width:3 }, itemStyle:{ color:'#2563EB' } },
+        { name:'周期B', type:'line', data:b, smooth:true, showSymbol:false, lineStyle:{ width:3 }, itemStyle:{ color:'#F97316' } }
+      ]
+    });
+    window.addEventListener('resize', ()=>chart.resize());
+  }
+  sel.on('change', ()=>draw(sel.val()));
+  draw(ids[0]);
+}
 async function renderTable(rows, granularity) {
   if (window.dataTable) window.dataTable.destroy(); $('#report').empty();
   const data = rows.map(r => {
@@ -436,6 +477,7 @@ async function fetchAndRenderAll() {
     drawLineChartDaily(rowsA,rowsB,days,startISO,prevStart,metricKey);
     drawRatioBar(rowsA,rowsB);
     await drawTop6Both(rowsA,rowsB);
+    renderProductChart(rowsA,rowsB,days,startISO,prevStart);
 
     $('#progress').text(`A: ${rowsA.length} 条 · B: ${rowsB.length} 条`);
   } catch (err) {

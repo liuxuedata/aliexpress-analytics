@@ -165,7 +165,15 @@
   </div>
 </section>
 
-<section id="product" class="content-pad" style="display:none;"><p>产品分析建设中...</p></section>
+<section id="product" class="content-pad" style="display:none;">
+  <div class="panel">
+    <div class="kpi-ctrl">
+      <label>选择商品</label>
+      <select id="productSelect"></select>
+    </div>
+    <div id="productKpi" class="kpi-row"></div>
+  </div>
+</section>
 
       </div>
     </div>
@@ -267,6 +275,7 @@
     if (state.table) state.table.clear().rows.add(rows).draw();
     else state.table = $('#report').DataTable({ data: rows, paging:true, searching:true, info:true, order:[[2,'desc']], fixedHeader:true, scrollY:'60vh', scrollCollapse:true, autoWidth:false });
     renderAnalysis(window._rowsA, window._rowsB);
+    renderProduct(window._rowsA, window._rowsB);
   }
 
   function card(title, cur, prev, isPercent){
@@ -286,6 +295,32 @@
       card('产品总数', +(k.product_count||0), +(p.product_count||0)),
       card('有加购的产品数', +(k.atc_product_count||0), +(p.atc_product_count||0)),
       card('有支付的产品数', +(k.pay_product_count||0), +(p.pay_product_count||0))
+    ].join(''));
+  }
+
+  function renderProduct(rowsA, rowsB){
+    const ids = Array.from(new Set((rowsA||[]).map(x=>x.product_id))).filter(Boolean);
+    const $sel = $('#productSelect').off('change').empty();
+    if (!ids.length){ $('#productKpi').empty(); return; }
+    ids.forEach(id=> $sel.append(`<option value="${id}">${id}</option>`));
+    $sel.on('change', ()=> updateProductKpi($sel.val(), rowsA, rowsB));
+    updateProductKpi(ids[0], rowsA, rowsB);
+  }
+
+  function updateProductKpi(pid, rowsA, rowsB){
+    const sum = rows => rows.reduce((a,x)=>({
+      exp:a.exp + (+x.search_exposure||0),
+      uv: a.uv + (+x.uv||0),
+      add:a.add + (+x.add_to_cart_users||0),
+      pay:a.pay + (+x.pay_buyers||0)
+    }), {exp:0,uv:0,add:0,pay:0});
+    const cur = sum((rowsA||[]).filter(x=>String(x.product_id)===String(pid)));
+    const prev = sum((rowsB||[]).filter(x=>String(x.product_id)===String(pid)));
+    $('#productKpi').html([
+      card('曝光量', cur.exp, prev.exp),
+      card('访客数', cur.uv, prev.uv),
+      card('加购人数', cur.add, prev.add),
+      card('支付买家数', cur.pay, prev.pay)
     ].join(''));
   }
 
