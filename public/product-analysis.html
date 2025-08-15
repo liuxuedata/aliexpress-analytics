@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     async function loadData(){
       const period=document.getElementById('periodSelect').value;
       localStorage.setItem('fmPeriod',period||'');
-      const idx=state.periods.indexOf(period); const prev=idx>0?state.periods[idx-1]:'';
+        const idx=state.periods.indexOf(period); const prev=(idx>=0 && idx<state.periods.length-1)?state.periods[idx+1]:'';
       const qsA=new URLSearchParams({granularity:state.granularity}); if(period)qsA.set('period_end',period);
       const qsB=new URLSearchParams({granularity:state.granularity}); if(prev)qsB.set('period_end',prev);
       const [ja,jb]=await Promise.all([
