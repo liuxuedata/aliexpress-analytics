@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>运营分析</title>
+  <link rel="stylesheet" href="assets/theme.css?v=20250812-deep">
+  <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+  <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
+</head>
+<body>
+<header class="header">
+  <div class="logo-title">跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li class="ali active"><a href="#">速卖通</a>
+        <ul class="dropdown">
+          <li><a href="index.html">全托管</a></li>
+          <li><a href="self-operated.html">自运营</a></li>
+        </ul>
+      </li>
+      <li class="amazon"><a href="amazon.html">亚马逊</a></li>
+      <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon"><a href="ozon.html">Ozon</a></li>
+      <li class="independent"><a href="independent-site.html">独立站</a></li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+<div class="layout container">
+  <nav class="sidebar">
+    <div class="site-header"><span id="currentSite">运营分析</span></div>
+    <ul class="sub-nav">
+      <li><a href="index.html">详细数据</a></li>
+      <li><a class="active" href="#">运营分析</a></li>
+      <li><a href="product-analysis.html">产品分析</a></li>
+    </ul>
+  </nav>
+  <main class="main">
+    <div class="content">
+      <section class="content-pad">
+        <div class="grid grid-2">
+          <div class="panel"><h3>曝光量</h3><div id="expChart" style="width:100%;height:260px;"></div></div>
+          <div class="panel"><h3>访客数</h3><div id="uvChart" style="width:100%;height:260px;"></div></div>
+          <div class="panel"><h3>加购人数</h3><div id="atcChart" style="width:100%;height:260px;"></div></div>
+          <div class="panel"><h3>支付买家数</h3><div id="payChart" style="width:100%;height:260px;"></div></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<script>
+// 示例数据：本周 vs 上周，每天的指标值
+const days=['周一','周二','周三','周四','周五','周六','周日'];
+const data={
+  exp:{cur:[120,132,101,134,90,230,210],prev:[220,182,191,234,290,330,310]},
+  uv:{cur:[150,232,201,154,190,330,410],prev:[120,282,111,234,220,340,310]},
+  atc:{cur:[320,332,301,334,390,330,320],prev:[220,182,191,234,290,330,310]},
+  pay:{cur:[220,182,191,234,290,330,310],prev:[150,232,201,154,190,330,410]}
+};
+function render(id,m){
+  const chart=echarts.init(document.getElementById(id));
+  chart.setOption({
+    tooltip:{trigger:'axis'},
+    legend:{data:['本周','上周']},
+    xAxis:{type:'category',data:days},
+    yAxis:{type:'value'},
+    series:[
+      {name:'本周',type:'line',data:m.cur},
+      {name:'上周',type:'line',data:m.prev}
+    ]
+  });
+  window.addEventListener('resize',()=>chart.resize());
+}
+render('expChart',data.exp);
+render('uvChart',data.uv);
+render('atcChart',data.atc);
+render('payChart',data.pay);
+</script>
+</body>
+</html>
