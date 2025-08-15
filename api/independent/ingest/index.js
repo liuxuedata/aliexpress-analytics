@@ -134,30 +134,33 @@ async function handleFile(filePath, filename) {
   if (error) throw error;
 
   // Track first_seen date for each product (landing_path) in a separate table
-  const firstSeenMap = new Map();
-  for (const row of deduped) {
-    const key = row.landing_url;
-    const day = row.day;
-    const prev = firstSeenMap.get(key);
-    if (!prev || day < prev) firstSeenMap.set(key, day);
-  }
-  if (firstSeenMap.size) {
-    const ids = Array.from(firstSeenMap.keys());
+  // We determine the earliest "day" that a landing_url appears in the metrics table
+  const uniqueLinks = Array.from(new Set(deduped.map(r => r.landing_url)));
+  if (uniqueLinks.length) {
     const { data: existed, error: e1 } = await supabase
       .from('independent_new_products')
       .select('product_link')
-      .in('product_link', ids);
+      .in('product_link', uniqueLinks);
     if (e1) throw e1;
     const existSet = new Set((existed || []).map(r => r.product_link));
-    const insertRows = [];
-    firstSeenMap.forEach((day, link) => {
-      if (!existSet.has(link)) insertRows.push({ product_link: link, first_seen: day });
-    });
-    if (insertRows.length) {
-      const { error: e2 } = await supabase
-        .from('independent_new_products')
-        .insert(insertRows);
+    const toCheck = uniqueLinks.filter(link => !existSet.has(link));
+    if (toCheck.length) {
+      const { data: earliest, error: e2 } = await supabase
+        .from('independent_landing_metrics')
+        .select('landing_url, first_seen:min(day)')
+        .in('landing_url', toCheck)
+        .group('landing_url');
       if (e2) throw e2;
+      const insertRows = (earliest || []).map(r => ({
+        product_link: r.landing_url,
+        first_seen: r.first_seen,
+      }));
+      if (insertRows.length) {
+        const { error: e3 } = await supabase
+          .from('independent_new_products')
+          .insert(insertRows);
+        if (e3) throw e3;
+      }
     }
   }
 
