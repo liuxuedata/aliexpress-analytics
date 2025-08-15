@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(productLink)productLink.href='product-analysis.html?mode=indep';
   }else if(mode==='ozon'){
     if(detailLink)detailLink.href='ozon.html';
-    if(productLink)productLink.removeAttribute('href');
+    if(productLink)productLink.href='product-analysis.html?mode=ozon';
   }
 
   const siteListKey='managedSites';
@@ -113,8 +113,17 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   if(mode==='self'){
     setupSelf();
+  }else if(mode==='ozon'){
+    showPlaceholder();
   }else{
     setupFM();
+  }
+
+  function showPlaceholder(){
+    const content=document.querySelector('.content');
+    if(content){
+      content.innerHTML='<section class="content-pad" style="display:flex;align-items:center;justify-content:center;height:60vh;"><h2 style="font-size:24px;font-weight:700;">页面建设中…</h2></section>';
+    }
   }
 
   function setupFM(){
@@ -144,7 +153,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       const period=document.getElementById('periodSelect').value;
       localStorage.setItem('fmPeriod', period || '');
       const idx=state.periods.indexOf(period);
-      const prev=idx>0?state.periods[idx-1]:'';
+      const prev=(idx>=0 && idx<state.periods.length-1)?state.periods[idx+1]:'';
       const qsA=new URLSearchParams({granularity:state.granularity});
       if(period)qsA.set('period_end',period);
       const qsB=new URLSearchParams({granularity:state.granularity});

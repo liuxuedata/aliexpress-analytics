@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(analysisLink)analysisLink.removeAttribute('href');
   }else if(mode==='ozon'){
     if(detailLink)detailLink.href='ozon.html';
-    if(analysisLink)analysisLink.removeAttribute('href');
+    if(analysisLink)analysisLink.href='operation-analysis.html?mode=ozon';
   }else{
     if(analysisLink)analysisLink.href='operation-analysis.html';
   }
@@ -131,8 +131,17 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   if(mode==='self' || mode==='indep'){
     setupSelf(mode);
+  }else if(mode==='ozon'){
+    showPlaceholder();
   }else{
     setupFM();
+  }
+
+  function showPlaceholder(){
+    const content=document.querySelector('.content');
+    if(content){
+      content.innerHTML='<section class="content-pad" style="display:flex;align-items:center;justify-content:center;height:60vh;"><h2 style="font-size:24px;font-weight:700;">页面建设中…</h2></section>';
+    }
   }
 
   function card(title,cur,prev){
@@ -166,7 +175,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     async function loadData(){
       const period=document.getElementById('periodSelect').value;
       localStorage.setItem('fmPeriod',period||'');
-      const idx=state.periods.indexOf(period); const prev=idx>0?state.periods[idx-1]:'';
+      const idx=state.periods.indexOf(period); const prev=(idx>=0 && idx<state.periods.length-1)?state.periods[idx+1]:'';
       const qsA=new URLSearchParams({granularity:state.granularity}); if(period)qsA.set('period_end',period);
       const qsB=new URLSearchParams({granularity:state.granularity}); if(prev)qsB.set('period_end',prev);
       const [ja,jb]=await Promise.all([
