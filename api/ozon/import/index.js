@@ -66,7 +66,27 @@ module.exports = async function handler(req,res){
     if(!file) return res.json({ok:false,msg:'missing file'});
     try{
       const rows = parseSheet(file.path);
+      const cols = Object.keys(rows[0] || {});
       const supabase = supa();
+
+      const { data: colData, error: colErr } = await supabase
+        .from('information_schema.columns')
+        .select('column_name')
+        .eq('table_schema', 'public')
+        .eq('table_name', 'ozon_product_report_wide');
+      if(colErr) throw colErr;
+      const tableCols = colData.map(c=>c.column_name);
+      const required = ['den'];
+      const unknown = cols.filter(c=>!tableCols.includes(c));
+      const missing = required.filter(c=>!cols.includes(c));
+      if(unknown.length || missing.length){
+        fs.unlinkSync(file.path);
+        let msgs=[];
+        if(unknown.length) msgs.push('unknown columns: '+unknown.join(', '));
+        if(missing.length) msgs.push('missing columns: '+missing.join(', '));
+        return res.status(400).json({ok:false,msg:msgs.join('; ')});
+      }
+
       async function refresh(){
         const { error } = await supabase.rpc('refresh_ozon_schema_cache');
         if(error) console.error('schema cache refresh failed:', error.message);
@@ -85,10 +105,10 @@ module.exports = async function handler(req,res){
         }
       }while(attempt++ < 2);
       fs.unlinkSync(file.path);
-      if(error) throw error;
+      if(error) return res.status(400).json({ok:false,msg:error.message,details:error.details});
       res.json({ok:true, inserted: rows.length});
     }catch(e){
-      res.json({ok:false,msg:e.message});
+      res.status(400).json({ok:false,msg:e.message});
     }
   });
 };
