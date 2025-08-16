@@ -11,6 +11,12 @@
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
+  <style>
+    #report td:first-child{max-width:200px;white-space:normal;word-break:break-word;}
+    #newModal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;}
+    #newModal .box{background:#fff;padding:20px;border-radius:8px;max-width:400px;max-height:60vh;overflow:auto;}
+    #newModal ul{margin:0;padding-left:20px;}
+  </style>
 </head>
 <body class="fm">
 <header class="header">
@@ -49,6 +55,9 @@
           <span class="badge">时间粒度</span>
           <span class="sel" style="background:#1f2937;color:#fff;border-color:#334155;cursor:not-allowed">按日</span>
           <input type="hidden" value="day">
+          <span>日期</span>
+          <select id="dateSelect" class="date-filter"></select>
+          <button id="refreshBtn" class="btn">刷新</button>
           <label for="file" id="pickLabel" class="upload-btn">选择文件</label>
           <input type="file" id="file" accept=".xlsx,.xls,.csv" />
           <span id="status" class="notice"></span>
@@ -57,6 +66,7 @@
     </div>
 
     <div class="content">
+      <div id="kpi" class="kpi"></div>
       <section id="detail" class="content-pad">
         <div class="panel">
           <h3>数据明细</h3>
@@ -86,10 +96,13 @@
     </div>
   </main>
 </div>
+<div id="newModal"><div class="box"><h4>新品列表</h4><ul id="newItems"></ul></div></div>
 <script>
 (function(){
   const storeId = 'demo';
   let table = null;
+  let currentDate = '';
+  let newProducts = [];
 
   function initTable(){
     if(!table){
@@ -110,9 +123,16 @@
   function setStatus(t){ $('#status').text(t||''); }
 
   async function loadData(){
-    const resp = await fetch(`/api/ozon/stats?store_id=${encodeURIComponent(storeId)}`);
+    const selected = $('#dateSelect').val();
+    const url = selected ? `/api/ozon/stats?store_id=${encodeURIComponent(storeId)}&date=${selected}` : `/api/ozon/stats?store_id=${encodeURIComponent(storeId)}`;
+    const resp = await fetch(url);
     const json = await resp.json();
     if(!json.ok) throw new Error(json.msg||'查询失败');
+    currentDate = json.date;
+    const sel = $('#dateSelect');
+    sel.empty();
+    (json.dates||[]).forEach(d=> sel.append(`<option value="${d}">${d}</option>`));
+    sel.val(currentDate);
     const mapped = (json.rows||[]).map(r=>{
       const impressions = Number(r.exposure)||0;
       const sessions = Number(r.uv)||0;
@@ -142,6 +162,7 @@
     });
     const dt = initTable();
     dt.clear().rows.add(mapped).draw();
+    loadKpi().catch(err=>console.error(err));
   }
 
   async function upload(file){
@@ -151,6 +172,38 @@
     const resp = await fetch('/api/ozon/import', { method:'POST', body:fd });
     const json = await resp.json();
     if(!json.ok) throw new Error(json.msg||'上传失败');
+  }
+
+  function renderKpi(k){
+    const host = document.getElementById('kpi');
+    if(!host) return;
+    const delta = (c,p,isPct)=>{ const d=c-p; const cls=d>=0?'up':'down'; const val=isPct ? (d*100).toFixed(2)+'%' : d; const sign=d>=0&&isPct?'+':''; return `<span class="delta ${cls}">${sign}${val}</span>`; };
+    host.innerHTML = [
+      `<div class="card"><h4>访客比</h4><p>${(k.visitor_rate.current*100).toFixed(2)}%${delta(k.visitor_rate.current,k.visitor_rate.previous,true)}</p></div>`,
+      `<div class="card"><h4>加购比</h4><p>${(k.cart_rate.current*100).toFixed(2)}%${delta(k.cart_rate.current,k.cart_rate.previous,true)}</p></div>`,
+      `<div class="card"><h4>支付比</h4><p>${(k.pay_rate.current*100).toFixed(2)}%${delta(k.pay_rate.current,k.pay_rate.previous,true)}</p></div>`,
+      `<div class="card"><h4>商品总数</h4><p>${k.product_total.current}${delta(k.product_total.current,k.product_total.previous,false)}</p></div>`,
+      `<div class="card"><h4>有加购商品总数</h4><p>${k.cart_product_total.current}${delta(k.cart_product_total.current,k.cart_product_total.previous,false)}</p></div>`,
+      `<div class="card"><h4>有支付商品总数</h4><p>${k.pay_product_total.current}${delta(k.pay_product_total.current,k.pay_product_total.previous,false)}</p></div>`,
+      `<div class="card clickable" id="kpi-new"><h4>新品数</h4><p>${k.new_product_total}</p></div>`
+    ].join('');
+    newProducts = k.new_products || [];
+    const newCard = document.getElementById('kpi-new');
+    if(newCard) newCard.addEventListener('click',()=>{
+      const modal=document.getElementById('newModal');
+      const ul=document.getElementById('newItems');
+      ul.innerHTML=newProducts.map(p=>`<li>${p.title||p.sku}</li>`).join('');
+      modal.style.display='flex';
+    });
+  }
+
+  async function loadKpi(){
+    if(!currentDate) return;
+    const resp = await fetch(`/api/ozon/kpi?date=${currentDate}`);
+    const json = await resp.json();
+    if(json.ok && json.metrics){
+      renderKpi(json.metrics);
+    }
   }
 
   $('#file').on('change', async function(e){
@@ -166,6 +219,10 @@
     e.target.value='';
   });
 
+  document.getElementById('newModal').addEventListener('click',e=>{ if(e.target.id==='newModal') e.currentTarget.style.display='none'; });
+
+  $('#dateSelect').on('change',()=>loadData().catch(err=>console.error(err)));
+  $('#refreshBtn').on('click',()=>loadData().catch(err=>console.error(err)));
   loadData().catch(err=>console.error(err));
 })();
 </script>

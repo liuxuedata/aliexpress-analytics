@@ -36,11 +36,13 @@ function parseSheet(path){
     headers.push(key);
   }
   const rows=[];
-  for(let r=9;r<=range.e.r;r++){
+  // data rows start after summary and description sections
+  for(let r=11;r<=range.e.r;r++){
     const row=getRow(r);
     if(row.every(v=>v==null)) continue;
-    // skip description rows
-    if(typeof row[0]==='string' && row[0].startsWith('По ')) continue;
+    const first=row[0];
+    if(first==null) continue;
+    if(typeof first==='string' && first.includes('Итого')) continue;
     const obj={};
     for(let i=0;i<headers.length;i++){
       const val=row[i];
@@ -63,7 +65,23 @@ module.exports = async function handler(req,res){
     try{
       const rows = parseSheet(file.path);
       const supabase = supa();
-      const { error } = await supabase.from('ozon_daily_product_metrics').insert(rows);
+      async function refresh(){
+        const { error } = await supabase.rpc('refresh_ozon_schema_cache');
+        if(error) console.error('schema cache refresh failed:', error.message);
+        await new Promise(r=>setTimeout(r,1000));
+      }
+      await refresh();
+      let attempt = 0;
+      let error;
+      do{
+        const resInsert = await supabase.from('public.ozon_product_report_wide').insert(rows);
+        error = resInsert.error;
+        if(error && /schema cache/i.test(error.message)){
+          await refresh();
+        }else{
+          break;
+        }
+      }while(attempt++ < 2);
       fs.unlinkSync(file.path);
       if(error) throw error;
       res.json({ok:true, inserted: rows.length});
