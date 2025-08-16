@@ -70,13 +70,9 @@ module.exports = async function handler(req,res){
       const supabase = supa();
 
       const { data: colData, error: colErr } = await supabase
-        .schema('information_schema')
-        .from('columns')
-        .select('column_name')
-        .eq('table_schema', 'public')
-        .eq('table_name', 'ozon_product_report_wide');
+        .rpc('get_public_columns', { table_name: 'ozon_product_report_wide' });
       if(colErr) throw colErr;
-      const tableCols = colData.map(c=>c.column_name);
+      const tableCols = (colData || []).map(c=>c.column_name);
       const required = ['den'];
       const unknown = cols.filter(c=>!tableCols.includes(c));
       const missing = required.filter(c=>!cols.includes(c));

@@ -92,4 +92,15 @@ begin
 end;
 $$;
 
+create or replace function public.get_public_columns(table_name text)
+returns table(column_name text)
+language sql
+stable
+security definer
+as $$
+  select column_name
+  from information_schema.columns
+  where table_schema = 'public' and table_name = $1;
+$$;
+
 select public.refresh_ozon_schema_cache();
