@@ -134,6 +134,7 @@
     <section id="detail" class="content-pad">
       <div class="panel">
         <h3>Landing Pages 明细</h3>
+        <button id="clearFilter" class="btn" style="display:none;margin-left:10px;">清除筛选</button>
         <div class="table-section">
           <div class="table-wrapper">
             <table id="report" class="display nowrap" style="width:100%">
@@ -213,6 +214,7 @@
   const columnToggle = document.getElementById('columnToggle');
   const networkSel = document.getElementById('networkSel');
   const campaignSel = document.getElementById('campaignSel');
+  const clearBtn = document.getElementById('clearFilter');
   const optionalCols = [
     { idx:1, label:'设备' }
   ];
@@ -226,6 +228,7 @@
   });
   let dt;
   let rawTable = [];
+  let onlyNew = false;
 
   function periodShift(startISO, endISO){
     const start=new Date(startISO+'T00:00:00'); const end=new Date(endISO+'T00:00:00');
@@ -244,7 +247,7 @@
       card('曝光商品总数', +(k.exposure_product_count||0), +(p.exposure_product_count||0)),
       card('点击商品总数', +(k.click_product_count||0), +(p.click_product_count||0)),
       card('转化商品总数', +(k.conversion_product_count||0), +(p.conversion_product_count||0)),
-      card('新品总数', +(k.new_product_count||0), +(p.new_product_count||0))
+      `<div class="stat-card clickable" id="kpi-new"><h4>本周期新品数</h4><p>${+(k.new_product_count||0)}</p></div>`
     ].join(''));
   }
 
@@ -365,9 +368,19 @@
       localStorage.setItem('indepSite', site);
       const from = fromInput.value;
       const to = toInput.value;
-      const url = `/api/independent/stats?site=${encodeURIComponent(site)}&from=${from}&to=${to}`;
+      const params = new URLSearchParams({site, from, to});
+      const net = networkSel.value;
+      const camp = campaignSel.value;
+      if (net) params.append('network', net);
+      if (camp) params.append('campaign', camp);
+      if (onlyNew) params.append('only_new', '1');
+      const url = `/api/independent/stats?${params.toString()}`;
       const { prevStart, prevEnd } = periodShift(from, to);
-      const prevUrl = `/api/independent/stats?site=${encodeURIComponent(site)}&from=${prevStart}&to=${prevEnd}`;
+      const prevParams = new URLSearchParams({site, from: prevStart, to: prevEnd});
+      if (net) prevParams.append('network', net);
+      if (camp) prevParams.append('campaign', camp);
+      if (onlyNew) prevParams.append('only_new', '1');
+      const prevUrl = `/api/independent/stats?${prevParams.toString()}`;
       const [res, resPrev] = await Promise.all([fetch(url), fetch(prevUrl)]);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const [json, jsonPrev] = await Promise.all([res.json(), resPrev.json()]);
@@ -375,6 +388,8 @@
 
       rawTable = json.table || [];
       renderKPI(json.kpis || {}, (jsonPrev.ok && jsonPrev.kpis) ? jsonPrev.kpis : {});
+      $('#kpi').off('click', '#kpi-new').on('click', '#kpi-new', ()=>{onlyNew = true; load();});
+      clearBtn.style.display = onlyNew ? '' : 'none';
       populateFilters();
       buildTable();
 
@@ -429,6 +444,7 @@
   }
 
   document.getElementById('refreshBtn').addEventListener('click', load);
+  clearBtn.addEventListener('click', () => { onlyNew = false; load(); });
   // 上传逻辑
   const fileInput = document.getElementById('fileInput');
   const uploadBtn = document.getElementById('uploadBtn');

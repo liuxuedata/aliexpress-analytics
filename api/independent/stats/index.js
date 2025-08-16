@@ -50,7 +50,7 @@ function lastWeek() {
 module.exports = async (req, res) => {
   try {
     const supabase = getClient();
-    const { site, from, to, limit = '20000', only_new } = req.query;
+    const { site, from, to, limit = '20000', only_new, campaign, network, device } = req.query;
     const def = lastWeek();
     const toDate = parseDate(to, def.to);
     const fromDate = parseDate(from, def.from);
@@ -59,19 +59,18 @@ module.exports = async (req, res) => {
     if (!site) return res.status(400).json({ error: 'missing site param, e.g. ?site=poolsvacuum.com' });
 
     // Fetch new product registrations within range
-    let newSet = new Set();
+    const newMap = new Map();
     try {
       const { data: newRows, error: e0 } = await supabase
-        .from('independent_new_products')
-        .select('product_link, first_seen')
-        .gte('first_seen', fromDate)
-        .lte('first_seen', toDate);
+        .from('independent_first_seen')
+        .select('landing_path, first_seen_date')
+        .eq('site', site)
+        .gte('first_seen_date', fromDate)
+        .lte('first_seen_date', toDate);
       if (e0) throw e0;
-      newSet = new Set((newRows || []).map(r => r.product_link));
+      (newRows || []).forEach(r => newMap.set(r.landing_path, r.first_seen_date));
     } catch (e) {
-      console.error('independent_new_products lookup failed', e.message);
-      // If the table doesn't exist, continue without new-product tracking
-      newSet = new Set();
+      console.error('independent_first_seen lookup failed', e.message);
     }
 
     // table data (fetch all pages up to limit)
@@ -79,13 +78,16 @@ module.exports = async (req, res) => {
     let table = [];
     for (let fromIdx = 0; table.length < limitNum; fromIdx += PAGE_SIZE) {
       const toIdx = Math.min(fromIdx + PAGE_SIZE - 1, limitNum - 1);
-      const { data, error } = await supabase
+      let query = supabase
         .from('independent_landing_metrics')
         .select('*')
         .eq('site', site)
         .gte('day', fromDate).lte('day', toDate)
-        .order('day', { ascending: false })
-        .range(fromIdx, toIdx);
+        .order('day', { ascending: false });
+      if (campaign) query = query.eq('campaign', campaign);
+      if (network) query = query.eq('network', network);
+      if (device) query = query.eq('device', device);
+      const { data, error } = await query.range(fromIdx, toIdx);
       if (error) return res.status(500).json({ error: error.message });
       table = table.concat(data);
       if (!data.length || data.length < PAGE_SIZE) break;
@@ -104,23 +106,29 @@ module.exports = async (req, res) => {
       all_conv: safeNum(r.all_conv),
       conv_value: safeNum(r.conv_value),
       all_conv_rate: safeNum(r.all_conv_rate),
-      conv_rate: safeNum(r.conv_rate)
+      conv_rate: safeNum(r.conv_rate),
+      is_new: newMap.has(r.landing_path),
+      first_seen_date: newMap.get(r.landing_path) || null
     }));
 
     if (onlyNew) {
-      table = table.filter(r => newSet.has(r.landing_url));
+      table = table.filter(r => r.is_new);
     }
 
     // daily summary series
-    let { data: series, error: e2 } = await supabase
+    let seriesQuery = supabase
       .from('independent_landing_summary_by_day')
       .select('*')
       .eq('site', site)
       .gte('day', fromDate).lte('day', toDate)
       .order('day', { ascending: true });
+    if (campaign) seriesQuery = seriesQuery.eq('campaign', campaign);
+    if (network) seriesQuery = seriesQuery.eq('network', network);
+    if (device) seriesQuery = seriesQuery.eq('device', device);
+    let { data: series, error: e2 } = await seriesQuery;
 
     if (e2 && /independent_landing_summary_by_day/.test(e2.message)) {
-      const { data: fallback, error: e2b } = await supabase
+      let fbQuery = supabase
         .from('independent_landing_metrics')
         .select(
           'day, clicks:sum(clicks), impr:sum(impr), conversions:sum(conversions), conv_value:sum(conv_value), cost:sum(cost)'
@@ -129,6 +137,10 @@ module.exports = async (req, res) => {
         .gte('day', fromDate)
         .lte('day', toDate)
         .order('day', { ascending: true });
+      if (campaign) fbQuery = fbQuery.eq('campaign', campaign);
+      if (network) fbQuery = fbQuery.eq('network', network);
+      if (device) fbQuery = fbQuery.eq('device', device);
+      const { data: fallback, error: e2b } = await fbQuery;
       if (e2b) return res.status(500).json({ error: e2b.message });
       series = fallback || [];
     } else if (e2) {
@@ -162,12 +174,15 @@ module.exports = async (req, res) => {
     let topPages = [];
     for (let fromIdx = 0;; fromIdx += PAGE_SIZE) {
       const toIdx = fromIdx + PAGE_SIZE - 1;
-      const { data, error } = await supabase
+      let tpQuery = supabase
         .from('independent_landing_metrics')
         .select('landing_path, landing_url, conversions, conv_value, clicks, impr, cost')
         .eq('site', site)
-        .gte('day', fromDate).lte('day', toDate)
-        .range(fromIdx, toIdx);
+        .gte('day', fromDate).lte('day', toDate);
+      if (campaign) tpQuery = tpQuery.eq('campaign', campaign);
+      if (network) tpQuery = tpQuery.eq('network', network);
+      if (device) tpQuery = tpQuery.eq('device', device);
+      const { data, error } = await tpQuery.range(fromIdx, toIdx);
       if (error) return res.status(500).json({ error: error.message });
       topPages = topPages.concat(data);
       if (!data.length || data.length < PAGE_SIZE) break;
@@ -175,7 +190,7 @@ module.exports = async (req, res) => {
 
     const byPath = {};
     for (const r of topPages) {
-      if (onlyNew && !newSet.has(r.landing_url)) continue;
+      if (onlyNew && !newMap.has(r.landing_path)) continue;
       const key = r.landing_path;
       if (!byPath[key]) byPath[key] = { path: key, url: r.landing_url, conversions: 0, conv_value: 0, clicks: 0, impr: 0, cost: 0 };
       byPath[key].conversions += safeNum(r.conversions);
@@ -209,7 +224,7 @@ module.exports = async (req, res) => {
       if (safeNum(r.clicks) > 0) clickSet.add(key);
       if (safeNum(r.conversions) > 0) convSet.add(key);
     });
-    const newRows = table.filter(r => newSet.has(r.landing_url));
+    const newRows = table.filter(r => r.is_new);
     const newImpr = sum(newRows, 'impr');
     const newClicks = sum(newRows, 'clicks');
     const newConv = sum(newRows, 'conversions');
@@ -220,7 +235,7 @@ module.exports = async (req, res) => {
       exposure_product_count: exposureSet.size,
       click_product_count: clickSet.size,
       conversion_product_count: convSet.size,
-      new_product_count: newSet.size,
+      new_product_count: newMap.size,
       new_impr: newImpr,
       new_clicks: newClicks,
       new_conversions: newConv

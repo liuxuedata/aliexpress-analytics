@@ -16,7 +16,7 @@
   <div class="logo-title">跨境电商数据分析平台</div>
   <nav class="header-center">
     <ul class="platform-nav">
-      <li class="ali active"><a href="#">速卖通</a>
+      <li class="ali"><a href="#">速卖通</a>
         <ul class="dropdown">
           <li><a href="index.html">全托管</a></li>
           <li><a href="self-operated.html">自运营</a></li>
@@ -61,6 +61,28 @@ document.addEventListener('DOMContentLoaded',()=>{
   const detailLink=document.getElementById('detailLink');
   const analysisLink=document.getElementById('analysisLink');
   const prodLink=document.getElementById('productLink');
+  const platformNav=document.querySelector('.platform-nav');
+  platformNav.querySelectorAll('li').forEach(li=>li.classList.remove('active'));
+  const platformMap={
+    indep:'li.independent',
+    ozon:'li.ozon',
+    amazon:'li.amazon',
+    tiktok:'li.tiktok',
+    temu:'li.temu'
+  };
+  const selector=platformMap[mode];
+  if(selector){
+    platformNav.querySelector(selector)?.classList.add('active');
+  }else{
+    const aliLi=platformNav.querySelector('li.ali');
+    aliLi?.classList.add('active');
+    aliLi?.querySelectorAll('.dropdown li').forEach(li=>li.classList.remove('active'));
+    if(mode==='self'){
+      aliLi?.querySelector('a[href="self-operated.html"]')?.parentElement.classList.add('active');
+    }else{
+      aliLi?.querySelector('a[href="index.html"]')?.parentElement.classList.add('active');
+    }
+  }
   function setProdLink(text,url){
     if(text && url){
       prodLink.textContent=text;
@@ -77,6 +99,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   }else if(mode==='indep'){
     if(detailLink)detailLink.href='independent-site.html';
     if(analysisLink)analysisLink.removeAttribute('href');
+  }else if(mode==='ozon'){
+    if(detailLink)detailLink.href='ozon.html';
+    if(analysisLink)analysisLink.href='ozon-operation-analysis.html';
   }else{
     if(analysisLink)analysisLink.href='operation-analysis.html';
   }
@@ -149,7 +174,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     async function loadData(){
       const period=document.getElementById('periodSelect').value;
       localStorage.setItem('fmPeriod',period||'');
-      const idx=state.periods.indexOf(period); const prev=idx>0?state.periods[idx-1]:'';
+        const idx=state.periods.indexOf(period); const prev=(idx>=0 && idx<state.periods.length-1)?state.periods[idx+1]:'';
       const qsA=new URLSearchParams({granularity:state.granularity}); if(period)qsA.set('period_end',period);
       const qsB=new URLSearchParams({granularity:state.granularity}); if(prev)qsB.set('period_end',prev);
       const [ja,jb]=await Promise.all([
