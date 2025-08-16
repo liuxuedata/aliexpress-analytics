@@ -31,7 +31,7 @@ module.exports = async function handler(req,res){
       return res.json({ok:true, rows:[], date:null, dates});
     }
 
-    const selectCols = 'sku,tovary,voronka_prodazh_pokazy_vsego,voronka_prodazh_pokazy_v_poiske_i_kataloge,voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_kartochki_tovara,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov,voronka_prodazh_vykupleno_tovarov';
+    const selectCols = 'sku,tovary,voronka_prodazh_pokazy_vsego,voronka_prodazh_pokazy_v_poiske_i_kataloge,voronka_prodazh_uv_s_prosmotrom_kartochki_tovara,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov,voronka_prodazh_vykupleno_tovarov';
 
     const { data, error } = await supabase
       .from('public.ozon_product_report_wide')
@@ -43,7 +43,7 @@ module.exports = async function handler(req,res){
       product_id: r.sku,
       product_title: r.tovary,
       exposure: r.voronka_prodazh_pokazy_vsego,
-      uv: r.voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_kartochki_tovara,
+      uv: r.voronka_prodazh_uv_s_prosmotrom_kartochki_tovara,
       pv: r.voronka_prodazh_pokazy_v_poiske_i_kataloge,
       add_to_cart_users: r.voronka_prodazh_dobavleniya_v_korzinu_vsego,
       add_to_cart_qty: r.voronka_prodazh_dobavleniya_v_korzinu_vsego,

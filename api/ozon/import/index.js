@@ -19,6 +19,11 @@ function translit(s){
     .replace(/^_|_$|__+/g,'_');
 }
 
+const headerAliases = {
+  'voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_v_poiske_ili_kataloge': 'voronka_prodazh_uv_s_prosmotrom_v_poiske_ili_kataloge',
+  'voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_kartochki_tovara': 'voronka_prodazh_uv_s_prosmotrom_kartochki_tovara'
+};
+
 function parseSheet(path){
   const wb = xlsx.readFile(path);
   const sheet = wb.Sheets[wb.SheetNames[0]];
@@ -34,6 +39,7 @@ function parseSheet(path){
     // drop date ranges like "08.08.2025 – 15.08.2025" from header names
     name = name.replace(/\d{2}\.\d{2}\.\d{4}\s*[–-]\s*\d{2}\.\d{2}\.\d{4}/g, '').trim();
     let key=translit(name);
+    key = headerAliases[key] || key;
     const n=counts[key]||0; counts[key]=n+1; if(n) key=key+'_'+(n+1);
     headers.push(key);
   }

@@ -32,7 +32,7 @@ module.exports = async function handler(req,res){
     const curIndex = dates.indexOf(date);
     const prevDate = dates[curIndex+1] || null;
 
-    const select = 'sku,tovary,voronka_prodazh_pokazy_vsego,voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_kartochki_tovara,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_vykupleno_tovarov';
+    const select = 'sku,tovary,voronka_prodazh_pokazy_vsego,voronka_prodazh_uv_s_prosmotrom_kartochki_tovara,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_vykupleno_tovarov';
     const curResp = await supabase.from('public.ozon_product_report_wide').select(select).eq('den', date);
     if(curResp.error) throw curResp.error;
     let prevResp = { data: [] };
@@ -48,7 +48,7 @@ module.exports = async function handler(req,res){
       for(const r of rows){
         skuSet.add(r.sku);
         const e=Number(r.voronka_prodazh_pokazy_vsego)||0; sums.exposure+=e;
-        const u=Number(r.voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_kartochki_tovara)||0; sums.uv+=u;
+        const u=Number(r.voronka_prodazh_uv_s_prosmotrom_kartochki_tovara)||0; sums.uv+=u;
         const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; sums.cart+=c; if(c>0) cartSkus.add(r.sku);
         const p=Number(r.voronka_prodazh_vykupleno_tovarov)||0; sums.pay+=p; if(p>0) paySkus.add(r.sku);
       }
