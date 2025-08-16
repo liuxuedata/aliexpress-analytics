@@ -70,7 +70,8 @@ module.exports = async function handler(req,res){
       const supabase = supa();
 
       const { data: colData, error: colErr } = await supabase
-        .from('information_schema.columns')
+        .schema('information_schema')
+        .from('columns')
         .select('column_name')
         .eq('table_schema', 'public')
         .eq('table_name', 'ozon_product_report_wide');
