@@ -258,7 +258,7 @@
     let prev = '';
     if (state.periods && period){
       const idx = state.periods.indexOf(period);
-      if (idx > 0) prev = state.periods[idx-1];
+      if (idx >= 0 && idx < state.periods.length - 1) prev = state.periods[idx + 1];
     }
     const qsB = new URLSearchParams({ granularity: state.granularity });
     if (prev) qsB.set('period_end', prev);
