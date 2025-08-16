@@ -1,39 +1,33 @@
-const { createClient } = require("@supabase/supabase-js");
+const { createClient } = require('@supabase/supabase-js');
 
-function supa() {
+function supa(){
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-  if (!url || !key) throw new Error("Missing Supabase env");
+  if(!url || !key) throw new Error('Missing Supabase env');
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-module.exports = async (req, res) => {
-  if (req.method !== "GET") {
-    return res.status(405).json({ ok: false, msg: "Only GET" });
-  }
-  try {
+module.exports = async function handler(req,res){
+  try{
     const supabase = supa();
-    const { store_id, start_date, end_date } = req.query;
-    if (!store_id) {
-      return res.status(400).json({ ok: false, msg: "missing store_id" });
-    }
-
-    let query = supabase
-      .from("ozon_daily_product_metrics")
-      .select(
-        "day,product_id,product_title,search_exposure,uv,pv,add_to_cart_users,add_to_cart_qty,pay_items,pay_orders,pay_buyers"
-      )
-      .eq("store_id", store_id)
-      .order("day", { ascending: false });
-
-    if (start_date) query = query.gte("day", start_date);
-    if (end_date) query = query.lte("day", end_date);
-
-    const { data, error } = await query;
-    if (error) throw error;
-
-    res.status(200).json({ ok: true, rows: data || [] });
-  } catch (e) {
-    res.status(500).json({ ok: false, msg: e.message });
+    const { data, error } = await supabase.from('ozon_daily_product_metrics').select(
+      'sku,tovary,voronka_prodazh_pokazy_vsego,voronka_prodazh_pokazy_v_poiske_i_kataloge,voronka_prodazh_posescheniya_kartochki_tovara,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov,voronka_prodazh_vykupleno_tovarov'
+    );
+    if(error) throw error;
+    const rows = (data||[]).map(r=>({
+      product_id: r.sku,
+      product_title: r.tovary,
+      exposure: r.voronka_prodazh_pokazy_vsego,
+      uv: r.voronka_prodazh_posescheniya_kartochki_tovara,
+      pv: r.voronka_prodazh_pokazy_v_poiske_i_kataloge,
+      add_to_cart_users: r.voronka_prodazh_dobavleniya_v_korzinu_vsego,
+      add_to_cart_qty: r.voronka_prodazh_dobavleniya_v_korzinu_vsego,
+      pay_items: r.voronka_prodazh_vykupleno_tovarov,
+      pay_orders: r.voronka_prodazh_zakazano_tovarov,
+      pay_buyers: r.voronka_prodazh_vykupleno_tovarov
+    }));
+    res.json({ok:true, rows});
+  }catch(e){
+    res.json({ok:false,msg:e.message});
   }
 };
