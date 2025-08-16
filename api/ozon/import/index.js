@@ -10,6 +10,43 @@ function supa() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
+async function probeColumns(supabase) {
+  try {
+    const { data } = await supabase
+      .from("ozon_daily_product_metrics")
+      .select("*")
+      .limit(1);
+    const cols = data && data.length ? Object.keys(data[0]) : [];
+    const has = (c) => cols.includes(c);
+    const pick = (...cands) => cands.find(has) || null;
+    return {
+      product_title: pick("product_title"),
+      category_name: pick("category_name"),
+      exposure: pick("search_exposure", "exposure", "impressions"),
+      uv: pick("uv"),
+      pv: pick("pv"),
+      add_to_cart_users: pick("add_to_cart_users"),
+      add_to_cart_qty: pick("add_to_cart_qty"),
+      pay_items: pick("pay_items"),
+      pay_orders: pick("pay_orders"),
+      pay_buyers: pick("pay_buyers")
+    };
+  } catch {
+    return {
+      product_title: "product_title",
+      category_name: "category_name",
+      exposure: "search_exposure",
+      uv: "uv",
+      pv: "pv",
+      add_to_cart_users: "add_to_cart_users",
+      add_to_cart_qty: "add_to_cart_qty",
+      pay_items: "pay_items",
+      pay_orders: "pay_orders",
+      pay_buyers: "pay_buyers"
+    };
+  }
+}
+
 // 将俄文列名规范化为小写下划线形式
 const norm = (s) => (s || "").toLowerCase().trim().replace(/[\s.:;/\\-]+/g, "_");
 
@@ -135,6 +172,7 @@ module.exports = async (req, res) => {
   }
 
   try {
+    const colMap = await probeColumns(supabase);
     const wb = xlsx.read(fileBuffer, { type: "buffer" });
     const ws = wb.Sheets[wb.SheetNames[0]];
     const rows = xlsx.utils.sheet_to_json(ws, { header: 1, raw: false });
@@ -181,18 +219,18 @@ module.exports = async (req, res) => {
       const row = {
         store_id,
         day: rec.day,
-        product_id: rec.product_id,
-        product_title: rec.product_title,
-        category_name: rec.category_name || null,
-        search_exposure: rec.search_exposure || 0,
-        uv: rec.uv || 0,
-        pv: rec.pv || 0,
-        add_to_cart_users: rec.add_to_cart_users || 0,
-        add_to_cart_qty: rec.add_to_cart_qty || 0,
-        pay_items: rec.pay_items || 0,
-        pay_orders: rec.pay_orders || 0,
-        pay_buyers: rec.pay_buyers || 0,
+        product_id: rec.product_id
       };
+      if (colMap.product_title) row[colMap.product_title] = rec.product_title;
+      if (colMap.category_name) row[colMap.category_name] = rec.category_name || null;
+      if (colMap.exposure) row[colMap.exposure] = rec.search_exposure || 0;
+      if (colMap.uv) row[colMap.uv] = rec.uv || 0;
+      if (colMap.pv) row[colMap.pv] = rec.pv || 0;
+      if (colMap.add_to_cart_users) row[colMap.add_to_cart_users] = rec.add_to_cart_users || 0;
+      if (colMap.add_to_cart_qty) row[colMap.add_to_cart_qty] = rec.add_to_cart_qty || 0;
+      if (colMap.pay_items) row[colMap.pay_items] = rec.pay_items || 0;
+      if (colMap.pay_orders) row[colMap.pay_orders] = rec.pay_orders || 0;
+      if (colMap.pay_buyers) row[colMap.pay_buyers] = rec.pay_buyers || 0;
       records.push(row);
       const day = rec.day;
       if (day) {
