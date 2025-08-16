@@ -27,7 +27,7 @@ create table public.ozon_product_report_wide (
   voronka_prodazh_konversiya_iz_pokaza_v_zakaz numeric null,
   voronka_prodazh_dinamika_3 numeric null,
   voronka_prodazh_pokazy_v_poiske_i_kataloge numeric null,
-  voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_v_poiske_i_kataloge numeric null,
+  voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_v_poiske_ili_kataloge numeric null,
   voronka_prodazh_dinamika_4 numeric null,
   voronka_prodazh_konversiya_iz_poiska_i_kataloga_v_korzinu numeric null,
   voronka_prodazh_dinamika_5 numeric null,
