@@ -114,14 +114,14 @@
     const json = await resp.json();
     if(!json.ok) throw new Error(json.msg||'查询失败');
     const mapped = (json.rows||[]).map(r=>{
-      const impressions = Number(r.impressions)||0;
-      const sessions = Number(r.sessions)||0;
-      const pageviews = Number(r.pageviews)||0;
+      const impressions = Number(r.search_exposure)||0;
+      const sessions = Number(r.uv)||0;
+      const pageviews = Number(r.pv)||0;
       const atcUsers = Number(r.add_to_cart_users)||0;
       const atcQty = Number(r.add_to_cart_qty)||0;
-      const itemsSold = Number(r.items_sold)||0;
-      const orders = Number(r.orders)||0;
-      const buyers = Number(r.buyers)||0;
+      const itemsSold = Number(r.pay_items)||0;
+      const orders = Number(r.pay_orders)||0;
+      const buyers = Number(r.pay_buyers)||0;
       const v2a = sessions ? (atcUsers/sessions*100).toFixed(2)+'%' : '0%';
       const a2p = atcUsers ? (orders/atcUsers*100).toFixed(2)+'%' : '0%';
       const visitRate = impressions ? (sessions/impressions*100).toFixed(2)+'%' : '0%';

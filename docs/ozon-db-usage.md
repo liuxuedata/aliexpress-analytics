@@ -1,21 +1,41 @@
 # Ozon 数据库使用说明
 
-## 指标目录 `ozon_metric_catalog`
-- 使用 `section` 与 `subsection` 进行第一层/第二层分级。
-- 所有指标（包括“Динамика/趋势”列）都需在此登记。
-- 趋势列 `is_trend=true`，并通过 `base_metric_key` 指向其基础指标。
-- `description_ru` / `description_zh` 可存储报表第三行的字段说明。
+本项目将 Ozon 报表解析后写入两张表：
 
-## 规范化事实表 `ozon_product_metrics_long`
-- 按 `(store_id, day, product_id, metric_key)` 记录任意指标。
-- 新增指标时，只需先在目录表插入 `metric_key`，无需修改表结构。
+## 1. 日度产品指标 `ozon_daily_product_metrics`
 
-## 宽表 `ozon_product_report_wide`
-- 存放前端常用指标，便于直查。
-- 若需额外字段，可 `ALTER TABLE ADD COLUMN` 扩展。
-- 导入数据时同步更新，以满足查询性能。
+| 字段 | 说明 |
+| --- | --- |
+| store_id | 店铺 ID，上传报表时提供 |
+| day | 数据日期 `YYYY-MM-DD` |
+| product_id | 商品 ID，仅保留数字部分 |
+| product_title | 商品标题（俄/英原文） |
+| category_name | 类目名称（若报表提供） |
+| search_exposure | 曝光量 |
+| uv | 访客数 |
+| pv | 浏览量 |
+| add_to_cart_users | 加购人数 |
+| add_to_cart_qty | 加购件数 |
+| pay_items | 支付件数 |
+| pay_orders | 支付订单数 |
+| pay_buyers | 支付买家数 |
+| inserted_at | 数据入库时间 |
 
-## 产品链接视图 `ozon_product_urls`
-- 将 `product_id` 拼接成 `https://ozon.ru/product/{product_id}`，供前端跳转。
+主键 `(store_id, day, product_id)` 采用 UPSERT 方式写入，多次导入同一报表不会重复。
 
-这些要点与导入流程配合，可确保 Ozon 报表的字段映射、数据存储与前端展示一致。
+## 2. 原始报表留存 `ozon_raw_analytics`
+
+保存上传报表的原始行，便于审计与调试。
+
+| 字段 | 说明 |
+| --- | --- |
+| store_id | 店铺 ID |
+| raw_row | 原始 JSON 行 |
+| import_batch | 文件名或批次标识 |
+| inserted_at | 入库时间 |
+
+## 3. 产品链接视图 `ozon_product_urls`
+
+视图将 `product_id` 拼接成 `https://ozon.ru/product/{product_id}`，供前端跳转。
+
+以上结构配合导入接口 `/api/ozon/import` 与查询接口 `/api/ozon/stats`，即可完成数据上传与展示。

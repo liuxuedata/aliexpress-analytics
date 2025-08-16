@@ -93,136 +93,28 @@ drop policy if exists p_upd_all on public.ae_self_operated_daily;
 -- 3) 所有写入仅经由 Vercel Serverless（service role）完成，RLS 会被绕过（admin）。
 */
 
--- Ozon 指标目录
-CREATE TABLE IF NOT EXISTS public.ozon_metric_catalog (
-  metric_key        text PRIMARY KEY,
-  section           text NOT NULL,
-  subsection        text NOT NULL,
-  ru_label          text NOT NULL,
-  en_label          text NOT NULL,
-  zh_label          text,
-  description_ru    text,
-  description_zh    text,
-  value_type        text NOT NULL DEFAULT 'number',
-  unit              text,
-  is_trend          boolean NOT NULL DEFAULT false,
-  base_metric_key   text,
-  is_active         boolean NOT NULL DEFAULT true,
-  created_at        timestamptz NOT NULL DEFAULT now(),
-  updated_at        timestamptz NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS public.ozon_daily_product_metrics (
+  id                bigserial PRIMARY KEY,
+  store_id          text NOT NULL,
+  day               date NOT NULL,
+  product_id        text NOT NULL,
+  product_title     text,
+  category_name     text,
+  search_exposure   bigint,
+  uv                bigint,
+  pv                bigint,
+  add_to_cart_users bigint,
+  add_to_cart_qty   bigint,
+  pay_items         bigint,
+  pay_orders        bigint,
+  pay_buyers        bigint,
+  inserted_at       timestamptz DEFAULT now(),
+  UNIQUE (store_id, day, product_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_ozon_mc_section_sub ON public.ozon_metric_catalog(section, subsection);
-CREATE INDEX IF NOT EXISTS idx_ozon_mc_base ON public.ozon_metric_catalog(base_metric_key);
+CREATE INDEX IF NOT EXISTS idx_ozon_dpm_store_day ON public.ozon_daily_product_metrics(store_id, day);
+CREATE INDEX IF NOT EXISTS idx_ozon_dpm_store_prod ON public.ozon_daily_product_metrics(store_id, product_id);
 
--- 规范化事实长表
-CREATE TABLE IF NOT EXISTS public.ozon_product_metrics_long (
-  store_id     text    NOT NULL,
-  day          date    NOT NULL,
-  product_id   text    NOT NULL,
-  product_title text,
-  category_l1  text,
-  category_l2  text,
-  category_l3  text,
-  brand        text,
-  model        text,
-  sales_scheme text,
-  sku          text,
-  vendor_code  text,
-  metric_key   text    NOT NULL REFERENCES public.ozon_metric_catalog(metric_key) ON UPDATE CASCADE,
-  value_num    numeric(20,6),
-  value_text   text,
-  inserted_at  timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT ozon_pml_pk PRIMARY KEY (store_id, day, product_id, metric_key)
-);
-
-CREATE INDEX IF NOT EXISTS idx_ozon_pml_store_day ON public.ozon_product_metrics_long(store_id, day);
-CREATE INDEX IF NOT EXISTS idx_ozon_pml_prod ON public.ozon_product_metrics_long(product_id);
-CREATE INDEX IF NOT EXISTS idx_ozon_pml_metric ON public.ozon_product_metrics_long(metric_key);
-
--- Ozon 产品报表宽表
-CREATE TABLE IF NOT EXISTS public.ozon_product_report_wide (
-  id                 bigserial PRIMARY KEY,
-  store_id           text NOT NULL,
-  day                date NOT NULL,
-  product_id         text NOT NULL,
-  product_title      text,
-  category_l1        text,
-  category_l2        text,
-  category_l3        text,
-  brand              text,
-  model              text,
-  sales_scheme       text,
-  sku                text,
-  vendor_code        text,
-  impressions_total              bigint,
-  impressions_total_trend        numeric(20,6),
-  impressions_search_catalog     bigint,
-  impressions_search_catalog_trend numeric(20,6),
-  product_card_visits            bigint,
-  product_card_visits_trend      numeric(20,6),
-  add_to_cart_total              bigint,
-  add_to_cart_total_trend        numeric(20,6),
-  conv_impr_to_order             numeric(20,6),
-  conv_impr_to_order_trend       numeric(20,6),
-  conv_sc_to_cart                numeric(20,6),
-  conv_sc_to_cart_trend          numeric(20,6),
-  conv_card_to_cart              numeric(20,6),
-  conv_card_to_cart_trend        numeric(20,6),
-  conv_cart_to_order             numeric(20,6),
-  conv_cart_to_order_trend       numeric(20,6),
-  items_ordered                  bigint,
-  items_ordered_trend            numeric(20,6),
-  items_delivered                bigint,
-  items_delivered_trend          numeric(20,6),
-  items_buyout                   bigint,
-  items_buyout_trend             numeric(20,6),
-  conv_order_to_buyout           numeric(20,6),
-  conv_order_to_buyout_trend     numeric(20,6),
-  avg_price                      numeric(14,2),
-  avg_price_trend                numeric(20,6),
-  discount_from_your_price       numeric(20,6),
-  discount_from_your_price_trend numeric(20,6),
-  price_index                    numeric(20,6),
-  promo_days                     int,
-  ad_spend_ratio                 numeric(20,6),
-  ad_spend_ratio_trend           numeric(20,6),
-  promoted_days                  int,
-  oos_days_28d                   int,
-  ending_stock                   bigint,
-  fbo_supply_advice              text,
-  fbo_supply_qty                 int,
-  avg_delivery_days              numeric(10,4),
-  reviews_count                  int,
-  product_rating                 numeric(10,4),
-  inserted_at                    timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT ozon_prw_uniq UNIQUE (store_id, day, product_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_ozon_prw_store_day  ON public.ozon_product_report_wide(store_id, day);
-CREATE INDEX IF NOT EXISTS idx_ozon_prw_store_prod ON public.ozon_product_report_wide(store_id, product_id);
-
--- 产品 URL 视图
-CREATE OR REPLACE VIEW public.ozon_product_urls AS
-SELECT DISTINCT
-  store_id,
-  product_id,
-  'https://ozon.ru/product/' || product_id AS product_url
-FROM public.ozon_product_report_wide;
-
--- 长表 + 目录 视图
-CREATE OR REPLACE VIEW public.v_ozon_metrics_long_with_catalog AS
-SELECT
-  m.store_id, m.day, m.product_id, m.product_title,
-  m.category_l1, m.category_l2, m.category_l3, m.brand, m.model, m.sales_scheme, m.sku, m.vendor_code,
-  c.section, c.subsection, c.ru_label, c.en_label, c.zh_label,
-  c.value_type, c.unit, c.is_trend, c.base_metric_key,
-  m.metric_key, m.value_num, m.value_text, m.inserted_at
-FROM public.ozon_product_metrics_long m
-JOIN public.ozon_metric_catalog c
-  ON c.metric_key = m.metric_key;
-
--- 原始 Ozon 行留存
 CREATE TABLE IF NOT EXISTS public.ozon_raw_analytics (
   id bigserial primary key,
   store_id text,
@@ -230,6 +122,13 @@ CREATE TABLE IF NOT EXISTS public.ozon_raw_analytics (
   import_batch text,
   inserted_at timestamptz default now()
 );
+
+CREATE OR REPLACE VIEW public.ozon_product_urls AS
+SELECT DISTINCT
+  store_id,
+  product_id,
+  'https://ozon.ru/product/' || product_id AS product_url
+FROM public.ozon_daily_product_metrics;
 
 create table if not exists public.ozon_first_seen (
   store_id text not null,

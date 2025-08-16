@@ -1,6 +1,6 @@
 # Ozon 字段说明
 
-此文档列出了 `ozon_product_report_wide` 表的核心字段，供前端展示与导入参考。
+此文档列出了 `ozon_daily_product_metrics` 表的核心字段，供前端展示与导入参考。
 
 | 字段名 | 说明 | 备注 |
 | --- | --- | --- |
@@ -16,11 +16,4 @@
 | pay_items | 支付件数 | items_sold |
 | pay_orders | 支付订单数 | orders |
 | pay_buyers | 支付买家数 | buyers |
-| brand | 品牌 | 可选 |
-| model | 型号 | 可选 |
-| category_l1 | 一级类目 | 可选 |
-| category_l2 | 二级类目 | 可选 |
-| category_l3 | 三级类目 | 可选 |
-| sales_scheme | 销售模式 | 可选 |
-
 字段名与页面上的指标一一对应，上传 Excel 时应确保列能映射到这些标准字段。
