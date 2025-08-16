@@ -12,9 +12,11 @@ module.exports = async function handler(req,res){
     const supabase = supa();
     let { date } = req.query || {};
 
+    const todayIso = new Date().toISOString();
     const datesResp = await supabase
       .from('ozon_product_report_wide')
       .select('uploaded_at', { distinct: true })
+      .lte('uploaded_at', todayIso)
       .order('uploaded_at', { ascending: false });
     if(datesResp.error) throw datesResp.error;
     const dates = (datesResp.data||[]).map(r=>r.uploaded_at);
