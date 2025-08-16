@@ -73,11 +73,11 @@ create table public.ozon_product_report_wide (
   faktory_prodazh_obschaya_drr numeric null,
   faktory_prodazh_dinamika_3 numeric null,
   faktory_prodazh_dney_s_prodvizheniem_trafarety_ text null,
-  faktory_prodazh_dney_bez_ostatka_19_07_2025_15_08_2025 numeric null,
+  faktory_prodazh_dney_bez_ostatka numeric null,
   faktory_prodazh_ostatok_na_konets_perioda numeric null,
   faktory_prodazh_rekomendatsiya_po_postavke_na_fbo text null,
   faktory_prodazh_skolko_tovarov_postavit numeric null,
-  faktory_prodazh_srednee_vremya_dostavki_19_07_2025_15_08_2025 numeric null,
+  faktory_prodazh_srednee_vremya_dostavki numeric null,
   faktory_prodazh_otzyvy numeric null,
   faktory_prodazh_reyting_tovara numeric null
 );
