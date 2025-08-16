@@ -31,6 +31,8 @@ function parseSheet(path){
     let name=row8[i]||row7[i];
     if(!name) continue;
     if(group && row8[i]) name=group+' '+row8[i];
+    // drop date ranges like "08.08.2025 – 15.08.2025" from header names
+    name = name.replace(/\d{2}\.\d{2}\.\d{4}\s*[–-]\s*\d{2}\.\d{2}\.\d{4}/g, '').trim();
     let key=translit(name);
     const n=counts[key]||0; counts[key]=n+1; if(n) key=key+'_'+(n+1);
     headers.push(key);

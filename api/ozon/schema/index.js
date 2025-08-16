@@ -20,7 +20,8 @@ function getHeaders(path){
     let name=row8[i]||row7[i];
     if(!name) continue;
     const label = group && row8[i] ? group+' '+row8[i] : name;
-    let key=translit(label);
+    const clean = label.replace(/\d{2}\.\d{2}\.\d{4}\s*[–-]\s*\d{2}\.\d{2}\.\d{4}/g, '').trim();
+    let key=translit(clean);
     const n=counts[key]||0; counts[key]=n+1; if(n) key=key+'_'+(n+1);
     headers.push({ key, label });
   }
@@ -29,7 +30,7 @@ function getHeaders(path){
 
 module.exports = async function handler(req,res){
   try{
-    const cols = getHeaders('analytics_report_2025-08-15_22_11.xlsx');
+    const cols = getHeaders('analytics_report_2025-08-16_11_09.xlsx');
     res.json({ok:true, columns: cols});
   }catch(e){
     res.json({ok:false,msg:e.message});
