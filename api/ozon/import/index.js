@@ -81,7 +81,13 @@ module.exports = async function handler(req,res){
       } catch (_) {
         // ignore cache refresh errors
       }
-      const { error } = await supabase.from('ozon_product_report_wide').insert(rows);
+      let { error } = await supabase.from('ozon_product_report_wide').insert(rows);
+      // retry once if schema cache was stale
+      if (error && /schema cache/i.test(error.message)) {
+        try { await supabase.rpc('refresh_ozon_schema_cache'); await new Promise(r=>setTimeout(r,500)); } catch(_){}
+        const retry = await supabase.from('ozon_product_report_wide').insert(rows);
+        error = retry.error;
+      }
       fs.unlinkSync(file.path);
       if(error) throw error;
       res.json({ok:true, inserted: rows.length});
