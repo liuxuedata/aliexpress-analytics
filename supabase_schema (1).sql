@@ -93,28 +93,42 @@ drop policy if exists p_upd_all on public.ae_self_operated_daily;
 -- 3) 所有写入仅经由 Vercel Serverless（service role）完成，RLS 会被绕过（admin）。
 */
 
--- Ozon 数据表
-create table if not exists public.ozon_daily_product_metrics (
-  store_id text not null,
-  day date not null,
-  product_id text not null,
-  impressions numeric default 0,
-  sessions numeric default 0,
-  pageviews numeric default 0,
-  add_to_cart_users numeric default 0,
-  add_to_cart_qty numeric default 0,
-  orders numeric default 0,
-  buyers numeric default 0,
-  items_sold numeric default 0,
-  revenue numeric default 0,
-  campaign text,
-  traffic_source text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  primary key (store_id, day, product_id)
+CREATE TABLE IF NOT EXISTS public.ozon_daily_product_metrics (
+  id                bigserial PRIMARY KEY,
+  store_id          text NOT NULL,
+  day               date NOT NULL,
+  product_id        text NOT NULL,
+  product_title     text,
+  category_name     text,
+  search_exposure   bigint,
+  uv                bigint,
+  pv                bigint,
+  add_to_cart_users bigint,
+  add_to_cart_qty   bigint,
+  pay_items         bigint,
+  pay_orders        bigint,
+  pay_buyers        bigint,
+  inserted_at       timestamptz DEFAULT now(),
+  UNIQUE (store_id, day, product_id)
 );
-create index if not exists idx_ozon_daily_store_day on public.ozon_daily_product_metrics(store_id, day);
-create index if not exists idx_ozon_daily_store_product on public.ozon_daily_product_metrics(store_id, product_id);
+
+CREATE INDEX IF NOT EXISTS idx_ozon_dpm_store_day ON public.ozon_daily_product_metrics(store_id, day);
+CREATE INDEX IF NOT EXISTS idx_ozon_dpm_store_prod ON public.ozon_daily_product_metrics(store_id, product_id);
+
+CREATE TABLE IF NOT EXISTS public.ozon_raw_analytics (
+  id bigserial primary key,
+  store_id text,
+  raw_row jsonb not null,
+  import_batch text,
+  inserted_at timestamptz default now()
+);
+
+CREATE OR REPLACE VIEW public.ozon_product_urls AS
+SELECT DISTINCT
+  store_id,
+  product_id,
+  'https://ozon.ru/product/' || product_id AS product_url
+FROM public.ozon_daily_product_metrics;
 
 create table if not exists public.ozon_first_seen (
   store_id text not null,
