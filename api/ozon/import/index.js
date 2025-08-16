@@ -149,9 +149,15 @@ module.exports = async function handler(req,res){
       fs.unlinkSync(file.path);
       if(error){
         console.error('Ozon report insert failed:', error);
-        const msg = [error.message, error.details, error.hint]
-          .filter(Boolean)
-          .join(' | ') || 'insert failed';
+        const parts = [error.message, error.details, error.hint];
+        if(!parts.filter(Boolean).length){
+          try{
+            parts.push(JSON.stringify(error));
+          }catch(_){
+            parts.push(String(error));
+          }
+        }
+        const msg = parts.filter(Boolean).join(' | ');
         return res.status(400).json({ok:false,msg});
       }
       res.json({ok:true, inserted: rows.length});
