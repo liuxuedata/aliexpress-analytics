@@ -4,8 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ozon 数据明细</title>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="assets/login.css">
   <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
 </head>
 <body class="fm">
@@ -80,5 +84,50 @@
     </div>
   </main>
 </div>
+<script>
+(function(){
+  let table = null;
+  function initTable(){
+    if(!table){
+      table = $('#report').DataTable({
+        paging:true,
+        searching:true,
+        info:true,
+        order:[[2,'desc']],
+        scrollY:'60vh',
+        scrollCollapse:true,
+        autoWidth:false
+      });
+    }
+    return table;
+  }
+  function setStatus(t){ $('#status').text(t||''); }
+  $('#file').on('change', function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev){
+      try{
+        const data = new Uint8Array(ev.target.result);
+        const wb = XLSX.read(data, { type:'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const arr = XLSX.utils.sheet_to_json(ws, { header:1 });
+        const rows = arr.slice(1).filter(r=>r&&r.length);
+        if(!rows.length){ setStatus('文件无数据'); return; }
+        const mapped = rows.map(r=>[
+          r[0]||'', r[1]||0, r[2]||0, r[3]||0,
+          r[4]||0, r[5]||0, r[6]||0, r[7]||0
+        ]);
+        const dt = initTable();
+        dt.clear().rows.add(mapped).draw();
+        setStatus('已加载 '+rows.length+' 行');
+      }catch(err){ console.error(err); setStatus('解析失败'); }
+    };
+    reader.onerror = ()=> setStatus('读取失败');
+    reader.readAsArrayBuffer(file);
+    e.target.value='';
+  });
+})();
+</script>
 </body>
 </html>
