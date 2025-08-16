@@ -69,9 +69,27 @@ module.exports = async function handler(req,res){
       const cols = Object.keys(rows[0] || {});
       const supabase = supa();
 
-      const { data: colData, error: colErr } = await supabase
-        .rpc('get_public_columns', { table_name: 'ozon_product_report_wide' });
-      if(colErr) throw colErr;
+      async function refresh(){
+        const { error } = await supabase.rpc('refresh_ozon_schema_cache');
+        if(error) console.error('schema cache refresh failed:', error.message);
+        await new Promise(r=>setTimeout(r,1000));
+      }
+
+      let colData;
+      for(let attempt=0;attempt<2;attempt++){
+        const { data, error } = await supabase
+          .rpc('get_public_columns', { table_name: 'ozon_product_report_wide' });
+        if(!error){
+          colData = data;
+          break;
+        }
+        if(/schema cache/i.test(error.message)){
+          await refresh();
+          continue;
+        }
+        throw error;
+      }
+      if(!colData) throw new Error('unable to load column metadata');
       const tableCols = (colData || []).map(c=>c.column_name);
       const required = ['den'];
       const unknown = cols.filter(c=>!tableCols.includes(c));
@@ -84,11 +102,6 @@ module.exports = async function handler(req,res){
         return res.status(400).json({ok:false,msg:msgs.join('; ')});
       }
 
-      async function refresh(){
-        const { error } = await supabase.rpc('refresh_ozon_schema_cache');
-        if(error) console.error('schema cache refresh failed:', error.message);
-        await new Promise(r=>setTimeout(r,1000));
-      }
       await refresh();
       let attempt = 0;
       let error;
