@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>独立站 · Landing Pages 明细</title>
-  <link rel="stylesheet" href="assets/login.css">
   <style>
     #report td:first-child{ text-align:left; }
     #report td:first-child a.name{ display:inline-block; max-width:180px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
     #columnToggleWrapper{ position:relative; display:inline-block; }
     #columnMenu{ display:none; position:absolute; top:100%; right:0; background:#fff; border:1px solid #ccc; padding:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); }
     #columnMenu label{ display:block; margin:4px 0; white-space:nowrap; }
+    .stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
   </style>
   <!-- DataTables & ECharts CDN -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
@@ -23,33 +23,6 @@
   <script src="assets/product-meta.js"></script>
 </head>
 <body class="fm">
-<div id="loginOverlay" class="login-overlay" style="display:none">
-  <div class="login-container">
-    <div class="login-form-card login-card-enter">
-      <div class="form-header">
-        <div class="form-logo">AI</div>
-        <div class="form-title">跨境电商数据分析平台</div>
-        <div class="form-subtitle">登录账户以继续</div>
-      </div>
-      <form id="loginForm">
-        <div class="form-group">
-          <label class="form-label" for="email">邮箱</label>
-          <input id="email" type="email" class="form-input" required>
-        </div>
-        <div class="form-group password-input-wrapper">
-          <label class="form-label" for="password">密码</label>
-          <input id="password" type="password" class="form-input" required>
-          <span id="password-toggle" class="password-toggle">👁️</span>
-        </div>
-        <button id="loginSubmit" class="login-submit-btn" type="submit">登录</button>
-      </form>
-      <div class="demo-account-tip">
-        <div class="demo-account-header">演示账户</div>
-        <div class="demo-account-info">邮箱：demo@example.com<br>密码：demo123</div>
-      </div>
-    </div>
-  </div>
-</div>
 
 <header class="header">
   <div class="logo-title">跨境电商数据分析平台</div>
@@ -68,7 +41,7 @@
       <li class="independent active"><a href="independent-site.html">独立站</a></li>
     </ul>
   </nav>
-  <div id="userArea" class="user-section"></div>
+    <!-- 用户模块暂时隐藏 -->
 </header>
 
 <div class="layout">
@@ -134,6 +107,7 @@
     <section id="detail" class="content-pad">
       <div class="panel">
         <h3>Landing Pages 明细</h3>
+        <button id="clearFilter" class="btn" style="display:none;margin-left:10px;">清除筛选</button>
         <div class="table-section">
           <div class="table-wrapper">
             <table id="report" class="display nowrap" style="width:100%">
@@ -213,6 +187,7 @@
   const columnToggle = document.getElementById('columnToggle');
   const networkSel = document.getElementById('networkSel');
   const campaignSel = document.getElementById('campaignSel');
+  const clearBtn = document.getElementById('clearFilter');
   const optionalCols = [
     { idx:1, label:'设备' }
   ];
@@ -226,6 +201,7 @@
   });
   let dt;
   let rawTable = [];
+  let onlyNew = false;
 
   function periodShift(startISO, endISO){
     const start=new Date(startISO+'T00:00:00'); const end=new Date(endISO+'T00:00:00');
@@ -244,7 +220,7 @@
       card('曝光商品总数', +(k.exposure_product_count||0), +(p.exposure_product_count||0)),
       card('点击商品总数', +(k.click_product_count||0), +(p.click_product_count||0)),
       card('转化商品总数', +(k.conversion_product_count||0), +(p.conversion_product_count||0)),
-      card('新品总数', +(k.new_product_count||0), +(p.new_product_count||0))
+      `<div class="stat-card clickable" id="kpi-new"><h4>本周期新品数</h4><p>${+(k.new_product_count||0)}<a id="kpi-new-clear" class="mini-link" style="display:none">清除筛选</a></p></div>`
     ].join(''));
   }
 
@@ -365,9 +341,19 @@
       localStorage.setItem('indepSite', site);
       const from = fromInput.value;
       const to = toInput.value;
-      const url = `/api/independent/stats?site=${encodeURIComponent(site)}&from=${from}&to=${to}`;
+      const params = new URLSearchParams({site, from, to});
+      const net = networkSel.value;
+      const camp = campaignSel.value;
+      if (net) params.append('network', net);
+      if (camp) params.append('campaign', camp);
+      if (onlyNew) params.append('only_new', '1');
+      const url = `/api/independent/stats?${params.toString()}`;
       const { prevStart, prevEnd } = periodShift(from, to);
-      const prevUrl = `/api/independent/stats?site=${encodeURIComponent(site)}&from=${prevStart}&to=${prevEnd}`;
+      const prevParams = new URLSearchParams({site, from: prevStart, to: prevEnd});
+      if (net) prevParams.append('network', net);
+      if (camp) prevParams.append('campaign', camp);
+      if (onlyNew) prevParams.append('only_new', '1');
+      const prevUrl = `/api/independent/stats?${prevParams.toString()}`;
       const [res, resPrev] = await Promise.all([fetch(url), fetch(prevUrl)]);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const [json, jsonPrev] = await Promise.all([res.json(), resPrev.json()]);
@@ -375,6 +361,17 @@
 
       rawTable = json.table || [];
       renderKPI(json.kpis || {}, (jsonPrev.ok && jsonPrev.kpis) ? jsonPrev.kpis : {});
+      const newCard = document.getElementById('kpi-new');
+      const clearLink = document.getElementById('kpi-new-clear');
+      if (newCard) {
+        newCard.style.cursor = 'pointer';
+        newCard.onclick = () => { if (!onlyNew) { onlyNew = true; load(); } };
+      }
+      if (clearLink) {
+        clearLink.style.display = onlyNew ? 'inline' : 'none';
+        clearLink.onclick = (e) => { e.stopPropagation(); if (onlyNew) { onlyNew = false; load(); } };
+      }
+      clearBtn.style.display = onlyNew ? '' : 'none';
       populateFilters();
       buildTable();
 
@@ -429,6 +426,7 @@
   }
 
   document.getElementById('refreshBtn').addEventListener('click', load);
+  clearBtn.addEventListener('click', () => { onlyNew = false; load(); });
   // 上传逻辑
   const fileInput = document.getElementById('fileInput');
   const uploadBtn = document.getElementById('uploadBtn');
@@ -461,8 +459,6 @@
 })();
 </script>
 
-<script src="assets/login.js"></script>
-
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
   const siteListKey='managedSites';
@@ -480,23 +476,6 @@ document.addEventListener('DOMContentLoaded',()=>{
       menuEl.appendChild(li);
     });
   }
-  const userArea=document.getElementById('userArea');
-  function refreshUser(){
-    const u=JSON.parse(localStorage.getItem('user')||'null');
-    if(u){
-      userArea.innerHTML=`<div class="user-section"><div class="user-menu-trigger">${u.name}</div><div class="user-dropdown" style="display:none"><button class="user-dropdown-item" id="logoutBtn">退出</button></div></div>`;
-      const trigger=userArea.querySelector('.user-menu-trigger');
-      const dropdown=userArea.querySelector('.user-dropdown');
-      trigger.addEventListener('click',()=>{dropdown.style.display=dropdown.style.display==='block'?'none':'block';});
-      document.getElementById('logoutBtn').addEventListener('click',()=>{localStorage.removeItem('user');dropdown.style.display='none';refreshUser();showLoginOverlay();});
-    }else{
-      userArea.innerHTML='<div class="user-section"><span class="user-demo">未登录</span><button class="login-button" id="loginTrigger">登录</button></div>';
-      document.getElementById('loginTrigger').addEventListener('click',showLoginOverlay);
-      showLoginOverlay();
-    }
-  }
-  refreshUser();
-  window.addEventListener('user-login', refreshUser);
 });
 </script>
 
