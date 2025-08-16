@@ -71,8 +71,8 @@ module.exports = async function handler(req,res){
     const file = files.file && files.file[0];
     if(!file) return res.json({ok:false,msg:'missing file'});
     try{
-      const rows = parseSheet(file.path);
-      const cols = Object.keys(rows[0] || {});
+      let rows = parseSheet(file.path);
+      let cols = Object.keys(rows[0] || {});
       const supabase = supa();
 
       async function refresh(){
@@ -97,6 +97,32 @@ module.exports = async function handler(req,res){
       }
       if(!colData) throw new Error('unable to load column metadata');
       const tableCols = (colData || []).map(c=>c.column_name);
+
+      const renameMap = {};
+      const searchLong = 'voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_v_poiske_ili_kataloge';
+      const searchShort = 'voronka_prodazh_uv_s_prosmotrom_v_poiske_ili_kataloge';
+      const searchTrunc = searchLong.slice(0,63);
+      const cardLong = 'voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_kartochki_tovara';
+      const cardShort = 'voronka_prodazh_uv_s_prosmotrom_kartochki_tovara';
+      const cardTrunc = cardLong.slice(0,63);
+      if(tableCols.includes(searchLong)) renameMap[searchShort] = searchLong;
+      else if(tableCols.includes(searchTrunc)) renameMap[searchShort] = searchTrunc;
+      else if(tableCols.includes(searchShort)) renameMap[searchShort] = searchShort;
+      if(tableCols.includes(cardLong)) renameMap[cardShort] = cardLong;
+      else if(tableCols.includes(cardTrunc)) renameMap[cardShort] = cardTrunc;
+      else if(tableCols.includes(cardShort)) renameMap[cardShort] = cardShort;
+      if(Object.keys(renameMap).length){
+        rows = rows.map(r=>{
+          const obj={};
+          for(const [k,v] of Object.entries(r)){
+            const nk = renameMap[k] || k;
+            obj[nk]=v;
+          }
+          return obj;
+        });
+        cols = Object.keys(rows[0] || {});
+      }
+
       const required = ['den'];
       const unknown = cols.filter(c=>!tableCols.includes(c));
       const missing = required.filter(c=>!cols.includes(c));
