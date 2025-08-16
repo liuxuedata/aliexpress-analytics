@@ -93,26 +93,24 @@ drop policy if exists p_upd_all on public.ae_self_operated_daily;
 -- 3) 所有写入仅经由 Vercel Serverless（service role）完成，RLS 会被绕过（admin）。
 */
 
--- Ozon 数据表
+-- Ozon 日度产品指标表
 create table if not exists public.ozon_daily_product_metrics (
+  id bigserial primary key,
   store_id text not null,
   day date not null,
   product_id text not null,
   product_title text,
-  impressions numeric default 0,
-  sessions numeric default 0,
-  pageviews numeric default 0,
-  add_to_cart_users numeric default 0,
-  add_to_cart_qty numeric default 0,
-  orders numeric default 0,
-  buyers numeric default 0,
-  items_sold numeric default 0,
-  revenue numeric default 0,
-  campaign text,
-  traffic_source text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  primary key (store_id, day, product_id)
+  category_name text,
+  search_exposure bigint,
+  uv bigint,
+  pv bigint,
+  add_to_cart_users bigint,
+  add_to_cart_qty bigint,
+  pay_items bigint,
+  pay_orders bigint,
+  pay_buyers bigint,
+  inserted_at timestamptz default now(),
+  unique (store_id, day, product_id)
 );
 create index if not exists idx_ozon_dpm_store_day on public.ozon_daily_product_metrics (store_id, day);
 create index if not exists idx_ozon_dpm_store_prod on public.ozon_daily_product_metrics (store_id, product_id);

@@ -65,15 +65,17 @@
               <thead>
                 <tr>
                   <th>产品名</th>
-                  <th>日期</th>
                   <th>曝光量</th>
                   <th>访客数</th>
                   <th>浏览量</th>
                   <th>加购人数</th>
-                  <th>订单数</th>
-                  <th>买家数</th>
-                  <th>GMV</th>
-                  <th>新品标记</th>
+                  <th>加购件数</th>
+                  <th>支付件数</th>
+                  <th>支付订单数</th>
+                  <th>支付买家数</th>
+                  <th>访客→加购</th>
+                  <th>加购→支付</th>
+                  <th>访客比</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -93,7 +95,7 @@
         paging:true,
         searching:true,
         info:true,
-        order:[[3,'desc']],
+        order:[[2,'desc']],
         scrollY:'60vh',
         scrollCollapse:true,
         autoWidth:false,
@@ -117,18 +119,33 @@
         const arr = XLSX.utils.sheet_to_json(ws, { header:1 });
         const rows = arr.slice(1).filter(r=>r&&r.length);
         if(!rows.length){ setStatus('文件无数据'); return; }
-        const mapped = rows.map(r=>[
-          `<a href="https://ozon.ru/product/${r[0]}" target="_blank" rel="noopener">${r[1] || r[0]}</a>`,
-          r[2]||'',             // 日期
-          r[3]||0,              // 曝光量
-          r[4]||0,              // 访客数
-          r[5]||0,              // 浏览量
-          r[6]||0,              // 加购人数
-          r[7]||0,              // 订单数
-          r[8]||0,              // 买家数
-          r[9]||0,              // GMV
-          r[10] ? '是' : ''     // 新品标记
-        ]);
+        const mapped = rows.map(r=>{
+          const exposure = Number(r[2])||0;
+          const uv = Number(r[3])||0;
+          const pv = Number(r[4])||0;
+          const atcUsers = Number(r[5])||0;
+          const atcQty = Number(r[6])||0;
+          const payItems = Number(r[7])||0;
+          const payOrders = Number(r[8])||0;
+          const payBuyers = Number(r[9])||0;
+          const v2a = uv ? (atcUsers/uv*100).toFixed(2)+'%' : '0%';
+          const a2p = atcUsers ? (payOrders/atcUsers*100).toFixed(2)+'%' : '0%';
+          const visitRate = exposure ? (uv/exposure*100).toFixed(2)+'%' : '0%';
+          return [
+            `<a href="https://ozon.ru/product/${r[0]}" target="_blank" rel="noopener">${r[1] || r[0]}</a>`,
+            exposure,
+            uv,
+            pv,
+            atcUsers,
+            atcQty,
+            payItems,
+            payOrders,
+            payBuyers,
+            v2a,
+            a2p,
+            visitRate
+          ];
+        });
         const dt = initTable();
         dt.clear().rows.add(mapped).draw();
         setStatus('已加载 '+rows.length+' 行');
