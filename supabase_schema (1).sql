@@ -93,104 +93,142 @@ drop policy if exists p_upd_all on public.ae_self_operated_daily;
 -- 3) 所有写入仅经由 Vercel Serverless（service role）完成，RLS 会被绕过（admin）。
 */
 
--- Ozon 产品报表宽表
-create table if not exists public.ozon_product_report_wide (
-  id bigserial not null,
-  store_id text not null,
-  day date not null,
-  product_id text not null,
-  product_title text null,
-  category_l1 text null,
-  category_l2 text null,
-  category_l3 text null,
-  brand text null,
-  model text null,
-  sales_scheme text null,
-  sku text null,
-  article text null,
-  abc_by_amount text null,
-  abc_by_qty text null,
-  amount_ordered numeric(18, 2) null,
-  amount_ordered_delta numeric(18, 4) null,
-  amount_share numeric(10, 6) null,
-  amount_share_delta numeric(10, 6) null,
-  search_position_avg numeric(10, 4) null,
-  search_position_delta numeric(10, 4) null,
-  impressions_total bigint null,
-  impressions_total_delta numeric(18, 4) null,
-  conv_impr_to_order numeric(10, 6) null,
-  conv_impr_to_order_delta numeric(10, 6) null,
-  impressions_search_catalog bigint null,
-  impressions_search_catalog_delta numeric(18, 4) null,
-  conv_sc_to_cart numeric(10, 6) null,
-  conv_sc_to_cart_delta numeric(10, 6) null,
-  add_to_cart_from_sc bigint null,
-  add_to_cart_from_sc_delta numeric(18, 4) null,
-  conv_sc_to_card numeric(10, 6) null,
-  conv_sc_to_card_delta numeric(10, 6) null,
-  product_card_visits bigint null,
-  product_card_visits_delta numeric(18, 4) null,
-  conv_card_to_cart numeric(10, 6) null,
-  conv_card_to_cart_delta numeric(10, 6) null,
-  add_to_cart_from_card bigint null,
-  add_to_cart_from_card_delta numeric(18, 4) null,
-  conv_overall_to_cart numeric(10, 6) null,
-  conv_overall_to_cart_delta numeric(10, 6) null,
-  add_to_cart_total bigint null,
-  add_to_cart_total_delta numeric(18, 4) null,
-  conv_cart_to_order numeric(10, 6) null,
-  conv_cart_to_order_delta numeric(10, 6) null,
-  items_ordered bigint null,
-  items_ordered_delta numeric(18, 4) null,
-  items_delivered bigint null,
-  items_delivered_delta numeric(18, 4) null,
-  conv_order_to_buyout numeric(10, 6) null,
-  conv_order_to_buyout_delta numeric(10, 6) null,
-  items_buyout bigint null,
-  items_buyout_delta numeric(18, 4) null,
-  items_cancel_by_cancel_date bigint null,
-  items_cancel_by_cancel_date_delta numeric(18, 4) null,
-  items_cancel_by_order_date bigint null,
-  items_cancel_by_order_date_delta numeric(18, 4) null,
-  items_return_by_return_date bigint null,
-  items_return_by_return_date_delta numeric(18, 4) null,
-  items_return_by_order_date bigint null,
-  items_return_by_order_date_delta numeric(18, 4) null,
-  avg_price numeric(14, 2) null,
-  avg_price_delta numeric(14, 4) null,
-  discount_from_your_price numeric(10, 6) null,
-  discount_from_your_price_delta numeric(10, 6) null,
-  price_index numeric(10, 6) null,
-  promo_days integer null,
-  ad_spend_ratio numeric(10, 6) null,
-  ad_spend_ratio_delta numeric(10, 6) null,
-  promoted_days integer null,
-  oos_days_28d integer null,
-  ending_stock bigint null,
-  fbo_supply_advice text null,
-  fbo_supply_qty integer null,
-  avg_delivery_days numeric(10, 4) null,
-  reviews_count integer null,
-  product_rating numeric(10, 4) null,
-  inserted_at timestamptz not null default now(),
-  constraint ozon_product_report_wide_pkey primary key (id),
-  constraint ozon_prw_uniq unique (store_id, day, product_id)
+-- Ozon 指标目录
+CREATE TABLE IF NOT EXISTS public.ozon_metric_catalog (
+  metric_key        text PRIMARY KEY,
+  section           text NOT NULL,
+  subsection        text NOT NULL,
+  ru_label          text NOT NULL,
+  en_label          text NOT NULL,
+  zh_label          text,
+  description_ru    text,
+  description_zh    text,
+  value_type        text NOT NULL DEFAULT 'number',
+  unit              text,
+  is_trend          boolean NOT NULL DEFAULT false,
+  base_metric_key   text,
+  is_active         boolean NOT NULL DEFAULT true,
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  updated_at        timestamptz NOT NULL DEFAULT now()
 );
-create table if not exists public.ozon_raw_analytics (
+
+CREATE INDEX IF NOT EXISTS idx_ozon_mc_section_sub ON public.ozon_metric_catalog(section, subsection);
+CREATE INDEX IF NOT EXISTS idx_ozon_mc_base ON public.ozon_metric_catalog(base_metric_key);
+
+-- 规范化事实长表
+CREATE TABLE IF NOT EXISTS public.ozon_product_metrics_long (
+  store_id     text    NOT NULL,
+  day          date    NOT NULL,
+  product_id   text    NOT NULL,
+  product_title text,
+  category_l1  text,
+  category_l2  text,
+  category_l3  text,
+  brand        text,
+  model        text,
+  sales_scheme text,
+  sku          text,
+  vendor_code  text,
+  metric_key   text    NOT NULL REFERENCES public.ozon_metric_catalog(metric_key) ON UPDATE CASCADE,
+  value_num    numeric(20,6),
+  value_text   text,
+  inserted_at  timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT ozon_pml_pk PRIMARY KEY (store_id, day, product_id, metric_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ozon_pml_store_day ON public.ozon_product_metrics_long(store_id, day);
+CREATE INDEX IF NOT EXISTS idx_ozon_pml_prod ON public.ozon_product_metrics_long(product_id);
+CREATE INDEX IF NOT EXISTS idx_ozon_pml_metric ON public.ozon_product_metrics_long(metric_key);
+
+-- Ozon 产品报表宽表
+CREATE TABLE IF NOT EXISTS public.ozon_product_report_wide (
+  id                 bigserial PRIMARY KEY,
+  store_id           text NOT NULL,
+  day                date NOT NULL,
+  product_id         text NOT NULL,
+  product_title      text,
+  category_l1        text,
+  category_l2        text,
+  category_l3        text,
+  brand              text,
+  model              text,
+  sales_scheme       text,
+  sku                text,
+  vendor_code        text,
+  impressions_total              bigint,
+  impressions_total_trend        numeric(20,6),
+  impressions_search_catalog     bigint,
+  impressions_search_catalog_trend numeric(20,6),
+  product_card_views             bigint,
+  product_card_views_trend       numeric(20,6),
+  add_to_cart_total              bigint,
+  add_to_cart_total_trend        numeric(20,6),
+  conv_impr_to_order             numeric(20,6),
+  conv_impr_to_order_trend       numeric(20,6),
+  conv_sc_to_cart                numeric(20,6),
+  conv_sc_to_cart_trend          numeric(20,6),
+  conv_card_to_cart              numeric(20,6),
+  conv_card_to_cart_trend        numeric(20,6),
+  conv_cart_to_order             numeric(20,6),
+  conv_cart_to_order_trend       numeric(20,6),
+  items_ordered                  bigint,
+  items_ordered_trend            numeric(20,6),
+  items_delivered                bigint,
+  items_delivered_trend          numeric(20,6),
+  items_buyout                   bigint,
+  items_buyout_trend             numeric(20,6),
+  conv_order_to_buyout           numeric(20,6),
+  conv_order_to_buyout_trend     numeric(20,6),
+  avg_price                      numeric(14,2),
+  avg_price_trend                numeric(20,6),
+  discount_from_your_price       numeric(20,6),
+  discount_from_your_price_trend numeric(20,6),
+  price_index                    numeric(20,6),
+  promo_days                     int,
+  ad_spend_ratio                 numeric(20,6),
+  ad_spend_ratio_trend           numeric(20,6),
+  promoted_days                  int,
+  oos_days_28d                   int,
+  ending_stock                   bigint,
+  fbo_supply_advice              text,
+  fbo_supply_qty                 int,
+  avg_delivery_days              numeric(10,4),
+  reviews_count                  int,
+  product_rating                 numeric(10,4),
+  inserted_at                    timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT ozon_prw_uniq UNIQUE (store_id, day, product_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ozon_prw_store_day  ON public.ozon_product_report_wide(store_id, day);
+CREATE INDEX IF NOT EXISTS idx_ozon_prw_store_prod ON public.ozon_product_report_wide(store_id, product_id);
+
+-- 产品 URL 视图
+CREATE OR REPLACE VIEW public.ozon_product_urls AS
+SELECT DISTINCT
+  store_id,
+  product_id,
+  'https://ozon.ru/product/' || product_id AS product_url
+FROM public.ozon_product_report_wide;
+
+-- 长表 + 目录 视图
+CREATE OR REPLACE VIEW public.v_ozon_metrics_long_with_catalog AS
+SELECT
+  m.store_id, m.day, m.product_id, m.product_title,
+  m.category_l1, m.category_l2, m.category_l3, m.brand, m.model, m.sales_scheme, m.sku, m.vendor_code,
+  c.section, c.subsection, c.ru_label, c.en_label, c.zh_label,
+  c.value_type, c.unit, c.is_trend, c.base_metric_key,
+  m.metric_key, m.value_num, m.value_text, m.inserted_at
+FROM public.ozon_product_metrics_long m
+JOIN public.ozon_metric_catalog c
+  ON c.metric_key = m.metric_key;
+
+-- 原始 Ozon 行留存
+CREATE TABLE IF NOT EXISTS public.ozon_raw_analytics (
   id bigserial primary key,
   store_id text,
   raw_row jsonb not null,
   import_batch text,
   inserted_at timestamptz default now()
-);
-create index if not exists idx_ozon_prw_store_day on public.ozon_product_report_wide (store_id, day);
-create index if not exists idx_ozon_prw_store_prod on public.ozon_product_report_wide (store_id, product_id);
-
-create table if not exists public.ozon_metric_dictionary (
-  std_field text primary key,
-  ru_label text,
-  ru_desc text,
-  zh_desc text
 );
 
 create table if not exists public.ozon_first_seen (

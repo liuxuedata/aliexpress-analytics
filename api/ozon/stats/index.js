@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
     let query = supabase
       .from("ozon_product_report_wide")
       .select(
-        "day,product_id,product_title,impressions_total,product_card_visits,add_to_cart_total,items_ordered,items_buyout"
+        "day,product_id,product_title,impressions_total,product_card_views,add_to_cart_total,items_ordered,items_buyout"
       )
       .eq("store_id", store_id)
       .order("day", { ascending: false });
@@ -37,8 +37,8 @@ module.exports = async (req, res) => {
       product_id: r.product_id,
       product_title: r.product_title,
       impressions: r.impressions_total,
-      sessions: r.product_card_visits,
-      pageviews: r.product_card_visits,
+      sessions: r.product_card_views,
+      pageviews: r.product_card_views,
       add_to_cart_users: r.add_to_cart_total,
       add_to_cart_qty: r.add_to_cart_total,
       items_sold: r.items_buyout,

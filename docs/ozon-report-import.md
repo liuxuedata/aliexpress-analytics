@@ -3,7 +3,7 @@
 `analytics_report_2025-08-15_22_11.xlsx` 是 Ozon 商家后台导出的典型报表，包含 `"Категория 1 уровня"`、`"Товар:"`、`"Цена:"` 等说明行。
 不能简单把首行当表头，需要通过 **字段词典 → 结构识别 → 清洗入库** 的三层方案来稳定解析，完全依赖离线映射规则，无需在线翻译。
 
-本文说明如何将这类报表解析并入库到标准化表 `public.ozon_product_report_wide` 与原始表 `public.ozon_raw_analytics`。
+本文说明如何将这类报表解析并入库到规范化长表 `public.ozon_product_metrics_long`、常用指标宽表 `public.ozon_product_report_wide`，以及原始表 `public.ozon_raw_analytics`。
 
 ## 1. 列名映射
 
