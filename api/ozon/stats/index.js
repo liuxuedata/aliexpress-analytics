@@ -12,17 +12,20 @@ module.exports = async function handler(req,res){
     const supabase = supa();
     let { date } = req.query || {};
 
-    const todayIso = new Date().toISOString();
+    const today = new Date().toISOString().slice(0,10);
     const datesResp = await supabase
       .from('ozon_product_report_wide')
       .select('uploaded_at', { distinct: true })
-      .lte('uploaded_at', todayIso)
+      .lte('uploaded_at', today)
       .order('uploaded_at', { ascending: false });
     if(datesResp.error) throw datesResp.error;
-    const dates = (datesResp.data||[]).map(r=>r.uploaded_at);
+    const dates = (datesResp.data||[]).map(r=>r.uploaded_at).filter(Boolean);
 
-    if(!date){
+    if(!date && dates.length){
       date = dates[0];
+    }
+    if(!date){
+      return res.json({ok:true, rows:[], date:null, dates});
     }
 
     const selectCols = 'sku,tovary,voronka_prodazh_pokazy_vsego,voronka_prodazh_pokazy_v_poiske_i_kataloge,voronka_prodazh_posescheniya_kartochki_tovara,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov,voronka_prodazh_vykupleno_tovarov';

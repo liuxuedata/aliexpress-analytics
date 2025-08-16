@@ -12,16 +12,19 @@ module.exports = async function handler(req,res){
     const supabase = supa();
     let { date } = req.query || {};
 
-    const todayIso = new Date().toISOString();
+    const today = new Date().toISOString().slice(0,10);
     const datesResp = await supabase
       .from('ozon_product_report_wide')
       .select('uploaded_at', { distinct: true })
-      .lte('uploaded_at', todayIso)
+      .lte('uploaded_at', today)
       .order('uploaded_at', { ascending: false });
     if(datesResp.error) throw datesResp.error;
-    const dates = (datesResp.data||[]).map(r=>r.uploaded_at);
-    if(!date){
+    const dates = (datesResp.data||[]).map(r=>r.uploaded_at).filter(Boolean);
+    if(!date && dates.length){
       date = dates[0];
+    }
+    if(!date){
+      return res.json({ok:true, metrics:null, date:null, dates});
     }
     const curIndex = dates.indexOf(date);
     const prevDate = dates[curIndex+1] || null;
@@ -60,6 +63,8 @@ module.exports = async function handler(req,res){
     const newProducts=cur.rows.filter(r=>newSkus.includes(r.sku)).map(r=>({sku:r.sku,title:r.tovary}));
     res.json({
       ok:true,
+      date,
+      dates,
       metrics:{
         visitor_rate:{current:visitorRate, previous:visitorRatePrev},
         cart_rate:{current:cartRate, previous:cartRatePrev},
