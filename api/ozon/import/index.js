@@ -10,7 +10,12 @@ function supa() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-const norm = (s) => (s || "").toLowerCase().trim().replace(/[ .:;/\\-]+/g, "_");
+// Normalize header cells: lower-case, trim, collapse whitespace and symbols to underscores
+const norm = (s) =>
+  (s || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[\s.:;/\\-]+/g, "_");
 
 const RU_HEADER_MAP = {
   // 维度
@@ -125,6 +130,73 @@ const DESC_ZH = {
   sales_scheme: "销售模式",
 };
 
+const DESC_RU_ZH = {
+  abc_by_amount: "按订单金额对商品做ABC分类：A≈80%、B≈15%、C≈5%",
+  abc_by_qty: "按订单数量做ABC分类：A≈80%、B≈15%、C≈5%",
+  amount_ordered: "订单总金额（含取消/退货，按卖家价格口径）",
+  amount_ordered_trend: "与上期相比的变化",
+  amount_share: "本商品订单金额/总订单金额",
+  amount_share_trend: "与上期相比的变化",
+  search_position_avg: "搜索/目录平均排名（0 表示当期无曝光）",
+  search_position_trend: "与上期相比的变化",
+  impressions_total: "买家看到商品的次数（含所有页面+卡片访问）",
+  impressions_total_trend: "与上期相比的变化",
+  conv_impr_to_order: "下单数/曝光数",
+  conv_impr_to_order_trend: "与上期相比的变化",
+  impressions_search_catalog: "搜索和目录曝光次数",
+  impressions_search_catalog_trend: "与上期相比的变化",
+  conv_sc_to_cart: "搜索/目录加购转化率",
+  conv_sc_to_cart_trend: "与上期相比的变化",
+  add_to_cart_from_sc: "搜索/目录加购次数",
+  add_to_cart_from_sc_trend: "与上期相比的变化",
+  conv_sc_to_card: "搜索/目录到卡片转化率",
+  conv_sc_to_card_trend: "与上期相比的变化",
+  product_card_visits: "商品卡片访问次数",
+  product_card_visits_trend: "与上期相比的变化",
+  conv_card_to_cart: "卡片到加购转化率",
+  conv_card_to_cart_trend: "与上期相比的变化",
+  add_to_cart_from_card: "卡片加购次数",
+  add_to_cart_from_card_trend: "与上期相比的变化",
+  conv_overall_to_cart: "整体加购转化率",
+  conv_overall_to_cart_trend: "与上期相比的变化",
+  add_to_cart_total: "总加购次数",
+  add_to_cart_total_trend: "与上期相比的变化",
+  conv_cart_to_order: "加购到下单转化率",
+  conv_cart_to_order_trend: "与上期相比的变化",
+  items_ordered: "下单件数",
+  items_ordered_trend: "与上期相比的变化",
+  items_delivered: "配送件数",
+  items_delivered_trend: "与上期相比的变化",
+  conv_order_to_buyout: "下单到购买转化率",
+  conv_order_to_buyout_trend: "与上期相比的变化",
+  items_buyout: "购买件数",
+  items_buyout_trend: "与上期相比的变化",
+  items_cancel_by_cancel_date: "按取消日期统计的取消件数",
+  items_cancel_by_cancel_date_trend: "与上期相比的变化",
+  items_cancel_by_order_date: "按下单日期统计的取消件数",
+  items_cancel_by_order_date_trend: "与上期相比的变化",
+  items_return_by_return_date: "按退货日期统计的退货件数",
+  items_return_by_return_date_trend: "与上期相比的变化",
+  items_return_by_order_date: "按下单日期统计的退货件数",
+  items_return_by_order_date_trend: "与上期相比的变化",
+  avg_price: "平均成交价",
+  avg_price_trend: "与上期相比的变化",
+  discount_from_your_price: "折扣率(相对于卖家价格)",
+  discount_from_your_price_trend: "与上期相比的变化",
+  price_index: "价格指数",
+  promo_days: "参加促销天数",
+  ad_spend_ratio: "广告花费占比",
+  ad_spend_ratio_trend: "与上期相比的变化",
+  promoted_days: "付费推广天数",
+  oos_days_28d: "28天缺货天数",
+  ending_stock: "期末库存",
+  fbo_supply_advice: "FBO 补货建议",
+  fbo_supply_qty: "建议补货数量",
+  avg_delivery_days: "平均配送天数",
+  reviews_count: "评论数",
+  product_rating: "商品评分",
+};
+
 const DIMS = new Set([
   "day",
   "product_id",
@@ -186,7 +258,7 @@ function mapHeaderToStd(header) {
   const h = norm(header);
   for (const [std, aliases] of Object.entries(RU_HEADER_MAP)) {
     if (std === "__label__") continue;
-    if (aliases.some((a) => h.includes(a))) return std;
+    if (aliases.some((a) => h.startsWith(a))) return std;
   }
   return null;
 }
@@ -198,11 +270,12 @@ function detectHeaderRow(rows) {
   for (let i = 0; i < MAX_SCAN; i++) {
     const r = rows[i] || [];
     const nonEmpty = r.filter((v) => String(v ?? "").trim() !== "").length;
-    const numeric = r.filter((v) => typeof v === "number").length;
     const hits = r.filter((v) => mapHeaderToStd(String(v ?? ""))).length;
-    if (nonEmpty >= 6 && numeric <= 2 && hits >= 3) {
-      const score = hits * nonEmpty;
-      if (score >= bestScore) {
+    const totalLen = r.reduce((sum, v) => sum + String(v ?? "").length, 0);
+    const avgLen = nonEmpty ? totalLen / nonEmpty : 0;
+    if (nonEmpty >= 6 && hits >= 3) {
+      const score = hits * 100 + nonEmpty - avgLen; // penalize long description rows
+      if (score > bestScore) {
         bestIdx = i;
         bestScore = score;
       }
@@ -260,17 +333,22 @@ function parseVal(v) {
 function rowToRecord(stdRow) {
   const rec = {};
   for (const [k, v] of Object.entries(stdRow)) {
-    if (k === "day" || k === "date") rec.day = v;
-    else if (k === "product_id" || k === "sku")
+    if (k === "day" || k === "date") {
+      rec.day = v;
+    } else if (k === "product_id") {
       rec.product_id = extractProductId(v);
-    else if (k === "vendor_code")
+      rec.sku = v;
+    } else if (k === "sku") {
+      rec.sku = v;
+    } else if (k === "vendor_code") {
       rec.vendor_code = v;
-    else if (k === "product_title" || k === "товар" || k === "название товара")
+    } else if (k === "product_title" || k === "товар" || k === "название товара") {
       rec.product_title = v;
-    else if (["category_l1","category_l2","category_l3","brand","model","sales_scheme","sku","vendor_code"].includes(k))
+    } else if (["category_l1","category_l2","category_l3","brand","model","sales_scheme","sku","vendor_code"].includes(k)) {
       rec[k] = v;
-    else
+    } else {
       rec[k] = parseVal(v);
+    }
   }
   return rec;
 }
@@ -310,12 +388,25 @@ module.exports = async (req, res) => {
     const ws = wb.Sheets[wb.SheetNames[0]];
     const rows = xlsx.utils.sheet_to_json(ws, { header: 1, raw: false });
     const headerRowIdx = detectHeaderRow(rows);
-    const sectionRow = rows[headerRowIdx - 2] || [];
-    const subsectionRow = rows[headerRowIdx - 1] || [];
+    // Row preceding the header contains high-level section labels (Sales/Funnel/...)
+    const sectionRow = rows[headerRowIdx - 1] || [];
     const header = rows[headerRowIdx] || [];
     const merged = mergeHeaderRows(rows, headerRowIdx);
+    // The row after header stores field descriptions
     const descRow = rows[headerRowIdx + 1] || [];
-    const map = merged.map((h) => mapHeaderToStd(String(h || "")));
+
+    // Build header mapping; if a column header is "Динамика",
+    // inherit the metric key from the previous column and append `_trend`.
+    const map = [];
+    for (let i = 0; i < merged.length; i++) {
+      let key = mapHeaderToStd(String(merged[i] || ""));
+      if (!key && norm(String(header[i] || "")) === "динамика" && i > 0) {
+        const prev = map[i - 1];
+        if (prev) key = `${prev}_trend`;
+      }
+      map[i] = key;
+    }
+
     const dataRows = rows.slice(headerRowIdx + 2);
 
     let periodEnd = null;
@@ -346,12 +437,12 @@ module.exports = async (req, res) => {
       catalogRows.push({
         metric_key: std,
         section: String(sectionRow[i] || "General") || "General",
-        subsection: String(subsectionRow[i] || sectionRow[i] || "General") || "General",
+        subsection: String(sectionRow[i] || "General") || "General",
         ru_label: ruLabel,
         en_label: std,
         zh_label: DESC_ZH[std] || null,
         description_ru: String(descRow[i] || ""),
-        description_zh: null,
+        description_zh: DESC_RU_ZH[std] || null,
         value_type: "number",
         unit: null,
         is_trend: std.endsWith("_trend"),

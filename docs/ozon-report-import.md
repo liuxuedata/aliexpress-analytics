@@ -1,14 +1,15 @@
 # Ozon 报表解析与入库实现说明
 
-`analytics_report_2025-08-15_22_11.xlsx` 是 Ozon 商家后台导出的典型报表，包含 `"Категория 1 уровня"`、`"Товар:"`、`"Цена:"` 等说明行。
-不能简单把首行当表头，需要通过 **字段词典 → 结构识别 → 清洗入库** 的三层方案来稳定解析，完全依赖离线映射规则，无需在线翻译。
+`analytics_report_2025-08-15_22_11.xlsx` 是 Ozon 商家后台导出的典型报表，前 7 行是“Период/Товар/Категория/Цена...”等说明。
+第 8 行为一级分组（Sales / Funnel / Orders & Fulfillment / ...），第 9 行为实际字段名，
+第 10 行给出每个字段的俄文说明。不能简单把首行当表头，需要通过 **字段词典 → 结构识别 → 清洗入库** 的三层方案来稳定解析，完全依赖离线映射规则，无需在线翻译。
 
 本文说明如何将这类报表解析并入库到规范化长表 `public.ozon_product_metrics_long`、常用指标宽表 `public.ozon_product_report_wide`，以及原始表 `public.ozon_raw_analytics`。
 
 ## 1. 列名映射
 
 ```ts
-const norm = (s: string) => (s || "").toLowerCase().trim().replace(/[ .:;\/\\-]+/g, "_");
+const norm = (s: string) => (s || "").toLowerCase().trim().replace(/[\s.:;\/\\-]+/g, "_");
 
 const MAP: Record<string, string[]> = {
   // 维度
