@@ -147,10 +147,18 @@ module.exports = async function handler(req,res){
         }
       }while(attempt++ < 2);
       fs.unlinkSync(file.path);
-      if(error) return res.status(400).json({ok:false,msg:error.message,details:error.details});
+      if(error){
+        console.error('Ozon report insert failed:', error);
+        const msg = [error.message, error.details, error.hint]
+          .filter(Boolean)
+          .join(' | ') || 'insert failed';
+        return res.status(400).json({ok:false,msg});
+      }
       res.json({ok:true, inserted: rows.length});
     }catch(e){
-      res.status(400).json({ok:false,msg:e.message});
+      try{ fs.unlinkSync(file.path); }catch(_){ /* ignore */ }
+      const msg = e?.message || e?.error_description || String(e);
+      res.status(400).json({ok:false,msg});
     }
   });
 };
