@@ -3,51 +3,109 @@
 `analytics_report_2025-08-15_22_11.xlsx` 是 Ozon 商家后台导出的典型报表，包含 `"Категория 1 уровня"`、`"Товар:"`、`"Цена:"` 等说明行。
 不能简单把首行当表头，需要通过 **字段词典 → 结构识别 → 清洗入库** 的三层方案来稳定解析，完全依赖离线映射规则，无需在线翻译。
 
-本文说明如何将这类报表解析并入库到标准化表 `public.ozon_daily_product_metrics` 与原始表 `public.ozon_raw_analytics`。
+本文说明如何将这类报表解析并入库到标准化表 `public.ozon_product_report_wide` 与原始表 `public.ozon_raw_analytics`。
 
 ## 1. 列名映射
 
 ```ts
-const norm = (s: string) =>
-  (s || "").toLowerCase().trim().replace(/[ .:;/\\-]+/g, "_");
+const norm = (s: string) => (s || "").toLowerCase().trim().replace(/[ .:;\/\\-]+/g, "_");
 
-export const RU_HEADER_MAP: Record<string, string[]> = {
+const MAP: Record<string, string[]> = {
+  // 维度
   day:                ["дата", "date", "day"],
   product_id:         ["sku", "артикул", "id_товара", "id", "товар_id"],
-  product_title:      ["товар", "название_товара", "наименование", "product_name", "наименование_товара"],
-  impressions:        ["показы", "показы_товара", "impressions", "impr"],
-  sessions:           ["сеансы", "визиты", "посещения", "sessions", "uv"],
-  pageviews:          ["просмотры", "просмотры_карточки", "pv"],
-  add_to_cart_users:  ["пользователи,_добавившие_в_корзину","добавления_в_корзину_(пользователи)","add_to_cart_users"],
-  add_to_cart_qty:    ["добавления_в_корзину","кол_во_добавлений_в_корзину","add_to_cart_qty"],
-  orders:             ["заказы","orders"],
-  buyers:             ["покупатели","buyers"],
-  items_sold:         ["проданные_товары","кол_во_товаров","items_sold"],
-  revenue:            ["выручка","оборот","gmv","sales"],
-  brand:              ["бренд","brand"],
-  model:              ["модель","model"],
+  product_title:      ["товары", "товар", "название_товара", "наименование", "product_name"],
   category_l1:        ["категория_1_уровня"],
   category_l2:        ["категория_2_уровня"],
   category_l3:        ["категория_3_уровня"],
-  scheme:             ["схема_продаж","схема_продажи","схема_продаж_fbo_fbs"],
-  __label__:          [
-    "товар:",
-    "категория:",
-    "цена:",
-    "продавец:",
-    "период:",
-    "схема продажи:",
-    "схема продаж:",
-    "итого",
-    "среднее",
-    "undefined",
-  ],
+  brand:              ["бренд"],
+  model:              ["модель"],
+  sales_scheme:       ["схема_продаж", "схема_продажи"],
+  sku:                ["sku"],
+  article:            ["артикул"],
+
+  // ABC & 金额
+  abc_by_amount:      ["abc-анализ_по_сумме_заказов"],
+  abc_by_qty:         ["abc-анализ_по_количеству_заказов"],
+  amount_ordered:     ["заказано_на_сумму"],
+  amount_ordered_delta: ["заказано_на_сумму_динамика"],
+  amount_share:       ["доля_в_общей_сумме_заказов"],
+  amount_share_delta: ["доля_в_общей_сумме_заказов_динамика"],
+
+  // 排名/曝光
+  search_position_avg: ["позиция_в_поиске_и_каталоге"],
+  search_position_delta: ["позиция_в_поиске_и_каталоге_динамика"],
+  impressions_total:  ["показы_всего"],
+  impressions_total_delta: ["показы_всего_динамика"],
+  conv_impr_to_order: ["конверсия_из_показа_в_заказ"],
+  conv_impr_to_order_delta: ["конверсия_из_показа_в_заказ_динамика"],
+
+  impressions_search_catalog: ["показы_в_поиске_и_каталоге"],
+  impressions_search_catalog_delta: ["показы_в_поиске_и_каталоге_динамика"],
+  conv_sc_to_cart: ["конверсия_из_поиска_и_каталога_в_корзину"],
+  conv_sc_to_cart_delta: ["конверсия_из_поиска_и_каталога_в_корзину_динамика"],
+  add_to_cart_from_sc: ["добавления_из_поиска_и_каталога_в_корзину"],
+  add_to_cart_from_sc_delta: ["добавления_из_поиска_и_каталога_в_корзину_динамика"],
+  conv_sc_to_card: ["конверсия_из_поиска_и_каталога_в_карточку"],
+  conv_sc_to_card_delta: ["конверсия_из_поиска_и_каталога_в_карточку_динамика"],
+
+  // 卡片/加购/下单/履约
+  product_card_visits: ["посещения_карточки_товара"],
+  product_card_visits_delta: ["посещения_карточки_товара_динамика"],
+  conv_card_to_cart: ["конверсия_из_карточки_в_корзину"],
+  conv_card_to_cart_delta: ["конверсия_из_карточки_в_корзину_динамика"],
+  add_to_cart_from_card: ["добавления_из_карточки_в_корзину"],
+  add_to_cart_from_card_delta: ["добавления_из_карточки_в_корзину_динамика"],
+  conv_overall_to_cart: ["конверсия_в_корзину_общая"],
+  conv_overall_to_cart_delta: ["конверсия_в_корзину_общая_динамика"],
+  add_to_cart_total: ["добавления_в_корзину_всего"],
+  add_to_cart_total_delta: ["добавления_в_корзину_всего_динамика"],
+  conv_cart_to_order: ["конверсия_из_корзины_в_заказ"],
+  conv_cart_to_order_delta: ["конверсия_из_корзины_в_заказ_динамика"],
+
+  items_ordered: ["заказано_товаров"],
+  items_ordered_delta: ["заказано_товаров_динамика"],
+  items_delivered: ["доставлено_товаров"],
+  items_delivered_delta: ["доставлено_товаров_динамика"],
+  conv_order_to_buyout: ["конверсия_из_заказа_в_выкуп"],
+  conv_order_to_buyout_delta: ["конверсия_из_заказа_в_выкуп_динамика"],
+  items_buyout: ["выкуплено_товаров"],
+  items_buyout_delta: ["выкуплено_товаров_динамика"],
+
+  items_cancel_by_cancel_date: ["отменено_товаров_(на_дату_отмены)"],
+  items_cancel_by_cancel_date_delta: ["отменено_товаров_(на_дату_отмены)_динамика"],
+  items_cancel_by_order_date: ["отменено_товаров_(на_дату_заказа)"],
+  items_cancel_by_order_date_delta: ["отменено_товаров_(на_дату_заказа)_динамика"],
+  items_return_by_return_date: ["возвращено_товаров_(на_дату_возврата)"],
+  items_return_by_return_date_delta: ["возвращено_товаров_(на_дату_возврата)_динамика"],
+  items_return_by_order_date: ["возвращено_товаров_(на_дату_заказа)"],
+  items_return_by_order_date_delta: ["возвращено_товаров_(на_дату_заказа)_динамика"],
+
+  avg_price: ["средняя_цена"],
+  avg_price_delta: ["средняя_цена_динамика"],
+  discount_from_your_price: ["скидка_от_вашей_цены"],
+  discount_from_your_price_delta: ["скидка_от_вашей_цены_динамика"],
+  price_index: ["индекс_цен"],
+  promo_days: ["дней_в_акциях"],
+  ad_spend_ratio: ["общая_дртр","общая_дрр","общая_дпрр","общая_д_rr"],
+  ad_spend_ratio_delta: ["общая_дртр_динамика","общая_дрр_динамика"],
+  promoted_days: ["дней_с_продвижением_трафареты"],
+  oos_days_28d: ["дней_без_остатка"],
+  ending_stock: ["остаток_на_конец_периода"],
+  fbo_supply_advice: ["рекомендация_по_поставке_на_fbo"],
+  fbo_supply_qty: ["сколько_товаров_поставить"],
+  avg_delivery_days: ["среднее_время_доставки"],
+  reviews_count: ["отзывы"],
+  product_rating: ["рейтинг_товара"],
+
+  // 识别说明行
+  __label__:          ["товар:", "категория:", "цена:", "продавец:", "undefined"]
 };
 
-export function mapHeaderToStd(header: string): string | null {
+// 列名映射函数
+function mapHeader(header: string): string | null {
   const h = norm(header);
-  for (const [std, aliases] of Object.entries(RU_HEADER_MAP)) {
-    if (std === "__label__") continue;
+  for (const [std, aliases] of Object.entries(MAP)) {
     if (aliases.some(a => h.includes(a))) return std;
   }
   return null;
@@ -67,7 +125,7 @@ export function detectHeaderRow(rows: any[][]): number {
     const r = rows[i] ?? [];
     const nonEmpty = r.filter(v => String(v ?? "").trim() !== "").length;
     const numeric  = r.filter(v => typeof v === "number").length;
-    const hits     = r.filter(v => mapHeaderToStd(String(v ?? ""))).length;
+    const hits     = r.filter(v => mapHeader(String(v ?? ""))).length;
     if (nonEmpty >= 6 && numeric <= 2 && hits >= 3) {
       const score = hits * nonEmpty;
       if (score >= bestScore) {
@@ -81,7 +139,7 @@ export function detectHeaderRow(rows: any[][]): number {
 
 export function isLabelRow(cells: any[]): boolean {
   const first = String(cells?.[0] ?? "").toLowerCase().trim();
-  if (RU_HEADER_MAP.__label__.some(k => first.includes(k))) return true;
+  if (MAP.__label__.some(k => first.includes(k))) return true;
   return cells.every(v => {
     const s = String(v ?? "").trim();
     return s === "" || s === "0" || s === "-" || s === "—";
@@ -146,7 +204,7 @@ export function rowToRecord(stdRow: Record<string, any>) {
 }
 ```
 
-- 规范化表：`public.ozon_daily_product_metrics`，主键 `(store_id, product_id, day, campaign, traffic_source)`。
+- 规范化表：`public.ozon_product_report_wide`，主键 `(store_id, day, product_id)`。
 - 原始表：`public.ozon_raw_analytics`，`raw_row` 存完整 JSON，`import_batch` 存文件名或哈希。
 - 数值缺失写 `0`，日期或商品 ID 为空的行可以落入原始表但不入规范化表。
 - 若报表没有 `Дата` 列，会从顶部 “`Период: 01.08.2025 – 15.08.2025`” 行提取结束日期作为 `day`。
