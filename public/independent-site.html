@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>独立站 · Landing Pages 明细</title>
-  <link rel="stylesheet" href="assets/login.css">
   <style>
     #report td:first-child{ text-align:left; }
     #report td:first-child a.name{ display:inline-block; max-width:180px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
@@ -23,33 +22,6 @@
   <script src="assets/product-meta.js"></script>
 </head>
 <body class="fm">
-<div id="loginOverlay" class="login-overlay" style="display:none">
-  <div class="login-container">
-    <div class="login-form-card login-card-enter">
-      <div class="form-header">
-        <div class="form-logo">AI</div>
-        <div class="form-title">跨境电商数据分析平台</div>
-        <div class="form-subtitle">登录账户以继续</div>
-      </div>
-      <form id="loginForm">
-        <div class="form-group">
-          <label class="form-label" for="email">邮箱</label>
-          <input id="email" type="email" class="form-input" required>
-        </div>
-        <div class="form-group password-input-wrapper">
-          <label class="form-label" for="password">密码</label>
-          <input id="password" type="password" class="form-input" required>
-          <span id="password-toggle" class="password-toggle">👁️</span>
-        </div>
-        <button id="loginSubmit" class="login-submit-btn" type="submit">登录</button>
-      </form>
-      <div class="demo-account-tip">
-        <div class="demo-account-header">演示账户</div>
-        <div class="demo-account-info">邮箱：demo@example.com<br>密码：demo123</div>
-      </div>
-    </div>
-  </div>
-</div>
 
 <header class="header">
   <div class="logo-title">跨境电商数据分析平台</div>
@@ -68,7 +40,7 @@
       <li class="independent active"><a href="independent-site.html">独立站</a></li>
     </ul>
   </nav>
-  <div id="userArea" class="user-section"></div>
+    <!-- 用户模块暂时隐藏 -->
 </header>
 
 <div class="layout">
@@ -477,8 +449,6 @@
 })();
 </script>
 
-<script src="assets/login.js"></script>
-
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
   const siteListKey='managedSites';
@@ -496,23 +466,6 @@ document.addEventListener('DOMContentLoaded',()=>{
       menuEl.appendChild(li);
     });
   }
-  const userArea=document.getElementById('userArea');
-  function refreshUser(){
-    const u=JSON.parse(localStorage.getItem('user')||'null');
-    if(u){
-      userArea.innerHTML=`<div class="user-section"><div class="user-menu-trigger">${u.name}</div><div class="user-dropdown" style="display:none"><button class="user-dropdown-item" id="logoutBtn">退出</button></div></div>`;
-      const trigger=userArea.querySelector('.user-menu-trigger');
-      const dropdown=userArea.querySelector('.user-dropdown');
-      trigger.addEventListener('click',()=>{dropdown.style.display=dropdown.style.display==='block'?'none':'block';});
-      document.getElementById('logoutBtn').addEventListener('click',()=>{localStorage.removeItem('user');dropdown.style.display='none';refreshUser();showLoginOverlay();});
-    }else{
-      userArea.innerHTML='<div class="user-section"><span class="user-demo">未登录</span><button class="login-button" id="loginTrigger">登录</button></div>';
-      document.getElementById('loginTrigger').addEventListener('click',showLoginOverlay);
-      showLoginOverlay();
-    }
-  }
-  refreshUser();
-  window.addEventListener('user-login', refreshUser);
 });
 </script>
 
