@@ -98,6 +98,7 @@ create table if not exists public.ozon_daily_product_metrics (
   store_id text not null,
   day date not null,
   product_id text not null,
+  product_title text,
   impressions numeric default 0,
   sessions numeric default 0,
   pageviews numeric default 0,
@@ -113,8 +114,8 @@ create table if not exists public.ozon_daily_product_metrics (
   updated_at timestamptz not null default now(),
   primary key (store_id, day, product_id)
 );
-create index if not exists idx_ozon_daily_store_day on public.ozon_daily_product_metrics(store_id, day);
-create index if not exists idx_ozon_daily_store_product on public.ozon_daily_product_metrics(store_id, product_id);
+create index if not exists idx_ozon_dpm_store_day on public.ozon_daily_product_metrics (store_id, day);
+create index if not exists idx_ozon_dpm_store_prod on public.ozon_daily_product_metrics (store_id, product_id);
 
 create table if not exists public.ozon_first_seen (
   store_id text not null,

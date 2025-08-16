@@ -64,7 +64,7 @@
             <table id="report" class="display" style="width:100%">
               <thead>
                 <tr>
-                  <th>商品ID</th>
+                  <th>产品名</th>
                   <th>日期</th>
                   <th>曝光量</th>
                   <th>访客数</th>
@@ -118,16 +118,16 @@
         const rows = arr.slice(1).filter(r=>r&&r.length);
         if(!rows.length){ setStatus('文件无数据'); return; }
         const mapped = rows.map(r=>[
-          r[0]||'',             // 商品ID
-          r[1]||'',             // 日期
-          r[2]||0,              // 曝光量
-          r[3]||0,              // 访客数
-          r[4]||0,              // 浏览量
-          r[5]||0,              // 加购人数
-          r[6]||0,              // 订单数
-          r[7]||0,              // 买家数
-          r[8]||0,              // GMV
-          r[9] ? '是' : ''      // 新品标记
+          `<a href="https://ozon.ru/product/${r[0]}" target="_blank" rel="noopener">${r[1] || r[0]}</a>`,
+          r[2]||'',             // 日期
+          r[3]||0,              // 曝光量
+          r[4]||0,              // 访客数
+          r[5]||0,              // 浏览量
+          r[6]||0,              // 加购人数
+          r[7]||0,              // 订单数
+          r[8]||0,              // 买家数
+          r[9]||0,              // GMV
+          r[10] ? '是' : ''     // 新品标记
         ]);
         const dt = initTable();
         dt.clear().rows.add(mapped).draw();
