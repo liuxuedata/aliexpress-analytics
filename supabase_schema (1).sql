@@ -130,6 +130,13 @@ create table if not exists public.ozon_raw_analytics (
 create index if not exists idx_ozon_dpm_store_day on public.ozon_daily_product_metrics (store_id, day);
 create index if not exists idx_ozon_dpm_store_prod on public.ozon_daily_product_metrics (store_id, product_id);
 
+create table if not exists public.ozon_metric_dictionary (
+  std_field text primary key,
+  ru_label text,
+  ru_desc text,
+  zh_desc text
+);
+
 create table if not exists public.ozon_first_seen (
   store_id text not null,
   product_id text not null,

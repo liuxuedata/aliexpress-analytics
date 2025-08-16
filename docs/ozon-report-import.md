@@ -30,7 +30,18 @@ export const RU_HEADER_MAP: Record<string, string[]> = {
   category_l2:        ["категория_2_уровня"],
   category_l3:        ["категория_3_уровня"],
   scheme:             ["схема_продаж","схема_продажи","схема_продаж_fbo_fbs"],
-  __label__:          ["товар:", "категория:", "цена:", "продавец:", "undefined"],
+  __label__:          [
+    "товар:",
+    "категория:",
+    "цена:",
+    "продавец:",
+    "период:",
+    "схема продажи:",
+    "схема продаж:",
+    "итого",
+    "среднее",
+    "undefined",
+  ],
 };
 
 export function mapHeaderToStd(header: string): string | null {
@@ -50,25 +61,31 @@ export function mapHeaderToStd(header: string): string | null {
 ```ts
 export function detectHeaderRow(rows: any[][]): number {
   const MAX_SCAN = Math.min(rows.length, 30);
+  let bestIdx = 0;
+  let bestScore = 0;
   for (let i = 0; i < MAX_SCAN; i++) {
     const r = rows[i] ?? [];
     const nonEmpty = r.filter(v => String(v ?? "").trim() !== "").length;
     const numeric  = r.filter(v => typeof v === "number").length;
     const hits     = r.filter(v => mapHeaderToStd(String(v ?? ""))).length;
-    if (nonEmpty >= 6 && numeric <= 2 && hits >= 3) return i;
+    if (nonEmpty >= 6 && numeric <= 2 && hits >= 3) {
+      const score = hits * nonEmpty;
+      if (score >= bestScore) {
+        bestIdx = i;
+        bestScore = score;
+      }
+    }
   }
-  return 0;
+  return bestIdx;
 }
 
 export function isLabelRow(cells: any[]): boolean {
   const first = String(cells?.[0] ?? "").toLowerCase().trim();
-  const onlyFew = cells.filter(v => String(v ?? "").trim() !== "").length <= 2;
-  const onlyZeroDash = cells.every(v => {
+  if (RU_HEADER_MAP.__label__.some(k => first.includes(k))) return true;
+  return cells.every(v => {
     const s = String(v ?? "").trim();
     return s === "" || s === "0" || s === "-" || s === "—";
   });
-  const hasLabel = RU_HEADER_MAP.__label__.some(k => first.includes(k));
-  return (onlyFew && hasLabel) || onlyZeroDash;
 }
 
 export function mergeHeaderRows(rows: any[][], headerRowIdx: number) {
@@ -91,6 +108,8 @@ export function mergeHeaderRows(rows: any[][], headerRowIdx: number) {
   return header;
 }
 ```
+
+表头行下方若存在字段说明，解析时会一并读取并写入 `public.ozon_metric_dictionary`，同时根据字段映射附带中文翻译，供前端调用。
 
 ## 3. 清洗与入库
 
@@ -130,6 +149,7 @@ export function rowToRecord(stdRow: Record<string, any>) {
 - 规范化表：`public.ozon_daily_product_metrics`，主键 `(store_id, product_id, day, campaign, traffic_source)`。
 - 原始表：`public.ozon_raw_analytics`，`raw_row` 存完整 JSON，`import_batch` 存文件名或哈希。
 - 数值缺失写 `0`，日期或商品 ID 为空的行可以落入原始表但不入规范化表。
+- 若报表没有 `Дата` 列，会从顶部 “`Период: 01.08.2025 – 15.08.2025`” 行提取结束日期作为 `day`。
 - 导入后调用 `select public.refresh_ozon_first_seen(:start_date, :end_date);` 维护新品首登。
 
 ## 4. 前端要点

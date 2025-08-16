@@ -42,6 +42,14 @@ CREATE TABLE IF NOT EXISTS public.ozon_raw_analytics (
   inserted_at timestamptz DEFAULT now()
 );
 
+-- 字段词典：列名、俄文说明与中文译文
+CREATE TABLE IF NOT EXISTS public.ozon_metric_dictionary (
+  std_field text PRIMARY KEY,
+  ru_label  text,
+  ru_desc   text,
+  zh_desc   text
+);
+
 -- 索引
 CREATE INDEX IF NOT EXISTS idx_ozon_dpm_store_day
   ON public.ozon_daily_product_metrics (store_id, day);

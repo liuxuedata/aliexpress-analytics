@@ -33,7 +33,39 @@ const RU_HEADER_MAP = {
   scheme:             ["схема_продаж","схема_продажи","схема_продаж_fbo_fbs"],
   campaign:           ["кампания", "campaign"],
   traffic_source:     ["источник_трафика", "traffic_source"],
-  __label__:          ["товар:", "категория:", "цена:", "продавец:", "undefined"],
+  __label__:          [
+    "товар:",
+    "категория:",
+    "цена:",
+    "продавец:",
+    "период:",
+    "схема продажи:",
+    "схема продаж:",
+    "итого",
+    "среднее",
+    "undefined",
+  ],
+};
+
+const DESC_ZH = {
+  day: "日期",
+  product_id: "商品ID",
+  product_title: "商品名称",
+  impressions: "曝光量",
+  sessions: "访客数",
+  pageviews: "浏览量",
+  add_to_cart_users: "加购人数",
+  add_to_cart_qty: "加购件数",
+  orders: "订单数",
+  buyers: "买家数",
+  items_sold: "支付件数",
+  revenue: "销售额",
+  brand: "品牌",
+  model: "型号",
+  category_l1: "一级类目",
+  category_l2: "二级类目",
+  category_l3: "三级类目",
+  scheme: "销售模式",
 };
 
 function mapHeaderToStd(header) {
@@ -47,25 +79,32 @@ function mapHeaderToStd(header) {
 
 function detectHeaderRow(rows) {
   const MAX_SCAN = Math.min(rows.length, 30);
+  let bestIdx = 0;
+  let bestScore = 0;
   for (let i = 0; i < MAX_SCAN; i++) {
     const r = rows[i] || [];
     const nonEmpty = r.filter((v) => String(v ?? "").trim() !== "").length;
     const numeric = r.filter((v) => typeof v === "number").length;
     const hits = r.filter((v) => mapHeaderToStd(String(v ?? ""))).length;
-    if (nonEmpty >= 6 && numeric <= 2 && hits >= 3) return i;
+    if (nonEmpty >= 6 && numeric <= 2 && hits >= 3) {
+      const score = hits * nonEmpty;
+      if (score >= bestScore) {
+        bestIdx = i;
+        bestScore = score;
+      }
+    }
   }
-  return 0;
+  return bestIdx;
 }
 
 function isLabelRow(cells) {
   const first = String(cells?.[0] ?? "").toLowerCase().trim();
-  const onlyFew = cells.filter((v) => String(v ?? "").trim() !== "").length <= 2;
-  const onlyZeroDash = cells.every((v) => {
+  const hasLabel = RU_HEADER_MAP.__label__.some((k) => first.includes(k));
+  if (hasLabel) return true;
+  return cells.every((v) => {
     const s = String(v ?? "").trim();
     return s === "" || s === "0" || s === "-" || s === "—";
   });
-  const hasLabel = RU_HEADER_MAP.__label__.some((k) => first.includes(k));
-  return (onlyFew && hasLabel) || onlyZeroDash;
 }
 
 function mergeHeaderRows(rows, headerRowIdx) {
@@ -155,12 +194,37 @@ module.exports = async (req, res) => {
     const rows = xlsx.utils.sheet_to_json(ws, { header: 1, raw: false });
     const headerRowIdx = detectHeaderRow(rows);
     const header = mergeHeaderRows(rows, headerRowIdx);
+    const descRow = rows[headerRowIdx + 1] || [];
     const map = header.map((h) => mapHeaderToStd(String(h || "")));
-    const dataRows = rows.slice(headerRowIdx + 1);
+    const dataRows = rows.slice(headerRowIdx + 2);
+
+    let periodEnd = null;
+    for (let i = 0; i < headerRowIdx; i++) {
+      const first = String(rows[i]?.[0] || "").toLowerCase();
+      const m = first.match(/период:\s*(\d{2}\.\d{2}\.\d{4})\s*–\s*(\d{2}\.\d{2}\.\d{4})/);
+      if (m) {
+        const [_, , end] = m;
+        const [d, mth, y] = end.split(".");
+        periodEnd = `${y}-${mth}-${d}`;
+        break;
+      }
+    }
 
     const records = [];
     const rawRows = [];
     let minDay = null, maxDay = null;
+
+    const dictRows = [];
+    for (let i = 0; i < map.length; i++) {
+      const std = map[i];
+      if (!std) continue;
+      dictRows.push({
+        std_field: std,
+        ru_label: String(header[i] || ""),
+        ru_desc: String(descRow[i] || ""),
+        zh_desc: DESC_ZH[std] || null,
+      });
+    }
 
     for (const r of dataRows) {
       if (isLabelRow(r)) continue;
@@ -171,6 +235,7 @@ module.exports = async (req, res) => {
         obj[key] = r[i];
       }
       const rec = rowToRecord(obj);
+      if (!rec.day && periodEnd) rec.day = periodEnd;
       rawRows.push({ store_id, raw_row: obj, import_batch: originalName });
       if (!rec.day || !rec.product_id) continue;
       const full = { store_id, campaign: obj.campaign || null, traffic_source: obj.traffic_source || null, ...rec };
@@ -184,6 +249,9 @@ module.exports = async (req, res) => {
 
     if (rawRows.length) {
       await supabase.from("ozon_raw_analytics").insert(rawRows);
+    }
+    if (dictRows.length) {
+      await supabase.from("ozon_metric_dictionary").upsert(dictRows, { onConflict: "std_field" });
     }
     if (records.length) {
       await supabase
