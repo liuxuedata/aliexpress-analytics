@@ -11,18 +11,35 @@ CREATE TABLE IF NOT EXISTS public.ozon_daily_product_metrics (
   day               date NOT NULL,              -- 数据日期
   product_id        text NOT NULL,              -- 商品ID
   product_title     text,                       -- 商品标题（保持原文）
-  category_name     text,                       -- 类目名称
-  search_exposure   bigint,                     -- 曝光量
-  uv                bigint,                     -- 访客数
-  pv                bigint,                     -- 浏览量
+  impressions       bigint,                     -- 曝光量
+  sessions          bigint,                     -- 访客数
+  pageviews         bigint,                     -- 浏览量
   add_to_cart_users bigint,                     -- 加购人数
   add_to_cart_qty   bigint,                     -- 加购件数
-  pay_items         bigint,                     -- 支付件数
-  pay_orders        bigint,                     -- 支付订单数
-  pay_buyers        bigint,                     -- 支付买家数
+  orders            bigint,                     -- 支付订单数
+  buyers            bigint,                     -- 支付买家数
+  items_sold        bigint,                     -- 支付件数
+  revenue           numeric,                    -- GMV
+  brand             text,
+  model             text,
+  category_l1       text,
+  category_l2       text,
+  category_l3       text,
+  scheme            text,
+  campaign          text,
+  traffic_source    text,
   inserted_at       timestamptz DEFAULT now(),
 
-  UNIQUE(store_id, day, product_id)
+  UNIQUE(store_id, product_id, day, campaign, traffic_source)
+);
+
+-- 原始 Ozon 行留存
+CREATE TABLE IF NOT EXISTS public.ozon_raw_analytics (
+  id          bigserial PRIMARY KEY,
+  store_id    text,
+  raw_row     jsonb NOT NULL,
+  import_batch text,
+  inserted_at timestamptz DEFAULT now()
 );
 
 -- 索引
@@ -49,15 +66,14 @@ CREATE INDEX IF NOT EXISTS idx_ozon_dpm_store_prod
 
 ### 明细表
 - 第一列为产品名：`product_title`，若为空则回退 `product_id`；点击跳转到 Ozon 商品页。
-- 展示字段：
-  - 曝光量 `search_exposure`
-  - 访客数 `uv`
-  - 浏览量 `pv`
+  - 曝光量 `impressions`
+  - 访客数 `sessions`
+  - 浏览量 `pageviews`
   - 加购人数 `add_to_cart_users`
   - 加购件数 `add_to_cart_qty`
-  - 支付件数 `pay_items`
-  - 支付订单数 `pay_orders`
-  - 支付买家数 `pay_buyers`
+  - 支付件数 `items_sold`
+  - 支付订单数 `orders`
+  - 支付买家数 `buyers`
   - 转化率：访客→加购、加购→支付、访客比
 - 支持 DataTable 筛选、排序、分页。
 

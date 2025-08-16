@@ -100,17 +100,32 @@ create table if not exists public.ozon_daily_product_metrics (
   day date not null,
   product_id text not null,
   product_title text,
-  category_name text,
-  search_exposure bigint,
-  uv bigint,
-  pv bigint,
+  impressions bigint,
+  sessions bigint,
+  pageviews bigint,
   add_to_cart_users bigint,
   add_to_cart_qty bigint,
-  pay_items bigint,
-  pay_orders bigint,
-  pay_buyers bigint,
+  orders bigint,
+  buyers bigint,
+  items_sold bigint,
+  revenue numeric,
+  brand text,
+  model text,
+  category_l1 text,
+  category_l2 text,
+  category_l3 text,
+  scheme text,
+  campaign text,
+  traffic_source text,
   inserted_at timestamptz default now(),
-  unique (store_id, day, product_id)
+  unique (store_id, product_id, day, campaign, traffic_source)
+);
+create table if not exists public.ozon_raw_analytics (
+  id bigserial primary key,
+  store_id text,
+  raw_row jsonb not null,
+  import_batch text,
+  inserted_at timestamptz default now()
 );
 create index if not exists idx_ozon_dpm_store_day on public.ozon_daily_product_metrics (store_id, day);
 create index if not exists idx_ozon_dpm_store_prod on public.ozon_daily_product_metrics (store_id, product_id);
