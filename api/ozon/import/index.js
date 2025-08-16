@@ -52,8 +52,8 @@ const RU_HEADER_MAP = {
   conv_sc_to_card_trend: ["конверсия_из_поиска_и_каталога_в_карточку_динамика"],
 
   // 卡片/加购/下单/履约
-  product_card_views: ["посещения_карточки_товара"],
-  product_card_views_trend: ["посещения_карточки_товара_динамика"],
+  product_card_visits: ["посещения_карточки_товара"],
+  product_card_visits_trend: ["посещения_карточки_товара_динамика"],
   conv_card_to_cart: ["конверсия_из_карточки_в_корзину"],
   conv_card_to_cart_trend: ["конверсия_из_карточки_в_корзину_динамика"],
   add_to_cart_from_card: ["добавления_из_карточки_в_корзину"],
@@ -144,8 +144,8 @@ const WIDE_FIELDS = new Set([
   "impressions_total_trend",
   "impressions_search_catalog",
   "impressions_search_catalog_trend",
-  "product_card_views",
-  "product_card_views_trend",
+  "product_card_visits",
+  "product_card_visits_trend",
   "add_to_cart_total",
   "add_to_cart_total_trend",
   "conv_impr_to_order",
