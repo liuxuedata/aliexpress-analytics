@@ -68,6 +68,26 @@ function isLabelRow(cells) {
   return (onlyFew && hasLabel) || onlyZeroDash;
 }
 
+function mergeHeaderRows(rows, headerRowIdx) {
+  const header = rows[headerRowIdx] || [];
+  const prevIdx = headerRowIdx - 1;
+  if (prevIdx < 0) return header;
+  const upper = rows[prevIdx] || [];
+  const nonEmpty = upper.filter((v) => String(v ?? "").trim() !== "").length;
+  const numeric = upper.filter((v) => typeof v === "number").length;
+  if (nonEmpty > 0 && numeric === 0 && !isLabelRow(upper)) {
+    const merged = [];
+    const len = Math.max(upper.length, header.length);
+    for (let i = 0; i < len; i++) {
+      const up = String(upper[i] || "").trim();
+      const low = String(header[i] || "").trim();
+      merged[i] = [up, low].filter(Boolean).join("_");
+    }
+    return merged;
+  }
+  return header;
+}
+
 function extractProductId(v) {
   if (v == null) return null;
   const s = String(v);
@@ -134,7 +154,7 @@ module.exports = async (req, res) => {
     const ws = wb.Sheets[wb.SheetNames[0]];
     const rows = xlsx.utils.sheet_to_json(ws, { header: 1, raw: false });
     const headerRowIdx = detectHeaderRow(rows);
-    const header = rows[headerRowIdx] || [];
+    const header = mergeHeaderRows(rows, headerRowIdx);
     const map = header.map((h) => mapHeaderToStd(String(h || "")));
     const dataRows = rows.slice(headerRowIdx + 1);
 

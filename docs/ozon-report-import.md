@@ -1,6 +1,9 @@
 # Ozon 报表解析与入库实现说明
 
-本文描述如何将含俄文列名、带说明/分组标题行的 Ozon 报表（xlsx/csv）解析并入库到标准化表 `public.ozon_daily_product_metrics` 与原始表 `public.ozon_raw_analytics`。
+`analytics_report_2025-08-15_22_11.xlsx` 是 Ozon 商家后台导出的典型报表，包含 `"Категория 1 уровня"`、`"Товар:"`、`"Цена:"` 等说明行。
+不能简单把首行当表头，需要通过 **字段词典 → 结构识别 → 清洗入库** 的三层方案来稳定解析，完全依赖离线映射规则，无需在线翻译。
+
+本文说明如何将这类报表解析并入库到标准化表 `public.ozon_daily_product_metrics` 与原始表 `public.ozon_raw_analytics`。
 
 ## 1. 列名映射
 
@@ -42,6 +45,8 @@ export function mapHeaderToStd(header: string): string | null {
 
 ## 2. 结构识别
 
+在前 30 行内寻找真正的表头，并剔除“Категория / Товар / Цена”等说明行；如存在双层表头，则合并上下两行再进行映射。
+
 ```ts
 export function detectHeaderRow(rows: any[][]): number {
   const MAX_SCAN = Math.min(rows.length, 30);
@@ -64,6 +69,26 @@ export function isLabelRow(cells: any[]): boolean {
   });
   const hasLabel = RU_HEADER_MAP.__label__.some(k => first.includes(k));
   return (onlyFew && hasLabel) || onlyZeroDash;
+}
+
+export function mergeHeaderRows(rows: any[][], headerRowIdx: number) {
+  const header = rows[headerRowIdx] || [];
+  const prevIdx = headerRowIdx - 1;
+  if (prevIdx < 0) return header;
+  const upper = rows[prevIdx] || [];
+  const nonEmpty = upper.filter(v => String(v ?? "").trim() !== "").length;
+  const numeric  = upper.filter(v => typeof v === "number").length;
+  if (nonEmpty > 0 && numeric === 0 && !isLabelRow(upper)) {
+    const merged: string[] = [];
+    const len = Math.max(upper.length, header.length);
+    for (let i = 0; i < len; i++) {
+      const up  = String(upper[i]  || "").trim();
+      const low = String(header[i] || "").trim();
+      merged[i] = [up, low].filter(Boolean).join("_");
+    }
+    return merged;
+  }
+  return header;
 }
 ```
 
