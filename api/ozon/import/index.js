@@ -66,6 +66,8 @@ function parseSheet(path){
           const [dd,mm,yy] = val.split('.');
           val = `${yy}-${mm}-${dd}`;
         }
+      }else if(key === 'sku' && val !== null){
+        val = String(val);
       }
       obj[key] = val;
     }
@@ -134,7 +136,7 @@ module.exports = async function handler(req,res){
         cols = Object.keys(rows[0] || {});
       }
 
-      const required = ['den'];
+      const required = ['sku','den'];
       const unknown = cols.filter(c=>!tableCols.includes(c));
       const missing = required.filter(c=>!cols.includes(c));
       if(unknown.length || missing.length){
@@ -149,7 +151,9 @@ module.exports = async function handler(req,res){
       let attempt = 0;
       let error;
       do{
-        const resInsert = await supabase.from('public.ozon_product_report_wide').insert(rows);
+        const resInsert = await supabase
+          .from('public.ozon_product_report_wide')
+          .upsert(rows, { onConflict: 'sku,den' });
         error = resInsert.error;
         if(error && /schema cache/i.test(error.message)){
           await refresh();
