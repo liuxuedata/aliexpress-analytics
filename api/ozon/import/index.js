@@ -36,11 +36,13 @@ function parseSheet(path){
     headers.push(key);
   }
   const rows=[];
-  for(let r=9;r<=range.e.r;r++){
+  // data rows start after summary and description sections
+  for(let r=11;r<=range.e.r;r++){
     const row=getRow(r);
     if(row.every(v=>v==null)) continue;
-    // skip description rows
-    if(typeof row[0]==='string' && row[0].startsWith('По ')) continue;
+    const first=row[0];
+    if(first==null) continue;
+    if(typeof first==='string' && first.includes('Итого')) continue;
     const obj={};
     for(let i=0;i<headers.length;i++){
       const val=row[i];
