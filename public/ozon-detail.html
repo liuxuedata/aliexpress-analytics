@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ozon 数据明细</title>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="assets/login.css">
+  <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
+</head>
+<body class="fm">
+<header class="header">
+  <div class="logo-title">跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li class="ali"><a href="#">速卖通</a>
+        <ul class="dropdown">
+          <li><a href="index.html">全托管</a></li>
+          <li><a href="self-operated.html">自运营</a></li>
+        </ul>
+      </li>
+      <li class="amazon"><a href="amazon.html">亚马逊</a></li>
+      <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon active"><a href="ozon-detail.html">Ozon</a></li>
+      <li class="independent"><a href="independent-site.html">独立站</a></li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+<div class="layout container">
+  <nav class="sidebar" id="sidebar">
+    <div class="site-header"><span>Ozon</span></div>
+    <ul class="sub-nav">
+      <li><a href="ozon-detail.html" class="active">数据明细</a></li>
+      <li><a href="ozon-analysis.html">运营分析</a></li>
+      <li><a href="ozon-product-insights.html">产品分析</a></li>
+    </ul>
+  </nav>
+  <main class="main">
+    <div class="upload-section">
+      <div class="upload-top">
+        <div style="font-size:28px;font-weight:800;">Ozon 数据明细</div>
+        <div class="controls">
+          <span class="badge">时间粒度</span>
+          <span class="sel" style="background:#1f2937;color:#fff;border-color:#334155;cursor:not-allowed">按日</span>
+          <input type="hidden" value="day">
+          <label for="file" id="pickLabel" class="upload-btn">选择文件</label>
+          <input type="file" id="file" accept=".xlsx,.xls,.csv" />
+          <span id="status" class="notice"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <section id="detail" class="content-pad">
+        <div class="panel">
+          <h3>数据明细</h3>
+          <div class="table-wrapper">
+            <table id="report" class="display" style="width:100%">
+              <thead>
+                <tr>
+                  <th>商品ID</th>
+                  <th>商品标题</th>
+                  <th>日期</th>
+                  <th>曝光量</th>
+                  <th>访客数</th>
+                  <th>浏览量</th>
+                  <th>加购人数</th>
+                  <th>订单数</th>
+                  <th>买家数</th>
+                  <th>GMV</th>
+                  <th>新品标记</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<script>
+(function(){
+  let table = null;
+  function initTable(){
+    if(!table){
+      table = $('#report').DataTable({
+        paging:true,
+        searching:true,
+        info:true,
+        order:[[4,'desc']],
+        scrollY:'60vh',
+        scrollCollapse:true,
+        autoWidth:false,
+        language:{
+          emptyTable:'暂无数据'
+        }
+      });
+    }
+    return table;
+  }
+  function setStatus(t){ $('#status').text(t||''); }
+  $('#file').on('change', function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev){
+      try{
+        const data = new Uint8Array(ev.target.result);
+        const wb = XLSX.read(data, { type:'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const arr = XLSX.utils.sheet_to_json(ws, { header:1 });
+        const rows = arr.slice(1).filter(r=>r&&r.length);
+        if(!rows.length){ setStatus('文件无数据'); return; }
+        const mapped = rows.map(r=>[
+          r[0]||'',             // 商品ID
+          r[1]||'',             // 商品标题
+          r[2]||'',             // 日期
+          r[3]||0,              // 曝光量
+          r[4]||0,              // 访客数
+          r[5]||0,              // 浏览量
+          r[6]||0,              // 加购人数
+          r[7]||0,              // 订单数
+          r[8]||0,              // 买家数
+          r[9]||0,              // GMV
+          r[10] ? '是' : ''     // 新品标记
+        ]);
+        const dt = initTable();
+        dt.clear().rows.add(mapped).draw();
+        setStatus('已加载 '+rows.length+' 行');
+      }catch(err){ console.error(err); setStatus('解析失败'); }
+    };
+    reader.onerror = ()=> setStatus('读取失败');
+    reader.readAsArrayBuffer(file);
+    e.target.value='';
+  });
+})();
+</script>
+</body>
+</html>
