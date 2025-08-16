@@ -4,34 +4,93 @@
 
 ## 1. 数据库设计（Supabase / PostgreSQL）
 ```sql
--- Ozon 日度产品指标表
-CREATE TABLE IF NOT EXISTS public.ozon_daily_product_metrics (
+-- Ozon 产品报表宽表
+CREATE TABLE IF NOT EXISTS public.ozon_product_report_wide (
   id                bigserial PRIMARY KEY,
-  store_id          text NOT NULL,              -- 店铺ID
-  day               date NOT NULL,              -- 数据日期
-  product_id        text NOT NULL,              -- 商品ID
-  product_title     text,                       -- 商品标题（保持原文）
-  impressions       bigint,                     -- 曝光量
-  sessions          bigint,                     -- 访客数
-  pageviews         bigint,                     -- 浏览量
-  add_to_cart_users bigint,                     -- 加购人数
-  add_to_cart_qty   bigint,                     -- 加购件数
-  orders            bigint,                     -- 支付订单数
-  buyers            bigint,                     -- 支付买家数
-  items_sold        bigint,                     -- 支付件数
-  revenue           numeric,                    -- GMV
-  brand             text,
-  model             text,
+  store_id          text NOT NULL,
+  day               date NOT NULL,
+  product_id        text NOT NULL,
+  product_title     text,
   category_l1       text,
   category_l2       text,
   category_l3       text,
-  scheme            text,
-  campaign          text,
-  traffic_source    text,
+  brand             text,
+  model             text,
+  sales_scheme      text,
+  sku               text,
+  article           text,
+  abc_by_amount     text,
+  abc_by_qty        text,
+  amount_ordered    numeric(18,2),
+  amount_ordered_delta numeric(18,4),
+  amount_share      numeric(10,6),
+  amount_share_delta numeric(10,6),
+  search_position_avg numeric(10,4),
+  search_position_delta numeric(10,4),
+  impressions_total bigint,
+  impressions_total_delta numeric(18,4),
+  conv_impr_to_order numeric(10,6),
+  conv_impr_to_order_delta numeric(10,6),
+  impressions_search_catalog bigint,
+  impressions_search_catalog_delta numeric(18,4),
+  conv_sc_to_cart   numeric(10,6),
+  conv_sc_to_cart_delta numeric(10,6),
+  add_to_cart_from_sc bigint,
+  add_to_cart_from_sc_delta numeric(18,4),
+  conv_sc_to_card   numeric(10,6),
+  conv_sc_to_card_delta numeric(10,6),
+  product_card_visits bigint,
+  product_card_visits_delta numeric(18,4),
+  conv_card_to_cart numeric(10,6),
+  conv_card_to_cart_delta numeric(10,6),
+  add_to_cart_from_card bigint,
+  add_to_cart_from_card_delta numeric(18,4),
+  conv_overall_to_cart numeric(10,6),
+  conv_overall_to_cart_delta numeric(10,6),
+  add_to_cart_total bigint,
+  add_to_cart_total_delta numeric(18,4),
+  conv_cart_to_order numeric(10,6),
+  conv_cart_to_order_delta numeric(10,6),
+  items_ordered     bigint,
+  items_ordered_delta numeric(18,4),
+  items_delivered   bigint,
+  items_delivered_delta numeric(18,4),
+  conv_order_to_buyout numeric(10,6),
+  conv_order_to_buyout_delta numeric(10,6),
+  items_buyout      bigint,
+  items_buyout_delta numeric(18,4),
+  items_cancel_by_cancel_date bigint,
+  items_cancel_by_cancel_date_delta numeric(18,4),
+  items_cancel_by_order_date bigint,
+  items_cancel_by_order_date_delta numeric(18,4),
+  items_return_by_return_date bigint,
+  items_return_by_return_date_delta numeric(18,4),
+  items_return_by_order_date bigint,
+  items_return_by_order_date_delta numeric(18,4),
+  avg_price         numeric(14,2),
+  avg_price_delta   numeric(14,4),
+  discount_from_your_price numeric(10,6),
+  discount_from_your_price_delta numeric(10,6),
+  price_index       numeric(10,6),
+  promo_days        integer,
+  ad_spend_ratio    numeric(10,6),
+  ad_spend_ratio_delta numeric(10,6),
+  promoted_days     integer,
+  oos_days_28d      integer,
+  ending_stock      bigint,
+  fbo_supply_advice text,
+  fbo_supply_qty    integer,
+  avg_delivery_days numeric(10,4),
+  reviews_count     integer,
+  product_rating    numeric(10,4),
   inserted_at       timestamptz DEFAULT now(),
-
-  UNIQUE(store_id, product_id, day, campaign, traffic_source)
+  CONSTRAINT ozon_prw_uniq UNIQUE (store_id, day, product_id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_ozon_prw_store_day
+  ON public.ozon_product_report_wide (store_id, day);
+CREATE INDEX IF NOT EXISTS idx_ozon_prw_store_prod
+  ON public.ozon_product_report_wide (store_id, product_id);
 
 -- 原始 Ozon 行留存
 CREATE TABLE IF NOT EXISTS public.ozon_raw_analytics (
@@ -49,12 +108,6 @@ CREATE TABLE IF NOT EXISTS public.ozon_metric_dictionary (
   ru_desc   text,
   zh_desc   text
 );
-
--- 索引
-CREATE INDEX IF NOT EXISTS idx_ozon_dpm_store_day
-  ON public.ozon_daily_product_metrics (store_id, day);
-CREATE INDEX IF NOT EXISTS idx_ozon_dpm_store_prod
-  ON public.ozon_daily_product_metrics (store_id, product_id);
 ```
 
 说明：
@@ -74,14 +127,14 @@ CREATE INDEX IF NOT EXISTS idx_ozon_dpm_store_prod
 
 ### 明细表
 - 第一列为产品名：`product_title`，若为空则回退 `product_id`；点击跳转到 Ozon 商品页。
-  - 曝光量 `impressions`
-  - 访客数 `sessions`
-  - 浏览量 `pageviews`
+  - 曝光量 `search_exposure`
+  - 访客数 `uv`
+  - 浏览量 `pv`
   - 加购人数 `add_to_cart_users`
   - 加购件数 `add_to_cart_qty`
-  - 支付件数 `items_sold`
-  - 支付订单数 `orders`
-  - 支付买家数 `buyers`
+  - 支付件数 `pay_items`
+  - 支付订单数 `pay_orders`
+  - 支付买家数 `pay_buyers`
   - 转化率：访客→加购、加购→支付、访客比
 - 支持 DataTable 筛选、排序、分页。
 

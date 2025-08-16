@@ -13,38 +13,95 @@ function supa() {
 const norm = (s) => (s || "").toLowerCase().trim().replace(/[ .:;/\\-]+/g, "_");
 
 const RU_HEADER_MAP = {
+  // 维度
   day:                ["дата", "date", "day"],
   product_id:         ["sku", "артикул", "id_товара", "id", "товар_id"],
-  product_title:      ["товар", "название_товара", "наименование", "product_name", "наименование_товара"],
-  impressions:        ["показы", "показы_товара", "impressions", "impr"],
-  sessions:           ["сеансы", "визиты", "посещения", "sessions", "uv"],
-  pageviews:          ["просмотры", "просмотры_карточки", "pv"],
-  add_to_cart_users:  ["пользователи,_добавившие_в_корзину","добавления_в_корзину_(пользователи)","add_to_cart_users"],
-  add_to_cart_qty:    ["добавления_в_корзину","кол_во_добавлений_в_корзину","add_to_cart_qty"],
-  orders:             ["заказы","orders"],
-  buyers:             ["покупатели","buyers"],
-  items_sold:         ["проданные_товары","кол_во_товаров","items_sold"],
-  revenue:            ["выручка","оборот","gmv","sales"],
-  brand:              ["бренд","brand"],
-  model:              ["модель","model"],
+  product_title:      ["товары", "товар", "название_товара", "наименование", "product_name"],
   category_l1:        ["категория_1_уровня"],
   category_l2:        ["категория_2_уровня"],
   category_l3:        ["категория_3_уровня"],
-  scheme:             ["схема_продаж","схема_продажи","схема_продаж_fbo_fbs"],
-  campaign:           ["кампания", "campaign"],
-  traffic_source:     ["источник_трафика", "traffic_source"],
-  __label__:          [
-    "товар:",
-    "категория:",
-    "цена:",
-    "продавец:",
-    "период:",
-    "схема продажи:",
-    "схема продаж:",
-    "итого",
-    "среднее",
-    "undefined",
-  ],
+  brand:              ["бренд"],
+  model:              ["модель"],
+  sales_scheme:       ["схема_продаж", "схема_продажи"],
+  sku:                ["sku"],
+  article:            ["артикул"],
+
+  // ABC & 金额
+  abc_by_amount:      ["abc-анализ_по_сумме_заказов"],
+  abc_by_qty:         ["abc-анализ_по_количеству_заказов"],
+  amount_ordered:     ["заказано_на_сумму"],
+  amount_ordered_delta: ["заказано_на_сумму_динамика"],
+  amount_share:       ["доля_в_общей_сумме_заказов"],
+  amount_share_delta: ["доля_в_общей_сумме_заказов_динамика"],
+
+  // 排名/曝光
+  search_position_avg: ["позиция_в_поиске_и_каталоге"],
+  search_position_delta: ["позиция_в_поиске_и_каталоге_динамика"],
+  impressions_total:  ["показы_всего"],
+  impressions_total_delta: ["показы_всего_динамика"],
+  conv_impr_to_order: ["конверсия_из_показа_в_заказ"],
+  conv_impr_to_order_delta: ["конверсия_из_показа_в_заказ_динамика"],
+
+  impressions_search_catalog: ["показы_в_поиске_и_каталоге"],
+  impressions_search_catalog_delta: ["показы_в_поиске_и_каталоге_динамика"],
+  conv_sc_to_cart: ["конверсия_из_поиска_и_каталога_в_корзину"],
+  conv_sc_to_cart_delta: ["конверсия_из_поиска_и_каталога_в_корзину_динамика"],
+  add_to_cart_from_sc: ["добавления_из_поиска_и_каталога_в_корзину"],
+  add_to_cart_from_sc_delta: ["добавления_из_поиска_и_каталога_в_корзину_динамика"],
+  conv_sc_to_card: ["конверсия_из_поиска_и_каталога_в_карточку"],
+  conv_sc_to_card_delta: ["конверсия_из_поиска_и_каталога_в_карточку_динамика"],
+
+  // 卡片/加购/下单/履约
+  product_card_visits: ["посещения_карточки_товара"],
+  product_card_visits_delta: ["посещения_карточки_товара_динамика"],
+  conv_card_to_cart: ["конверсия_из_карточки_в_корзину"],
+  conv_card_to_cart_delta: ["конверсия_из_карточки_в_корзину_динамика"],
+  add_to_cart_from_card: ["добавления_из_карточки_в_корзину"],
+  add_to_cart_from_card_delta: ["добавления_из_карточки_в_корзину_динамика"],
+  conv_overall_to_cart: ["конверсия_в_корзину_общая"],
+  conv_overall_to_cart_delta: ["конверсия_в_корзину_общая_динамика"],
+  add_to_cart_total: ["добавления_в_корзину_всего"],
+  add_to_cart_total_delta: ["добавления_в_корзину_всего_динамика"],
+  conv_cart_to_order: ["конверсия_из_корзины_в_заказ"],
+  conv_cart_to_order_delta: ["конверсия_из_корзины_в_заказ_динамика"],
+
+  items_ordered: ["заказано_товаров"],
+  items_ordered_delta: ["заказано_товаров_динамика"],
+  items_delivered: ["доставлено_товаров"],
+  items_delivered_delta: ["доставлено_товаров_динамика"],
+  conv_order_to_buyout: ["конверсия_из_заказа_в_выкуп"],
+  conv_order_to_buyout_delta: ["конверсия_из_заказа_в_выкуп_динамика"],
+  items_buyout: ["выкуплено_товаров"],
+  items_buyout_delta: ["выкуплено_товаров_динамика"],
+
+  items_cancel_by_cancel_date: ["отменено_товаров_(на_дату_отмены)"],
+  items_cancel_by_cancel_date_delta: ["отменено_товаров_(на_дату_отмены)_динамика"],
+  items_cancel_by_order_date: ["отменено_товаров_(на_дату_заказа)"],
+  items_cancel_by_order_date_delta: ["отменено_товаров_(на_дату_заказа)_динамика"],
+  items_return_by_return_date: ["возвращено_товаров_(на_дату_возврата)"],
+  items_return_by_return_date_delta: ["возвращено_товаров_(на_дату_возврата)_динамика"],
+  items_return_by_order_date: ["возвращено_товаров_(на_дату_заказа)"],
+  items_return_by_order_date_delta: ["возвращено_товаров_(на_дату_заказа)_динамика"],
+
+  avg_price: ["средняя_цена"],
+  avg_price_delta: ["средняя_цена_динамика"],
+  discount_from_your_price: ["скидка_от_вашей_цены"],
+  discount_from_your_price_delta: ["скидка_от_вашей_цены_динамика"],
+  price_index: ["индекс_цен"],
+  promo_days: ["дней_в_акциях"],
+  ad_spend_ratio: ["общая_дртр","общая_дрр","общая_дпрр","общая_д_rr"],
+  ad_spend_ratio_delta: ["общая_дртр_динамика","общая_дрр_динамика"],
+  promoted_days: ["дней_с_продвижением_трафареты"],
+  oos_days_28d: ["дней_без_остатка"],
+  ending_stock: ["остаток_на_конец_периода"],
+  fbo_supply_advice: ["рекомендация_по_поставке_на_fbo"],
+  fbo_supply_qty: ["сколько_товаров_поставить"],
+  avg_delivery_days: ["среднее_время_доставки"],
+  reviews_count: ["отзывы"],
+  product_rating: ["рейтинг_товара"],
+
+  // 识别说明行
+  __label__:          ["товар:", "категория:", "цена:", "продавец:", "undefined"]
 };
 
 const DESC_ZH = {
@@ -65,7 +122,7 @@ const DESC_ZH = {
   category_l1: "一级类目",
   category_l2: "二级类目",
   category_l3: "三级类目",
-  scheme: "销售模式",
+  sales_scheme: "销售模式",
 };
 
 function mapHeaderToStd(header) {
@@ -134,28 +191,29 @@ function extractProductId(v) {
   return m ? m[1] : null;
 }
 
+function parseVal(v) {
+  if (v == null) return null;
+  const s = String(v).trim().replace(/\s+/g, "").replace(",", ".");
+  if (s === "") return null;
+  if (/^-?\d+(\.\d+)?%$/.test(s)) return parseFloat(s.replace("%", "")) / 100;
+  const num = Number(s);
+  return Number.isNaN(num) ? v : num;
+}
+
 function rowToRecord(stdRow) {
-  const n = (x) => (Number.isFinite(+x) ? +x : 0);
-  return {
-    day: stdRow.day || stdRow.date || null,
-    product_id: extractProductId(stdRow.product_id || stdRow.sku || stdRow["артикул"]),
-    product_title: stdRow.product_title || stdRow["товар"] || stdRow["название товара"],
-    impressions: n(stdRow.impressions),
-    sessions: n(stdRow.sessions),
-    pageviews: n(stdRow.pageviews),
-    add_to_cart_users: n(stdRow.add_to_cart_users),
-    add_to_cart_qty: n(stdRow.add_to_cart_qty),
-    orders: n(stdRow.orders),
-    buyers: n(stdRow.buyers),
-    items_sold: n(stdRow.items_sold),
-    revenue: +stdRow.revenue || 0,
-    brand: stdRow.brand || stdRow["бренд"] || null,
-    model: stdRow.model || stdRow["модель"] || null,
-    category_l1: stdRow.category_l1 || null,
-    category_l2: stdRow.category_l2 || null,
-    category_l3: stdRow.category_l3 || null,
-    scheme: stdRow.scheme || null,
-  };
+  const rec = {};
+  for (const [k, v] of Object.entries(stdRow)) {
+    if (k === "day" || k === "date") rec.day = v;
+    else if (k === "product_id" || k === "sku" || k === "артикул")
+      rec.product_id = extractProductId(v);
+    else if (k === "product_title" || k === "товар" || k === "название товара")
+      rec.product_title = v;
+    else if (["category_l1","category_l2","category_l3","brand","model","sales_scheme","sku","article"].includes(k))
+      rec[k] = v;
+    else
+      rec[k] = parseVal(v);
+  }
+  return rec;
 }
 
 module.exports = async (req, res) => {
@@ -238,7 +296,7 @@ module.exports = async (req, res) => {
       if (!rec.day && periodEnd) rec.day = periodEnd;
       rawRows.push({ store_id, raw_row: obj, import_batch: originalName });
       if (!rec.day || !rec.product_id) continue;
-      const full = { store_id, campaign: obj.campaign || null, traffic_source: obj.traffic_source || null, ...rec };
+      const full = { store_id, ...rec };
       records.push(full);
       const day = rec.day;
       if (day) {
@@ -255,8 +313,8 @@ module.exports = async (req, res) => {
     }
     if (records.length) {
       await supabase
-        .from("ozon_daily_product_metrics")
-        .upsert(records, { onConflict: "store_id,product_id,day,campaign,traffic_source" });
+        .from("ozon_product_report_wide")
+        .upsert(records, { onConflict: "store_id,day,product_id" });
     }
     if (minDay && maxDay) {
       await supabase.rpc("refresh_ozon_first_seen", { start_date: minDay, end_date: maxDay });

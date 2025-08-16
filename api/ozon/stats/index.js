@@ -19,9 +19,9 @@ module.exports = async (req, res) => {
     }
 
     let query = supabase
-      .from("ozon_daily_product_metrics")
+      .from("ozon_product_report_wide")
       .select(
-        "day,product_id,product_title,impressions,sessions,pageviews,add_to_cart_users,add_to_cart_qty,items_sold,orders,buyers"
+        "day,product_id,product_title,impressions_total,product_card_visits,add_to_cart_total,items_ordered,items_buyout"
       )
       .eq("store_id", store_id)
       .order("day", { ascending: false });
@@ -32,7 +32,21 @@ module.exports = async (req, res) => {
     const { data, error } = await query;
     if (error) throw error;
 
-    res.status(200).json({ ok: true, rows: data });
+    const mapped = (data || []).map((r) => ({
+      day: r.day,
+      product_id: r.product_id,
+      product_title: r.product_title,
+      impressions: r.impressions_total,
+      sessions: r.product_card_visits,
+      pageviews: r.product_card_visits,
+      add_to_cart_users: r.add_to_cart_total,
+      add_to_cart_qty: r.add_to_cart_total,
+      items_sold: r.items_buyout,
+      orders: r.items_ordered,
+      buyers: r.items_buyout,
+    }));
+
+    res.status(200).json({ ok: true, rows: mapped });
   } catch (e) {
     res.status(500).json({ ok: false, msg: e.message });
   }
