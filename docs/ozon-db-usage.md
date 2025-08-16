@@ -11,7 +11,7 @@
 | product_id | 商品 ID，仅保留数字部分 |
 | product_title | 商品标题（俄/英原文） |
 | category_name | 类目名称（若报表提供） |
-| search_exposure | 曝光量 |
+| exposure | 曝光量 |
 | uv | 访客数 |
 | pv | 浏览量 |
 | add_to_cart_users | 加购人数 |

@@ -18,10 +18,17 @@ module.exports = async (req, res) => {
       return res.status(400).json({ ok: false, msg: "missing store_id" });
     }
 
+    const { data: probe } = await supabase
+      .from("ozon_daily_product_metrics")
+      .select("*")
+      .limit(1);
+    const cols = probe && probe.length ? Object.keys(probe[0]) : [];
+    const expCol = cols.includes("exposure") ? "exposure" : "search_exposure";
+
     let query = supabase
       .from("ozon_daily_product_metrics")
       .select(
-        "day,product_id,product_title,search_exposure,uv,pv,add_to_cart_users,add_to_cart_qty,pay_items,pay_orders,pay_buyers"
+        `day,product_id,product_title,${expCol},uv,pv,add_to_cart_users,add_to_cart_qty,pay_items,pay_orders,pay_buyers`
       )
       .eq("store_id", store_id)
       .order("day", { ascending: false });
@@ -32,7 +39,15 @@ module.exports = async (req, res) => {
     const { data, error } = await query;
     if (error) throw error;
 
-    res.status(200).json({ ok: true, rows: data || [] });
+    const rows = data || [];
+    if (expCol !== "exposure") {
+      rows.forEach((r) => {
+        r.exposure = r[expCol];
+        delete r[expCol];
+      });
+    }
+
+    res.status(200).json({ ok: true, rows });
   } catch (e) {
     res.status(500).json({ ok: false, msg: e.message });
   }

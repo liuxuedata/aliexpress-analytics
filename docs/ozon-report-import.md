@@ -4,7 +4,7 @@
 
 1. **列名映射**
    - 先对列名做 `norm()` 规范化（小写、去空白、特殊符号改为 `_`）。
-   - 使用内置词典匹配到标准字段：`day`、`product_id`、`product_title`、`category_name`、`search_exposure`、`uv`、`pv`、`add_to_cart_users`、`add_to_cart_qty`、`pay_items`、`pay_orders`、`pay_buyers`。
+   - 使用内置词典匹配到标准字段：`day`、`product_id`、`product_title`、`category_name`、`exposure`、`uv`、`pv`、`add_to_cart_users`、`add_to_cart_qty`、`pay_items`、`pay_orders`、`pay_buyers`。
    - 首列若包含 “Товар: / Категория: / Цена: ...” 等说明，整行丢弃。
 
 2. **结构识别**

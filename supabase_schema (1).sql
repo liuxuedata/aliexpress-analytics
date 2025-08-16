@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS public.ozon_daily_product_metrics (
   product_id        text NOT NULL,
   product_title     text,
   category_name     text,
-  search_exposure   bigint,
+  exposure          bigint,
   uv                bigint,
   pv                bigint,
   add_to_cart_users bigint,

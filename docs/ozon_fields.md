@@ -8,7 +8,7 @@
 | day | 数据日期 | `YYYY-MM-DD` |
 | product_id | 商品 ID | 如仅有 URL，则提取其中的数字 |
 | product_title | 商品标题 | 保持原文 |
-| search_exposure | 曝光量 | impressions |
+| exposure | 曝光量 | impressions |
 | uv | 访客数 | sessions |
 | pv | 浏览量 | pageviews |
 | add_to_cart_users | 加购人数 |  |

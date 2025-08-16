@@ -15,19 +15,19 @@ const norm = (s) => (s || "").toLowerCase().trim().replace(/[\s.:;/\\-]+/g, "_")
 
 // 俄文/英文列名到英文字段的映射
 const RU_HEADER_MAP = {
-  day:                ["дата", "date", "day"],
-  product_id:         ["sku", "артикул", "id_товара", "id", "товар_id"],
-  product_title:      ["товары", "товар", "название_товара", "наименование", "product_name", "наименование_товара"],
-  category_name:      ["категория", "категория_1_уровня", "категория_2_уровня", "категория_3_уровня"],
-  search_exposure:    ["показы", "показы_всего", "impressions", "impr"],
-  uv:                 ["сеансы", "визиты", "посещения", "sessions", "uv"],
-  pv:                 ["просмотры", "просмотры_карточки", "pv"],
-  add_to_cart_users:  ["пользователи,_добавившие_в_корзину", "добавления_в_корзину_(пользователи)"],
-  add_to_cart_qty:    ["добавления_в_корзину", "кол_во_добавлений_в_корзину"],
-  pay_orders:         ["заказы", "orders"],
-  pay_items:          ["проданные_товары", "кол_во_товаров", "items_sold"],
-  pay_buyers:         ["покупатели", "buyers"],
-  __label__:          ["товар:", "категория:", "цена:", "продавец:", "undefined"]
+  day:               ["дата", "date", "day"],
+  product_id:        ["sku", "артикул", "id_товара", "id", "товар_id"],
+  product_title:     ["товары", "товар", "название_товара", "наименование", "product_name", "наименование_товара"],
+  category_name:     ["категория", "категория_1_уровня", "категория_2_уровня", "категория_3_уровня"],
+  exposure:          ["показы", "показы_всего", "impressions", "impr"],
+  uv:                ["сеансы", "визиты", "посещения", "sessions", "uv"],
+  pv:                ["просмотры", "просмотры_карточки", "pv"],
+  add_to_cart_users: ["пользователи,_добавившие_в_корзину", "добавления_в_корзину_(пользователи)"],
+  add_to_cart_qty:   ["добавления_в_корзину", "кол_во_добавлений_в_корзину"],
+  pay_orders:        ["заказы", "orders"],
+  pay_items:         ["проданные_товары", "кол_во_товаров", "items_sold"],
+  pay_buyers:        ["покупатели", "buyers"],
+  __label__:         ["товар:", "категория:", "цена:", "продавец:", "undefined"]
 };
 
 function mapHeaderToStd(header) {
@@ -107,6 +107,39 @@ function rowToRecord(stdRow) {
   return rec;
 }
 
+async function probeDbColumns(supabase) {
+  try {
+    const { data } = await supabase
+      .from("ozon_daily_product_metrics")
+      .select("*")
+      .limit(1);
+    const cols = data && data.length ? Object.keys(data[0]) : [];
+    const has = (c) => cols.includes(c);
+    const pick = (...names) => names.find(has) || null;
+    return {
+      exposure: pick("exposure", "search_exposure", "impressions"),
+      uv: pick("uv", "visitors"),
+      pv: pick("pv", "views"),
+      add_to_cart_users: pick("add_to_cart_users", "atc_users"),
+      add_to_cart_qty: pick("add_to_cart_qty", "atc_qty"),
+      pay_items: pick("pay_items", "items_sold"),
+      pay_orders: pick("pay_orders", "orders"),
+      pay_buyers: pick("pay_buyers", "buyers"),
+    };
+  } catch {
+    return {
+      exposure: "exposure",
+      uv: "uv",
+      pv: "pv",
+      add_to_cart_users: "add_to_cart_users",
+      add_to_cart_qty: "add_to_cart_qty",
+      pay_items: "pay_items",
+      pay_orders: "pay_orders",
+      pay_buyers: "pay_buyers",
+    };
+  }
+}
+
 module.exports = async (req, res) => {
   if (req.method === "GET") {
     return res.status(200).json({ ok: true, msg: "ozon import" });
@@ -115,6 +148,7 @@ module.exports = async (req, res) => {
     return res.status(405).json({ ok: false, msg: "Only POST" });
   }
   const supabase = supa();
+  const colMap = await probeDbColumns(supabase);
   let fileBuffer, originalName, store_id;
   try {
     const form = new multiparty.Form({ uploadDir: "/tmp" });
@@ -184,14 +218,14 @@ module.exports = async (req, res) => {
         product_id: rec.product_id,
         product_title: rec.product_title,
         category_name: rec.category_name || null,
-        search_exposure: rec.search_exposure || 0,
-        uv: rec.uv || 0,
-        pv: rec.pv || 0,
-        add_to_cart_users: rec.add_to_cart_users || 0,
-        add_to_cart_qty: rec.add_to_cart_qty || 0,
-        pay_items: rec.pay_items || 0,
-        pay_orders: rec.pay_orders || 0,
-        pay_buyers: rec.pay_buyers || 0,
+        [colMap.exposure]: rec.exposure || 0,
+        [colMap.uv]: rec.uv || 0,
+        [colMap.pv]: rec.pv || 0,
+        [colMap.add_to_cart_users]: rec.add_to_cart_users || 0,
+        [colMap.add_to_cart_qty]: rec.add_to_cart_qty || 0,
+        [colMap.pay_items]: rec.pay_items || 0,
+        [colMap.pay_orders]: rec.pay_orders || 0,
+        [colMap.pay_buyers]: rec.pay_buyers || 0,
       };
       records.push(row);
       const day = rec.day;

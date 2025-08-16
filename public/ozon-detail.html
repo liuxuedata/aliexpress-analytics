@@ -114,7 +114,7 @@
     const json = await resp.json();
     if(!json.ok) throw new Error(json.msg||'查询失败');
     const mapped = (json.rows||[]).map(r=>{
-      const impressions = Number(r.search_exposure)||0;
+      const impressions = Number(r.exposure)||0;
       const sessions = Number(r.uv)||0;
       const pageviews = Number(r.pv)||0;
       const atcUsers = Number(r.add_to_cart_users)||0;
