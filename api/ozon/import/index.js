@@ -25,7 +25,7 @@ const headerAliases = {
 };
 
 function parseSheet(path){
-  const wb = xlsx.readFile(path);
+  const wb = xlsx.readFile(path, { cellDates: true });
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const range = xlsx.utils.decode_range(sheet['!ref']);
   const getRow = r => { const row=[]; for(let c=range.s.c;c<=range.e.c;c++){ const cell=sheet[xlsx.utils.encode_cell({r,c})]; row.push(cell?cell.v:null);} return row; };
@@ -53,10 +53,21 @@ function parseSheet(path){
     if(typeof first==='string' && first.includes('Итого')) continue;
     const obj={};
     for(let i=0;i<headers.length;i++){
-      const val=row[i];
+      let val=row[i];
       if(val===undefined) continue;
-      if(val==='–' || val==='-') obj[headers[i]] = null;
-      else obj[headers[i]] = val;
+      if(val==='–' || val==='-') val = null;
+      const key = headers[i];
+      if(key === 'den' && val !== null){
+        if(val instanceof Date) val = val.toISOString().slice(0,10);
+        else if(typeof val === 'number'){
+          const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+          val = d.toISOString().slice(0,10);
+        }else if(typeof val === 'string' && /^\d{2}\.\d{2}\.\d{4}$/.test(val)){
+          const [dd,mm,yy] = val.split('.');
+          val = `${yy}-${mm}-${dd}`;
+        }
+      }
+      obj[key] = val;
     }
     rows.push(obj);
   }
@@ -64,12 +75,12 @@ function parseSheet(path){
 }
 
 module.exports = async function handler(req,res){
-  if(req.method !== 'POST') return res.status(405).json({ok:false,msg:'method not allowed'});
+  if(req.method !== 'POST') return res.status(405).json({ error: 'method not allowed' });
   const form = new multiparty.Form();
   form.parse(req, async (err, fields, files) => {
-    if(err) return res.json({ok:false,msg:err.message});
+    if(err) return res.json({ error: err.message });
     const file = files.file && files.file[0];
-    if(!file) return res.json({ok:false,msg:'missing file'});
+    if(!file) return res.json({ error: 'missing file' });
     try{
       let rows = parseSheet(file.path);
       let cols = Object.keys(rows[0] || {});
@@ -131,7 +142,7 @@ module.exports = async function handler(req,res){
         let msgs=[];
         if(unknown.length) msgs.push('unknown columns: '+unknown.join(', '));
         if(missing.length) msgs.push('missing columns: '+missing.join(', '));
-        return res.status(400).json({ok:false,msg:msgs.join('; ')});
+        return res.status(400).json({ error: msgs.join('; ') });
       }
 
       await refresh();
@@ -158,13 +169,13 @@ module.exports = async function handler(req,res){
           }
         }
         const msg = parts.filter(Boolean).join(' | ');
-        return res.status(400).json({ok:false,msg});
+        return res.status(400).json({ error: msg });
       }
-      res.json({ok:true, inserted: rows.length});
+      res.json({ ok: true, inserted: rows.length });
     }catch(e){
       try{ fs.unlinkSync(file.path); }catch(_){ /* ignore */ }
       const msg = e?.message || e?.error_description || String(e);
-      res.status(400).json({ok:false,msg});
+      res.status(400).json({ error: msg });
     }
   });
 };
