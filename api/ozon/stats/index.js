@@ -10,12 +10,24 @@ function supa(){
 module.exports = async function handler(req,res){
   try{
     const supabase = supa();
-    const { from, to } = req.query || {};
-
-    let fromDate = from;
-    let toDate = to;
+    let { from: fromDate, to: toDate } = req.query || {};
 
     if(!fromDate || !toDate){
+      const today = new Date();
+      toDate = today.toISOString().slice(0,10);
+      fromDate = new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
+    }
+
+    const selectCols = 'sku,tovary,period_start,period_end,voronka_prodazh_pokazy_vsego,voronka_prodazh_pokazy_v_poiske_i_kataloge,voronka_prodazh_posescheniya_kartochki_tovara,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov,voronka_prodazh_vykupleno_tovarov';
+
+    let { data, error } = await supabase
+      .from('ozon_product_report_wide')
+      .select(selectCols)
+      .eq('period_start', fromDate)
+      .eq('period_end', toDate);
+    if(error) throw error;
+
+    if(!data.length){
       const latest = await supabase
         .from('ozon_product_report_wide')
         .select('period_start,period_end')
@@ -25,15 +37,16 @@ module.exports = async function handler(req,res){
       if(latest.data && latest.data.length){
         fromDate = latest.data[0].period_start;
         toDate = latest.data[0].period_end;
+        const retry = await supabase
+          .from('ozon_product_report_wide')
+          .select(selectCols)
+          .eq('period_start', fromDate)
+          .eq('period_end', toDate);
+        if(retry.error) throw retry.error;
+        data = retry.data;
       }
     }
 
-    let query = supabase.from('ozon_product_report_wide').select(
-      'sku,tovary,period_start,period_end,voronka_prodazh_pokazy_vsego,voronka_prodazh_pokazy_v_poiske_i_kataloge,voronka_prodazh_posescheniya_kartochki_tovara,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov,voronka_prodazh_vykupleno_tovarov'
-    ).eq('period_start', fromDate).eq('period_end', toDate);
-
-    const { data, error } = await query;
-    if(error) throw error;
     const rows = (data||[]).map(r=>({
       product_id: r.sku,
       product_title: r.tovary,

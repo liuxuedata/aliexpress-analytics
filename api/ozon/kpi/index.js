@@ -11,8 +11,12 @@ function fmt(date){ return date.toISOString().slice(0,10); }
 
 module.exports = async function handler(req,res){
   try{
-    const { from, to } = req.query || {};
-    if(!from || !to) return res.json({ok:false,msg:'missing from/to'});
+    let { from, to } = req.query || {};
+    if(!from || !to){
+      const end = new Date();
+      to = fmt(end);
+      from = fmt(new Date(end.getTime()-6*86400000));
+    }
     const supabase = supa();
     const days = Math.round((new Date(to)-new Date(from))/86400000)+1;
     const prevTo = new Date(new Date(from).getTime()-86400000);
