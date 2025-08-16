@@ -94,59 +94,79 @@ drop policy if exists p_upd_all on public.ae_self_operated_daily;
 */
 
 CREATE TABLE IF NOT EXISTS public.ozon_daily_product_metrics (
-  id                bigserial PRIMARY KEY,
-  store_id          text NOT NULL,
-  day               date NOT NULL,
-  product_id        text NOT NULL,
-  product_title     text,
-  category_name     text,
-  exposure          bigint,
-  uv                bigint,
-  pv                bigint,
-  add_to_cart_users bigint,
-  add_to_cart_qty   bigint,
-  pay_items         bigint,
-  pay_orders        bigint,
-  pay_buyers        bigint,
-  inserted_at       timestamptz DEFAULT now(),
-  UNIQUE (store_id, day, product_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_ozon_dpm_store_day ON public.ozon_daily_product_metrics(store_id, day);
-CREATE INDEX IF NOT EXISTS idx_ozon_dpm_store_prod ON public.ozon_daily_product_metrics(store_id, product_id);
-
-CREATE TABLE IF NOT EXISTS public.ozon_raw_analytics (
   id bigserial primary key,
-  store_id text,
-  raw_row jsonb not null,
-  import_batch text,
+  tovary text, -- Товары
+  kategoriya_1_urovnya text, -- Категория 1 уровня
+  kategoriya_2_urovnya text, -- Категория 2 уровня
+  kategoriya_3_urovnya text, -- Категория 3 уровня
+  brend text, -- Бренд
+  model text, -- Модель
+  shema_prodazh text, -- Схема продаж
+  sku text, -- SKU
+  artikul text, -- Артикул
+  abc_analiz_po_summe_zakazov text, -- ABC-анализ по сумме заказов
+  abc_analiz_po_kolichestvu_zakazov text, -- ABC-анализ по количеству заказов
+  zakazano_na_summu numeric, -- Заказано на сумму
+  dinamika numeric, -- Динамика
+  dolya_v_obschei_summe_zakazov numeric, -- Доля в общей сумме заказов
+  dinamika_2 numeric, -- Динамика
+  pozitsiya_v_poiske_i_kataloge numeric, -- Позиция в поиске и каталоге
+  dinamika_3 numeric, -- Динамика
+  pokazy_vsego numeric, -- Показы всего
+  dinamika_4 numeric, -- Динамика
+  konversiya_iz_pokaza_v_zakaz numeric, -- Конверсия из показа в заказ
+  dinamika_5 numeric, -- Динамика
+  pokazy_v_poiske_i_kataloge numeric, -- Показы в поиске и каталоге
+  dinamika_6 numeric, -- Динамика
+  konversiya_iz_poiska_i_kataloga_v_korzinu numeric, -- Конверсия из поиска и каталога в корзину
+  dinamika_7 numeric, -- Динамика
+  dobavleniya_iz_poiska_i_kataloga_v_korzinu numeric, -- Добавления из поиска и каталога в корзину
+  dinamika_8 numeric, -- Динамика
+  konversiya_iz_poiska_i_kataloga_v_kartochku numeric, -- Конверсия из поиска и каталога в карточку
+  dinamika_9 numeric, -- Динамика
+  posescheniya_kartochki_tovara numeric, -- Посещения карточки товара
+  dinamika_10 numeric, -- Динамика
+  konversiya_iz_kartochki_v_korzinu numeric, -- Конверсия из карточки в корзину
+  dinamika_11 numeric, -- Динамика
+  dobavleniya_iz_kartochki_v_korzinu numeric, -- Добавления из карточки в корзину
+  dinamika_12 numeric, -- Динамика
+  konversiya_v_korzinu_obschaya numeric, -- Конверсия в корзину общая
+  dinamika_13 numeric, -- Динамика
+  dobavleniya_v_korzinu_vsego numeric, -- Добавления в корзину всего
+  dinamika_14 numeric, -- Динамика
+  konversiya_iz_korziny_v_zakaz numeric, -- Конверсия из корзины в заказ
+  dinamika_15 numeric, -- Динамика
+  zakazano_tovarov numeric, -- Заказано товаров
+  dinamika_16 numeric, -- Динамика
+  dostavleno_tovarov numeric, -- Доставлено товаров
+  dinamika_17 numeric, -- Динамика
+  konversiya_iz_zakaza_v_vykup numeric, -- Конверсия из заказа в выкуп
+  dinamika_18 numeric, -- Динамика
+  vykupleno_tovarov numeric, -- Выкуплено товаров
+  dinamika_19 numeric, -- Динамика
+  otmeneno_tovarov_na_datu_otmeny numeric, -- Отменено товаров (на дату отмены)
+  dinamika_20 numeric, -- Динамика
+  otmeneno_tovarov_na_datu_zakaza numeric, -- Отменено товаров (на дату заказа)
+  dinamika_21 numeric, -- Динамика
+  vozvrascheno_tovarov_na_datu_vozvrata numeric, -- Возвращено товаров (на дату возврата)
+  dinamika_22 numeric, -- Динамика
+  vozvrascheno_tovarov_na_datu_zakaza numeric, -- Возвращено товаров (на дату заказа)
+  dinamika_23 numeric, -- Динамика
+  srednyaya_tsena numeric, -- Средняя цена
+  dinamika_24 numeric, -- Динамика
+  skidka_ot_vashei_tseny numeric, -- Скидка от вашей цены
+  dinamika_25 numeric, -- Динамика
+  indeks_tsen numeric, -- Индекс цен
+  dnei_v_aktsiyah numeric, -- Дней в акциях
+  obschaya_drr numeric, -- Общая ДРР
+  dinamika_26 numeric, -- Динамика
+  dnei_s_prodvizheniem_trafarety numeric, -- Дней с продвижением (трафареты)
+  dnei_bez_ostatka_19072025_15082025 numeric, -- Дней без остатка 19.07.2025 – 15.08.2025
+  ostatok_na_konets_perioda numeric, -- Остаток на конец периода
+  rekomendatsiya_po_postavke_na_fbo numeric, -- Рекомендация по поставке на FBO
+  skolko_tovarov_postavit numeric, -- Сколько товаров поставить
+  srednee_vremya_dostavki_19072025_15082025 numeric, -- Среднее время доставки 19.07.2025 – 15.08.2025
+  otzyvy numeric, -- Отзывы
+  reiting_tovara numeric, -- Рейтинг товара
   inserted_at timestamptz default now()
-);
-
-CREATE OR REPLACE VIEW public.ozon_product_urls AS
-SELECT DISTINCT
-  store_id,
-  product_id,
-  'https://ozon.ru/product/' || product_id AS product_url
-FROM public.ozon_daily_product_metrics;
-
-create table if not exists public.ozon_first_seen (
-  store_id text not null,
-  product_id text not null,
-  first_seen_date date not null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  primary key (store_id, product_id)
-);
-
-create table if not exists public.ozon_order_items (
-  order_id text not null,
-  store_id text not null,
-  product_id text not null,
-  day date not null,
-  quantity numeric default 0,
-  price numeric default 0,
-  revenue numeric default 0,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
 );
