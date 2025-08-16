@@ -12,16 +12,48 @@ module.exports = async function handler(req,res){
     const supabase = supa();
     let { date } = req.query || {};
 
-    const todayIso = new Date().toISOString();
+    async function refresh(){
+      const { error } = await supabase.rpc('refresh_ozon_schema_cache');
+      if(error) console.error('schema cache refresh failed:', error.message);
+      await new Promise(r=>setTimeout(r,1000));
+    }
+
+    async function getCols(){
+      let colData;
+      for(let attempt=0;attempt<2;attempt++){
+        const { data, error } = await supabase
+          .rpc('get_public_columns', { table_name: 'ozon_product_report_wide' });
+        if(!error){
+          colData = data;
+          break;
+        }
+        if(/schema cache/i.test(error.message)){
+          await refresh();
+          continue;
+        }
+        throw error;
+      }
+      if(!colData) throw new Error('unable to load column metadata');
+      return (colData||[]).map(c=>c.column_name);
+    }
+
+    const tableCols = await getCols();
+    const uvCandidates = [
+      'voronka_prodazh_uv_s_prosmotrom_kartochki_tovara',
+      'voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_kartochki_tovara',
+      'voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_kartochki_tovara'.slice(0,63)
+    ];
+    const uvCol = uvCandidates.find(c=>tableCols.includes(c)) || uvCandidates[0];
+
     const datesResp = await supabase
       .from('public.ozon_product_report_wide')
-      .select('inserted_at')
-      .lte('inserted_at', todayIso)
-      .order('inserted_at', { ascending: false });
+      .select('den')
+      .not('den', 'is', null)
+      .order('den', { ascending: false });
     if(datesResp.error) throw datesResp.error;
     const dates = [];
     for(const r of datesResp.data || []){
-      const d = r.inserted_at && r.inserted_at.slice(0,10);
+      const d = r.den;
       if(d && !dates.includes(d)) dates.push(d);
     }
     if(!date && dates.length){
@@ -33,14 +65,12 @@ module.exports = async function handler(req,res){
     const curIndex = dates.indexOf(date);
     const prevDate = dates[curIndex+1] || null;
 
-    const select = 'sku,tovary,voronka_prodazh_pokazy_vsego,voronka_prodazh_posescheniya_kartochki_tovara,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_vykupleno_tovarov';
-    const next = new Date(date); next.setDate(next.getDate()+1);
-    const curResp = await supabase.from('public.ozon_product_report_wide').select(select).gte('inserted_at', date).lt('inserted_at', next.toISOString().slice(0,10));
+    const select = `sku,tovary,voronka_prodazh_pokazy_vsego,${uvCol} as uv,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_vykupleno_tovarov`;
+    const curResp = await supabase.from('public.ozon_product_report_wide').select(select).eq('den', date);
     if(curResp.error) throw curResp.error;
     let prevResp = { data: [] };
     if(prevDate){
-      const prevNext = new Date(prevDate); prevNext.setDate(prevNext.getDate()+1);
-      prevResp = await supabase.from('public.ozon_product_report_wide').select(select).gte('inserted_at', prevDate).lt('inserted_at', prevNext.toISOString().slice(0,10));
+      prevResp = await supabase.from('public.ozon_product_report_wide').select(select).eq('den', prevDate);
       if(prevResp.error) throw prevResp.error;
     }
     function agg(rows){
@@ -51,7 +81,7 @@ module.exports = async function handler(req,res){
       for(const r of rows){
         skuSet.add(r.sku);
         const e=Number(r.voronka_prodazh_pokazy_vsego)||0; sums.exposure+=e;
-        const u=Number(r.voronka_prodazh_posescheniya_kartochki_tovara)||0; sums.uv+=u;
+        const u=Number(r.uv)||0; sums.uv+=u;
         const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; sums.cart+=c; if(c>0) cartSkus.add(r.sku);
         const p=Number(r.voronka_prodazh_vykupleno_tovarov)||0; sums.pay+=p; if(p>0) paySkus.add(r.sku);
       }

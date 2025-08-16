@@ -12,16 +12,48 @@ module.exports = async function handler(req,res){
     const supabase = supa();
     let { date } = req.query || {};
 
-    const todayIso = new Date().toISOString();
+    async function refresh(){
+      const { error } = await supabase.rpc('refresh_ozon_schema_cache');
+      if(error) console.error('schema cache refresh failed:', error.message);
+      await new Promise(r=>setTimeout(r,1000));
+    }
+
+    async function getCols(){
+      let colData;
+      for(let attempt=0;attempt<2;attempt++){
+        const { data, error } = await supabase
+          .rpc('get_public_columns', { table_name: 'ozon_product_report_wide' });
+        if(!error){
+          colData = data;
+          break;
+        }
+        if(/schema cache/i.test(error.message)){
+          await refresh();
+          continue;
+        }
+        throw error;
+      }
+      if(!colData) throw new Error('unable to load column metadata');
+      return (colData||[]).map(c=>c.column_name);
+    }
+
+    const tableCols = await getCols();
+    const uvCandidates = [
+      'voronka_prodazh_uv_s_prosmotrom_kartochki_tovara',
+      'voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_kartochki_tovara',
+      'voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_kartochki_tovara'.slice(0,63)
+    ];
+    const uvCol = uvCandidates.find(c=>tableCols.includes(c)) || uvCandidates[0];
+
     const datesResp = await supabase
       .from('public.ozon_product_report_wide')
-      .select('inserted_at')
-      .lte('inserted_at', todayIso)
-      .order('inserted_at', { ascending: false });
+      .select('den')
+      .not('den', 'is', null)
+      .order('den', { ascending: false });
     if(datesResp.error) throw datesResp.error;
     const dates = [];
     for(const r of datesResp.data || []){
-      const d = r.inserted_at && r.inserted_at.slice(0,10);
+      const d = r.den;
       if(d && !dates.includes(d)) dates.push(d);
     }
 
@@ -32,23 +64,19 @@ module.exports = async function handler(req,res){
       return res.json({ok:true, rows:[], date:null, dates});
     }
 
-    const selectCols = 'sku,tovary,voronka_prodazh_pokazy_vsego,voronka_prodazh_pokazy_v_poiske_i_kataloge,voronka_prodazh_posescheniya_kartochki_tovara,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov,voronka_prodazh_vykupleno_tovarov';
+    const selectCols = `sku,tovary,voronka_prodazh_pokazy_vsego,voronka_prodazh_pokazy_v_poiske_i_kataloge,${uvCol} as uv,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov,voronka_prodazh_vykupleno_tovarov`;
 
-    const next = new Date(date);
-    next.setDate(next.getDate()+1);
-    const to = next.toISOString().slice(0,10);
     const { data, error } = await supabase
       .from('public.ozon_product_report_wide')
       .select(selectCols)
-      .gte('inserted_at', date)
-      .lt('inserted_at', to);
+      .eq('den', date);
     if(error) throw error;
 
     const rows = (data||[]).map(r=>({
       product_id: r.sku,
       product_title: r.tovary,
       exposure: r.voronka_prodazh_pokazy_vsego,
-      uv: r.voronka_prodazh_posescheniya_kartochki_tovara,
+      uv: r.uv,
       pv: r.voronka_prodazh_pokazy_v_poiske_i_kataloge,
       add_to_cart_users: r.voronka_prodazh_dobavleniya_v_korzinu_vsego,
       add_to_cart_qty: r.voronka_prodazh_dobavleniya_v_korzinu_vsego,
