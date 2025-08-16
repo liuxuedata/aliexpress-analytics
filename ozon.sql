@@ -2,7 +2,7 @@ drop table if exists public.ozon_product_report_wide;
 
 create table public.ozon_product_report_wide (
   id bigserial primary key,
-  uploaded_at date not null default current_date,
+  inserted_at timestamptz not null default now(),
   tovary text null,
   kategoriya_1_urovnya text null,
   kategoriya_2_urovnya text null,

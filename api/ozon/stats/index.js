@@ -12,14 +12,18 @@ module.exports = async function handler(req,res){
     const supabase = supa();
     let { date } = req.query || {};
 
-    const today = new Date().toISOString().slice(0,10);
+    const todayIso = new Date().toISOString();
     const datesResp = await supabase
       .from('ozon_product_report_wide')
-      .select('uploaded_at', { distinct: true })
-      .lte('uploaded_at', today)
-      .order('uploaded_at', { ascending: false });
+      .select('inserted_at')
+      .lte('inserted_at', todayIso)
+      .order('inserted_at', { ascending: false });
     if(datesResp.error) throw datesResp.error;
-    const dates = (datesResp.data||[]).map(r=>r.uploaded_at).filter(Boolean);
+    const dates = [];
+    for(const r of datesResp.data || []){
+      const d = r.inserted_at && r.inserted_at.slice(0,10);
+      if(d && !dates.includes(d)) dates.push(d);
+    }
 
     if(!date && dates.length){
       date = dates[0];
@@ -30,10 +34,14 @@ module.exports = async function handler(req,res){
 
     const selectCols = 'sku,tovary,voronka_prodazh_pokazy_vsego,voronka_prodazh_pokazy_v_poiske_i_kataloge,voronka_prodazh_posescheniya_kartochki_tovara,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov,voronka_prodazh_vykupleno_tovarov';
 
+    const next = new Date(date);
+    next.setDate(next.getDate()+1);
+    const to = next.toISOString().slice(0,10);
     const { data, error } = await supabase
       .from('ozon_product_report_wide')
       .select(selectCols)
-      .eq('uploaded_at', date);
+      .gte('inserted_at', date)
+      .lt('inserted_at', to);
     if(error) throw error;
 
     const rows = (data||[]).map(r=>({
