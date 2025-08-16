@@ -28,7 +28,6 @@ const RU_HEADER_MAP = {
   brand:              ["бренд"],
   model:              ["модель"],
   sales_scheme:       ["схема_продаж", "схема_продажи"],
-  sku:                ["sku"],
   vendor_code:        ["артикул"],
 
   // ABC & 金额
@@ -106,7 +105,7 @@ const RU_HEADER_MAP = {
   product_rating: ["рейтинг_товара"],
 
   // 识别说明行
-  __label__:          ["товар:", "категория:", "цена:", "продавец:", "undefined"]
+  __label__:          ["товар:", "категория:", "цена:", "продавец:", "undefined", "итого"]
 };
 
 const DESC_ZH = {
@@ -273,7 +272,7 @@ function detectHeaderRow(rows) {
     const hits = r.filter((v) => mapHeaderToStd(String(v ?? ""))).length;
     const totalLen = r.reduce((sum, v) => sum + String(v ?? "").length, 0);
     const avgLen = nonEmpty ? totalLen / nonEmpty : 0;
-    if (nonEmpty >= 6 && hits >= 3) {
+    if (nonEmpty >= 6 && hits >= 3 && avgLen < 40) {
       const score = hits * 100 + nonEmpty - avgLen; // penalize long description rows
       if (score > bestScore) {
         bestIdx = i;
@@ -407,6 +406,10 @@ module.exports = async (req, res) => {
       map[i] = key;
     }
 
+    if (!map.includes("product_id") || !map.includes("product_title")) {
+      return res.status(400).json({ ok: false, msg: "无法识别商品ID或商品名列" });
+    }
+
     const dataRows = rows.slice(headerRowIdx + 2);
 
     let periodEnd = null;
@@ -461,7 +464,10 @@ module.exports = async (req, res) => {
       const rec = rowToRecord(obj);
       if (!rec.day && periodEnd) rec.day = periodEnd;
       rawRows.push({ store_id, raw_row: obj, import_batch: originalName });
-      if (!rec.day || !rec.product_id) continue;
+      if (!rec.day || !rec.product_id) {
+        console.warn("skip row", obj);
+        continue;
+      }
       const baseDim = {
         store_id,
         day: rec.day,
