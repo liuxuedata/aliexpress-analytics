@@ -24,16 +24,6 @@ function parseSheet(path){
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const range = xlsx.utils.decode_range(sheet['!ref']);
   const getRow = r => { const row=[]; for(let c=range.s.c;c<=range.e.c;c++){ const cell=sheet[xlsx.utils.encode_cell({r,c})]; row.push(cell?cell.v:null);} return row; };
-  // parse report period from first cell "Период: dd.mm.yyyy – dd.mm.yyyy"
-  let periodStart=null, periodEnd=null;
-  const periodCell = getRow(0)[0];
-  if(typeof periodCell==='string'){
-    const m = periodCell.match(/(\d{2}\.\d{2}\.\d{4})\s*[–-]\s*(\d{2}\.\d{2}\.\d{4})/);
-    if(m){
-      periodStart = m[1].split('.').reverse().join('-');
-      periodEnd = m[2].split('.').reverse().join('-');
-    }
-  }
   const row7 = getRow(7), row8 = getRow(8);
   let group=null, headers=[], counts={};
   for(let i=0;i<row7.length;i++){
@@ -53,7 +43,7 @@ function parseSheet(path){
     const first=row[0];
     if(first==null) continue;
     if(typeof first==='string' && first.includes('Итого')) continue;
-    const obj={ period_start: periodStart, period_end: periodEnd };
+    const obj={};
     for(let i=0;i<headers.length;i++){
       const val=row[i];
       if(val===undefined) continue;

@@ -7,25 +7,31 @@ function supa(){
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-function fmt(date){ return date.toISOString().slice(0,10); }
-
 module.exports = async function handler(req,res){
   try{
-    let { from, to } = req.query || {};
-    if(!from || !to){
-      const end = new Date();
-      to = fmt(end);
-      from = fmt(new Date(end.getTime()-6*86400000));
-    }
     const supabase = supa();
-    const days = Math.round((new Date(to)-new Date(from))/86400000)+1;
-    const prevTo = new Date(new Date(from).getTime()-86400000);
-    const prevFrom = new Date(prevTo.getTime() - (days-1)*86400000);
+    let { date } = req.query || {};
+
+    const datesResp = await supabase
+      .from('ozon_product_report_wide')
+      .select('uploaded_at', { distinct: true })
+      .order('uploaded_at', { ascending: false });
+    if(datesResp.error) throw datesResp.error;
+    const dates = (datesResp.data||[]).map(r=>r.uploaded_at);
+    if(!date){
+      date = dates[0];
+    }
+    const curIndex = dates.indexOf(date);
+    const prevDate = dates[curIndex+1] || null;
+
     const select = 'sku,tovary,voronka_prodazh_pokazy_vsego,voronka_prodazh_posescheniya_kartochki_tovara,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_vykupleno_tovarov';
-    const curResp = await supabase.from('ozon_product_report_wide').select(select).eq('period_start', from).eq('period_end', to);
+    const curResp = await supabase.from('ozon_product_report_wide').select(select).eq('uploaded_at', date);
     if(curResp.error) throw curResp.error;
-    const prevResp = await supabase.from('ozon_product_report_wide').select(select).eq('period_start', fmt(prevFrom)).eq('period_end', fmt(prevTo));
-    if(prevResp.error) throw prevResp.error;
+    let prevResp = { data: [] };
+    if(prevDate){
+      prevResp = await supabase.from('ozon_product_report_wide').select(select).eq('uploaded_at', prevDate);
+      if(prevResp.error) throw prevResp.error;
+    }
     function agg(rows){
       const sums={exposure:0,uv:0,cart:0,pay:0};
       const skuSet=new Set();
