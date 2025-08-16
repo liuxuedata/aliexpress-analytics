@@ -88,7 +88,9 @@
 </div>
 <script>
 (function(){
+  const storeId = 'demo';
   let table = null;
+
   function initTable(){
     if(!table){
       table = $('#report').DataTable({
@@ -99,62 +101,72 @@
         scrollY:'60vh',
         scrollCollapse:true,
         autoWidth:false,
-        language:{
-          emptyTable:'暂无数据'
-        }
+        language:{ emptyTable:'暂无数据' }
       });
     }
     return table;
   }
+
   function setStatus(t){ $('#status').text(t||''); }
-  $('#file').on('change', function(e){
+
+  async function loadData(){
+    const resp = await fetch(`/api/ozon/stats?store_id=${encodeURIComponent(storeId)}`);
+    const json = await resp.json();
+    if(!json.ok) throw new Error(json.msg||'查询失败');
+    const mapped = (json.rows||[]).map(r=>{
+      const impressions = Number(r.impressions)||0;
+      const sessions = Number(r.sessions)||0;
+      const pageviews = Number(r.pageviews)||0;
+      const atcUsers = Number(r.add_to_cart_users)||0;
+      const atcQty = Number(r.add_to_cart_qty)||0;
+      const itemsSold = Number(r.items_sold)||0;
+      const orders = Number(r.orders)||0;
+      const buyers = Number(r.buyers)||0;
+      const v2a = sessions ? (atcUsers/sessions*100).toFixed(2)+'%' : '0%';
+      const a2p = atcUsers ? (orders/atcUsers*100).toFixed(2)+'%' : '0%';
+      const visitRate = impressions ? (sessions/impressions*100).toFixed(2)+'%' : '0%';
+      return [
+        `<a href="https://ozon.ru/product/${r.product_id}" target="_blank" rel="noopener">${r.product_title || r.product_id}</a>`,
+        impressions,
+        sessions,
+        pageviews,
+        atcUsers,
+        atcQty,
+        itemsSold,
+        orders,
+        buyers,
+        v2a,
+        a2p,
+        visitRate
+      ];
+    });
+    const dt = initTable();
+    dt.clear().rows.add(mapped).draw();
+  }
+
+  async function upload(file){
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('store_id', storeId);
+    const resp = await fetch('/api/ozon/import', { method:'POST', body:fd });
+    const json = await resp.json();
+    if(!json.ok) throw new Error(json.msg||'上传失败');
+  }
+
+  $('#file').on('change', async function(e){
     const file = e.target.files[0];
     if(!file) return;
-    const reader = new FileReader();
-    reader.onload = function(ev){
-      try{
-        const data = new Uint8Array(ev.target.result);
-        const wb = XLSX.read(data, { type:'array' });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const arr = XLSX.utils.sheet_to_json(ws, { header:1 });
-        const rows = arr.slice(1).filter(r=>r&&r.length);
-        if(!rows.length){ setStatus('文件无数据'); return; }
-        const mapped = rows.map(r=>{
-          const impressions = Number(r[2])||0;
-          const sessions = Number(r[3])||0;
-          const pageviews = Number(r[4])||0;
-          const atcUsers = Number(r[5])||0;
-          const atcQty = Number(r[6])||0;
-          const itemsSold = Number(r[7])||0;
-          const orders = Number(r[8])||0;
-          const buyers = Number(r[9])||0;
-          const v2a = sessions ? (atcUsers/sessions*100).toFixed(2)+'%' : '0%';
-          const a2p = atcUsers ? (orders/atcUsers*100).toFixed(2)+'%' : '0%';
-          const visitRate = impressions ? (sessions/impressions*100).toFixed(2)+'%' : '0%';
-          return [
-            `<a href="https://ozon.ru/product/${r[0]}" target="_blank" rel="noopener">${r[1] || r[0]}</a>`,
-            impressions,
-            sessions,
-            pageviews,
-            atcUsers,
-            atcQty,
-            itemsSold,
-            orders,
-            buyers,
-            v2a,
-            a2p,
-            visitRate
-          ];
-        });
-        const dt = initTable();
-        dt.clear().rows.add(mapped).draw();
-        setStatus('已加载 '+rows.length+' 行');
-      }catch(err){ console.error(err); setStatus('解析失败'); }
-    };
-    reader.onerror = ()=> setStatus('读取失败');
-    reader.readAsArrayBuffer(file);
+    try{
+      setStatus('上传中...');
+      await upload(file);
+      setStatus('加载数据...');
+      await loadData();
+      setStatus('完成');
+    }catch(err){ console.error(err); setStatus('失败: '+err.message); }
     e.target.value='';
   });
+
+  loadData().catch(err=>console.error(err));
 })();
 </script>
 </body>

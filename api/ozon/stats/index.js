@@ -13,9 +13,26 @@ module.exports = async (req, res) => {
   }
   try {
     const supabase = supa();
-    const { store_id, start_date, end_date, only_new } = req.query;
-    // TODO: 查询 ozon_daily_product_metrics 与 ozon_first_seen 计算 KPI
-    res.status(200).json({ ok: true, kpis: {}, rows: [] });
+    const { store_id, start_date, end_date } = req.query;
+    if (!store_id) {
+      return res.status(400).json({ ok: false, msg: "missing store_id" });
+    }
+
+    let query = supabase
+      .from("ozon_daily_product_metrics")
+      .select(
+        "day,product_id,product_title,impressions,sessions,pageviews,add_to_cart_users,add_to_cart_qty,items_sold,orders,buyers"
+      )
+      .eq("store_id", store_id)
+      .order("day", { ascending: false });
+
+    if (start_date) query = query.gte("day", start_date);
+    if (end_date) query = query.lte("day", end_date);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    res.status(200).json({ ok: true, rows: data });
   } catch (e) {
     res.status(500).json({ ok: false, msg: e.message });
   }
