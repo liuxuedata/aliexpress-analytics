@@ -360,7 +360,11 @@
 
       rawTable = json.table || [];
       renderKPI(json.kpis || {}, (jsonPrev.ok && jsonPrev.kpis) ? jsonPrev.kpis : {});
-      $('#kpi').off('click', '#kpi-new').on('click', '#kpi-new', ()=>{onlyNew = true; load();});
+      const newCard = document.getElementById('kpi-new');
+      if (newCard) {
+        newCard.style.cursor = 'pointer';
+        newCard.onclick = () => { onlyNew = true; load(); };
+      }
       clearBtn.style.display = onlyNew ? '' : 'none';
       populateFilters();
       buildTable();
