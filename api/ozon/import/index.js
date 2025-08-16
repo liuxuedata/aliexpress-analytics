@@ -71,7 +71,7 @@ module.exports = async function handler(req,res){
       } catch (_) {
         // ignore cache refresh errors
       }
-      const { error } = await supabase.from('ozon_daily_product_metrics').insert(rows);
+      const { error } = await supabase.from('ozon_product_report_wide').insert(rows);
       fs.unlinkSync(file.path);
       if(error) throw error;
       res.json({ok:true, inserted: rows.length});

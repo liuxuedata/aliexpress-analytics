@@ -1,6 +1,6 @@
-drop table if exists public.ozon_daily_product_metrics;
+drop table if exists public.ozon_product_report_wide;
 
-create table public.ozon_daily_product_metrics (
+create table public.ozon_product_report_wide (
   id bigserial primary key,
   inserted_at timestamp with time zone not null default now(),
   tovary text null,

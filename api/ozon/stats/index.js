@@ -10,7 +10,7 @@ function supa(){
 module.exports = async function handler(req,res){
   try{
     const supabase = supa();
-    const { data, error } = await supabase.from('ozon_daily_product_metrics').select(
+    const { data, error } = await supabase.from('ozon_product_report_wide').select(
       'sku,tovary,voronka_prodazh_pokazy_vsego,voronka_prodazh_pokazy_v_poiske_i_kataloge,voronka_prodazh_posescheniya_kartochki_tovara,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov,voronka_prodazh_vykupleno_tovarov'
     );
     if(error) throw error;
