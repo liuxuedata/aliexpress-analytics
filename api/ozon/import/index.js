@@ -75,19 +75,23 @@ module.exports = async function handler(req,res){
     try{
       const rows = parseSheet(file.path);
       const supabase = supa();
-      // ensure PostgREST schema cache is up to date so new columns are recognized
-      try {
-        await supabase.rpc('refresh_ozon_schema_cache');
-      } catch (_) {
-        // ignore cache refresh errors
+      async function refresh(){
+        const { error } = await supabase.rpc('refresh_ozon_schema_cache');
+        if(error) console.error('schema cache refresh failed:', error.message);
+        await new Promise(r=>setTimeout(r,1000));
       }
-      let { error } = await supabase.from('ozon_product_report_wide').insert(rows);
-      // retry once if schema cache was stale
-      if (error && /schema cache/i.test(error.message)) {
-        try { await supabase.rpc('refresh_ozon_schema_cache'); await new Promise(r=>setTimeout(r,500)); } catch(_){}
-        const retry = await supabase.from('ozon_product_report_wide').insert(rows);
-        error = retry.error;
-      }
+      await refresh();
+      let attempt = 0;
+      let error;
+      do{
+        const resInsert = await supabase.from('ozon_product_report_wide').insert(rows);
+        error = resInsert.error;
+        if(error && /schema cache/i.test(error.message)){
+          await refresh();
+        }else{
+          break;
+        }
+      }while(attempt++ < 2);
       fs.unlinkSync(file.path);
       if(error) throw error;
       res.json({ok:true, inserted: rows.length});
