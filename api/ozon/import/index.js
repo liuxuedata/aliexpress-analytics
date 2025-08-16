@@ -74,7 +74,7 @@ module.exports = async function handler(req,res){
       let attempt = 0;
       let error;
       do{
-        const resInsert = await supabase.from('ozon_product_report_wide').insert(rows);
+        const resInsert = await supabase.from('public.ozon_product_report_wide').insert(rows);
         error = resInsert.error;
         if(error && /schema cache/i.test(error.message)){
           await refresh();

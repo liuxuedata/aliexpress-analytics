@@ -14,7 +14,7 @@ module.exports = async function handler(req,res){
 
     const todayIso = new Date().toISOString();
     const datesResp = await supabase
-      .from('ozon_product_report_wide')
+      .from('public.ozon_product_report_wide')
       .select('inserted_at')
       .lte('inserted_at', todayIso)
       .order('inserted_at', { ascending: false });
@@ -38,7 +38,7 @@ module.exports = async function handler(req,res){
     next.setDate(next.getDate()+1);
     const to = next.toISOString().slice(0,10);
     const { data, error } = await supabase
-      .from('ozon_product_report_wide')
+      .from('public.ozon_product_report_wide')
       .select(selectCols)
       .gte('inserted_at', date)
       .lt('inserted_at', to);
