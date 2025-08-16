@@ -11,12 +11,27 @@ module.exports = async function handler(req,res){
   try{
     const supabase = supa();
     const { from, to } = req.query || {};
-    let query = supabase.from('ozon_product_report_wide').select(
-      'sku,tovary,voronka_prodazh_pokazy_vsego,voronka_prodazh_pokazy_v_poiske_i_kataloge,voronka_prodazh_posescheniya_kartochki_tovara,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov,voronka_prodazh_vykupleno_tovarov'
-    );
-    if(from && to){
-      query = query.eq('period_start', from).eq('period_end', to);
+
+    let fromDate = from;
+    let toDate = to;
+
+    if(!fromDate || !toDate){
+      const latest = await supabase
+        .from('ozon_product_report_wide')
+        .select('period_start,period_end')
+        .order('period_end', { ascending:false })
+        .limit(1);
+      if(latest.error) throw latest.error;
+      if(latest.data && latest.data.length){
+        fromDate = latest.data[0].period_start;
+        toDate = latest.data[0].period_end;
+      }
     }
+
+    let query = supabase.from('ozon_product_report_wide').select(
+      'sku,tovary,period_start,period_end,voronka_prodazh_pokazy_vsego,voronka_prodazh_pokazy_v_poiske_i_kataloge,voronka_prodazh_posescheniya_kartochki_tovara,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov,voronka_prodazh_vykupleno_tovarov'
+    ).eq('period_start', fromDate).eq('period_end', toDate);
+
     const { data, error } = await query;
     if(error) throw error;
     const rows = (data||[]).map(r=>({
@@ -31,7 +46,7 @@ module.exports = async function handler(req,res){
       pay_orders: r.voronka_prodazh_zakazano_tovarov,
       pay_buyers: r.voronka_prodazh_vykupleno_tovarov
     }));
-    res.json({ok:true, rows});
+    res.json({ok:true, rows, period_start: fromDate, period_end: toDate});
   }catch(e){
     res.json({ok:false,msg:e.message});
   }
