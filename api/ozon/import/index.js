@@ -65,6 +65,8 @@ module.exports = async function handler(req,res){
     try{
       const rows = parseSheet(file.path);
       const supabase = supa();
+      // ensure PostgREST schema cache is up to date so new columns are recognized
+      await supabase.rpc('refresh_ozon_schema_cache').catch(()=>{});
       const { error } = await supabase.from('ozon_daily_product_metrics').insert(rows);
       fs.unlinkSync(file.path);
       if(error) throw error;

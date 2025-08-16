@@ -77,3 +77,15 @@ create table public.ozon_daily_product_metrics (
   faktory_prodazh_otzyvy numeric null,
   faktory_prodazh_reyting_tovara numeric null
 );
+
+create or replace function public.refresh_ozon_schema_cache()
+returns void
+language plpgsql
+security definer
+as $$
+begin
+  perform pg_notify('pgrst', 'reload schema');
+end;
+$$;
+
+select public.refresh_ozon_schema_cache();
