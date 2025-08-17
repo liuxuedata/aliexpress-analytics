@@ -39,7 +39,12 @@ function translit(s){
 }
 const headerAliases = {
   'voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_v_poiske_ili_kataloge': 'voronka_prodazh_uv_s_prosmotrom_v_poiske_ili_kataloge',
-  'voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_kartochki_tovara': 'voronka_prodazh_uv_s_prosmotrom_kartochki_tovara'
+  'voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_kartochki_tovara': 'voronka_prodazh_uv_s_prosmotrom_kartochki_tovara',
+  // Ozon occasionally appends "ASUV" to these headers; map them back to the base column
+  'voronka_prodazh_uv_s_prosmotrom_v_poiske_ili_katalogeasuv': 'voronka_prodazh_uv_s_prosmotrom_v_poiske_ili_kataloge',
+  'voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_v_poiske_ili_katalogeasuv': 'voronka_prodazh_uv_s_prosmotrom_v_poiske_ili_kataloge',
+  'voronka_prodazh_uv_s_prosmotrom_kartochki_tovaraasuv': 'voronka_prodazh_uv_s_prosmotrom_kartochki_tovara',
+  'voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_kartochki_tovaraasuv': 'voronka_prodazh_uv_s_prosmotrom_kartochki_tovara'
 };
 
 function parseSheet(path){
