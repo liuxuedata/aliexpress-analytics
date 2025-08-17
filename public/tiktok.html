@@ -14,16 +14,15 @@
   <nav class="header-center">
     <ul class="platform-nav">
       <li class="ali"><a href="#">速卖通</a>
-        <ul class="dropdown">
-          <li><a href="index.html">全托管</a></li>
-          <li><a href="self-operated.html">自运营</a></li>
-        </ul>
+        <ul class="dropdown" id="managedMenu"></ul>
       </li>
       <li class="amazon"><a href="amazon.html">亚马逊</a></li>
       <li class="tiktok active"><a href="tiktok.html">TikTok Shop</a></li>
       <li class="temu"><a href="temu.html">Temu</a></li>
       <li class="ozon"><a href="ozon-detail.html">Ozon</a></li>
-      <li class="independent"><a href="independent-site.html">独立站</a></li>
+      <li class="independent"><a href="#">独立站</a>
+        <ul class="dropdown" id="indepMenu"></ul>
+      </li>
     </ul>
   </nav>
   <div id="userArea" class="user-section"></div>
@@ -39,5 +38,6 @@
     <h2 style="font-size:24px;font-weight:700;">页面建设中…</h2>
   </main>
 </div>
+<script src="assets/site-nav.js"></script>
 </body>
 </html>

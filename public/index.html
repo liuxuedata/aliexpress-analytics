@@ -70,16 +70,15 @@
   <nav class="header-center">
     <ul class="platform-nav">
       <li class="ali active"><a href="#">速卖通</a>
-        <ul class="dropdown">
-          <li class="active"><a href="index.html">全托管</a></li>
-          <li><a href="self-operated.html">自运营</a></li>
-        </ul>
+        <ul class="dropdown" id="managedMenu"></ul>
       </li>
       <li class="amazon"><a href="amazon.html">亚马逊</a></li>
       <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
       <li class="temu"><a href="temu.html">Temu</a></li>
       <li class="ozon"><a href="ozon-detail.html">Ozon</a></li>
-      <li class="independent"><a href="independent-site.html">独立站</a></li>
+      <li class="independent"><a href="#">独立站</a>
+        <ul class="dropdown" id="indepMenu"></ul>
+      </li>
     </ul>
   </nav>
   <div id="userArea" class="user-section"></div>
@@ -914,27 +913,15 @@
   });
   })();</script>
   <script src="assets/login.js"></script>
+  <script src="assets/site-nav.js"></script>
   <script>
   document.addEventListener('DOMContentLoaded', ()=>{
   const siteListKey='managedSites';
   const currentSiteKey='currentSite';
   let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
   if(!Array.isArray(sites)||!sites.length){sites=['主站'];}
-  const menuEl=document.getElementById('managedMenu');
   const currentSiteEl=document.getElementById('currentSite');
-  function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));}
-  function renderMenu(){
-    menuEl.innerHTML='';
-    sites.forEach((name,idx)=>{
-      const li=document.createElement('li');
-      const a=document.createElement('a');
-      a.href='index.html';
-      a.textContent=name;
-      a.addEventListener('click',(e)=>{e.preventDefault();localStorage.setItem(currentSiteKey,name);window.location.href='index.html';});
-      a.addEventListener('dblclick',()=>{const n=prompt('修改站点名',name);if(n){sites[idx]=n;save();renderMenu();updateCurrent();}});
-      li.appendChild(a);menuEl.appendChild(li);
-    });
-  }
+  function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));renderSiteMenus();}
   function updateCurrent(){
     const name=localStorage.getItem(currentSiteKey)||sites[0];
     currentSiteEl.textContent=sites.length>1?'全托管 '+name:'全托管';
@@ -944,13 +931,14 @@
     const cur=localStorage.getItem(currentSiteKey)||sites[0];
     const idx=sites.indexOf(cur);
     const n=prompt('修改站点名',cur);
-    if(n){sites[idx]=n;save();renderMenu();localStorage.setItem(currentSiteKey,n);updateCurrent();}
-  });
+    if(n){sites[idx]=n;save();localStorage.setItem(currentSiteKey,n);updateCurrent();}}
+  );
   document.getElementById('addSite').addEventListener('click',()=>{
     const n=prompt('新增站点名');
-    if(n){sites.push(n);save();renderMenu();updateCurrent();}
+    if(n){sites.push(n);save();updateCurrent();}
   });
-  renderMenu();updateCurrent();
+  renderSiteMenus();
+  updateCurrent();
     const userArea=document.getElementById('userArea');
     function refreshUser(){
       const u=JSON.parse(localStorage.getItem('user')||'null');
