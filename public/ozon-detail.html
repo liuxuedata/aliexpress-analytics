@@ -76,6 +76,8 @@
               <thead>
                 <tr>
                   <th>产品名</th>
+                  <th>型号</th>
+                  <th>搜索排名</th>
                   <th>曝光量</th>
                   <th>访客数</th>
                   <th>浏览量</th>
@@ -112,7 +114,7 @@
         paging:true,
         searching:true,
         info:true,
-        order:[[2,'desc']],
+          order:[[4,'desc']],
         scrollY:'60vh',
         scrollCollapse:true,
         autoWidth:false,
@@ -155,21 +157,24 @@
       const buyers = Number(r.pay_buyers)||0;
       const v2a = sessions ? (atcUsers/sessions*100).toFixed(2)+'%' : '0%';
       const a2p = atcUsers ? (orders/atcUsers*100).toFixed(2)+'%' : '0%';
-      const visitRate = impressions ? (sessions/impressions*100).toFixed(2)+'%' : '0%';
-      return [
-        `<a href="https://ozon.ru/product/${r.product_id}" target="_blank" rel="noopener">${r.product_title || r.product_id}</a>`,
-        impressions,
-        sessions,
-        pageviews,
-        atcUsers,
-        atcQty,
-        itemsSold,
-        orders,
-        buyers,
-        v2a,
-        a2p,
-        visitRate
-      ];
+        const visitRate = impressions ? (sessions/impressions*100).toFixed(2)+'%' : '0%';
+        const rank = r.search_rank!=null ? Number(r.search_rank).toFixed(2) : '';
+        return [
+          `<a href="https://ozon.ru/product/${r.product_id}" target="_blank" rel="noopener">${r.product_title || r.product_id}</a>`,
+          r.model || '',
+          rank,
+          impressions,
+          sessions,
+          pageviews,
+          atcUsers,
+          atcQty,
+          itemsSold,
+          orders,
+          buyers,
+          v2a,
+          a2p,
+          visitRate
+        ];
     });
       const dt = initTable();
       dt.clear().rows.add(mapped).draw();
