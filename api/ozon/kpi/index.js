@@ -55,7 +55,9 @@ module.exports = async function handler(req,res){
     ];
     const uvCol = uvCandidates.find(c=>tableCols.includes(c)) || uvCandidates[0];
 
-    const select = `sku,tovary,voronka_prodazh_pokazy_vsego,${uvCol} as uv,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_vykupleno_tovarov`;
+  
+ const select = `sku,tovary,voronka_prodazh_pokazy_vsego,uv:${uvCol},voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_vykupleno_tovarov`;
+
 
     if(start && end){
       const curResp = await supabase.schema('public').from(TABLE).select(select).gte('den', start).lte('den', end);
