@@ -7,10 +7,18 @@
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="assets/login.css">
   <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
+  <style>
+    #report td:first-child{max-width:200px;white-space:normal;word-break:break-word;}
+    #newModal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;}
+    #newModal .box{background:#fff;padding:20px;border-radius:8px;max-width:400px;max-height:60vh;overflow:auto;}
+    #newModal ul{margin:0;padding-left:20px;}
+  </style>
 </head>
 <body class="fm">
 <header class="header">
@@ -49,6 +57,9 @@
           <span class="badge">时间粒度</span>
           <span class="sel" style="background:#1f2937;color:#fff;border-color:#334155;cursor:not-allowed">按日</span>
           <input type="hidden" value="day">
+          <span>日期</span>
+          <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
+          <button id="refreshBtn" class="btn">刷新</button>
           <label for="file" id="pickLabel" class="upload-btn">选择文件</label>
           <input type="file" id="file" accept=".xlsx,.xls,.csv" />
           <span id="status" class="notice"></span>
@@ -57,6 +68,7 @@
     </div>
 
     <div class="content">
+      <div id="kpi" class="kpi"></div>
       <section id="detail" class="content-pad">
         <div class="panel">
           <h3>数据明细</h3>
@@ -64,16 +76,18 @@
             <table id="report" class="display" style="width:100%">
               <thead>
                 <tr>
-                  <th>商品ID</th>
-                  <th>日期</th>
+                  <th>产品名</th>
                   <th>曝光量</th>
                   <th>访客数</th>
                   <th>浏览量</th>
                   <th>加购人数</th>
-                  <th>订单数</th>
-                  <th>买家数</th>
-                  <th>GMV</th>
-                  <th>新品标记</th>
+                  <th>加购件数</th>
+                  <th>支付件数</th>
+                  <th>支付订单数</th>
+                  <th>支付买家数</th>
+                  <th>访客→加购</th>
+                  <th>加购→支付</th>
+                  <th>访客比</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -84,60 +98,156 @@
     </div>
   </main>
 </div>
+<div id="newModal"><div class="box"><h4>新品列表</h4><ul id="newItems"></ul></div></div>
 <script>
 (function(){
+  const storeId = 'demo';
   let table = null;
+  let currentStart = '';
+  let currentEnd = '';
+  let newProducts = [];
+
   function initTable(){
     if(!table){
       table = $('#report').DataTable({
         paging:true,
         searching:true,
         info:true,
-        order:[[3,'desc']],
+        order:[[2,'desc']],
         scrollY:'60vh',
         scrollCollapse:true,
         autoWidth:false,
-        language:{
-          emptyTable:'暂无数据'
-        }
+        language:{ emptyTable:'暂无数据' }
       });
     }
     return table;
   }
+
   function setStatus(t){ $('#status').text(t||''); }
-  $('#file').on('change', function(e){
+
+  async function loadData(){
+    const range = $('#dateFilter').val();
+    let startISO, endISO;
+    if(range && range.includes(' to ')){
+      [startISO, endISO] = range.split(' to ');
+    } else {
+      const now=new Date();
+      const day=(now.getDay()+6)%7;
+      const currentMonday=new Date(now);
+      currentMonday.setDate(now.getDate()-day);
+      const lastMonday=new Date(currentMonday);
+      lastMonday.setDate(currentMonday.getDate()-7);
+      const lastSunday=new Date(lastMonday);
+      lastSunday.setDate(lastMonday.getDate()+6);
+      startISO=lastMonday.toISOString().slice(0,10);
+      endISO=lastSunday.toISOString().slice(0,10);
+      $('#dateFilter').val(`${startISO} to ${endISO}`);
+      if(window.fp) window.fp.setDate([startISO,endISO], true, 'Y-m-d');
+    }
+    currentStart = startISO;
+    currentEnd = endISO;
+    const url = `/api/ozon/stats?store_id=${encodeURIComponent(storeId)}&start=${startISO}&end=${endISO}`;
+    const resp = await fetch(url);
+    const json = await resp.json();
+    if(!json.ok) throw new Error(json.msg||'查询失败');
+    const mapped = (json.rows||[]).map(r=>{
+      const impressions = Number(r.exposure)||0;
+      const sessions = Number(r.uv)||0;
+      const pageviews = Number(r.pv)||0;
+      const atcUsers = Number(r.add_to_cart_users)||0;
+      const atcQty = Number(r.add_to_cart_qty)||0;
+      const itemsSold = Number(r.pay_items)||0;
+      const orders = Number(r.pay_orders)||0;
+      const buyers = Number(r.pay_buyers)||0;
+      const v2a = sessions ? (atcUsers/sessions*100).toFixed(2)+'%' : '0%';
+      const a2p = atcUsers ? (orders/atcUsers*100).toFixed(2)+'%' : '0%';
+      const visitRate = impressions ? (sessions/impressions*100).toFixed(2)+'%' : '0%';
+      return [
+        `<a href="https://ozon.ru/product/${r.product_id}" target="_blank" rel="noopener">${r.product_title || r.product_id}</a>`,
+        impressions,
+        sessions,
+        pageviews,
+        atcUsers,
+        atcQty,
+        itemsSold,
+        orders,
+        buyers,
+        v2a,
+        a2p,
+        visitRate
+      ];
+    });
+    const dt = initTable();
+    dt.clear().rows.add(mapped).draw();
+    loadKpi().catch(err=>console.error(err));
+  }
+
+  async function upload(file){
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('store_id', storeId);
+    const resp = await fetch('/api/ozon/import', { method:'POST', body:fd });
+    const json = await resp.json();
+    if(!json.ok) throw new Error(json.msg||'上传失败');
+  }
+
+  function renderKpi(k){
+    const host = document.getElementById('kpi');
+    if(!host) return;
+    const delta = (c,p,isPct)=>{ const d=c-p; const cls=d>=0?'up':'down'; const val=isPct ? (d*100).toFixed(2)+'%' : d; const sign=d>=0&&isPct?'+':''; return `<span class="delta ${cls}">${sign}${val}</span>`; };
+    host.innerHTML = [
+      `<div class="card"><h4>访客比</h4><p>${(k.visitor_rate.current*100).toFixed(2)}%${delta(k.visitor_rate.current,k.visitor_rate.previous,true)}</p></div>`,
+      `<div class="card"><h4>加购比</h4><p>${(k.cart_rate.current*100).toFixed(2)}%${delta(k.cart_rate.current,k.cart_rate.previous,true)}</p></div>`,
+      `<div class="card"><h4>支付比</h4><p>${(k.pay_rate.current*100).toFixed(2)}%${delta(k.pay_rate.current,k.pay_rate.previous,true)}</p></div>`,
+      `<div class="card"><h4>商品总数</h4><p>${k.product_total.current}${delta(k.product_total.current,k.product_total.previous,false)}</p></div>`,
+      `<div class="card"><h4>有加购商品总数</h4><p>${k.cart_product_total.current}${delta(k.cart_product_total.current,k.cart_product_total.previous,false)}</p></div>`,
+      `<div class="card"><h4>有支付商品总数</h4><p>${k.pay_product_total.current}${delta(k.pay_product_total.current,k.pay_product_total.previous,false)}</p></div>`,
+      `<div class="card clickable" id="kpi-new"><h4>新品数</h4><p>${k.new_product_total}</p></div>`
+    ].join('');
+    newProducts = k.new_products || [];
+    const newCard = document.getElementById('kpi-new');
+    if(newCard) newCard.addEventListener('click',()=>{
+      const modal=document.getElementById('newModal');
+      const ul=document.getElementById('newItems');
+      ul.innerHTML=newProducts.map(p=>`<li>${p.title||p.sku}</li>`).join('');
+      modal.style.display='flex';
+    });
+  }
+
+  async function loadKpi(){
+    if(!currentStart || !currentEnd) return;
+    try{
+      const resp = await fetch(`/api/ozon/kpi?store_id=${encodeURIComponent(storeId)}&start=${currentStart}&end=${currentEnd}`);
+      const json = await resp.json();
+      if(!json.ok) throw new Error(json.msg||'加载失败');
+      if(json.metrics){
+        renderKpi(json.metrics);
+      }else{
+        document.getElementById('kpi').innerHTML='';
+      }
+    }catch(err){
+      console.error(err);
+    }
+  }
+
+  $('#file').on('change', async function(e){
     const file = e.target.files[0];
     if(!file) return;
-    const reader = new FileReader();
-    reader.onload = function(ev){
-      try{
-        const data = new Uint8Array(ev.target.result);
-        const wb = XLSX.read(data, { type:'array' });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const arr = XLSX.utils.sheet_to_json(ws, { header:1 });
-        const rows = arr.slice(1).filter(r=>r&&r.length);
-        if(!rows.length){ setStatus('文件无数据'); return; }
-        const mapped = rows.map(r=>[
-          r[0]||'',             // 商品ID
-          r[1]||'',             // 日期
-          r[2]||0,              // 曝光量
-          r[3]||0,              // 访客数
-          r[4]||0,              // 浏览量
-          r[5]||0,              // 加购人数
-          r[6]||0,              // 订单数
-          r[7]||0,              // 买家数
-          r[8]||0,              // GMV
-          r[9] ? '是' : ''      // 新品标记
-        ]);
-        const dt = initTable();
-        dt.clear().rows.add(mapped).draw();
-        setStatus('已加载 '+rows.length+' 行');
-      }catch(err){ console.error(err); setStatus('解析失败'); }
-    };
-    reader.onerror = ()=> setStatus('读取失败');
-    reader.readAsArrayBuffer(file);
+    try{
+      setStatus('上传中...');
+      await upload(file);
+      setStatus('加载数据...');
+      await loadData();
+      setStatus('完成');
+    }catch(err){ console.error(err); setStatus('失败: '+err.message); }
     e.target.value='';
   });
+
+  document.getElementById('newModal').addEventListener('click',e=>{ if(e.target.id==='newModal') e.currentTarget.style.display='none'; });
+
+  window.fp = flatpickr('#dateFilter',{ mode:'range', dateFormat:'Y-m-d', onClose:(ds)=>{ if(ds.length===2) loadData().catch(err=>console.error(err)); } });
+  $('#refreshBtn').on('click',()=>loadData().catch(err=>console.error(err)));
+  loadData().catch(err=>console.error(err));
 })();
 </script>
 </body>
