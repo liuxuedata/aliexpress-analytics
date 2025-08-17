@@ -44,7 +44,7 @@
 
 <div class="layout">
   <nav class="sidebar" id="sidebar">
-    <div class="site-header"><span id="currentSite">独立站</span><button id="addSite" class="add-site-btn">+</button></div>
+    <div class="site-header"><span id="currentSite">独立站</span></div>
     <ul class="sub-nav">
       <li><a href="#" data-jump="detail" class="active">明细数据</a></li>
       <li><a href="#" data-jump="analysis">运营分析</a></li>
@@ -59,7 +59,7 @@
       <div class="panel">
         <div class="controls">
           <label>站点：</label>
-          <input type="text" id="site" value="" placeholder="如：poolsvacuum.com">
+          <select id="site"></select>
           <span>日期：</span>
           <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
           <label>网络：</label>
@@ -182,7 +182,6 @@
   let dt;
   let rawTable = [];
   let onlyNew = false;
-  siteInput.addEventListener('change', load);
   networkSel.addEventListener('change', load);
   campaignSel.addEventListener('change', load);
 
@@ -293,7 +292,6 @@
   }
 
   // 默认站点取 url 参数或本地存储
-  siteInput.value = getParam('site') || localStorage.getItem('indepSite') || 'poolsvacuum.com';
   const storedPeriod = localStorage.getItem('indepPeriod');
   if (storedPeriod && storedPeriod.includes(' to ')) {
     dateInput.value = storedPeriod;
@@ -320,7 +318,6 @@
     loadStatusEl.textContent = '加载中...';
     try {
       const site = siteInput.value.trim();
-      localStorage.setItem('indepSite', site);
       let from, to;
       const range = dateInput.value;
       if (range && range.includes(' to ')) {
@@ -448,55 +445,40 @@
       setTimeout(() => { statusEl.textContent = ''; }, 3000);
     }
   });
-  load();
+  window.loadIndependentData = load;
 })();
 </script>
 <script src="assets/site-nav.js"></script>
 
 <script>
-document.addEventListener('DOMContentLoaded',()=>{
-  const siteListKey='indepSites';
-  const currentKey='currentIndepSite';
-  let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
-  if(!Array.isArray(sites)||!sites.length){
-    sites=['独立站'];
-    localStorage.setItem(siteListKey,JSON.stringify(sites));
+(async function(){
+  const siteSelect=document.getElementById("site");
+  const currentEl=document.getElementById("currentSite");
+  try{
+    const resp=await fetch("/api/independent/sites");
+    const j=await resp.json();
+    const sites=j.sites||[];
+    siteSelect.innerHTML=sites.map(s=>`<option value="${s}">${s}</option>`).join("");
+    let cur=localStorage.getItem("currentIndepSite");
+    if(!cur||!sites.includes(cur)) cur=sites[0]||"";
+    if(cur){
+      siteSelect.value=cur;
+      currentEl.textContent=cur;
+      document.title = '独立站 · ' + cur;
+      localStorage.setItem("currentIndepSite",cur);
+    }
+    siteSelect.addEventListener("change",()=>{
+      const val=siteSelect.value;
+      currentEl.textContent=val;
+      document.title = '独立站 · ' + val;
+      localStorage.setItem("currentIndepSite",val);
+      if(typeof loadIndependentData==="function") loadIndependentData();
+    });
+    if(typeof loadIndependentData==="function") loadIndependentData();
+  }catch(e){
+    console.error("independent site list fetch failed",e);
   }
-  const currentEl=document.getElementById('currentSite');
-  const siteInput=document.getElementById('site');
-  function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));renderSiteMenus();}
-  function update(trigger=false){
-    const name=localStorage.getItem(currentKey)||sites[0];
-    currentEl.textContent=name;
-    localStorage.setItem(currentKey,name);
-    if(siteInput){
-      siteInput.value=name;
-      if(trigger) siteInput.dispatchEvent(new Event('change'));
-    }
-  }
-  currentEl.addEventListener('dblclick',()=>{
-    const cur=localStorage.getItem(currentKey)||sites[0];
-    const idx=sites.indexOf(cur);
-    const n=prompt('修改站点名',cur);
-    if(n){
-      sites[idx]=n;
-      save();
-      localStorage.setItem(currentKey,n);
-      update(true);
-    }
-  });
-  document.getElementById('addSite').addEventListener('click',()=>{
-    const n=prompt('新增站点名');
-    if(n){
-      sites.push(n);
-      save();
-      localStorage.setItem(currentKey,n);
-      update(true);
-    }
-  });
-  renderSiteMenus();
-  update();
-});
+})();
 </script>
 
 </body>

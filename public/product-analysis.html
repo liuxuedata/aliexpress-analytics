@@ -111,45 +111,56 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(analysisLink)analysisLink.href='operation-analysis.html';
   }
 
+    const currentSiteEl=document.getElementById('currentSite');
+  const addBtn=document.getElementById('addSite');
+  if(mode==='indep'){
+    if(addBtn) addBtn.style.display='none';
+    renderSiteMenus();
+    fetch('/api/independent/sites').then(r=>r.json()).then(j=>{
+      const sites=j.sites||[];
+      const paramSite=params.get('site');
+      const stored=localStorage.getItem('currentIndepSite');
+      let site=sites[0]||'';
+      if(paramSite && sites.includes(paramSite)) site=paramSite;
+      else if(stored && sites.includes(stored)) site=stored;
+      localStorage.setItem('currentIndepSite',site);
+      currentSiteEl.textContent=site;
+      document.title='产品分析 · '+site;
+      setupSelf('indep', site);
+    });
+    return;
+  }
   const siteListKey='managedSites';
   const currentSiteKey='currentSite';
   let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
   if(!Array.isArray(sites)||!sites.length){sites=mode==='self'?['A站','B站','C站']:['主站'];}
-  const currentSiteEl=document.getElementById('currentSite');
   function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));renderSiteMenus();}
   function updateCurrent(){
     const name=localStorage.getItem(currentSiteKey)||sites[0];
     if(mode==='self'){
       currentSiteEl.textContent='自运营 '+name;
-    }else if(mode==='indep'){
-      currentSiteEl.textContent='独立站';
     }else{
       currentSiteEl.textContent=sites.length>1?'全托管 '+name:'全托管';
     }
     localStorage.setItem(currentSiteKey,name);
   }
   currentSiteEl.addEventListener('dblclick',()=>{
-    if(mode==='indep')return;
     const cur=localStorage.getItem(currentSiteKey)||sites[0];
     const idx=sites.indexOf(cur);
     const n=prompt('修改站点名',cur);
     if(n){sites[idx]=n;save();localStorage.setItem(currentSiteKey,n);updateCurrent();}
   });
-  document.getElementById('addSite').addEventListener('click',()=>{
-    if(mode==='indep')return;
+  addBtn.addEventListener('click',()=>{
     const n=prompt('新增站点名');
     if(n){sites.push(n);save();updateCurrent();}
   });
   renderSiteMenus();
   updateCurrent();
-
-  if(mode==='self' || mode==='indep'){
-    setupSelf(mode);
-  }else{
+  if(mode==='self')
+    setupSelf('self');
+  else
     setupFM();
-  }
-
-  function card(title,cur,prev,isPct,avg,share){
+function card(title,cur,prev,isPct,avg,share){
     const diff=(cur-prev)||0;
     const arrow=diff>=0?'↑':'↓';
     const cls=diff>=0?'up':'down';
@@ -266,20 +277,18 @@ document.addEventListener('DOMContentLoaded',()=>{
     loadPeriods();
   }
 
-  function setupSelf(mode){
+  function setupSelf(mode, siteParam){
     document.getElementById('lineWrap').style.display='block';
     const ctrl=document.getElementById('ctrl');
     ctrl.innerHTML='<input id="dateRange" class="date-filter" placeholder="选择日期范围">';
     const input=document.getElementById('dateRange');
-    const key=mode==='indep'?'indepPeriod':'selfPeriod';
+    const key=mode==='indep'?`indepPeriod_${siteParam}`:'selfPeriod';
     const fp=flatpickr(input,{mode:'range',dateFormat:'Y-m-d',onClose:ds=>{if(ds.length===2)loadData();}});
     const stored=localStorage.getItem(key);
     if(stored && stored.includes(' to ')) input.value=stored; else {
       const today=new Date(); const end=today.toISOString().slice(0,10); const start=new Date(today.getTime()-6*86400000).toISOString().slice(0,10); const def=`${start} to ${end}`; input.value=def; localStorage.setItem(key,def);
     }
-    const siteParam=params.get('site')||localStorage.getItem('indepSite')||'poolsvacuum.com';
-    localStorage.setItem('indepSite',siteParam);
-    async function loadData(){
+        async function loadData(){
       const val=input.value; if(!val.includes(' to '))return; const [startISO,endISO]=val.split(' to '); localStorage.setItem(key,`${startISO} to ${endISO}`);
       const {prevStart,prevEnd,days}=periodShift(startISO,endISO);
       const [rowsA,rowsB]=await Promise.all([
