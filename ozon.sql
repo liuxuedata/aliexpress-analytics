@@ -78,8 +78,7 @@ create table public.ozon_product_report_wide (
   faktory_prodazh_skolko_tovarov_postavit numeric null,
   faktory_prodazh_srednee_vremya_dostavki numeric null,
   faktory_prodazh_otzyvy numeric null,
-  faktory_prodazh_reyting_tovara numeric null,
-  primary key (tovary, den)
+  faktory_prodazh_reyting_tovara numeric null
 );
 
 create or replace function public.refresh_ozon_schema_cache()
