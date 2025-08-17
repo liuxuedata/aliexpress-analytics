@@ -17,9 +17,9 @@ function normalizeTableName(name, fallback = 'ozon_product_report_wide'){
 module.exports = async function handler(req,res){
   try{
     const supabase = supa();
-    let { date, start, end } = req.query || {};
+    let { date, start, end, store_id } = req.query || {};
 
-    const RAW_TABLE = process.env.OZON_TABLE_NAME || 'ozon_product_report_wide';
+    const RAW_TABLE = process.env[`OZON_TABLE_NAME_${store_id}`] || process.env.OZON_TABLE_NAME || 'ozon_product_report_wide';
     const TABLE = normalizeTableName(RAW_TABLE);
 
     async function refresh(){
