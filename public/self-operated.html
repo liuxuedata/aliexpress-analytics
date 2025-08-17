@@ -332,6 +332,52 @@ function computeCards(rows, prevRows) {
   setDelta('cartedProductsChange', cur.pc-prev.pc, false);
   setDelta('purchasedProductsChange', cur.pp-prev.pp, false);
 }
+function aggregateByProduct(rows, startISO, endISO) {
+  const map=new Map();
+  rows.forEach(r=>{
+    const id=r.product_id;
+    if(!map.has(id)){
+      map.set(id,{
+        product_id:id,
+        exposure:0,visitors:0,views:0,add_people:0,
+        order_items:0,pay_items:0,pay_buyers:0,
+        _ctr_num:0,_ctr_den:0,_stay_num:0,_stay_den:0
+      });
+    }
+    const acc=map.get(id);
+    acc.exposure+=r.exposure||0;
+    acc.visitors+=r.visitors||0;
+    acc.views+=r.views||0;
+    acc.add_people+=r.add_people||0;
+    acc.order_items+=r.order_items||0;
+    acc.pay_items+=r.pay_items||0;
+    acc.pay_buyers+=r.pay_buyers||0;
+    if(r.search_ctr!==null&&r.search_ctr!==undefined){
+      const w=r.exposure||0;
+      acc._ctr_num+=(Number(r.search_ctr)||0)*w;
+      acc._ctr_den+=w;
+    }
+    if(r.avg_stay_seconds!==null&&r.avg_stay_seconds!==undefined){
+      const wv=r.visitors||0;
+      acc._stay_num+=(Number(r.avg_stay_seconds)||0)*wv;
+      acc._stay_den+=wv;
+    }
+  });
+  const label=startISO===endISO?startISO:`${startISO}~${endISO}`;
+  return Array.from(map.values()).map(acc=>({
+    product_id:acc.product_id,
+    bucket_label:label,
+    exposure:acc.exposure,
+    visitors:acc.visitors,
+    views:acc.views,
+    add_people:acc.add_people,
+    order_items:acc.order_items,
+    pay_items:acc.pay_items,
+    pay_buyers:acc.pay_buyers,
+    search_ctr:acc._ctr_den>0?acc._ctr_num/acc._ctr_den:null,
+    avg_stay_seconds:acc._stay_den>0?acc._stay_num/acc._stay_den:null
+  }));
+}
 function buildDailyTotals(rows, days, startISO) {
   const byDay=new Map(); rows.forEach(r=>{ const d=r.bucket; if(!byDay.has(d)) byDay.set(d,{exp:0,vis:0,add:0,fav:0,orders:0}); const a=byDay.get(d); a.exp+=r.exposure||0; a.vis+=r.visitors||0; a.add+=r.add_people||0; a.orders+=r.pay_orders||0; a.fav+=(r.fav_people||r.fav_count||0); });
   const x=[],A=[]; const start=new Date(startISO+'T00:00:00');
@@ -449,7 +495,7 @@ async function renderTable(rows, granularity) {
     data,
     columns: [
       { title: '商品（ID）' },
-      { title: granularity==='day' ? '日期' : (granularity==='week' ? '周范围' : '月份范围') },
+      { title: granularity==='day' ? '日期' : (granularity==='week' ? '周范围' : (granularity==='period' ? '周期' : '月份范围')) },
       { title: '访客比(%)' }, { title: '加购比(%)' }, { title: '支付比(%)' },
       { title: '曝光量' }, { title: '访客数' }, { title: '浏览量' },
       { title: '加购人数' },
@@ -476,17 +522,15 @@ async function fetchAndRenderAll() {
       $('#dateFilter').val(`${startISO} to ${endISO}`);
     }
     localStorage.setItem('selfPeriod', `${startISO} to ${endISO}`);
-    const g = 'day';
-
     const { prevStart, prevEnd, days }=periodShift(startISO,endISO);
-    const [rowsNowAgg, rowsPrevAgg, rowsA, rowsB] = await Promise.all([
-      fetchAgg(startISO,endISO,g),
-      fetchAgg(prevStart,prevEnd,g),
+    const [rowsA, rowsB] = await Promise.all([
       fetchAgg(startISO,endISO,'day'),
       fetchAgg(prevStart,prevEnd,'day')
     ]);
+    const rowsNowAgg = aggregateByProduct(rowsA, startISO, endISO);
+    const rowsPrevAgg = aggregateByProduct(rowsB, prevStart, prevEnd);
     computeCards(rowsNowAgg, rowsPrevAgg);
-    await renderTable(rowsNowAgg,g);
+    await renderTable(rowsNowAgg,'period');
     const metricKey=(function(k){ if(k==='exposure_sum')return 'exp'; if(k==='visitors_sum')return 'vis'; if(k==='add_people_sum')return 'add'; if(k==='orders_sum')return 'orders'; if(k==='fav_sum')return 'fav'; })(document.getElementById('metricSel').value);
     drawLineChartDaily(rowsA,rowsB,days,startISO,prevStart,metricKey);
     drawRatioBar(rowsA,rowsB);

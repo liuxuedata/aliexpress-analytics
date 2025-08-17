@@ -55,8 +55,10 @@ module.exports = async function handler(req,res){
     ];
     const uvCol = uvCandidates.find(c=>tableCols.includes(c)) || uvCandidates[0];
 
-  
- const select = `sku,tovary,voronka_prodazh_pokazy_vsego,uv:${uvCol},voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_vykupleno_tovarov`;
+
+    const idOf = r => `${r.sku}@@${r.model||''}`;
+
+ const select = `sku,model,tovary,voronka_prodazh_pokazy_vsego,uv:${uvCol},voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_vykupleno_tovarov`;
 
 
     if(start && end){
@@ -70,17 +72,18 @@ module.exports = async function handler(req,res){
       if(prevResp.error) throw prevResp.error;
       function agg(rows){
         const sums={exposure:0,uv:0,cart:0,pay:0};
-        const skuSet=new Set();
-        const cartSkus=new Set();
-        const paySkus=new Set();
+        const prodSet=new Set();
+        const cartProds=new Set();
+        const payProds=new Set();
         for(const r of rows){
-          skuSet.add(r.sku);
+          const id=idOf(r);
+          prodSet.add(id);
           const e=Number(r.voronka_prodazh_pokazy_vsego)||0; sums.exposure+=e;
           const u=Number(r.uv)||0; sums.uv+=u;
-          const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; sums.cart+=c; if(c>0) cartSkus.add(r.sku);
-          const p=Number(r.voronka_prodazh_vykupleno_tovarov)||0; sums.pay+=p; if(p>0) paySkus.add(r.sku);
+          const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; sums.cart+=c; if(c>0) cartProds.add(id);
+          const p=Number(r.voronka_prodazh_vykupleno_tovarov)||0; sums.pay+=p; if(p>0) payProds.add(id);
         }
-        return {sums, skuSet, cartSkus, paySkus, rows};
+        return {sums, prodSet, cartProds, payProds, rows};
       }
       const cur=agg(curResp.data||[]);
       const prev=agg(prevResp.data||[]);
@@ -90,8 +93,8 @@ module.exports = async function handler(req,res){
       const cartRatePrev = prev.sums.uv ? prev.sums.cart / prev.sums.uv : 0;
       const payRate = cur.sums.uv ? cur.sums.pay / cur.sums.uv : 0;
       const payRatePrev = prev.sums.uv ? prev.sums.pay / prev.sums.uv : 0;
-      const newSkus=[...cur.skuSet].filter(s=>!prev.skuSet.has(s));
-      const newProducts=curResp.data.filter(r=>newSkus.includes(r.sku)).map(r=>({sku:r.sku,title:r.tovary}));
+      const newIds=[...cur.prodSet].filter(id=>!prev.prodSet.has(id));
+      const newProducts=curResp.data.filter(r=>newIds.includes(idOf(r))).map(r=>({sku:r.sku,model:r.model,title:r.tovary}));
       return res.json({
         ok:true,
         start,
@@ -100,9 +103,9 @@ module.exports = async function handler(req,res){
           visitor_rate:{current:visitorRate, previous:visitorRatePrev},
           cart_rate:{current:cartRate, previous:cartRatePrev},
           pay_rate:{current:payRate, previous:payRatePrev},
-          product_total:{current:cur.skuSet.size, previous:prev.skuSet.size},
-          cart_product_total:{current:cur.cartSkus.size, previous:prev.cartSkus.size},
-          pay_product_total:{current:cur.paySkus.size, previous:prev.paySkus.size},
+          product_total:{current:cur.prodSet.size, previous:prev.prodSet.size},
+          cart_product_total:{current:cur.cartProds.size, previous:prev.cartProds.size},
+          pay_product_total:{current:cur.payProds.size, previous:prev.payProds.size},
           new_product_total:newProducts.length,
           new_products:newProducts
         }
@@ -138,17 +141,18 @@ module.exports = async function handler(req,res){
     }
     function agg(rows){
       const sums={exposure:0,uv:0,cart:0,pay:0};
-      const skuSet=new Set();
-      const cartSkus=new Set();
-      const paySkus=new Set();
+      const prodSet=new Set();
+      const cartProds=new Set();
+      const payProds=new Set();
       for(const r of rows){
-        skuSet.add(r.sku);
+        const id=idOf(r);
+        prodSet.add(id);
         const e=Number(r.voronka_prodazh_pokazy_vsego)||0; sums.exposure+=e;
         const u=Number(r.uv)||0; sums.uv+=u;
-        const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; sums.cart+=c; if(c>0) cartSkus.add(r.sku);
-        const p=Number(r.voronka_prodazh_vykupleno_tovarov)||0; sums.pay+=p; if(p>0) paySkus.add(r.sku);
+        const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; sums.cart+=c; if(c>0) cartProds.add(id);
+        const p=Number(r.voronka_prodazh_vykupleno_tovarov)||0; sums.pay+=p; if(p>0) payProds.add(id);
       }
-      return {sums, skuSet, cartSkus, paySkus, rows};
+      return {sums, prodSet, cartProds, payProds, rows};
     }
     const cur=agg(curResp.data||[]);
     const prev=agg(prevResp.data||[]);
@@ -158,8 +162,8 @@ module.exports = async function handler(req,res){
     const cartRatePrev = prev.sums.uv ? prev.sums.cart / prev.sums.uv : 0;
     const payRate = cur.sums.uv ? cur.sums.pay / cur.sums.uv : 0;
     const payRatePrev = prev.sums.uv ? prev.sums.pay / prev.sums.uv : 0;
-    const newSkus=[...cur.skuSet].filter(s=>!prev.skuSet.has(s));
-    const newProducts=cur.rows.filter(r=>newSkus.includes(r.sku)).map(r=>({sku:r.sku,title:r.tovary}));
+    const newIds=[...cur.prodSet].filter(id=>!prev.prodSet.has(id));
+    const newProducts=cur.rows.filter(r=>newIds.includes(idOf(r))).map(r=>({sku:r.sku,model:r.model,title:r.tovary}));
     res.json({
       ok:true,
       date,
@@ -168,9 +172,9 @@ module.exports = async function handler(req,res){
         visitor_rate:{current:visitorRate, previous:visitorRatePrev},
         cart_rate:{current:cartRate, previous:cartRatePrev},
         pay_rate:{current:payRate, previous:payRatePrev},
-        product_total:{current:cur.skuSet.size, previous:prev.skuSet.size},
-        cart_product_total:{current:cur.cartSkus.size, previous:prev.cartSkus.size},
-        pay_product_total:{current:cur.paySkus.size, previous:prev.paySkus.size},
+        product_total:{current:cur.prodSet.size, previous:prev.prodSet.size},
+        cart_product_total:{current:cur.cartProds.size, previous:prev.cartProds.size},
+        pay_product_total:{current:cur.payProds.size, previous:prev.payProds.size},
         new_product_total:newProducts.length,
         new_products:newProducts
       }

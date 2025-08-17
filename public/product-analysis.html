@@ -44,11 +44,15 @@
     <div class="content">
       <section class="content-pad">
         <div id="ctrl" class="controls" style="margin-bottom:12px;"></div>
-        <div class="controls" style="margin-bottom:12px;flex-wrap:wrap;"><label>产品</label><select id="productSelect" class="sel" style="width:200px;flex:0 0 200px;"></select><img id="productImg" style="width:40px;height:40px;object-fit:cover;margin-left:8px;display:none;"/><a id="productLink" href="#" target="_blank" style="margin-left:8px;display:none;word-break:break-all;white-space:normal;flex:1 1 auto;"></a></div>
+        <div class="controls" style="margin-bottom:12px;flex-wrap:wrap;"><label>产品</label><select id="productSelect" class="sel" style="width:200px;flex:0 0 200px;"></select><img id="productImg" style="width:40px;height:40px;object-fit:cover;margin-left:8px;display:none;"/><a id="productLink" href="#" target="_blank" style="margin-left:8px;display:none;word-break:break-all;white-space:normal;flex:1 1 auto;"></a><span id="listingDate" style="margin-left:8px;"></span></div>
         <div id="kpi" class="kpi-row"></div>
         <div id="lineWrap" class="panel" style="margin-top:16px;display:none;">
           <h3>曝光趋势</h3>
           <div id="expLine" style="width:100%;height:260px;"></div>
+          <h3 style="margin-top:24px;">访客比趋势</h3>
+          <div id="uvRateLine" style="width:100%;height:260px;"></div>
+          <h3 style="margin-top:24px;">加购比趋势</h3>
+          <div id="addRateLine" style="width:100%;height:260px;"></div>
         </div>
       </section>
     </div>
@@ -143,12 +147,13 @@ document.addEventListener('DOMContentLoaded',()=>{
     setupFM();
   }
 
-  function card(title,cur,prev){
+  function card(title,cur,prev,isPct){
     const diff=(cur-prev)||0;
     const arrow=diff>=0?'↑':'↓';
-    const delta=Math.abs(diff);
     const cls=diff>=0?'up':'down';
-    return `<div class="stat-card"><h4>${title}</h4><p>${cur}</p><div class="sub"><span class="delta ${cls}">${arrow} ${delta}</span></div></div>`;
+    const fmt=v=>isPct?`${(v*100).toFixed(2)}%`:v;
+    const delta=isPct?`${Math.abs(diff*100).toFixed(2)}%`:Math.abs(diff);
+    return `<div class="stat-card"><h4>${title}</h4><p>${fmt(cur)}</p><div class="sub"><span class="delta ${cls}">${arrow} ${delta}</span></div></div>`;
   }
 
   function setupFM(){
@@ -205,12 +210,23 @@ document.addEventListener('DOMContentLoaded',()=>{
       }
       function update(pid){
         const cur=sum(rowsA,pid); const prev=sum(rowsB,pid);
+        const curUvRate=cur.exp?cur.uv/cur.exp:0;
+        const prevUvRate=prev.exp?prev.uv/prev.exp:0;
+        const curAddRate=cur.uv?cur.add/cur.uv:0;
+        const prevAddRate=prev.uv?prev.add/prev.uv:0;
+        const curPayRate=cur.uv?cur.pay/cur.uv:0;
+        const prevPayRate=prev.uv?prev.pay/prev.uv:0;
         document.getElementById('kpi').innerHTML=[
-          card('曝光量',cur.exp,prev.exp),
-          card('访客数',cur.uv,prev.uv),
-          card('加购人数',cur.add,prev.add),
-          card('支付买家数',cur.pay,prev.pay)
+          card('平均访客比',curUvRate,prevUvRate,true),
+          card('平均加购比',curAddRate,prevAddRate,true),
+          card('平均支付比',curPayRate,prevPayRate,true),
+          card('总曝光量',cur.exp,prev.exp),
+          card('总访客数',cur.uv,prev.uv),
+          card('总加购人数',cur.add,prev.add),
+          card('总支付买家数',cur.pay,prev.pay)
         ].join('');
+        const dates=[...rowsA,...rowsB].filter(x=>String(x.product_id)===String(pid)).map(x=>x.period_start||x.period_end||'').filter(Boolean).sort();
+        document.getElementById('listingDate').textContent=dates.length?`上架日期：${dates[0]}`:'';
         const url=`https://aliexpress.com/item/${pid}.html`;
         getProductMeta(pid,url).then(m=>{
           setProdLink(m.title||pid,url);
@@ -293,31 +309,71 @@ document.addEventListener('DOMContentLoaded',()=>{
         }),{exp:0,uv:0,add:0,pay:0});
       }
       function line(pid){
-        const mapA=new Map(); rowsA.filter(r=>String(getId(r))===String(pid)).forEach(r=>{const d=mode==='indep'?r.day:r.bucket; mapA.set(d,getExp(r));});
-        const mapB=new Map(); rowsB.filter(r=>String(getId(r))===String(pid)).forEach(r=>{const d=mode==='indep'?r.day:r.bucket; mapB.set(d,getExp(r));});
-        const labels=[], a=[], b=[];
+        const mapExpA=new Map(), mapExpB=new Map();
+        const mapUvRateA=new Map(), mapUvRateB=new Map();
+        const mapAddRateA=new Map(), mapAddRateB=new Map();
+        rowsA.filter(r=>String(getId(r))===String(pid)).forEach(r=>{
+          const d=mode==='indep'?r.day:r.bucket;
+          const exp=getExp(r);
+          const uv=Number(mode==='indep'?r.clicks||0:r.visitors||0);
+          const add=Number(mode==='indep'?0:r.add_people||0);
+          mapExpA.set(d,exp);
+          mapUvRateA.set(d,exp?uv/exp:0);
+          mapAddRateA.set(d,uv?add/uv:0);
+        });
+        rowsB.filter(r=>String(getId(r))===String(pid)).forEach(r=>{
+          const d=mode==='indep'?r.day:r.bucket;
+          const exp=getExp(r);
+          const uv=Number(mode==='indep'?r.clicks||0:r.visitors||0);
+          const add=Number(mode==='indep'?0:r.add_people||0);
+          mapExpB.set(d,exp);
+          mapUvRateB.set(d,exp?uv/exp:0);
+          mapAddRateB.set(d,uv?add/uv:0);
+        });
+        const labels=[], expA=[], expB=[], uvA=[], uvB=[], addA=[], addB=[];
         for(let i=0;i<days;i++){
           const da=new Date(startA+'T00:00:00'); da.setDate(da.getDate()+i); const isoA=da.toISOString().slice(0,10);
           const db=new Date(startB+'T00:00:00'); db.setDate(db.getDate()+i); const isoB=db.toISOString().slice(0,10);
-          labels.push(isoA); a.push(mapA.get(isoA)||0); b.push(mapB.get(isoB)||0);
+          labels.push(isoA);
+          expA.push(mapExpA.get(isoA)||0);
+          expB.push(mapExpB.get(isoB)||0);
+          uvA.push((mapUvRateA.get(isoA)||0)*100);
+          uvB.push((mapUvRateB.get(isoB)||0)*100);
+          addA.push((mapAddRateA.get(isoA)||0)*100);
+          addB.push((mapAddRateB.get(isoB)||0)*100);
         }
-        const chart=echarts.init(document.getElementById('expLine'));
-        chart.setOption({tooltip:{trigger:'axis'},legend:{data:['本周期','上一周期']},xAxis:{type:'category',data:labels},yAxis:{type:'value'},series:[{name:'本周期',type:'line',smooth:true,data:a},{name:'上一周期',type:'line',smooth:true,data:b}]});
-        window.addEventListener('resize',()=>chart.resize());
+        const expChart=echarts.init(document.getElementById('expLine'));
+        expChart.setOption({tooltip:{trigger:'axis'},legend:{data:['本周期','上一周期']},xAxis:{type:'category',data:labels},yAxis:{type:'value'},series:[{name:'本周期',type:'line',smooth:true,data:expA},{name:'上一周期',type:'line',smooth:true,data:expB}]});
+        const uvChart=echarts.init(document.getElementById('uvRateLine'));
+        uvChart.setOption({tooltip:{trigger:'axis',valueFormatter:v=>v+'%'},legend:{data:['本周期','上一周期']},xAxis:{type:'category',data:labels},yAxis:{type:'value',axisLabel:{formatter:'{value}%'}},series:[{name:'本周期',type:'line',smooth:true,data:uvA},{name:'上一周期',type:'line',smooth:true,data:uvB}]});
+        const addChart=echarts.init(document.getElementById('addRateLine'));
+        addChart.setOption({tooltip:{trigger:'axis',valueFormatter:v=>v+'%'},legend:{data:['本周期','上一周期']},xAxis:{type:'category',data:labels},yAxis:{type:'value',axisLabel:{formatter:'{value}%'}},series:[{name:'本周期',type:'line',smooth:true,data:addA},{name:'上一周期',type:'line',smooth:true,data:addB}]});
+        window.addEventListener('resize',()=>{expChart.resize();uvChart.resize();addChart.resize();});
       }
       function update(pid){
         const cur=sum(rowsA,pid); const prev=sum(rowsB,pid);
+        const curUvRate=cur.exp?cur.uv/cur.exp:0;
+        const prevUvRate=prev.exp?prev.uv/prev.exp:0;
+        const curAddRate=cur.uv?cur.add/cur.uv:0;
+        const prevAddRate=prev.uv?prev.add/prev.uv:0;
+        const curPayRate=cur.uv?cur.pay/cur.uv:0;
+        const prevPayRate=prev.uv?prev.pay/prev.uv:0;
         document.getElementById('kpi').innerHTML=[
-          card('曝光量',cur.exp,prev.exp),
-          card('访客数',cur.uv,prev.uv),
-          card('加购人数',cur.add,prev.add),
-          card('支付买家数',cur.pay,prev.pay)
+          card('平均访客比',curUvRate,prevUvRate,true),
+          card('平均加购比',curAddRate,prevAddRate,true),
+          card('平均支付比',curPayRate,prevPayRate,true),
+          card('总曝光量',cur.exp,prev.exp),
+          card('总访客数',cur.uv,prev.uv),
+          card('总加购人数',cur.add,prev.add),
+          card('总支付买家数',cur.pay,prev.pay)
         ].join('');
         line(pid);
+        const dates=[...rowsA,...rowsB].filter(r=>String(getId(r))===String(pid)).map(r=>mode==='indep'?r.day:r.bucket).sort();
+        document.getElementById('listingDate').textContent=dates.length?`上架日期：${dates[0]}`:'';
         const url = mode==='indep' ? linkMap.get(pid) : `https://aliexpress.com/item/${pid}.html`;
         const api = mode==='indep' ? '/api/indep_fetchProductInfo' : undefined;
         getProductMeta(pid,url,api).then(m=>{
-          const linkText = mode==='indep' ? url : (m.title||pid);
+          const linkText = mode==='indep' ? (m.title||url) : (m.title||pid);
           setProdLink(linkText||'',url);
           const img=document.getElementById('productImg');
           img.src=m.image||'';

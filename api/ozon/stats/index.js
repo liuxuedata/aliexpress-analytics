@@ -55,7 +55,9 @@ module.exports = async function handler(req,res){
     ];
     const uvCol = uvCandidates.find(c=>tableCols.includes(c)) || uvCandidates[0];
 
-    const selectCols = `sku,tovary,voronka_prodazh_pokazy_vsego,voronka_prodazh_pokazy_v_poiske_i_kataloge,uv:${uvCol},voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov,voronka_prodazh_vykupleno_tovarov`;
+    const idOf = r => `${r.sku}@@${r.model||''}`;
+
+    const selectCols = `sku,model,tovary,voronka_prodazh_pokazy_vsego,voronka_prodazh_pokazy_v_poiske_i_kataloge,uv:${uvCol},voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov,voronka_prodazh_vykupleno_tovarov`;
 
     if(start && end){
       const { data, error } = await supabase
@@ -67,10 +69,11 @@ module.exports = async function handler(req,res){
       if(error) throw error;
       const map = new Map();
       for(const r of data || []){
-        const key = r.sku;
+        const key = idOf(r);
         if(!map.has(key)){
           map.set(key, {
             product_id: r.sku,
+            model: r.model,
             product_title: r.tovary,
             exposure: 0,
             uv: 0,
@@ -125,6 +128,7 @@ module.exports = async function handler(req,res){
     if(error) throw error;
     const rows = (data||[]).map(r=>({
       product_id: r.sku,
+      model: r.model,
       product_title: r.tovary,
       exposure: r.voronka_prodazh_pokazy_vsego,
       uv: r.uv,

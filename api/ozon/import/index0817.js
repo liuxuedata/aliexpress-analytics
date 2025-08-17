@@ -172,35 +172,97 @@ module.exports = async function handler(req,res){
       }
 
       await refresh();
-      let attempt = 0;
-      let error;
-      do{
-        const resInsert = await supabase
-          .schema('public')
-          .from(TABLE)
-          .insert(rows);
-        error = resInsert.error;
-        if(error && /schema cache/i.test(error.message)){
-          await refresh();
-        }else{
-          break;
-        }
-      }while(attempt++ < 2);
-      fs.unlinkSync(file.path);
-      if(error){
-        console.error('Ozon report insert failed:', error);
-        const parts = [error.message, error.details, error.hint];
-        if(!parts.filter(Boolean).length){
-          try{
-            parts.push(JSON.stringify(error));
-          }catch(_){
-            parts.push(String(error));
+
+      const sumFields = [
+        'voronka_prodazh_posescheniya_kartochki_tovara',
+        'voronka_prodazh_uv_s_prosmotrom_kartochki_tovara',
+        'voronka_prodazh_pokazy_v_poiske_i_kataloge',
+        'voronka_prodazh_uv_s_prosmotrom_v_poiske_ili_kataloge',
+        'voronka_prodazh_pokazy_vsego',
+        'voronka_prodazh_unikalnye_posetiteli_vsego',
+        'voronka_prodazh_zakazano_tovarov'
+      ];
+      const mapRows = new Map();
+      for(const r of rows){
+        const key = `${r.sku}||${r.model}||${r.den}`;
+        const exist = mapRows.get(key);
+        if(exist){
+          for(const f of sumFields){
+            exist[f] = (Number(exist[f])||0) + (Number(r[f])||0);
           }
+        }else{
+          mapRows.set(key, { ...r });
         }
-        const msg = parts.filter(Boolean).join(' | ');
-        return res.status(400).json({ error: msg });
       }
-      res.json({ ok: true, inserted: rows.length });
+      rows = Array.from(mapRows.values());
+
+      let inserted = 0, duplicates = 0;
+      for(const row of rows){
+        let attempt = 0, insErr;
+        do{
+          const resIns = await supabase.schema('public').from(TABLE).insert(row);
+          insErr = resIns.error;
+          if(insErr && /schema cache/i.test(insErr.message)){
+            await refresh();
+          }else{
+            break;
+          }
+        }while(attempt++ < 2);
+
+        if(insErr){
+          if(insErr.code === '23505'){
+            duplicates++;
+            let selErr, data, attemptSel = 0;
+            do{
+              const resSel = await supabase
+                .schema('public')
+                .from(TABLE)
+                .select(sumFields.join(','))
+                .eq('sku', row.sku)
+                .eq('model', row.model)
+                .eq('den', row.den)
+                .single();
+              selErr = resSel.error; data = resSel.data;
+              if(selErr && /schema cache/i.test(selErr.message)){
+                await refresh();
+              }else{
+                break;
+              }
+            }while(attemptSel++ < 2);
+            if(selErr) return res.status(400).json({ error: selErr.message });
+
+            const update = { ...row };
+            for(const f of sumFields){
+              update[f] = (Number(data?.[f])||0) + (Number(row[f])||0);
+            }
+
+            let updErr, attemptUpd = 0;
+            do{
+              const resUpd = await supabase
+                .schema('public')
+                .from(TABLE)
+                .update(update)
+                .eq('sku', row.sku)
+                .eq('model', row.model)
+                .eq('den', row.den);
+              updErr = resUpd.error;
+              if(updErr && /schema cache/i.test(updErr.message)){
+                await refresh();
+              }else{
+                break;
+              }
+            }while(attemptUpd++ < 2);
+            if(updErr) return res.status(400).json({ error: updErr.message });
+          }else{
+            return res.status(400).json({ error: insErr.message });
+          }
+        }else{
+          inserted++;
+        }
+      }
+
+      fs.unlinkSync(file.path);
+      res.json({ ok:true, inserted, duplicates });
     }catch(e){
       try{ fs.unlinkSync(file.path); }catch(_){ /* ignore */ }
       const msg = e?.message || e?.error_description || String(e);
