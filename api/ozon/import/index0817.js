@@ -178,7 +178,7 @@ module.exports = async function handler(req,res){
         const resInsert = await supabase
           .schema('public')
           .from(TABLE)
-          .insert(rows);
+          .upsert(rows, { onConflict: 'sku,model,den' });
         error = resInsert.error;
         if(error && /schema cache/i.test(error.message)){
           await refresh();

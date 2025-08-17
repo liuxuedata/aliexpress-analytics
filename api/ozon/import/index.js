@@ -218,14 +218,14 @@ module.exports = async function handler(req,res){
       return bad(res, 400, 'preflight', pre.error, { table: TABLE, rawTable: RAW_TABLE });
     }
 
-    // insert（修复：.schema('public').from(TABLE)；不再写 'public.xxx'，且取消 onConflict 主键）
+    // upsert to avoid duplicate key conflicts when re-importing
     let attempt = 0;
     let error;
     do{
       const resInsert = await supabase
         .schema('public')
-        .from(TABLE) // ✅ 只传裸表名，避免 public.public
-        .insert(rows);
+        .from(TABLE)
+        .upsert(rows, { onConflict: 'sku,model,den' });
       error = resInsert.error;
       if(error && /schema cache/i.test(error.message)){
         await refresh();
