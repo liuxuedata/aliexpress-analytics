@@ -17,7 +17,7 @@ function normalizeTableName(name, fallback = 'ozon_product_report_wide'){
 module.exports = async function handler(req,res){
   try{
     const supabase = supa();
-    let { date } = req.query || {};
+    let { date, start, end } = req.query || {};
 
     const RAW_TABLE = process.env.OZON_TABLE_NAME || 'ozon_product_report_wide';
     const TABLE = normalizeTableName(RAW_TABLE);
@@ -55,6 +55,58 @@ module.exports = async function handler(req,res){
     ];
     const uvCol = uvCandidates.find(c=>tableCols.includes(c)) || uvCandidates[0];
 
+    const select = `sku,tovary,voronka_prodazh_pokazy_vsego,${uvCol} as uv,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_vykupleno_tovarov`;
+
+    if(start && end){
+      const curResp = await supabase.schema('public').from(TABLE).select(select).gte('den', start).lte('den', end);
+      if(curResp.error) throw curResp.error;
+      const diffMs = new Date(end).getTime() - new Date(start).getTime();
+      const days = Math.floor(diffMs / 86400000) + 1;
+      const prevEnd = new Date(new Date(start).getTime() - 86400000);
+      const prevStart = new Date(prevEnd.getTime() - (days-1)*86400000);
+      const prevResp = await supabase.schema('public').from(TABLE).select(select).gte('den', prevStart.toISOString().slice(0,10)).lte('den', prevEnd.toISOString().slice(0,10));
+      if(prevResp.error) throw prevResp.error;
+      function agg(rows){
+        const sums={exposure:0,uv:0,cart:0,pay:0};
+        const skuSet=new Set();
+        const cartSkus=new Set();
+        const paySkus=new Set();
+        for(const r of rows){
+          skuSet.add(r.sku);
+          const e=Number(r.voronka_prodazh_pokazy_vsego)||0; sums.exposure+=e;
+          const u=Number(r.uv)||0; sums.uv+=u;
+          const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; sums.cart+=c; if(c>0) cartSkus.add(r.sku);
+          const p=Number(r.voronka_prodazh_vykupleno_tovarov)||0; sums.pay+=p; if(p>0) paySkus.add(r.sku);
+        }
+        return {sums, skuSet, cartSkus, paySkus, rows};
+      }
+      const cur=agg(curResp.data||[]);
+      const prev=agg(prevResp.data||[]);
+      const visitorRate = cur.sums.exposure ? cur.sums.uv / cur.sums.exposure : 0;
+      const visitorRatePrev = prev.sums.exposure ? prev.sums.uv / prev.sums.exposure : 0;
+      const cartRate = cur.sums.uv ? cur.sums.cart / cur.sums.uv : 0;
+      const cartRatePrev = prev.sums.uv ? prev.sums.cart / prev.sums.uv : 0;
+      const payRate = cur.sums.uv ? cur.sums.pay / cur.sums.uv : 0;
+      const payRatePrev = prev.sums.uv ? prev.sums.pay / prev.sums.uv : 0;
+      const newSkus=[...cur.skuSet].filter(s=>!prev.skuSet.has(s));
+      const newProducts=curResp.data.filter(r=>newSkus.includes(r.sku)).map(r=>({sku:r.sku,title:r.tovary}));
+      return res.json({
+        ok:true,
+        start,
+        end,
+        metrics:{
+          visitor_rate:{current:visitorRate, previous:visitorRatePrev},
+          cart_rate:{current:cartRate, previous:cartRatePrev},
+          pay_rate:{current:payRate, previous:payRatePrev},
+          product_total:{current:cur.skuSet.size, previous:prev.skuSet.size},
+          cart_product_total:{current:cur.cartSkus.size, previous:prev.cartSkus.size},
+          pay_product_total:{current:cur.paySkus.size, previous:prev.paySkus.size},
+          new_product_total:newProducts.length,
+          new_products:newProducts
+        }
+      });
+    }
+
     const datesResp = await supabase
       .schema('public')
       .from(TABLE)
@@ -75,8 +127,6 @@ module.exports = async function handler(req,res){
     }
     const curIndex = dates.indexOf(date);
     const prevDate = dates[curIndex+1] || null;
-
-    const select = `sku,tovary,voronka_prodazh_pokazy_vsego,${uvCol} as uv,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_vykupleno_tovarov`;
     const curResp = await supabase.schema('public').from(TABLE).select(select).eq('den', date);
     if(curResp.error) throw curResp.error;
     let prevResp = { data: [] };

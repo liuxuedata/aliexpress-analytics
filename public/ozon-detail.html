@@ -7,8 +7,10 @@
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="assets/login.css">
   <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
   <style>
@@ -56,7 +58,7 @@
           <span class="sel" style="background:#1f2937;color:#fff;border-color:#334155;cursor:not-allowed">按日</span>
           <input type="hidden" value="day">
           <span>日期</span>
-          <select id="dateSelect" class="date-filter"></select>
+          <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
           <button id="refreshBtn" class="btn">刷新</button>
           <label for="file" id="pickLabel" class="upload-btn">选择文件</label>
           <input type="file" id="file" accept=".xlsx,.xls,.csv" />
@@ -101,7 +103,8 @@
 (function(){
   const storeId = 'demo';
   let table = null;
-  let currentDate = '';
+  let currentStart = '';
+  let currentEnd = '';
   let newProducts = [];
 
   function initTable(){
@@ -123,16 +126,30 @@
   function setStatus(t){ $('#status').text(t||''); }
 
   async function loadData(){
-    const selected = $('#dateSelect').val();
-    const url = selected ? `/api/ozon/stats?store_id=${encodeURIComponent(storeId)}&date=${selected}` : `/api/ozon/stats?store_id=${encodeURIComponent(storeId)}`;
+    const range = $('#dateFilter').val();
+    let startISO, endISO;
+    if(range && range.includes(' to ')){
+      [startISO, endISO] = range.split(' to ');
+    } else {
+      const now=new Date();
+      const day=(now.getDay()+6)%7;
+      const currentMonday=new Date(now);
+      currentMonday.setDate(now.getDate()-day);
+      const lastMonday=new Date(currentMonday);
+      lastMonday.setDate(currentMonday.getDate()-7);
+      const lastSunday=new Date(lastMonday);
+      lastSunday.setDate(lastMonday.getDate()+6);
+      startISO=lastMonday.toISOString().slice(0,10);
+      endISO=lastSunday.toISOString().slice(0,10);
+      $('#dateFilter').val(`${startISO} to ${endISO}`);
+      if(window.fp) window.fp.setDate([startISO,endISO], true, 'Y-m-d');
+    }
+    currentStart = startISO;
+    currentEnd = endISO;
+    const url = `/api/ozon/stats?store_id=${encodeURIComponent(storeId)}&start=${startISO}&end=${endISO}`;
     const resp = await fetch(url);
     const json = await resp.json();
     if(!json.ok) throw new Error(json.msg||'查询失败');
-    currentDate = json.date;
-    const sel = $('#dateSelect');
-    sel.empty();
-    (json.dates||[]).forEach(d=> sel.append(`<option value="${d}">${d}</option>`));
-    sel.val(currentDate);
     const mapped = (json.rows||[]).map(r=>{
       const impressions = Number(r.exposure)||0;
       const sessions = Number(r.uv)||0;
@@ -198,8 +215,8 @@
   }
 
   async function loadKpi(){
-    if(!currentDate) return;
-    const resp = await fetch(`/api/ozon/kpi?date=${currentDate}`);
+    if(!currentStart || !currentEnd) return;
+    const resp = await fetch(`/api/ozon/kpi?start=${currentStart}&end=${currentEnd}`);
     const json = await resp.json();
     if(json.ok && json.metrics){
       renderKpi(json.metrics);
@@ -221,7 +238,7 @@
 
   document.getElementById('newModal').addEventListener('click',e=>{ if(e.target.id==='newModal') e.currentTarget.style.display='none'; });
 
-  $('#dateSelect').on('change',()=>loadData().catch(err=>console.error(err)));
+  window.fp = flatpickr('#dateFilter',{ mode:'range', dateFormat:'Y-m-d', onClose:(ds)=>{ if(ds.length===2) loadData().catch(err=>console.error(err)); } });
   $('#refreshBtn').on('click',()=>loadData().catch(err=>console.error(err)));
   loadData().catch(err=>console.error(err));
 })();

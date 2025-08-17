@@ -17,7 +17,7 @@ function normalizeTableName(name, fallback = 'ozon_product_report_wide'){
 module.exports = async function handler(req,res){
   try{
     const supabase = supa();
-    let { date } = req.query || {};
+    let { date, start, end } = req.query || {};
 
     const RAW_TABLE = process.env.OZON_TABLE_NAME || 'ozon_product_report_wide';
     const TABLE = normalizeTableName(RAW_TABLE);
@@ -55,6 +55,50 @@ module.exports = async function handler(req,res){
     ];
     const uvCol = uvCandidates.find(c=>tableCols.includes(c)) || uvCandidates[0];
 
+    const selectCols = `sku,tovary,voronka_prodazh_pokazy_vsego,voronka_prodazh_pokazy_v_poiske_i_kataloge,uv:${uvCol},voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov,voronka_prodazh_vykupleno_tovarov`;
+
+    if(start && end){
+      const { data, error } = await supabase
+        .schema('public')
+        .from(TABLE)
+        .select(selectCols)
+        .gte('den', start)
+        .lte('den', end);
+      if(error) throw error;
+      const map = new Map();
+      for(const r of data || []){
+        const key = r.sku;
+        if(!map.has(key)){
+          map.set(key, {
+            product_id: r.sku,
+            product_title: r.tovary,
+            exposure: 0,
+            uv: 0,
+            pv: 0,
+            add_to_cart_users: 0,
+            add_to_cart_qty: 0,
+            pay_items: 0,
+            pay_orders: 0,
+            pay_buyers: 0
+          });
+        }
+        const acc = map.get(key);
+        acc.product_title = acc.product_title || r.tovary;
+        acc.exposure += Number(r.voronka_prodazh_pokazy_vsego)||0;
+        acc.uv += Number(r.uv)||0;
+        acc.pv += Number(r.voronka_prodazh_pokazy_v_poiske_i_kataloge)||0;
+        const atc = Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0;
+        acc.add_to_cart_users += atc;
+        acc.add_to_cart_qty += atc;
+        const payItems = Number(r.voronka_prodazh_vykupleno_tovarov)||0;
+        const payOrders = Number(r.voronka_prodazh_zakazano_tovarov)||0;
+        acc.pay_items += payItems;
+        acc.pay_orders += payOrders;
+        acc.pay_buyers += payItems;
+      }
+      return res.json({ok:true, rows: Array.from(map.values()), start, end});
+    }
+
     const datesResp = await supabase
       .schema('public')
       .from(TABLE)
@@ -67,24 +111,18 @@ module.exports = async function handler(req,res){
       const d = r.den;
       if(d && !dates.includes(d)) dates.push(d);
     }
-
     if(!date && dates.length){
       date = dates[0];
     }
     if(!date){
       return res.json({ok:true, rows:[], date:null, dates});
     }
-
- 
-    const selectCols = `sku,tovary,voronka_prodazh_pokazy_vsego,voronka_prodazh_pokazy_v_poiske_i_kataloge,uv:${uvCol},voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov,voronka_prodazh_vykupleno_tovarov`;
-
     const { data, error } = await supabase
       .schema('public')
       .from(TABLE)
       .select(selectCols)
       .eq('den', date);
     if(error) throw error;
-
     const rows = (data||[]).map(r=>({
       product_id: r.sku,
       product_title: r.tovary,
