@@ -254,10 +254,11 @@
       autoWidth:false,
       columns:[
         { data:'landing_url', render:(v,t,r)=>{
-            const pid = r.product || r.landing_path || '';
+            const pid = r.landing_path || r.product || '';
             const name = shorten(r.landing_path || '');
             const base = siteInput.value.trim().replace(/\/$/,'');
-            const url = v && v.startsWith('http') ? v : base + (v || r.landing_path || '');
+            const baseUrl = v && v.startsWith('http') ? v : base + (v || '');
+            const url = baseUrl.replace(/\/$/, '') + (r.landing_path || '');
             return `<div style="display:flex;align-items:center;" data-url="${url}"><img style="width:40px;height:40px;object-fit:cover;margin-right:4px;display:none;"><a href="${url}" target="_blank" class="name" title="${name}" data-pid="${pid}">${name}</a></div>`;
           }},
         { data:'clicks', render: v => v ?? 0 },
@@ -272,7 +273,7 @@
         { data:'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
         { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
         { data:null, render:(v,t,r)=>{
-            const pid = r.product || r.landing_path || '';
+            const pid = r.landing_path || r.product || '';
             const site = encodeURIComponent(siteInput.value.trim());
             return `<a href="product-analysis.html?mode=indep&site=${site}&pid=${encodeURIComponent(pid)}" target="_blank">详情</a>`;
           }}
