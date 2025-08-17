@@ -7,18 +7,17 @@
   <style>
     #report td:first-child{ text-align:left; }
     #report td:first-child a.name{ display:inline-block; max-width:180px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
-    #columnToggleWrapper{ position:relative; display:inline-block; }
-    #columnMenu{ display:none; position:absolute; top:100%; right:0; background:#fff; border:1px solid #ccc; padding:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); }
-    #columnMenu label{ display:block; margin:4px 0; white-space:nowrap; }
     .stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
   </style>
   <!-- DataTables & ECharts CDN -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
   <script src="assets/product-meta.js"></script>
 </head>
@@ -62,21 +61,16 @@
         <div class="controls">
           <label>站点：</label>
           <input type="text" id="site" value="" placeholder="如：poolsvacuum.com">
-          <label>起止：</label>
-          <input type="date" id="from">
-          <input type="date" id="to">
+          <span>日期：</span>
+          <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
           <label>网络：</label>
           <select id="networkSel"><option value="">全部</option></select>
           <label>Campaign：</label>
           <select id="campaignSel"><option value="">全部</option></select>
-          <button id="refreshBtn" class="btn">刷新</button>
+          <span id="status" class="small"></span>
           <button id="uploadBtn" class="btn">上传数据</button>
           <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none;">
           <span id="uploadStatus" class="small"></span>
-          <div id="columnToggleWrapper">
-            <button id="columnToggle" class="btn">筛选列</button>
-            <div id="columnMenu" class="small"></div>
-          </div>
         </div>
       </div>
     </section>
@@ -113,7 +107,7 @@
             <table id="report" class="display nowrap" style="width:100%">
               <thead>
                 <tr>
-                  <th>产品</th><th>设备</th><th>网络</th><th>Campaign</th><th>日期</th>
+                  <th>产品</th>
                   <th>点击</th><th>曝光</th><th>CTR</th><th>Avg CPC</th><th>Cost</th>
                   <th>转化</th><th>Cost/Conv</th><th>All conv</th><th>Conv value</th>
                   <th>All conv rate</th><th>Conv rate</th>
@@ -169,7 +163,7 @@
       getProductMeta(url,url,'/api/indep_fetchProductInfo').then(m=>{
         root.querySelectorAll(`[data-url="${url}"]`).forEach(el=>{
           const nameEl=el.querySelector('.name');
-          if(m.title&&nameEl) nameEl.textContent=shorten(m.title);
+          if(m.title&&nameEl) nameEl.title=shorten(m.title);
           const imgEl=el.querySelector('img');
           if(m.image&&imgEl){imgEl.src=m.image; imgEl.style.display='';}
         });
@@ -181,27 +175,17 @@
     return url.searchParams.get(name);
   }
   const siteInput = document.getElementById('site');
-  const fromInput = document.getElementById('from');
-  const toInput = document.getElementById('to');
-  const columnMenu = document.getElementById('columnMenu');
-  const columnToggle = document.getElementById('columnToggle');
+  const dateInput = document.getElementById('dateFilter');
   const networkSel = document.getElementById('networkSel');
   const campaignSel = document.getElementById('campaignSel');
+  const loadStatusEl = document.getElementById('status');
   const clearBtn = document.getElementById('clearFilter');
-  const optionalCols = [
-    { idx:1, label:'设备' }
-  ];
-  optionalCols.forEach(c=>{
-    const lab=document.createElement('label');
-    lab.innerHTML=`<input type="checkbox" data-col="${c.idx}"> ${c.label}`;
-    columnMenu.appendChild(lab);
-  });
-  columnToggle.addEventListener('click',()=>{
-    columnMenu.style.display = columnMenu.style.display==='block' ? 'none' : 'block';
-  });
   let dt;
   let rawTable = [];
   let onlyNew = false;
+  siteInput.addEventListener('change', load);
+  networkSel.addEventListener('change', load);
+  campaignSel.addEventListener('change', load);
 
   function periodShift(startISO, endISO){
     const start=new Date(startISO+'T00:00:00'); const end=new Date(endISO+'T00:00:00');
@@ -224,23 +208,14 @@
     ].join(''));
   }
 
-  function aggregateTable(data, showDevice, showNetwork, showCampaign){
+  function aggregateTable(data){
     const map = {};
     data.forEach(r=>{
-      const keyParts=[r.day, r.landing_path];
-      if(showDevice) keyParts.push(r.device||'');
-      if(showNetwork) keyParts.push(r.network||'');
-      if(showCampaign) keyParts.push(r.campaign||'');
-      const key=keyParts.join('|');
+      const key = r.landing_path;
       if(!map[key]){
         map[key]={
-          product:r.product,
           landing_path:r.landing_path,
           landing_url:r.landing_url,
-          day:r.day,
-          device: showDevice ? r.device : '',
-          network: showNetwork ? r.network : '',
-          campaign: showCampaign ? r.campaign : '',
           clicks:0, impr:0, cost:0, conversions:0, all_conv:0, conv_value:0
         };
       }
@@ -259,7 +234,7 @@
       m.cost_per_conv = m.conversions>0 ? m.cost/m.conversions : 0;
       m.all_conv_rate = m.clicks>0 ? m.all_conv/m.clicks : 0;
       return m;
-    }).sort((a,b)=> b.day.localeCompare(a.day));
+    }).sort((a,b)=> b.clicks - a.clicks);
   }
 
   function buildTable(){
@@ -268,10 +243,7 @@
     const camp = campaignSel.value;
     if(net) data = data.filter(r=>r.network===net);
     if(camp) data = data.filter(r=>r.campaign===camp);
-    const showDevice = $('#columnMenu input[data-col=1]').prop('checked');
-    const showNetwork = !!net;
-    const showCampaign = !!camp;
-    data = aggregateTable(data, showDevice, showNetwork, showCampaign);
+    data = aggregateTable(data);
     if(dt) dt.destroy();
     dt = $('#report').DataTable({
       destroy:true,
@@ -282,51 +254,42 @@
       autoWidth:false,
       columns:[
         { data:'landing_url', render:(v,t,r)=>{
-            const name = shorten(r.product || r.landing_path || '');
+            const name = shorten(r.landing_path || '');
             return `<div style="display:flex;align-items:center;" data-url="${v}"><img style="width:40px;height:40px;object-fit:cover;margin-right:4px;display:none;"><a href="${v}" target="_blank" class="name" title="${name}">${name}</a></div>`;
           }},
-        { data:'device', render: v => v || '' },
-        { data:'network', render: v => v || '' },
-        { data:'campaign', render: v => v || '' },
-        { data:'day', render: v => v || '' },
         { data:'clicks', render: v => v ?? 0 },
         { data:'impr', render: v => v ?? 0 },
         { data:'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
-        { data:'avg_cpc', render: v => v ?? 0 },
-        { data:'cost', render: v => v ?? 0 },
+        { data:'avg_cpc', render: v => (v ?? 0).toFixed(2) },
+        { data:'cost', render: v => (v ?? 0).toFixed(2) },
         { data:'conversions', render: v => v ?? 0 },
-        { data:'cost_per_conv', render: v => v ?? 0 },
+        { data:'cost_per_conv', render: v => (v ?? 0).toFixed(2) },
         { data:'all_conv', render: v => v ?? 0 },
-        { data:'conv_value', render: v => v ?? 0 },
+        { data:'conv_value', render: v => (v ?? 0).toFixed(2) },
         { data:'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
         { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
       ]
     });
-    dt.column(1).visible(showDevice);
-    dt.column(2).visible(showNetwork);
-    dt.column(3).visible(showCampaign);
     enhanceMeta(document.getElementById('report'));
     dt.on('draw',()=>enhanceMeta(document.getElementById('report')));
   }
 
-  $('#columnMenu').on('change','input[type=checkbox]', buildTable);
-  networkSel.addEventListener('change', buildTable);
-  campaignSel.addEventListener('change', buildTable);
-
-  // 默认站点取 url 参数或从示例取
+  // 默认站点取 url 参数或本地存储
   siteInput.value = getParam('site') || localStorage.getItem('indepSite') || 'poolsvacuum.com';
-  const today = new Date();
-  const dow = today.getDay();
-  const mondayThisWeek = new Date(today);
-  mondayThisWeek.setDate(today.getDate() - ((dow + 6) % 7));
-  const mondayLastWeek = new Date(mondayThisWeek);
-  mondayLastWeek.setDate(mondayThisWeek.getDate() - 7);
-  const sundayLastWeek = new Date(mondayLastWeek);
-  sundayLastWeek.setDate(mondayLastWeek.getDate() + 6);
-  const fromDef = mondayLastWeek.toISOString().slice(0,10);
-  const toDef = sundayLastWeek.toISOString().slice(0,10);
-  fromInput.value = getParam('from') || fromDef;
-  toInput.value = getParam('to') || toDef;
+  const storedPeriod = localStorage.getItem('indepPeriod');
+  if (storedPeriod && storedPeriod.includes(' to ')) {
+    dateInput.value = storedPeriod;
+  } else {
+    const today = new Date();
+    const endISO = today.toISOString().slice(0,10);
+    const startISO = new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
+    dateInput.value = `${startISO} to ${endISO}`;
+  }
+  window.fp = flatpickr('#dateFilter',{ mode:'range', dateFormat:'Y-m-d', onClose:(ds)=>{ if(ds.length===2) load(); } });
+  if (dateInput.value.includes(' to ')) {
+    const [s,e] = dateInput.value.split(' to ');
+    window.fp.setDate([s,e], true, 'Y-m-d');
+  }
 
   function populateFilters(){
     const nets = Array.from(new Set(rawTable.map(r=>r.network).filter(Boolean))).sort();
@@ -336,11 +299,22 @@
   }
 
   async function load() {
+    loadStatusEl.textContent = '加载中...';
     try {
       const site = siteInput.value.trim();
       localStorage.setItem('indepSite', site);
-      const from = fromInput.value;
-      const to = toInput.value;
+      let from, to;
+      const range = dateInput.value;
+      if (range && range.includes(' to ')) {
+        [from, to] = range.split(' to ');
+      } else {
+        const today = new Date();
+        to = today.toISOString().slice(0,10);
+        from = new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
+        dateInput.value = `${from} to ${to}`;
+        if (window.fp) window.fp.setDate([from,to], true, 'Y-m-d');
+      }
+      localStorage.setItem('indepPeriod', `${from} to ${to}`);
       const params = new URLSearchParams({site, from, to});
       const net = networkSel.value;
       const camp = campaignSel.value;
@@ -405,27 +379,28 @@
         autoWidth:false,
         columns:[
           { data:'url', render:(v,t,r)=>{
-              const name=shorten(r.product || r.path || '');
+              const name=shorten(r.path || '');
               return `<div style="display:flex;align-items:center;" data-url="${v}"><img style="width:40px;height:40px;object-fit:cover;margin-right:4px;display:none;"><a href="${v}" target="_blank" class="name" title="${name}">${name}</a></div>`;
             }},
           { data:'clicks' },
           { data:'impr' },
           { data:'ctr', render:v=>(v*100).toFixed(2)+'%' },
           { data:'conversions' },
-          { data:'cost' },
-          { data:'conv_value' },
+          { data:'cost', render:v => (v ?? 0).toFixed(2) },
+          { data:'conv_value', render:v => (v ?? 0).toFixed(2) },
           { data:'cpa', render:v=>v.toFixed(2) },
           { data:'roas', render:v=>v.toFixed(2) }
         ]
       });
       enhanceMeta(document.getElementById('topTable'));
+      loadStatusEl.textContent = '加载完成';
     } catch(e) {
       console.error(e);
+      loadStatusEl.textContent = '加载失败';
       alert(e.message || '加载失败');
     }
   }
 
-  document.getElementById('refreshBtn').addEventListener('click', load);
   clearBtn.addEventListener('click', () => { onlyNew = false; load(); });
   // 上传逻辑
   const fileInput = document.getElementById('fileInput');
