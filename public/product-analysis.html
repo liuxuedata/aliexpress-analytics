@@ -17,16 +17,15 @@
   <nav class="header-center">
     <ul class="platform-nav">
       <li class="ali"><a href="#">速卖通</a>
-        <ul class="dropdown">
-          <li><a href="index.html">全托管</a></li>
-          <li><a href="self-operated.html">自运营</a></li>
-        </ul>
+        <ul class="dropdown" id="managedMenu"></ul>
       </li>
       <li class="amazon"><a href="amazon.html">亚马逊</a></li>
       <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
       <li class="temu"><a href="temu.html">Temu</a></li>
       <li class="ozon"><a href="ozon-detail.html">Ozon</a></li>
-      <li class="independent"><a href="independent-site.html">独立站</a></li>
+      <li class="independent"><a href="#">独立站</a>
+        <ul class="dropdown" id="indepMenu"></ul>
+      </li>
     </ul>
   </nav>
   <div id="userArea" class="user-section"></div>
@@ -58,10 +57,12 @@
     </div>
   </main>
 </div>
+<script src="assets/site-nav.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
   const params=new URLSearchParams(location.search);
   const mode=params.get('mode');
+  const pidParam=params.get('pid');
   const detailLink=document.getElementById('detailLink');
   const analysisLink=document.getElementById('analysisLink');
   const prodLink=document.getElementById('productLink');
@@ -102,7 +103,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(analysisLink)analysisLink.href='operation-analysis.html?mode=self';
   }else if(mode==='indep'){
     if(detailLink)detailLink.href='independent-site.html';
-    if(analysisLink)analysisLink.removeAttribute('href');
+    if(analysisLink)analysisLink.href='independent-site.html#analysis';
   }else if(mode==='ozon'){
     if(detailLink)detailLink.href='ozon-detail.html';
     if(analysisLink)analysisLink.href='ozon-analysis.html';
@@ -110,50 +111,73 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(analysisLink)analysisLink.href='operation-analysis.html';
   }
 
+    const currentSiteEl=document.getElementById('currentSite');
+  const addBtn=document.getElementById('addSite');
+  if(mode==='indep'){
+    if(addBtn) addBtn.style.display='none';
+    renderSiteMenus();
+    fetch('/api/independent/sites').then(r=>r.json()).then(j=>{
+      const sites=j.sites||[];
+      const paramSite=params.get('site');
+      const stored=localStorage.getItem('currentIndepSite');
+      let site=sites[0]||'';
+      if(paramSite && sites.includes(paramSite)) site=paramSite;
+      else if(stored && sites.includes(stored)) site=stored;
+      localStorage.setItem('currentIndepSite',site);
+      currentSiteEl.textContent=site;
+      document.title='产品分析 · '+site;
+      setupSelf('indep', site);
+    });
+    return;
+  }
   const siteListKey='managedSites';
   const currentSiteKey='currentSite';
   let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
   if(!Array.isArray(sites)||!sites.length){sites=mode==='self'?['A站','B站','C站']:['主站'];}
-  const currentSiteEl=document.getElementById('currentSite');
-  function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));}
+  function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));renderSiteMenus();}
   function updateCurrent(){
     const name=localStorage.getItem(currentSiteKey)||sites[0];
     if(mode==='self'){
       currentSiteEl.textContent='自运营 '+name;
-    }else if(mode==='indep'){
-      currentSiteEl.textContent='独立站';
     }else{
       currentSiteEl.textContent=sites.length>1?'全托管 '+name:'全托管';
     }
     localStorage.setItem(currentSiteKey,name);
   }
   currentSiteEl.addEventListener('dblclick',()=>{
-    if(mode==='indep')return;
     const cur=localStorage.getItem(currentSiteKey)||sites[0];
     const idx=sites.indexOf(cur);
     const n=prompt('修改站点名',cur);
     if(n){sites[idx]=n;save();localStorage.setItem(currentSiteKey,n);updateCurrent();}
   });
-  document.getElementById('addSite').addEventListener('click',()=>{
-    if(mode==='indep')return;
+  addBtn.addEventListener('click',()=>{
     const n=prompt('新增站点名');
     if(n){sites.push(n);save();updateCurrent();}
   });
+  renderSiteMenus();
   updateCurrent();
-
-  if(mode==='self' || mode==='indep'){
-    setupSelf(mode);
-  }else{
+  if(mode==='self')
+    setupSelf('self');
+  else
     setupFM();
-  }
-
-  function card(title,cur,prev,isPct){
+function card(title,cur,prev,isPct,avg,share){
     const diff=(cur-prev)||0;
     const arrow=diff>=0?'↑':'↓';
     const cls=diff>=0?'up':'down';
     const fmt=v=>isPct?`${(v*100).toFixed(2)}%`:v;
     const delta=isPct?`${Math.abs(diff*100).toFixed(2)}%`:Math.abs(diff);
-    return `<div class="stat-card"><h4>${title}</h4><p>${fmt(cur)}</p><div class="sub"><span class="delta ${cls}">${arrow} ${delta}</span></div></div>`;
+    const parts=[`<span class="delta ${cls}">${arrow} ${delta}</span>`];
+    if(avg!=null){
+      const diffAvg=(cur-avg)||0;
+      const dir=diffAvg>=0?'高于平均':'低于平均';
+      const clsAvg=diffAvg>=0?'up':'down';
+      const deltaAvg=isPct?`${Math.abs(diffAvg*100).toFixed(2)}%`:Math.abs(diffAvg);
+      parts.push(`<span class="${clsAvg}" style="margin-left:8px;">${dir} ${deltaAvg}</span>`);
+    }
+    if(share!=null){
+      parts.push(`<span style="margin-left:8px;">占比 ${(share*100).toFixed(2)}%</span>`);
+    }
+    return `<div class="stat-card"><h4>${title}</h4><p>${fmt(cur)}</p><div class="sub">${parts.join('')}</div></div>`;
   }
 
   function setupFM(){
@@ -192,13 +216,20 @@ document.addEventListener('DOMContentLoaded',()=>{
     function renderProductFM(rowsA,rowsB){
       const expMap=new Map();
       rowsA.forEach(r=>expMap.set(r.product_id,(expMap.get(r.product_id)||0)+Number(r.search_exposure||0)));
+      const totalsA=rowsA.reduce((a,x)=>({
+        exp:a.exp+Number(x.search_exposure||0),
+        uv:a.uv+Number(x.uv||0),
+        add:a.add+Number(x.add_to_cart_users||0),
+        pay:a.pay+Number(x.pay_buyers||0)
+      }),{exp:0,uv:0,add:0,pay:0});
       const ids=Array.from(expMap.keys()).sort((a,b)=>expMap.get(b)-expMap.get(a));
       const sel=document.getElementById('productSelect');
       sel.innerHTML='';
       ids.forEach(id=>{const o=document.createElement('option');o.value=id;o.textContent=id;o.setAttribute('data-pid',id);sel.appendChild(o);});
       populateProductNames(sel);
       if(!ids.length){document.getElementById('kpi').innerHTML=''; setProdLink('',''); return;}
-      const pid=ids[0]; sel.value=pid; update(pid);
+      const pid=ids.find(id=>String(id)===String(pidParam))||ids[0];
+      sel.value=pid; update(pid);
       sel.onchange=()=>update(sel.value);
       function sum(rows,pid){
         return rows.filter(x=>String(x.product_id)===String(pid)).reduce((a,x)=>({
@@ -216,14 +247,21 @@ document.addEventListener('DOMContentLoaded',()=>{
         const prevAddRate=prev.uv?prev.add/prev.uv:0;
         const curPayRate=cur.uv?cur.pay/cur.uv:0;
         const prevPayRate=prev.uv?prev.pay/prev.uv:0;
+        const avgUvRate=totalsA.exp?totalsA.uv/totalsA.exp:0;
+        const avgAddRate=totalsA.uv?totalsA.add/totalsA.uv:0;
+        const avgPayRate=totalsA.uv?totalsA.pay/totalsA.uv:0;
+        const shareExp=totalsA.exp?cur.exp/totalsA.exp:0;
+        const shareUv=totalsA.uv?cur.uv/totalsA.uv:0;
+        const shareAdd=totalsA.add?cur.add/totalsA.add:0;
+        const sharePay=totalsA.pay?cur.pay/totalsA.pay:0;
         document.getElementById('kpi').innerHTML=[
-          card('平均访客比',curUvRate,prevUvRate,true),
-          card('平均加购比',curAddRate,prevAddRate,true),
-          card('平均支付比',curPayRate,prevPayRate,true),
-          card('总曝光量',cur.exp,prev.exp),
-          card('总访客数',cur.uv,prev.uv),
-          card('总加购人数',cur.add,prev.add),
-          card('总支付买家数',cur.pay,prev.pay)
+          card('平均访客比',curUvRate,prevUvRate,true,avgUvRate),
+          card('平均加购比',curAddRate,prevAddRate,true,avgAddRate),
+          card('平均支付比',curPayRate,prevPayRate,true,avgPayRate),
+          card('总曝光量',cur.exp,prev.exp,false,null,shareExp),
+          card('总访客数',cur.uv,prev.uv,false,null,shareUv),
+          card('总加购人数',cur.add,prev.add,false,null,shareAdd),
+          card('总支付买家数',cur.pay,prev.pay,false,null,sharePay)
         ].join('');
         const dates=[...rowsA,...rowsB].filter(x=>String(x.product_id)===String(pid)).map(x=>x.period_start||x.period_end||'').filter(Boolean).sort();
         document.getElementById('listingDate').textContent=dates.length?`上架日期：${dates[0]}`:'';
@@ -239,18 +277,18 @@ document.addEventListener('DOMContentLoaded',()=>{
     loadPeriods();
   }
 
-  function setupSelf(mode){
+  function setupSelf(mode, siteParam){
     document.getElementById('lineWrap').style.display='block';
     const ctrl=document.getElementById('ctrl');
     ctrl.innerHTML='<input id="dateRange" class="date-filter" placeholder="选择日期范围">';
     const input=document.getElementById('dateRange');
-    const key=mode==='indep'?'indepPeriod':'selfPeriod';
+    const key=mode==='indep'?`indepPeriod_${siteParam}`:'selfPeriod';
     const fp=flatpickr(input,{mode:'range',dateFormat:'Y-m-d',onClose:ds=>{if(ds.length===2)loadData();}});
     const stored=localStorage.getItem(key);
     if(stored && stored.includes(' to ')) input.value=stored; else {
       const today=new Date(); const end=today.toISOString().slice(0,10); const start=new Date(today.getTime()-6*86400000).toISOString().slice(0,10); const def=`${start} to ${end}`; input.value=def; localStorage.setItem(key,def);
     }
-    async function loadData(){
+        async function loadData(){
       const val=input.value; if(!val.includes(' to '))return; const [startISO,endISO]=val.split(' to '); localStorage.setItem(key,`${startISO} to ${endISO}`);
       const {prevStart,prevEnd,days}=periodShift(startISO,endISO);
       const [rowsA,rowsB]=await Promise.all([
@@ -261,9 +299,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
     function fetchAgg(start,end){
       if(mode==='indep'){
-        const site=params.get('site')||localStorage.getItem('indepSite')||'poolsvacuum.com';
-        localStorage.setItem('indepSite',site);
-        const url=`/api/independent/stats?site=${encodeURIComponent(site)}&from=${start}&to=${end}`;
+        const url=`/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${start}&to=${end}`;
         return fetch(url).then(r=>r.json()).then(j=>j.table||[]);
       }
       const url=`/api/ae_query?start=${start}&end=${end}&granularity=day`;
@@ -280,9 +316,24 @@ document.addEventListener('DOMContentLoaded',()=>{
     function renderProductSelf(rowsA,rowsB,days,startA,startB){
       const expMap=new Map();
       const linkMap=new Map();
-      const getId=r=>mode==='indep'?r.product:r.product_id;
+      const getId=r=>mode==='indep'?(r.landing_path||r.product):r.product_id;
       const getExp=r=>mode==='indep'?Number(r.impr||0):Number(r.exposure||0);
-      rowsA.forEach(r=>{const id=getId(r);expMap.set(id,(expMap.get(id)||0)+getExp(r)); if(mode==='indep' && r.landing_url) linkMap.set(id,r.landing_url);});
+      const base=siteParam.replace(/\/$/,'');
+      rowsA.forEach(r=>{
+        const id=getId(r);
+        expMap.set(id,(expMap.get(id)||0)+getExp(r));
+        if(mode==='indep'){
+          const baseUrl = r.landing_url && r.landing_url.startsWith('http') ? r.landing_url : base + (r.landing_url || '');
+          const link = baseUrl.replace(/\/$/, '') + (r.landing_path || '');
+          if(link) linkMap.set(id,link);
+        }
+      });
+      const totalsA=rowsA.reduce((a,r)=>({
+        exp:a.exp+getExp(r),
+        uv:a.uv+Number(mode==='indep'?r.clicks||0:r.visitors||0),
+        add:a.add+Number(mode==='indep'?0:r.add_people||0),
+        pay:a.pay+Number(mode==='indep'?r.conversions||0:r.pay_buyers||0)
+      }),{exp:0,uv:0,add:0,pay:0});
       const ids=Array.from(expMap.keys()).sort((a,b)=>expMap.get(b)-expMap.get(a));
       const sel=document.getElementById('productSelect'); sel.innerHTML='';
       ids.forEach(id=>{
@@ -298,7 +349,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       });
       populateProductNames(sel);
       if(!ids.length){document.getElementById('kpi').innerHTML=''; setProdLink('', ''); return;}
-      const pid=ids[0]; sel.value=pid; update(pid);
+      const pid=ids.find(id=>String(id)===String(pidParam))||ids[0];
+      sel.value=pid; update(pid);
       sel.onchange=()=>update(sel.value);
       function sum(rows,pid){
         return rows.filter(r=>String(getId(r))===String(pid)).reduce((a,r)=>({
@@ -358,14 +410,21 @@ document.addEventListener('DOMContentLoaded',()=>{
         const prevAddRate=prev.uv?prev.add/prev.uv:0;
         const curPayRate=cur.uv?cur.pay/cur.uv:0;
         const prevPayRate=prev.uv?prev.pay/prev.uv:0;
+        const avgUvRate=totalsA.exp?totalsA.uv/totalsA.exp:0;
+        const avgAddRate=totalsA.uv?totalsA.add/totalsA.uv:0;
+        const avgPayRate=totalsA.uv?totalsA.pay/totalsA.uv:0;
+        const shareExp=totalsA.exp?cur.exp/totalsA.exp:0;
+        const shareUv=totalsA.uv?cur.uv/totalsA.uv:0;
+        const shareAdd=totalsA.add?cur.add/totalsA.add:0;
+        const sharePay=totalsA.pay?cur.pay/totalsA.pay:0;
         document.getElementById('kpi').innerHTML=[
-          card('平均访客比',curUvRate,prevUvRate,true),
-          card('平均加购比',curAddRate,prevAddRate,true),
-          card('平均支付比',curPayRate,prevPayRate,true),
-          card('总曝光量',cur.exp,prev.exp),
-          card('总访客数',cur.uv,prev.uv),
-          card('总加购人数',cur.add,prev.add),
-          card('总支付买家数',cur.pay,prev.pay)
+          card('平均访客比',curUvRate,prevUvRate,true,avgUvRate),
+          card('平均加购比',curAddRate,prevAddRate,true,avgAddRate),
+          card('平均支付比',curPayRate,prevPayRate,true,avgPayRate),
+          card('总曝光量',cur.exp,prev.exp,false,null,shareExp),
+          card('总访客数',cur.uv,prev.uv,false,null,shareUv),
+          card('总加购人数',cur.add,prev.add,false,null,shareAdd),
+          card('总支付买家数',cur.pay,prev.pay,false,null,sharePay)
         ].join('');
         line(pid);
         const dates=[...rowsA,...rowsB].filter(r=>String(getId(r))===String(pid)).map(r=>mode==='indep'?r.day:r.bucket).sort();

@@ -127,7 +127,8 @@ module.exports = async (req, res) => {
     if (device) seriesQuery = seriesQuery.eq('device', device);
     let { data: series, error: e2 } = await seriesQuery;
 
-    if (e2 && /independent_landing_summary_by_day/.test(e2.message)) {
+    if (e2) {
+      // fall back to aggregating from metrics table when summary view doesn't support the filter
       let fbQuery = supabase
         .from('independent_landing_metrics')
         .select(
@@ -143,11 +144,11 @@ module.exports = async (req, res) => {
       const { data: fallback, error: e2b } = await fbQuery;
       if (e2b) return res.status(500).json({ error: e2b.message });
       series = fallback || [];
-    } else if (e2) {
-      return res.status(500).json({ error: e2.message });
+    } else {
+      series = series || [];
     }
 
-    series = (series || []).map(r => ({
+    series = series.map(r => ({
       ...r,
       clicks: safeNum(r.clicks),
       impr: safeNum(r.impr),

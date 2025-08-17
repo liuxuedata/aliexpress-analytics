@@ -57,7 +57,7 @@ module.exports = async function handler(req,res){
 
     const idOf = r => `${r.sku}@@${r.model||''}`;
 
-    const selectCols = `sku,model,tovary,voronka_prodazh_pokazy_vsego,voronka_prodazh_pokazy_v_poiske_i_kataloge,uv:${uvCol},voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov,voronka_prodazh_vykupleno_tovarov`;
+    const selectCols = `sku,model,tovary,voronka_prodazh_pozitsiya_v_poiske_i_kataloge,voronka_prodazh_pokazy_vsego,voronka_prodazh_pokazy_v_poiske_i_kataloge,uv:${uvCol},voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov,voronka_prodazh_vykupleno_tovarov`;
 
     if(start && end){
       const { data, error } = await supabase
@@ -75,6 +75,8 @@ module.exports = async function handler(req,res){
             product_id: r.sku,
             model: r.model,
             product_title: r.tovary,
+            search_rank_sum: 0,
+            search_rank_count: 0,
             exposure: 0,
             uv: 0,
             pv: 0,
@@ -87,6 +89,11 @@ module.exports = async function handler(req,res){
         }
         const acc = map.get(key);
         acc.product_title = acc.product_title || r.tovary;
+        const sr = Number(r.voronka_prodazh_pozitsiya_v_poiske_i_kataloge);
+        if(!isNaN(sr)){
+          acc.search_rank_sum += sr;
+          acc.search_rank_count++;
+        }
         acc.exposure += Number(r.voronka_prodazh_pokazy_vsego)||0;
         acc.uv += Number(r.uv)||0;
         acc.pv += Number(r.voronka_prodazh_pokazy_v_poiske_i_kataloge)||0;
@@ -99,7 +106,21 @@ module.exports = async function handler(req,res){
         acc.pay_orders += payOrders;
         acc.pay_buyers += payItems;
       }
-      return res.json({ok:true, rows: Array.from(map.values()), start, end});
+      const rows = Array.from(map.values()).map(r=>({
+        product_id: r.product_id,
+        model: r.model,
+        product_title: r.product_title,
+        search_rank: r.search_rank_count ? r.search_rank_sum / r.search_rank_count : null,
+        exposure: r.exposure,
+        uv: r.uv,
+        pv: r.pv,
+        add_to_cart_users: r.add_to_cart_users,
+        add_to_cart_qty: r.add_to_cart_qty,
+        pay_items: r.pay_items,
+        pay_orders: r.pay_orders,
+        pay_buyers: r.pay_buyers
+      }));
+      return res.json({ok:true, rows, start, end});
     }
 
     const datesResp = await supabase
@@ -130,6 +151,7 @@ module.exports = async function handler(req,res){
       product_id: r.sku,
       model: r.model,
       product_title: r.tovary,
+      search_rank: r.voronka_prodazh_pozitsiya_v_poiske_i_kataloge,
       exposure: r.voronka_prodazh_pokazy_vsego,
       uv: r.uv,
       pv: r.voronka_prodazh_pokazy_v_poiske_i_kataloge,

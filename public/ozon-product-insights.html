@@ -3,9 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ozon 产品分析（建设中）</title>
+  <title>Ozon 产品分析</title>
   <link rel="stylesheet" href="assets/login.css">
   <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
 </head>
 <body class="fm">
@@ -14,16 +17,15 @@
   <nav class="header-center">
     <ul class="platform-nav">
       <li class="ali"><a href="#">速卖通</a>
-        <ul class="dropdown">
-          <li><a href="index.html">全托管</a></li>
-          <li><a href="self-operated.html">自运营</a></li>
-        </ul>
+        <ul class="dropdown" id="managedMenu"></ul>
       </li>
       <li class="amazon"><a href="amazon.html">亚马逊</a></li>
       <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
       <li class="temu"><a href="temu.html">Temu</a></li>
       <li class="ozon active"><a href="ozon-detail.html">Ozon</a></li>
-      <li class="independent"><a href="independent-site.html">独立站</a></li>
+      <li class="independent"><a href="#">独立站</a>
+        <ul class="dropdown" id="indepMenu"></ul>
+      </li>
     </ul>
   </nav>
   <div id="userArea" class="user-section"></div>
@@ -37,9 +39,191 @@
       <li><a href="ozon-product-insights.html" class="active">产品分析</a></li>
     </ul>
   </nav>
-  <main class="main" style="display:flex;align-items:center;justify-content:center;">
-    <h2 style="font-size:24px;font-weight:700;">页面建设中…</h2>
+  <main class="main">
+    <div class="content">
+      <section class="content-pad">
+        <div class="controls" style="margin-bottom:12px;"><input id="dateRange" class="date-filter" placeholder="选择日期范围"></div>
+        <div class="controls" style="margin-bottom:12px;flex-wrap:wrap;"><label>产品</label><select id="productSelect" class="sel" style="width:200px;flex:0 0 200px;"></select><a id="productLink" href="#" target="_blank" style="margin-left:8px;display:none;word-break:break-all;white-space:normal;flex:1 1 auto;"></a><span id="listingDate" style="margin-left:8px;"></span></div>
+        <div id="kpi" class="kpi-row"></div>
+        <div id="lineWrap" class="panel" style="margin-top:16px;display:none;">
+          <h3>曝光趋势</h3>
+          <div id="expLine" style="width:100%;height:260px;"></div>
+          <h3 style="margin-top:24px;">访客比趋势</h3>
+          <div id="uvRateLine" style="width:100%;height:260px;"></div>
+          <h3 style="margin-top:24px;">加购比趋势</h3>
+          <div id="addRateLine" style="width:100%;height:260px;"></div>
+        </div>
+      </section>
+    </div>
   </main>
 </div>
+<script src="assets/site-nav.js"></script>
+<script>
+(function(){
+  const storeId='demo';
+  const params=new URLSearchParams(location.search);
+  const pidParam=params.get('pid');
+  const input=document.getElementById('dateRange');
+  const fp=flatpickr(input,{mode:'range',dateFormat:'Y-m-d',onClose:ds=>{if(ds.length===2)loadData();}});
+  const today=new Date();
+  const endDef=today.toISOString().slice(0,10);
+  const startDef=new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
+  input.value=`${startDef} to ${endDef}`;
+  let rowsCur=[],rowsPrev=[],curStart='',curEnd='',prevStart='',prevEnd='',days=0;
+  let totalsCur={exp:0,uv:0,add:0,pay:0};
+
+  function card(title,cur,prev,isPct,avg,share){
+    const diff=(cur-prev)||0;
+    const arrow=diff>=0?'\u2191':'\u2193';
+    const cls=diff>=0?'up':'down';
+    const fmt=v=>isPct?`${(v*100).toFixed(2)}%`:v;
+    const delta=isPct?`${Math.abs(diff*100).toFixed(2)}%`:Math.abs(diff);
+    const parts=[`<span class="delta ${cls}">${arrow} ${delta}</span>`];
+    if(avg!=null){
+      const diffAvg=(cur-avg)||0;
+      const dir=diffAvg>=0?'高于平均':'低于平均';
+      const clsAvg=diffAvg>=0?'up':'down';
+      const deltaAvg=isPct?`${Math.abs(diffAvg*100).toFixed(2)}%`:Math.abs(diffAvg);
+      parts.push(`<span class="${clsAvg}" style="margin-left:8px;">${dir} ${deltaAvg}</span>`);
+    }
+    if(share!=null){
+      parts.push(`<span style="margin-left:8px;">占比 ${(share*100).toFixed(2)}%</span>`);
+    }
+    return `<div class="stat-card"><h4>${title}</h4><p>${fmt(cur)}</p><div class="sub">${parts.join('')}</div></div>`;
+  }
+
+  function sumAll(rows){
+    return rows.reduce((a,r)=>({
+      exp:a.exp+Number(r.exposure||0),
+      uv:a.uv+Number(r.uv||0),
+      add:a.add+Number(r.add_to_cart_users||0),
+      pay:a.pay+Number(r.pay_buyers||0)
+    }),{exp:0,uv:0,add:0,pay:0});
+  }
+
+  function periodShift(startISO,endISO){
+    const start=new Date(startISO+'T00:00:00');
+    const end=new Date(endISO+'T00:00:00');
+    const d=Math.round((end-start)/86400000)+1;
+    const prevEnd=new Date(start.getTime()-86400000);
+    const prevStart=new Date(prevEnd.getTime()-(d-1)*86400000);
+    const fmt=d=>d.toISOString().slice(0,10);
+    return{prevStart:fmt(prevStart),prevEnd:fmt(prevEnd),days:d};
+  }
+
+  async function fetchAgg(start,end){
+    const url=`/api/ozon/stats?store_id=${encodeURIComponent(storeId)}&start=${start}&end=${end}`;
+    const resp=await fetch(url); const json=await resp.json();
+    if(!json.ok) throw new Error(json.msg||'fetch failed');
+    return json.rows||[];
+  }
+
+  function fetchTrend(pid,start,end){
+    const url=`/api/ozon/product?store_id=${encodeURIComponent(storeId)}&product_id=${pid}&start=${start}&end=${end}`;
+    return fetch(url).then(r=>r.json()).then(j=>j.rows||[]);
+  }
+
+  async function loadData(){
+    const val=input.value; if(!val.includes(' to ')) return; const parts=val.split(' to ');
+    curStart=parts[0]; curEnd=parts[1];
+    const shift=periodShift(curStart,curEnd); prevStart=shift.prevStart; prevEnd=shift.prevEnd; days=shift.days;
+    [rowsCur,rowsPrev]=await Promise.all([
+      fetchAgg(curStart,curEnd),
+      fetchAgg(prevStart,prevEnd)
+    ]);
+    totalsCur=sumAll(rowsCur);
+    renderProducts();
+  }
+
+  function renderProducts(){
+    const expMap=new Map(); const titleMap=new Map();
+    rowsCur.forEach(r=>{expMap.set(r.product_id,(expMap.get(r.product_id)||0)+Number(r.exposure||0)); titleMap.set(r.product_id,r.product_title||r.product_id);});
+    const ids=[...expMap.keys()].sort((a,b)=>expMap.get(b)-expMap.get(a));
+    const sel=document.getElementById('productSelect'); sel.innerHTML='';
+    ids.forEach(id=>{const o=document.createElement('option');o.value=id;o.textContent=titleMap.get(id)||id;o.dataset.title=titleMap.get(id)||'';sel.appendChild(o);});
+    if(!ids.length){document.getElementById('kpi').innerHTML='';document.getElementById('lineWrap').style.display='none';return;}
+    const pid=ids.find(id=>String(id)===String(pidParam))||ids[0];
+    sel.value=pid; update(pid);
+    sel.onchange=()=>update(sel.value);
+  }
+
+  async function update(pid){
+    const titleOpt=document.querySelector(`#productSelect option[value="${pid}"]`);
+    const title=titleOpt?titleOpt.dataset.title||pid:pid;
+    const link=document.getElementById('productLink');
+    link.textContent=title; link.href=`https://ozon.ru/product/${pid}`; link.style.display='';
+
+    function sum(rows){
+      return rows.filter(r=>String(r.product_id)===String(pid)).reduce((a,r)=>({
+        exp:a.exp+Number(r.exposure||0),
+        uv:a.uv+Number(r.uv||0),
+        add:a.add+Number(r.add_to_cart_users||0),
+        pay:a.pay+Number(r.pay_buyers||0)
+      }),{exp:0,uv:0,add:0,pay:0});
+    }
+    const cur=sum(rowsCur); const prev=sum(rowsPrev);
+    const curUvRate=cur.exp?cur.uv/cur.exp:0;
+    const prevUvRate=prev.exp?prev.uv/prev.exp:0;
+    const curAddRate=cur.uv?cur.add/cur.uv:0;
+    const prevAddRate=prev.uv?prev.add/prev.uv:0;
+    const curPayRate=cur.uv?cur.pay/cur.uv:0;
+    const prevPayRate=prev.uv?prev.pay/prev.uv:0;
+    const avgUvRate=totalsCur.exp?totalsCur.uv/totalsCur.exp:0;
+    const avgAddRate=totalsCur.uv?totalsCur.add/totalsCur.uv:0;
+    const avgPayRate=totalsCur.uv?totalsCur.pay/totalsCur.uv:0;
+    const shareExp=totalsCur.exp?cur.exp/totalsCur.exp:0;
+    const shareUv=totalsCur.uv?cur.uv/totalsCur.uv:0;
+    const shareAdd=totalsCur.add?cur.add/totalsCur.add:0;
+    const sharePay=totalsCur.pay?cur.pay/totalsCur.pay:0;
+    document.getElementById('kpi').innerHTML=[
+      card('平均访客比',curUvRate,prevUvRate,true,avgUvRate),
+      card('平均加购比',curAddRate,prevAddRate,true,avgAddRate),
+      card('平均支付比',curPayRate,prevPayRate,true,avgPayRate),
+      card('总曝光量',cur.exp,prev.exp,false,null,shareExp),
+      card('总访客数',cur.uv,prev.uv,false,null,shareUv),
+      card('总加购数',cur.add,prev.add,false,null,shareAdd),
+      card('总支付数',cur.pay,prev.pay,false,null,sharePay)
+    ].join('');
+
+    const [trendCur,trendPrev]=await Promise.all([
+      fetchTrend(pid,curStart,curEnd),
+      fetchTrend(pid,prevStart,prevEnd)
+    ]);
+    const allDates=[...trendCur,...trendPrev].map(r=>r.date).filter(Boolean).sort();
+    document.getElementById('listingDate').textContent=allDates.length?`上架日期：${allDates[0]}`:'';
+    line(trendCur,trendPrev);
+  }
+
+  function line(trendCur,trendPrev){
+    const mapExpA=new Map(),mapExpB=new Map();
+    const mapUvRateA=new Map(),mapUvRateB=new Map();
+    const mapAddRateA=new Map(),mapAddRateB=new Map();
+    trendCur.forEach(r=>{const d=r.date;const e=Number(r.exposure||0);const u=Number(r.uv||0);const a=Number(r.add_to_cart_users||0);mapExpA.set(d,e);mapUvRateA.set(d,e?u/e:0);mapAddRateA.set(d,u?a/u:0);});
+    trendPrev.forEach(r=>{const d=r.date;const e=Number(r.exposure||0);const u=Number(r.uv||0);const a=Number(r.add_to_cart_users||0);mapExpB.set(d,e);mapUvRateB.set(d,e?u/e:0);mapAddRateB.set(d,u?a/u:0);});
+    const labels=[],expA=[],expB=[],uvA=[],uvB=[],addA=[],addB=[];
+    for(let i=0;i<days;i++){
+      const da=new Date(curStart+'T00:00:00'); da.setDate(da.getDate()+i); const isoA=da.toISOString().slice(0,10);
+      const db=new Date(prevStart+'T00:00:00'); db.setDate(db.getDate()+i); const isoB=db.toISOString().slice(0,10);
+      labels.push(isoA);
+      expA.push(mapExpA.get(isoA)||0);
+      expB.push(mapExpB.get(isoB)||0);
+      uvA.push((mapUvRateA.get(isoA)||0)*100);
+      uvB.push((mapUvRateB.get(isoB)||0)*100);
+      addA.push((mapAddRateA.get(isoA)||0)*100);
+      addB.push((mapAddRateB.get(isoB)||0)*100);
+    }
+    const lineWrap=document.getElementById('lineWrap'); lineWrap.style.display='block';
+    const expChart=echarts.init(document.getElementById('expLine'));
+    expChart.setOption({tooltip:{trigger:'axis'},legend:{data:['本周期','上一周期']},xAxis:{type:'category',data:labels},yAxis:{type:'value'},series:[{name:'本周期',type:'line',smooth:true,data:expA},{name:'上一周期',type:'line',smooth:true,data:expB}]});
+    const uvChart=echarts.init(document.getElementById('uvRateLine'));
+    uvChart.setOption({tooltip:{trigger:'axis',valueFormatter:v=>v+'%'},legend:{data:['本周期','上一周期']},xAxis:{type:'category',data:labels},yAxis:{type:'value',axisLabel:{formatter:'{value}%'}},series:[{name:'本周期',type:'line',smooth:true,data:uvA},{name:'上一周期',type:'line',smooth:true,data:uvB}]});
+    const addChart=echarts.init(document.getElementById('addRateLine'));
+    addChart.setOption({tooltip:{trigger:'axis',valueFormatter:v=>v+'%'},legend:{data:['本周期','上一周期']},xAxis:{type:'category',data:labels},yAxis:{type:'value',axisLabel:{formatter:'{value}%'}},series:[{name:'本周期',type:'line',smooth:true,data:addA},{name:'上一周期',type:'line',smooth:true,data:addB}]});
+    window.addEventListener('resize',()=>{expChart.resize();uvChart.resize();addChart.resize();});
+  }
+
+  loadData().catch(err=>console.error(err));
+})();
+</script>
 </body>
 </html>
