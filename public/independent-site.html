@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>独立站 · Landing Pages 明细</title>
+  <title>跨境电商数据分析平台</title>
   <style>
     #report td:first-child{ text-align:left; }
     #report td:first-child a.name{ display:inline-block; max-width:180px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="assets/login.css">
   <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
@@ -22,6 +23,34 @@
   <script src="assets/product-meta.js"></script>
 </head>
 <body class="fm">
+
+<div id="loginOverlay" class="login-overlay">
+  <div class="login-container">
+    <div class="login-form-card login-card-enter">
+      <div class="form-header">
+        <div class="form-logo">AI</div>
+        <div class="form-title">跨境电商数据分析平台</div>
+        <div class="form-subtitle">登录账户以继续</div>
+      </div>
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label" for="email">邮箱</label>
+          <input id="email" type="email" class="form-input" required>
+        </div>
+        <div class="form-group password-input-wrapper">
+          <label class="form-label" for="password">密码</label>
+          <input id="password" type="password" class="form-input" required>
+          <span id="password-toggle" class="password-toggle">👁️</span>
+        </div>
+        <button id="loginSubmit" class="login-submit-btn" type="submit">登录</button>
+      </form>
+      <div class="demo-account-tip">
+        <div class="demo-account-header">演示账户</div>
+        <div class="demo-account-info">邮箱：demo@example.com<br>密码：demo123</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <header class="header">
   <div class="logo-title">跨境电商数据分析平台</div>
@@ -457,7 +486,7 @@
   try{
     const resp=await fetch("/api/independent/sites");
     const j=await resp.json();
-    const sites=j.sites||[];
+    const sites=Array.from(new Set((j.sites||[]).filter(Boolean)));
     siteSelect.innerHTML=sites.map(s=>`<option value="${s}">${s}</option>`).join("");
     let cur=localStorage.getItem("currentIndepSite");
     if(!cur||!sites.includes(cur)) cur=sites[0]||"";
@@ -480,6 +509,7 @@
   }
 })();
 </script>
+<script src="assets/login.js"></script>
 
 </body>
 </html>

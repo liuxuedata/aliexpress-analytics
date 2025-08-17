@@ -114,6 +114,7 @@ function togglePasswordVisibility() {
 }
 
 function setupForm() {
+  document.title = '跨境电商数据分析平台';
   const form = document.getElementById('loginForm');
   if (!form) return;
   form.addEventListener('submit', handleLogin);
