@@ -118,29 +118,12 @@ function togglePasswordVisibility() {
 
 function setupForm() {
   document.title = '跨境电商数据分析平台';
-  const form = document.getElementById('loginForm');
-  if (!form) return;
-  form.addEventListener('submit', handleLogin);
-  fillDemoAccount();
-  document.getElementById('password-toggle').addEventListener('click', togglePasswordVisibility);
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      const standalone = window.location.pathname.endsWith('login.html') || !document.querySelector('header');
-      if (standalone) {
-        window.location.href = 'index.html';
-      } else {
-        hideLoginOverlay();
-      }
-    }
-  });
+  const demoUser = { email: 'demo@example.com', name: '演示用户', role: 'demo' };
+  setLoginState(loginStates.LOGGED_IN, demoUser);
 }
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', setupForm);
 } else {
   setupForm();
-}
-function fillDemoAccount(){
-  document.getElementById('email').value='demo@example.com';
-  document.getElementById('password').value='demo123';
 }
