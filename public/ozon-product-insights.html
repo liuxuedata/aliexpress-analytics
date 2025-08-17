@@ -68,14 +68,35 @@
   const startDef=new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
   input.value=`${startDef} to ${endDef}`;
   let rowsCur=[],rowsPrev=[],curStart='',curEnd='',prevStart='',prevEnd='',days=0;
+  let totalsCur={exp:0,uv:0,add:0,pay:0};
 
-  function card(title,cur,prev,isPct){
+  function card(title,cur,prev,isPct,avg,share){
     const diff=(cur-prev)||0;
     const arrow=diff>=0?'\u2191':'\u2193';
     const cls=diff>=0?'up':'down';
     const fmt=v=>isPct?`${(v*100).toFixed(2)}%`:v;
     const delta=isPct?`${Math.abs(diff*100).toFixed(2)}%`:Math.abs(diff);
-    return `<div class="stat-card"><h4>${title}</h4><p>${fmt(cur)}</p><div class="sub"><span class="delta ${cls}">${arrow} ${delta}</span></div></div>`;
+    const parts=[`<span class="delta ${cls}">${arrow} ${delta}</span>`];
+    if(avg!=null){
+      const diffAvg=(cur-avg)||0;
+      const dir=diffAvg>=0?'高于平均':'低于平均';
+      const clsAvg=diffAvg>=0?'up':'down';
+      const deltaAvg=isPct?`${Math.abs(diffAvg*100).toFixed(2)}%`:Math.abs(diffAvg);
+      parts.push(`<span class="${clsAvg}" style="margin-left:8px;">${dir} ${deltaAvg}</span>`);
+    }
+    if(share!=null){
+      parts.push(`<span style="margin-left:8px;">占比 ${(share*100).toFixed(2)}%</span>`);
+    }
+    return `<div class="stat-card"><h4>${title}</h4><p>${fmt(cur)}</p><div class="sub">${parts.join('')}</div></div>`;
+  }
+
+  function sumAll(rows){
+    return rows.reduce((a,r)=>({
+      exp:a.exp+Number(r.exposure||0),
+      uv:a.uv+Number(r.uv||0),
+      add:a.add+Number(r.add_to_cart_users||0),
+      pay:a.pay+Number(r.pay_buyers||0)
+    }),{exp:0,uv:0,add:0,pay:0});
   }
 
   function periodShift(startISO,endISO){
@@ -108,6 +129,7 @@
       fetchAgg(curStart,curEnd),
       fetchAgg(prevStart,prevEnd)
     ]);
+    totalsCur=sumAll(rowsCur);
     renderProducts();
   }
 
@@ -143,14 +165,21 @@
     const prevAddRate=prev.uv?prev.add/prev.uv:0;
     const curPayRate=cur.uv?cur.pay/cur.uv:0;
     const prevPayRate=prev.uv?prev.pay/prev.uv:0;
+    const avgUvRate=totalsCur.exp?totalsCur.uv/totalsCur.exp:0;
+    const avgAddRate=totalsCur.uv?totalsCur.add/totalsCur.uv:0;
+    const avgPayRate=totalsCur.uv?totalsCur.pay/totalsCur.uv:0;
+    const shareExp=totalsCur.exp?cur.exp/totalsCur.exp:0;
+    const shareUv=totalsCur.uv?cur.uv/totalsCur.uv:0;
+    const shareAdd=totalsCur.add?cur.add/totalsCur.add:0;
+    const sharePay=totalsCur.pay?cur.pay/totalsCur.pay:0;
     document.getElementById('kpi').innerHTML=[
-      card('平均访客比',curUvRate,prevUvRate,true),
-      card('平均加购比',curAddRate,prevAddRate,true),
-      card('平均支付比',curPayRate,prevPayRate,true),
-      card('总曝光量',cur.exp,prev.exp),
-      card('总访客数',cur.uv,prev.uv),
-      card('总加购数',cur.add,prev.add),
-      card('总支付数',cur.pay,prev.pay)
+      card('平均访客比',curUvRate,prevUvRate,true,avgUvRate),
+      card('平均加购比',curAddRate,prevAddRate,true,avgAddRate),
+      card('平均支付比',curPayRate,prevPayRate,true,avgPayRate),
+      card('总曝光量',cur.exp,prev.exp,false,null,shareExp),
+      card('总访客数',cur.uv,prev.uv,false,null,shareUv),
+      card('总加购数',cur.add,prev.add,false,null,shareAdd),
+      card('总支付数',cur.pay,prev.pay,false,null,sharePay)
     ].join('');
 
     const [trendCur,trendPrev]=await Promise.all([
