@@ -256,7 +256,9 @@
         { data:'landing_url', render:(v,t,r)=>{
             const pid = r.product || r.landing_path || '';
             const name = shorten(r.landing_path || '');
-            return `<div style="display:flex;align-items:center;" data-url="${v}"><img style="width:40px;height:40px;object-fit:cover;margin-right:4px;display:none;"><a href="${v}" target="_blank" class="name" title="${name}" data-pid="${pid}">${name}</a></div>`;
+            const base = siteInput.value.trim().replace(/\/$/,'');
+            const url = v && v.startsWith('http') ? v : base + (v || r.landing_path || '');
+            return `<div style="display:flex;align-items:center;" data-url="${url}"><img style="width:40px;height:40px;object-fit:cover;margin-right:4px;display:none;"><a href="${url}" target="_blank" class="name" title="${name}" data-pid="${pid}">${name}</a></div>`;
           }},
         { data:'clicks', render: v => v ?? 0 },
         { data:'impr', render: v => v ?? 0 },

@@ -276,6 +276,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(stored && stored.includes(' to ')) input.value=stored; else {
       const today=new Date(); const end=today.toISOString().slice(0,10); const start=new Date(today.getTime()-6*86400000).toISOString().slice(0,10); const def=`${start} to ${end}`; input.value=def; localStorage.setItem(key,def);
     }
+    const siteParam=params.get('site')||localStorage.getItem('indepSite')||'poolsvacuum.com';
+    localStorage.setItem('indepSite',siteParam);
     async function loadData(){
       const val=input.value; if(!val.includes(' to '))return; const [startISO,endISO]=val.split(' to '); localStorage.setItem(key,`${startISO} to ${endISO}`);
       const {prevStart,prevEnd,days}=periodShift(startISO,endISO);
@@ -287,9 +289,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
     function fetchAgg(start,end){
       if(mode==='indep'){
-        const site=params.get('site')||localStorage.getItem('indepSite')||'poolsvacuum.com';
-        localStorage.setItem('indepSite',site);
-        const url=`/api/independent/stats?site=${encodeURIComponent(site)}&from=${start}&to=${end}`;
+        const url=`/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${start}&to=${end}`;
         return fetch(url).then(r=>r.json()).then(j=>j.table||[]);
       }
       const url=`/api/ae_query?start=${start}&end=${end}&granularity=day`;
@@ -308,7 +308,15 @@ document.addEventListener('DOMContentLoaded',()=>{
       const linkMap=new Map();
       const getId=r=>mode==='indep'?r.product:r.product_id;
       const getExp=r=>mode==='indep'?Number(r.impr||0):Number(r.exposure||0);
-      rowsA.forEach(r=>{const id=getId(r);expMap.set(id,(expMap.get(id)||0)+getExp(r)); if(mode==='indep' && r.landing_url) linkMap.set(id,r.landing_url);});
+      const base=siteParam.replace(/\/$/,'');
+      rowsA.forEach(r=>{
+        const id=getId(r);
+        expMap.set(id,(expMap.get(id)||0)+getExp(r));
+        if(mode==='indep'){
+          const link = r.landing_url && r.landing_url.startsWith('http') ? r.landing_url : base + (r.landing_url || r.landing_path || '');
+          if(link) linkMap.set(id,link);
+        }
+      });
       const totalsA=rowsA.reduce((a,r)=>({
         exp:a.exp+getExp(r),
         uv:a.uv+Number(mode==='indep'?r.clicks||0:r.visitors||0),
