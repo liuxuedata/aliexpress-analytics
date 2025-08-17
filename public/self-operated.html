@@ -489,12 +489,14 @@ async function renderTable(rows, granularity) {
     const conv3 = r.add_people>0 ? ((r.pay_buyers/r.add_people)*100).toFixed(2) : '0.00';
     const ctr = formatCtr(r.search_ctr);
     const stay = (r.avg_stay_seconds==null || r.avg_stay_seconds===undefined) ? '' : Math.round(r.avg_stay_seconds);
-    return [link, r.bucket_label || r.bucket, conv1 + '%', conv2 + '%', conv3 + '%', r.exposure, r.visitors, r.views, r.add_people, r.order_items, r.pay_items, r.pay_buyers, ctr, stay];
+    const detailLink = '<a href="product-analysis.html?mode=self&pid='+ (r.product_id||'') +'" target="_blank">详情</a>';
+    return [link, detailLink, r.bucket_label || r.bucket, conv1 + '%', conv2 + '%', conv3 + '%', r.exposure, r.visitors, r.views, r.add_people, r.order_items, r.pay_items, r.pay_buyers, ctr, stay];
   });
   window.dataTable = $('#report').DataTable({
     data,
     columns: [
       { title: '商品（ID）' },
+      { title: '产品详情' },
       { title: granularity==='day' ? '日期' : (granularity==='week' ? '周范围' : (granularity==='period' ? '周期' : '月份范围')) },
       { title: '访客比(%)' }, { title: '加购比(%)' }, { title: '支付比(%)' },
       { title: '曝光量' }, { title: '访客数' }, { title: '浏览量' },
@@ -506,7 +508,7 @@ async function renderTable(rows, granularity) {
       { title: '搜索点击率(%)' },
       { title: '平均停留时长(秒)' }
     ],
-    order: [[1,'desc']], scrollX:true, scrollY:'calc(100vh - 420px)', scrollCollapse:true, fixedHeader:true, fixedColumns:{leftColumns:1}
+    order: [[2,'desc']], scrollX:true, scrollY:'calc(100vh - 420px)', scrollCollapse:true, fixedHeader:true, fixedColumns:{leftColumns:1}
   });
   populateProductNames(document.getElementById('report'));
 }

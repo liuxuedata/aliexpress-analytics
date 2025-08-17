@@ -108,6 +108,7 @@
               <thead>
                 <tr>
                   <th>产品</th>
+                  <th>产品详情</th>
                   <th>点击</th><th>曝光</th><th>CTR</th><th>Avg CPC</th><th>Cost</th>
                   <th>转化</th><th>Cost/Conv</th><th>All conv</th><th>Conv value</th>
                   <th>All conv rate</th><th>Conv rate</th>
@@ -256,6 +257,11 @@
         { data:'landing_url', render:(v,t,r)=>{
             const name = shorten(r.landing_path || '');
             return `<div style="display:flex;align-items:center;" data-url="${v}"><img style="width:40px;height:40px;object-fit:cover;margin-right:4px;display:none;"><a href="${v}" target="_blank" class="name" title="${name}">${name}</a></div>`;
+          }},
+        { data:null, render:(v,t,r)=>{
+            const pid = r.product || r.landing_path || '';
+            const site = encodeURIComponent(siteInput.value.trim());
+            return `<a href="product-analysis.html?mode=indep&site=${site}&pid=${encodeURIComponent(pid)}" target="_blank">详情</a>`;
           }},
         { data:'clicks', render: v => v ?? 0 },
         { data:'impr', render: v => v ?? 0 },

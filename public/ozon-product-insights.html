@@ -61,6 +61,8 @@
 <script>
 (function(){
   const storeId='demo';
+  const params=new URLSearchParams(location.search);
+  const pidParam=params.get('pid');
   const input=document.getElementById('dateRange');
   const fp=flatpickr(input,{mode:'range',dateFormat:'Y-m-d',onClose:ds=>{if(ds.length===2)loadData();}});
   const today=new Date();
@@ -140,7 +142,8 @@
     const sel=document.getElementById('productSelect'); sel.innerHTML='';
     ids.forEach(id=>{const o=document.createElement('option');o.value=id;o.textContent=titleMap.get(id)||id;o.dataset.title=titleMap.get(id)||'';sel.appendChild(o);});
     if(!ids.length){document.getElementById('kpi').innerHTML='';document.getElementById('lineWrap').style.display='none';return;}
-    const pid=ids[0]; sel.value=pid; update(pid);
+    const pid=ids.find(id=>String(id)===String(pidParam))||ids[0];
+    sel.value=pid; update(pid);
     sel.onchange=()=>update(sel.value);
   }
 

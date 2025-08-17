@@ -76,6 +76,7 @@
               <thead>
                 <tr>
                   <th>产品名</th>
+                  <th>产品详情</th>
                   <th>型号</th>
                   <th>搜索排名</th>
                   <th>曝光量</th>
@@ -114,7 +115,7 @@
         paging:true,
         searching:true,
         info:true,
-          order:[[4,'desc']],
+          order:[[5,'desc']],
         scrollY:'60vh',
         scrollCollapse:true,
         autoWidth:false,
@@ -161,6 +162,7 @@
         const rank = r.search_rank!=null ? Number(r.search_rank).toFixed(2) : '';
         return [
           `<a href="https://ozon.ru/product/${r.product_id}" target="_blank" rel="noopener">${r.product_title || r.product_id}</a>`,
+          `<a href="ozon-product-insights.html?pid=${r.product_id}" target="_blank">详情</a>`,
           r.model || '',
           rank,
           impressions,

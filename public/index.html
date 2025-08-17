@@ -126,7 +126,8 @@
             <thead>
               <tr>
                 <th>商品ID</th>
-<th>搜索曝光量</th>
+                <th>产品详情</th>
+                <th>搜索曝光量</th>
                 <th>商品访客数</th>
                 <th>商品浏览量</th>
                 <th>加购人数</th>
@@ -282,7 +283,7 @@
     // table uses current period A
     const rows = window._rowsA.map(x => [
       '<a data-pid="'+(x.product_id||'')+'" data-link="'+(x.product_link || ('https://aliexpress.com/item/'+x.product_id+'.html'))+'" href="'+(x.product_link || ('https://aliexpress.com/item/'+x.product_id+'.html'))+'" target="_blank">'+(x.product_id||'')+'</a>',
-
+      '<a href="product-analysis.html?pid='+ (x.product_id||'') +'" target="_blank">详情</a>',
       x.search_exposure || 0, x.uv || 0, x.pv || 0,
       x.add_to_cart_users || 0, x.add_to_cart_qty || 0,
       x.pay_items || 0, x.pay_orders || 0, x.pay_buyers || 0,
@@ -292,7 +293,7 @@
 
     ]);
     if (state.table) state.table.clear().rows.add(rows).draw();
-    else state.table = $('#report').DataTable({ data: rows, paging:true, searching:true, info:true, order:[[2,'desc']], fixedHeader:true, scrollY:'60vh', scrollCollapse:true, autoWidth:false });
+    else state.table = $('#report').DataTable({ data: rows, paging:true, searching:true, info:true, order:[[3,'desc']], fixedHeader:true, scrollY:'60vh', scrollCollapse:true, autoWidth:false });
     populateProductNames(document.getElementById('report'));
     renderAnalysis(window._rowsA, window._rowsB);
     renderProduct(window._rowsA, window._rowsB);

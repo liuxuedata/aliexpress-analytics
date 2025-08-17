@@ -62,6 +62,7 @@
 document.addEventListener('DOMContentLoaded',()=>{
   const params=new URLSearchParams(location.search);
   const mode=params.get('mode');
+  const pidParam=params.get('pid');
   const detailLink=document.getElementById('detailLink');
   const analysisLink=document.getElementById('analysisLink');
   const prodLink=document.getElementById('productLink');
@@ -215,7 +216,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       ids.forEach(id=>{const o=document.createElement('option');o.value=id;o.textContent=id;o.setAttribute('data-pid',id);sel.appendChild(o);});
       populateProductNames(sel);
       if(!ids.length){document.getElementById('kpi').innerHTML=''; setProdLink('',''); return;}
-      const pid=ids[0]; sel.value=pid; update(pid);
+      const pid=ids.find(id=>String(id)===String(pidParam))||ids[0];
+      sel.value=pid; update(pid);
       sel.onchange=()=>update(sel.value);
       function sum(rows,pid){
         return rows.filter(x=>String(x.product_id)===String(pid)).reduce((a,x)=>({
@@ -328,7 +330,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       });
       populateProductNames(sel);
       if(!ids.length){document.getElementById('kpi').innerHTML=''; setProdLink('', ''); return;}
-      const pid=ids[0]; sel.value=pid; update(pid);
+      const pid=ids.find(id=>String(id)===String(pidParam))||ids[0];
+      sel.value=pid; update(pid);
       sel.onchange=()=>update(sel.value);
       function sum(rows,pid){
         return rows.filter(r=>String(getId(r))===String(pid)).reduce((a,r)=>({
