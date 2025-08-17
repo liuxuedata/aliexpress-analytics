@@ -45,7 +45,7 @@
 
 <div class="layout">
   <nav class="sidebar" id="sidebar">
-    <div class="site-header"><span>独立站</span></div>
+    <div class="site-header"><span id="currentSite">独立站</span><button id="addSite" class="add-site-btn">+</button></div>
     <ul class="sub-nav">
       <li><a href="#" data-jump="detail" class="active">明细数据</a></li>
       <li><a href="#" data-jump="analysis">运营分析</a></li>
@@ -455,21 +455,46 @@
 
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
-  const siteListKey='managedSites';
+  const siteListKey='indepSites';
+  const currentKey='currentIndepSite';
   let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
-  if(!Array.isArray(sites)||!sites.length){sites=['A站','B站','C站'];localStorage.setItem(siteListKey,JSON.stringify(sites));}
-  const menuEl=document.getElementById('managedMenu');
-  if(menuEl){
-    sites.forEach(name=>{
-      const li=document.createElement('li');
-      const a=document.createElement('a');
-      a.href='index.html';
-      a.textContent=name;
-      a.addEventListener('click',e=>{e.preventDefault();localStorage.setItem('currentSite',name);window.location.href='index.html';});
-      li.appendChild(a);
-      menuEl.appendChild(li);
-    });
+  if(!Array.isArray(sites)||!sites.length){
+    sites=['独立站'];
+    localStorage.setItem(siteListKey,JSON.stringify(sites));
   }
+  const currentEl=document.getElementById('currentSite');
+  const siteInput=document.getElementById('site');
+  function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));}
+  function update(trigger=false){
+    const name=localStorage.getItem(currentKey)||sites[0];
+    currentEl.textContent=name;
+    localStorage.setItem(currentKey,name);
+    if(siteInput){
+      siteInput.value=name;
+      if(trigger) siteInput.dispatchEvent(new Event('change'));
+    }
+  }
+  currentEl.addEventListener('dblclick',()=>{
+    const cur=localStorage.getItem(currentKey)||sites[0];
+    const idx=sites.indexOf(cur);
+    const n=prompt('修改站点名',cur);
+    if(n){
+      sites[idx]=n;
+      save();
+      localStorage.setItem(currentKey,n);
+      update(true);
+    }
+  });
+  document.getElementById('addSite').addEventListener('click',()=>{
+    const n=prompt('新增站点名');
+    if(n){
+      sites.push(n);
+      save();
+      localStorage.setItem(currentKey,n);
+      update(true);
+    }
+  });
+  update();
 });
 </script>
 
