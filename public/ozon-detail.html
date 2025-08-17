@@ -132,15 +132,8 @@
       [startISO, endISO] = range.split(' to ');
     } else {
       const now=new Date();
-      const day=(now.getDay()+6)%7;
-      const currentMonday=new Date(now);
-      currentMonday.setDate(now.getDate()-day);
-      const lastMonday=new Date(currentMonday);
-      lastMonday.setDate(currentMonday.getDate()-7);
-      const lastSunday=new Date(lastMonday);
-      lastSunday.setDate(lastMonday.getDate()+6);
-      startISO=lastMonday.toISOString().slice(0,10);
-      endISO=lastSunday.toISOString().slice(0,10);
+      endISO = now.toISOString().slice(0,10);
+      startISO = new Date(now.getTime()-6*86400000).toISOString().slice(0,10);
       $('#dateFilter').val(`${startISO} to ${endISO}`);
       if(window.fp) window.fp.setDate([startISO,endISO], true, 'Y-m-d');
     }

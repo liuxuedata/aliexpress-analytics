@@ -12,10 +12,12 @@
   <!-- DataTables & ECharts CDN -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
   <script src="assets/product-meta.js"></script>
 </head>
@@ -59,9 +61,8 @@
         <div class="controls">
           <label>站点：</label>
           <input type="text" id="site" value="" placeholder="如：poolsvacuum.com">
-          <label>起止：</label>
-          <input type="date" id="from">
-          <input type="date" id="to">
+          <span>日期：</span>
+          <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
           <label>网络：</label>
           <select id="networkSel"><option value="">全部</option></select>
           <label>Campaign：</label>
@@ -174,8 +175,7 @@
     return url.searchParams.get(name);
   }
   const siteInput = document.getElementById('site');
-  const fromInput = document.getElementById('from');
-  const toInput = document.getElementById('to');
+  const dateInput = document.getElementById('dateFilter');
   const networkSel = document.getElementById('networkSel');
   const campaignSel = document.getElementById('campaignSel');
   const loadStatusEl = document.getElementById('status');
@@ -184,8 +184,8 @@
   let rawTable = [];
   let onlyNew = false;
   siteInput.addEventListener('change', load);
-  fromInput.addEventListener('change', load);
-  toInput.addEventListener('change', load);
+  networkSel.addEventListener('change', load);
+  campaignSel.addEventListener('change', load);
 
   function periodShift(startISO, endISO){
     const start=new Date(startISO+'T00:00:00'); const end=new Date(endISO+'T00:00:00');
@@ -274,23 +274,22 @@
     dt.on('draw',()=>enhanceMeta(document.getElementById('report')));
   }
 
-  networkSel.addEventListener('change', load);
-  campaignSel.addEventListener('change', load);
-
-  // 默认站点取 url 参数或从示例取
+  // 默认站点取 url 参数或本地存储
   siteInput.value = getParam('site') || localStorage.getItem('indepSite') || 'poolsvacuum.com';
-  const today = new Date();
-  const dow = today.getDay();
-  const mondayThisWeek = new Date(today);
-  mondayThisWeek.setDate(today.getDate() - ((dow + 6) % 7));
-  const mondayLastWeek = new Date(mondayThisWeek);
-  mondayLastWeek.setDate(mondayThisWeek.getDate() - 7);
-  const sundayLastWeek = new Date(mondayLastWeek);
-  sundayLastWeek.setDate(mondayLastWeek.getDate() + 6);
-  const fromDef = mondayLastWeek.toISOString().slice(0,10);
-  const toDef = sundayLastWeek.toISOString().slice(0,10);
-  fromInput.value = getParam('from') || fromDef;
-  toInput.value = getParam('to') || toDef;
+  const storedPeriod = localStorage.getItem('indepPeriod');
+  if (storedPeriod && storedPeriod.includes(' to ')) {
+    dateInput.value = storedPeriod;
+  } else {
+    const today = new Date();
+    const endISO = today.toISOString().slice(0,10);
+    const startISO = new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
+    dateInput.value = `${startISO} to ${endISO}`;
+  }
+  window.fp = flatpickr('#dateFilter',{ mode:'range', dateFormat:'Y-m-d', onClose:(ds)=>{ if(ds.length===2) load(); } });
+  if (dateInput.value.includes(' to ')) {
+    const [s,e] = dateInput.value.split(' to ');
+    window.fp.setDate([s,e], true, 'Y-m-d');
+  }
 
   function populateFilters(){
     const nets = Array.from(new Set(rawTable.map(r=>r.network).filter(Boolean))).sort();
@@ -304,8 +303,18 @@
     try {
       const site = siteInput.value.trim();
       localStorage.setItem('indepSite', site);
-      const from = fromInput.value;
-      const to = toInput.value;
+      let from, to;
+      const range = dateInput.value;
+      if (range && range.includes(' to ')) {
+        [from, to] = range.split(' to ');
+      } else {
+        const today = new Date();
+        to = today.toISOString().slice(0,10);
+        from = new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
+        dateInput.value = `${from} to ${to}`;
+        if (window.fp) window.fp.setDate([from,to], true, 'Y-m-d');
+      }
+      localStorage.setItem('indepPeriod', `${from} to ${to}`);
       const params = new URLSearchParams({site, from, to});
       const net = networkSel.value;
       const camp = campaignSel.value;
