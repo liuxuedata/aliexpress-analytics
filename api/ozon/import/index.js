@@ -44,8 +44,17 @@ function parseSheet(path){
     headers.push(key);
   }
   const rows=[];
-  // data rows start after header rows; skip optional description/summary lines
-  for(let r=9;r<=range.e.r;r++){
+  // locate first data row after headers, skipping description/summary lines
+  let start=9;
+  while(start<=range.e.r){
+    const row=getRow(start);
+    const first=row[0];
+    if(first && !(typeof first==='string' && first.includes('Итого'))){
+      break;
+    }
+    start++;
+  }
+  for(let r=start;r<=range.e.r;r++){
     const row=getRow(r);
     if(row.every(v=>v==null)) continue;
     const first=row[0];
