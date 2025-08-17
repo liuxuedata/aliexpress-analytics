@@ -76,7 +76,9 @@ module.exports = async function handler(req,res){
     const curIndex = dates.indexOf(date);
     const prevDate = dates[curIndex+1] || null;
 
-    const select = `sku,tovary,voronka_prodazh_pokazy_vsego,${uvCol} as uv,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_vykupleno_tovarov`;
+
+ const select = `sku,tovary,voronka_prodazh_pokazy_vsego,uv:${uvCol},voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_vykupleno_tovarov`;
+
     const curResp = await supabase.schema('public').from(TABLE).select(select).eq('den', date);
     if(curResp.error) throw curResp.error;
     let prevResp = { data: [] };
