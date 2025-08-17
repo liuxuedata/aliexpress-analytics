@@ -162,7 +162,7 @@
       getProductMeta(url,url,'/api/indep_fetchProductInfo').then(m=>{
         root.querySelectorAll(`[data-url="${url}"]`).forEach(el=>{
           const nameEl=el.querySelector('.name');
-          if(m.title&&nameEl) nameEl.textContent=shorten(m.title);
+          if(m.title&&nameEl) nameEl.title=shorten(m.title);
           const imgEl=el.querySelector('img');
           if(m.image&&imgEl){imgEl.src=m.image; imgEl.style.display='';}
         });
@@ -214,7 +214,6 @@
       const key = r.landing_path;
       if(!map[key]){
         map[key]={
-          product:r.product,
           landing_path:r.landing_path,
           landing_url:r.landing_url,
           clicks:0, impr:0, cost:0, conversions:0, all_conv:0, conv_value:0
@@ -255,18 +254,18 @@
       autoWidth:false,
       columns:[
         { data:'landing_url', render:(v,t,r)=>{
-            const name = shorten(r.product || r.landing_path || '');
+            const name = shorten(r.landing_path || '');
             return `<div style="display:flex;align-items:center;" data-url="${v}"><img style="width:40px;height:40px;object-fit:cover;margin-right:4px;display:none;"><a href="${v}" target="_blank" class="name" title="${name}">${name}</a></div>`;
           }},
         { data:'clicks', render: v => v ?? 0 },
         { data:'impr', render: v => v ?? 0 },
         { data:'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
-        { data:'avg_cpc', render: v => v ?? 0 },
-        { data:'cost', render: v => v ?? 0 },
+        { data:'avg_cpc', render: v => (v ?? 0).toFixed(2) },
+        { data:'cost', render: v => (v ?? 0).toFixed(2) },
         { data:'conversions', render: v => v ?? 0 },
-        { data:'cost_per_conv', render: v => v ?? 0 },
+        { data:'cost_per_conv', render: v => (v ?? 0).toFixed(2) },
         { data:'all_conv', render: v => v ?? 0 },
-        { data:'conv_value', render: v => v ?? 0 },
+        { data:'conv_value', render: v => (v ?? 0).toFixed(2) },
         { data:'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
         { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
       ]
@@ -371,15 +370,15 @@
         autoWidth:false,
         columns:[
           { data:'url', render:(v,t,r)=>{
-              const name=shorten(r.product || r.path || '');
+              const name=shorten(r.path || '');
               return `<div style="display:flex;align-items:center;" data-url="${v}"><img style="width:40px;height:40px;object-fit:cover;margin-right:4px;display:none;"><a href="${v}" target="_blank" class="name" title="${name}">${name}</a></div>`;
             }},
           { data:'clicks' },
           { data:'impr' },
           { data:'ctr', render:v=>(v*100).toFixed(2)+'%' },
           { data:'conversions' },
-          { data:'cost' },
-          { data:'conv_value' },
+          { data:'cost', render:v => (v ?? 0).toFixed(2) },
+          { data:'conv_value', render:v => (v ?? 0).toFixed(2) },
           { data:'cpa', render:v=>v.toFixed(2) },
           { data:'roas', render:v=>v.toFixed(2) }
         ]
