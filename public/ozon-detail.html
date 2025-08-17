@@ -189,6 +189,7 @@
     const resp = await fetch('/api/ozon/import', { method:'POST', body:fd });
     const json = await resp.json();
     if(!json.ok) throw new Error(json.msg||'上传失败');
+    return json;
   }
 
   function renderKpi(k){
@@ -235,8 +236,9 @@
     if(!file) return;
     try{
       setStatus('上传中...');
-      await upload(file);
+      const result = await upload(file);
       await loadData();
+      setStatus(`新增${result.inserted||0}条，重复${result.duplicates||0}条`);
     }catch(err){ console.error(err); setStatus('失败: '+err.message); }
     e.target.value='';
   });

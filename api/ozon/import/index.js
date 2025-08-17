@@ -218,33 +218,106 @@ module.exports = async function handler(req,res){
       return bad(res, 400, 'preflight', pre.error, { table: TABLE, rawTable: RAW_TABLE });
     }
 
-    // upsert to avoid duplicate key conflicts when re-importing
-    let attempt = 0;
-    let error;
-    do{
-      const resInsert = await supabase
-        .schema('public')
-        .from(TABLE)
-        .upsert(rows, { onConflict: 'sku,model,den' });
-      error = resInsert.error;
-      if(error && /schema cache/i.test(error.message)){
-        await refresh();
+    // 按主键聚合上传行，避免文件内部重复
+    const sumFields = [
+      'voronka_prodazh_posescheniya_kartochki_tovara',
+      'voronka_prodazh_uv_s_prosmotrom_kartochki_tovara',
+      'voronka_prodazh_pokazy_v_poiske_i_kataloge',
+      'voronka_prodazh_uv_s_prosmotrom_v_poiske_ili_kataloge',
+      'voronka_prodazh_pokazy_vsego',
+      'voronka_prodazh_unikalnye_posetiteli_vsego',
+      'voronka_prodazh_zakazano_tovarov'
+    ];
+    const mapRows = new Map();
+    for(const r of rows){
+      const key = `${r.sku}||${r.model}||${r.den}`;
+      const existing = mapRows.get(key);
+      if(existing){
+        for(const f of sumFields){
+          existing[f] = (Number(existing[f])||0) + (Number(r[f])||0);
+        }
       }else{
-        break;
+        mapRows.set(key, { ...r });
       }
-    }while(attempt++ < 2);
+    }
+    rows = Array.from(mapRows.values());
+
+    let inserted = 0, duplicates = 0;
+    for(const row of rows){
+      // 先尝试插入
+      let attempt = 0, insErr;
+      do{
+        const resIns = await supabase.schema('public').from(TABLE).insert(row);
+        insErr = resIns.error;
+        if(insErr && /schema cache/i.test(insErr.message)){
+          await refresh();
+        }else{
+          break;
+        }
+      }while(attempt++ < 2);
+
+      if(insErr){
+        if(insErr.code === '23505'){ // 主键重复，需叠加
+          duplicates++;
+          let selErr, data, attemptSel = 0;
+          do{
+            const resSel = await supabase
+              .schema('public')
+              .from(TABLE)
+              .select(sumFields.join(','))
+              .eq('sku', row.sku)
+              .eq('model', row.model)
+              .eq('den', row.den)
+              .single();
+            selErr = resSel.error; data = resSel.data;
+            if(selErr && /schema cache/i.test(selErr.message)){
+              await refresh();
+            }else{
+              break;
+            }
+          }while(attemptSel++ < 2);
+          if(selErr){
+            try{ fs.unlinkSync(file.path); }catch(_){}
+            return bad(res, 400, 'db-select', selErr, { table: TABLE });
+          }
+
+          const update = { ...row };
+          for(const f of sumFields){
+            update[f] = (Number(data?.[f])||0) + (Number(row[f])||0);
+          }
+
+          let updErr, attemptUpd = 0;
+          do{
+            const resUpd = await supabase
+              .schema('public')
+              .from(TABLE)
+              .update(update)
+              .eq('sku', row.sku)
+              .eq('model', row.model)
+              .eq('den', row.den);
+            updErr = resUpd.error;
+            if(updErr && /schema cache/i.test(updErr.message)){
+              await refresh();
+            }else{
+              break;
+            }
+          }while(attemptUpd++ < 2);
+          if(updErr){
+            try{ fs.unlinkSync(file.path); }catch(_){}
+            return bad(res, 400, 'db-update', updErr, { table: TABLE });
+          }
+        }else{
+          try{ fs.unlinkSync(file.path); }catch(_){}
+          return bad(res, 400, 'db-insert', insErr, { table: TABLE });
+        }
+      }else{
+        inserted++;
+      }
+    }
 
     // 清理临时文件
     try{ fs.unlinkSync(file.path); }catch(_){}
 
-    if(error){
-      const parts = [error.message, error.details, error.hint].filter(Boolean);
-      if(!parts.length){
-        try{ parts.push(JSON.stringify(error)); }catch(_){ parts.push(String(error)); }
-      }
-      return bad(res, 400, 'db-upsert', parts.join(' | '), { table: TABLE });
-    }
-
-    return ok(res, { inserted: rows.length, table: TABLE });
+    return ok(res, { inserted, duplicates, table: TABLE });
   });
 };
