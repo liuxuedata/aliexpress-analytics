@@ -135,7 +135,11 @@ function setupForm() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', setupForm);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupForm);
+} else {
+  setupForm();
+}
 function fillDemoAccount(){
   document.getElementById('email').value='demo@example.com';
   document.getElementById('password').value='demo123';
