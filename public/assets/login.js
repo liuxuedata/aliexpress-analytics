@@ -22,7 +22,10 @@ function updateLoginUI(state, userData = {}) {
     case loginStates.LOGGED_IN:
       localStorage.setItem('user', JSON.stringify(userData));
       submitBtn.classList.remove('button-loading');
-      if (window.location.pathname.endsWith('login.html')) {
+      const onStandalone =
+        window.location.pathname.endsWith('login.html') ||
+        !document.querySelector('header');
+      if (onStandalone) {
         window.location.href = 'index.html';
       } else if (overlay) {
         overlay.style.display = 'none';
@@ -122,7 +125,8 @@ function setupForm() {
   document.getElementById('password-toggle').addEventListener('click', togglePasswordVisibility);
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      if (window.location.pathname.endsWith('login.html')) {
+      const standalone = window.location.pathname.endsWith('login.html') || !document.querySelector('header');
+      if (standalone) {
         window.location.href = 'index.html';
       } else {
         hideLoginOverlay();
