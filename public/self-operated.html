@@ -109,7 +109,7 @@
           <input type="hidden" id="granularity" value="day">
           <span>日期：</span>
           <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
-          <button id="refreshBtn" class="btn">刷新</button>
+          <span id="status" class="notice"></span>
         </div>
       </div>
       <div class="divider"></div>
@@ -277,7 +277,8 @@ $('#fileInput').on('change', function(e) {
       const resp = await fetch('/api/ae_upsert', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ rows: deduped }) });
       const txt = await resp.text(); let j; try { j = JSON.parse(txt); } catch(e) { throw new Error('Upsert API响应不是JSON：' + txt.slice(0,200)); }
       if (!resp.ok || !j.ok) throw new Error(j.error || '入库失败');
-      $('#progress').text('入库完成 ✔'); $('#refreshBtn').click();
+      $('#progress').text('入库完成 ✔');
+      await fetchAndRenderAll();
     } catch(err) {
       console.error(err); alert('处理失败：' + (err.message || err)); $('#progress').text('');
     }
@@ -463,7 +464,9 @@ async function renderTable(rows, granularity) {
   });
   populateProductNames(document.getElementById('report'));
 }
+const statusEl = document.getElementById('status');
 async function fetchAndRenderAll() {
+  statusEl.textContent = '加载中...';
   try {
     const val=$('#dateFilter').val(); let startISO,endISO;
     if (val && val.includes(' to ')) { const [s,e]=val.split(' to '); startISO=s; endISO=e; }
@@ -473,7 +476,7 @@ async function fetchAndRenderAll() {
       $('#dateFilter').val(`${startISO} to ${endISO}`);
     }
     localStorage.setItem('selfPeriod', `${startISO} to ${endISO}`);
-    const g = 'day';$('#progress').text('查询中…');
+    const g = 'day';
 
     const { prevStart, prevEnd, days }=periodShift(startISO,endISO);
     const [rowsNowAgg, rowsPrevAgg, rowsA, rowsB] = await Promise.all([
@@ -489,15 +492,18 @@ async function fetchAndRenderAll() {
     drawRatioBar(rowsA,rowsB);
     await drawTop6Both(rowsA,rowsB);
     renderProductChart(rowsA,rowsB,days,startISO,prevStart);
-
+    refreshFromPageRange();
     $('#progress').text(`A: ${rowsA.length} 条 · B: ${rowsB.length} 条`);
+    statusEl.textContent = '加载完成';
   } catch (err) {
-    console.error(err); alert('查询失败：' + (err.message || err)); $('#progress').text('');
+    console.error(err);
+    statusEl.textContent = '加载失败';
+    alert('查询失败：' + (err.message || err));
+    $('#progress').text('');
   }
 }
 /* ---------- 初始化 ---------- */
 const fp=flatpickr('#dateFilter',{ mode:'range', dateFormat:'Y-m-d', onClose:(ds)=>{ if(ds.length===2) fetchAndRenderAll(); } });
-$('#refreshBtn').on('click', fetchAndRenderAll);
 $('#metricSel').on('change', fetchAndRenderAll);
 
 (async function initDefault(){
@@ -648,21 +654,6 @@ $('#metricSel').on('change', fetchAndRenderAll);
           input._newkpi_hook = true;
           input.addEventListener('change', refreshFromPageRange);
           input.addEventListener('blur', refreshFromPageRange);
-        }
-        const refreshBtn = document.getElementById('refreshBtn');
-        if (refreshBtn && !refreshBtn._newkpi_hook){
-          refreshBtn._newkpi_hook = true;
-          refreshBtn.addEventListener('click', () => {
-            const prog = document.getElementById('progress');
-            if (!prog) return;
-            const pObs = new MutationObserver(()=>{
-              if ((prog.textContent||'').trim().length){
-                pObs.disconnect();
-                refreshFromPageRange();
-              }
-            });
-            pObs.observe(prog, { childList:true, characterData:true, subtree:true });
-          });
         }
       }
     });

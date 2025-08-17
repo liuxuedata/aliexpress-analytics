@@ -69,7 +69,7 @@
           <select id="networkSel"><option value="">全部</option></select>
           <label>Campaign：</label>
           <select id="campaignSel"><option value="">全部</option></select>
-          <button id="refreshBtn" class="btn">刷新</button>
+          <span id="status" class="small"></span>
           <button id="uploadBtn" class="btn">上传数据</button>
           <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none;">
           <span id="uploadStatus" class="small"></span>
@@ -187,6 +187,7 @@
   const columnToggle = document.getElementById('columnToggle');
   const networkSel = document.getElementById('networkSel');
   const campaignSel = document.getElementById('campaignSel');
+  const loadStatusEl = document.getElementById('status');
   const clearBtn = document.getElementById('clearFilter');
   const optionalCols = [
     { idx:1, label:'设备' }
@@ -202,6 +203,9 @@
   let dt;
   let rawTable = [];
   let onlyNew = false;
+  siteInput.addEventListener('change', load);
+  fromInput.addEventListener('change', load);
+  toInput.addEventListener('change', load);
 
   function periodShift(startISO, endISO){
     const start=new Date(startISO+'T00:00:00'); const end=new Date(endISO+'T00:00:00');
@@ -310,8 +314,8 @@
   }
 
   $('#columnMenu').on('change','input[type=checkbox]', buildTable);
-  networkSel.addEventListener('change', buildTable);
-  campaignSel.addEventListener('change', buildTable);
+  networkSel.addEventListener('change', load);
+  campaignSel.addEventListener('change', load);
 
   // 默认站点取 url 参数或从示例取
   siteInput.value = getParam('site') || localStorage.getItem('indepSite') || 'poolsvacuum.com';
@@ -336,6 +340,7 @@
   }
 
   async function load() {
+    loadStatusEl.textContent = '加载中...';
     try {
       const site = siteInput.value.trim();
       localStorage.setItem('indepSite', site);
@@ -419,13 +424,14 @@
         ]
       });
       enhanceMeta(document.getElementById('topTable'));
+      loadStatusEl.textContent = '加载完成';
     } catch(e) {
       console.error(e);
+      loadStatusEl.textContent = '加载失败';
       alert(e.message || '加载失败');
     }
   }
 
-  document.getElementById('refreshBtn').addEventListener('click', load);
   clearBtn.addEventListener('click', () => { onlyNew = false; load(); });
   // 上传逻辑
   const fileInput = document.getElementById('fileInput');

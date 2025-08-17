@@ -248,6 +248,7 @@
 
   
   async function loadData(){
+    setStatus('加载中...');
     const period = $('#periodSelect').val();
     localStorage.setItem('fmPeriod', period || '');
     localStorage.setItem('fmGranularity', state.granularity);
@@ -264,10 +265,11 @@
     if (prev) qsB.set('period_end', prev);
 
     // Fetch current (A) and previous (B) in parallel (B optional)
-    const [ra, rb] = await Promise.all([ fetch('/api/stats?'+qsA.toString()), prev? fetch('/api/stats?'+qsB.toString()) : Promise.resolve(null) ]);
-    const ja = await ra.json();
-    const jb = rb ? await rb.json() : { ok:true, rows:[] };
-    if (!ja.ok){ alert(ja.msg||'查询失败'); return; }
+    try{
+      const [ra, rb] = await Promise.all([ fetch('/api/stats?'+qsA.toString()), prev? fetch('/api/stats?'+qsB.toString()) : Promise.resolve(null) ]);
+      const ja = await ra.json();
+      const jb = rb ? await rb.json() : { ok:true, rows:[] };
+      if (!ja.ok) throw new Error(ja.msg||'查询失败');
 
     // render KPI for current period (A)
     try{ renderKPI(ja.kpis || {}, jb.kpis || {}); }catch(e){}
@@ -294,6 +296,11 @@
     populateProductNames(document.getElementById('report'));
     renderAnalysis(window._rowsA, window._rowsB);
     renderProduct(window._rowsA, window._rowsB);
+    setStatus('加载完成');
+    }catch(err){
+      console.error(err);
+      setStatus('加载失败');
+    }
   }
 
   function card(title, cur, prev, isPercent){
@@ -746,7 +753,7 @@
     });
     obs.observe(document.body, { childList:true, subtree:true });
 
-    // Also refresh when table changes (user点击刷新/切换周期导致数据重绘)
+    // Also refresh when table changes (切换周期导致数据重绘)
     const tbody = document.querySelector('#report tbody');
     if (tbody){
       const tObs = new MutationObserver(()=>{ updateForCurrentWeek(); });

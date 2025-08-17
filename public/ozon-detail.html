@@ -59,7 +59,6 @@
           <input type="hidden" value="day">
           <span>日期</span>
           <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
-          <button id="refreshBtn" class="btn">刷新</button>
           <label for="file" id="pickLabel" class="upload-btn">选择文件</label>
           <input type="file" id="file" accept=".xlsx,.xls,.csv" />
           <span id="status" class="notice"></span>
@@ -126,6 +125,7 @@
   function setStatus(t){ $('#status').text(t||''); }
 
   async function loadData(){
+    setStatus('加载中...');
     const range = $('#dateFilter').val();
     let startISO, endISO;
     if(range && range.includes(' to ')){
@@ -146,11 +146,12 @@
     }
     currentStart = startISO;
     currentEnd = endISO;
-    const url = `/api/ozon/stats?store_id=${encodeURIComponent(storeId)}&start=${startISO}&end=${endISO}`;
-    const resp = await fetch(url);
-    const json = await resp.json();
-    if(!json.ok) throw new Error(json.msg||'查询失败');
-    const mapped = (json.rows||[]).map(r=>{
+    try{
+      const url = `/api/ozon/stats?store_id=${encodeURIComponent(storeId)}&start=${startISO}&end=${endISO}`;
+      const resp = await fetch(url);
+      const json = await resp.json();
+      if(!json.ok) throw new Error(json.msg||'查询失败');
+      const mapped = (json.rows||[]).map(r=>{
       const impressions = Number(r.exposure)||0;
       const sessions = Number(r.uv)||0;
       const pageviews = Number(r.pv)||0;
@@ -177,9 +178,15 @@
         visitRate
       ];
     });
-    const dt = initTable();
-    dt.clear().rows.add(mapped).draw();
-    loadKpi().catch(err=>console.error(err));
+      const dt = initTable();
+      dt.clear().rows.add(mapped).draw();
+      loadKpi().catch(err=>console.error(err));
+      setStatus('加载完成');
+    }catch(err){
+      console.error(err);
+      setStatus('加载失败');
+      throw err;
+    }
   }
 
   async function upload(file){
@@ -236,9 +243,7 @@
     try{
       setStatus('上传中...');
       await upload(file);
-      setStatus('加载数据...');
       await loadData();
-      setStatus('完成');
     }catch(err){ console.error(err); setStatus('失败: '+err.message); }
     e.target.value='';
   });
@@ -246,7 +251,6 @@
   document.getElementById('newModal').addEventListener('click',e=>{ if(e.target.id==='newModal') e.currentTarget.style.display='none'; });
 
   window.fp = flatpickr('#dateFilter',{ mode:'range', dateFormat:'Y-m-d', onClose:(ds)=>{ if(ds.length===2) loadData().catch(err=>console.error(err)); } });
-  $('#refreshBtn').on('click',()=>loadData().catch(err=>console.error(err)));
   loadData().catch(err=>console.error(err));
 })();
 </script>
