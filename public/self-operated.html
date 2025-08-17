@@ -490,13 +490,12 @@ async function renderTable(rows, granularity) {
     const ctr = formatCtr(r.search_ctr);
     const stay = (r.avg_stay_seconds==null || r.avg_stay_seconds===undefined) ? '' : Math.round(r.avg_stay_seconds);
     const detailLink = '<a href="product-analysis.html?mode=self&pid='+ (r.product_id||'') +'" target="_blank">详情</a>';
-    return [link, detailLink, r.bucket_label || r.bucket, conv1 + '%', conv2 + '%', conv3 + '%', r.exposure, r.visitors, r.views, r.add_people, r.order_items, r.pay_items, r.pay_buyers, ctr, stay];
+    return [link, r.bucket_label || r.bucket, conv1 + '%', conv2 + '%', conv3 + '%', r.exposure, r.visitors, r.views, r.add_people, r.order_items, r.pay_items, r.pay_buyers, ctr, stay, detailLink];
   });
   window.dataTable = $('#report').DataTable({
     data,
     columns: [
       { title: '商品（ID）' },
-      { title: '产品详情' },
       { title: granularity==='day' ? '日期' : (granularity==='week' ? '周范围' : (granularity==='period' ? '周期' : '月份范围')) },
       { title: '访客比(%)' }, { title: '加购比(%)' }, { title: '支付比(%)' },
       { title: '曝光量' }, { title: '访客数' }, { title: '浏览量' },
@@ -506,9 +505,17 @@ async function renderTable(rows, granularity) {
       { title: '支付件数' },
       { title: '支付买家数' },
       { title: '搜索点击率(%)' },
-      { title: '平均停留时长(秒)' }
+      { title: '平均停留时长(秒)' },
+      { title: '产品详情' }
     ],
-    order: [[2,'desc']], scrollX:true, scrollY:'calc(100vh - 420px)', scrollCollapse:true, fixedHeader:true, fixedColumns:{leftColumns:1}
+    order: [[1,'desc']], scrollX:true, scrollY:'calc(100vh - 420px)', scrollCollapse:true, fixedHeader:true, fixedColumns:{leftColumns:1}
+  });
+  $('#report tbody').on('dblclick','td',function(){
+    const col = window.dataTable.cell(this).index().column;
+    const last = window.dataTable.columns().count()-1;
+    if(col===0 || col===last) return;
+    const pid = $(this).closest('tr').find('a[data-pid]').data('pid');
+    if(pid) window.open('product-analysis.html?mode=self&pid='+pid, '_blank');
   });
   populateProductNames(document.getElementById('report'));
 }
