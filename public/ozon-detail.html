@@ -26,16 +26,15 @@
   <nav class="header-center">
     <ul class="platform-nav">
       <li class="ali"><a href="#">速卖通</a>
-        <ul class="dropdown">
-          <li><a href="index.html">全托管</a></li>
-          <li><a href="self-operated.html">自运营</a></li>
-        </ul>
+        <ul class="dropdown" id="managedMenu"></ul>
       </li>
       <li class="amazon"><a href="amazon.html">亚马逊</a></li>
       <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
       <li class="temu"><a href="temu.html">Temu</a></li>
       <li class="ozon active"><a href="ozon-detail.html">Ozon</a></li>
-      <li class="independent"><a href="independent-site.html">独立站</a></li>
+      <li class="independent"><a href="#">独立站</a>
+        <ul class="dropdown" id="indepMenu"></ul>
+      </li>
     </ul>
   </nav>
   <div id="userArea" class="user-section"></div>
@@ -76,6 +75,8 @@
               <thead>
                 <tr>
                   <th>产品名</th>
+                  <th>型号</th>
+                  <th>搜索排名</th>
                   <th>曝光量</th>
                   <th>访客数</th>
                   <th>浏览量</th>
@@ -87,6 +88,7 @@
                   <th>访客→加购</th>
                   <th>加购→支付</th>
                   <th>访客比</th>
+                  <th>产品详情</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -98,6 +100,7 @@
   </main>
 </div>
 <div id="newModal"><div class="box"><h4>新品列表</h4><ul id="newItems"></ul></div></div>
+<script src="assets/site-nav.js"></script>
 <script>
 (function(){
   const storeId = 'demo';
@@ -112,11 +115,18 @@
         paging:true,
         searching:true,
         info:true,
-        order:[[2,'desc']],
+        order:[[4,'desc']],
         scrollY:'60vh',
         scrollCollapse:true,
         autoWidth:false,
         language:{ emptyTable:'暂无数据' }
+      });
+      $('#report tbody').on('dblclick','td',function(){
+        const col = table.cell(this).index().column;
+        const last = table.columns().count()-1;
+        if(col===0 || col===last) return;
+        const pid = $(this).closest('tr').find('a[data-pid]').data('pid');
+        if(pid) window.open('ozon-product-insights.html?pid='+pid,'_blank');
       });
     }
     return table;
@@ -155,21 +165,25 @@
       const buyers = Number(r.pay_buyers)||0;
       const v2a = sessions ? (atcUsers/sessions*100).toFixed(2)+'%' : '0%';
       const a2p = atcUsers ? (orders/atcUsers*100).toFixed(2)+'%' : '0%';
-      const visitRate = impressions ? (sessions/impressions*100).toFixed(2)+'%' : '0%';
-      return [
-        `<a href="https://ozon.ru/product/${r.product_id}" target="_blank" rel="noopener">${r.product_title || r.product_id}</a>`,
-        impressions,
-        sessions,
-        pageviews,
-        atcUsers,
-        atcQty,
-        itemsSold,
-        orders,
-        buyers,
-        v2a,
-        a2p,
-        visitRate
-      ];
+        const visitRate = impressions ? (sessions/impressions*100).toFixed(2)+'%' : '0%';
+        const rank = r.search_rank!=null ? Number(r.search_rank).toFixed(2) : '';
+        return [
+          `<a data-pid="${r.product_id}" href="https://ozon.ru/product/${r.product_id}" target="_blank" rel="noopener">${r.product_title || r.product_id}</a>`,
+          r.model || '',
+          rank,
+          impressions,
+          sessions,
+          pageviews,
+          atcUsers,
+          atcQty,
+          itemsSold,
+          orders,
+          buyers,
+          v2a,
+          a2p,
+          visitRate,
+          `<a href="ozon-product-insights.html?pid=${r.product_id}" target="_blank">详情</a>`
+        ];
     });
       const dt = initTable();
       dt.clear().rows.add(mapped).draw();

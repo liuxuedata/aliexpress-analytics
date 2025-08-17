@@ -22,7 +22,10 @@ function updateLoginUI(state, userData = {}) {
     case loginStates.LOGGED_IN:
       localStorage.setItem('user', JSON.stringify(userData));
       submitBtn.classList.remove('button-loading');
-      if (window.location.pathname.endsWith('login.html')) {
+      const onStandalone =
+        window.location.pathname.endsWith('login.html') ||
+        !document.querySelector('header');
+      if (onStandalone) {
         window.location.href = 'index.html';
       } else if (overlay) {
         overlay.style.display = 'none';
@@ -114,24 +117,13 @@ function togglePasswordVisibility() {
 }
 
 function setupForm() {
-  const form = document.getElementById('loginForm');
-  if (!form) return;
-  form.addEventListener('submit', handleLogin);
-  fillDemoAccount();
-  document.getElementById('password-toggle').addEventListener('click', togglePasswordVisibility);
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      if (window.location.pathname.endsWith('login.html')) {
-        window.location.href = 'index.html';
-      } else {
-        hideLoginOverlay();
-      }
-    }
-  });
+  document.title = '跨境电商数据分析平台';
+  const demoUser = { email: 'demo@example.com', name: '演示用户', role: 'demo' };
+  setLoginState(loginStates.LOGGED_IN, demoUser);
 }
 
-document.addEventListener('DOMContentLoaded', setupForm);
-function fillDemoAccount(){
-  document.getElementById('email').value='demo@example.com';
-  document.getElementById('password').value='demo123';
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupForm);
+} else {
+  setupForm();
 }

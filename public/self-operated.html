@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8" />
-  <title>自运营数据分析 · 对比增强版</title>
+  <title>跨境电商数据分析平台</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- libs -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
@@ -37,7 +37,7 @@
   </style>
 </head>
 <body class="fm">
-<div id="loginOverlay" class="login-overlay" style="display:none">
+<div id="loginOverlay" class="login-overlay">
   <div class="login-container">
     <div class="login-form-card login-card-enter">
       <div class="form-header">
@@ -69,16 +69,15 @@
   <nav class="header-center">
     <ul class="platform-nav">
       <li class="ali active"><a href="#">速卖通</a>
-        <ul class="dropdown">
-          <li><a href="index.html">全托管</a></li>
-          <li class="active"><a href="self-operated.html">自运营</a></li>
-        </ul>
+        <ul class="dropdown" id="managedMenu"></ul>
       </li>
       <li class="amazon"><a href="amazon.html">亚马逊</a></li>
       <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
       <li class="temu"><a href="temu.html">Temu</a></li>
       <li class="ozon"><a href="ozon-detail.html">Ozon</a></li>
-      <li class="independent"><a href="independent-site.html">独立站</a></li>
+      <li class="independent"><a href="#">独立站</a>
+        <ul class="dropdown" id="indepMenu"></ul>
+      </li>
     </ul>
   </nav>
   <div id="userArea" class="user-section"></div>
@@ -489,7 +488,8 @@ async function renderTable(rows, granularity) {
     const conv3 = r.add_people>0 ? ((r.pay_buyers/r.add_people)*100).toFixed(2) : '0.00';
     const ctr = formatCtr(r.search_ctr);
     const stay = (r.avg_stay_seconds==null || r.avg_stay_seconds===undefined) ? '' : Math.round(r.avg_stay_seconds);
-    return [link, r.bucket_label || r.bucket, conv1 + '%', conv2 + '%', conv3 + '%', r.exposure, r.visitors, r.views, r.add_people, r.order_items, r.pay_items, r.pay_buyers, ctr, stay];
+    const detailLink = '<a href="product-analysis.html?mode=self&pid='+ (r.product_id||'') +'" target="_blank">详情</a>';
+    return [link, r.bucket_label || r.bucket, conv1 + '%', conv2 + '%', conv3 + '%', r.exposure, r.visitors, r.views, r.add_people, r.order_items, r.pay_items, r.pay_buyers, ctr, stay, detailLink];
   });
   window.dataTable = $('#report').DataTable({
     data,
@@ -504,9 +504,17 @@ async function renderTable(rows, granularity) {
       { title: '支付件数' },
       { title: '支付买家数' },
       { title: '搜索点击率(%)' },
-      { title: '平均停留时长(秒)' }
+      { title: '平均停留时长(秒)' },
+      { title: '产品详情' }
     ],
     order: [[1,'desc']], scrollX:true, scrollY:'calc(100vh - 420px)', scrollCollapse:true, fixedHeader:true, fixedColumns:{leftColumns:1}
+  });
+  $('#report tbody').on('dblclick','td',function(){
+    const col = window.dataTable.cell(this).index().column;
+    const last = window.dataTable.columns().count()-1;
+    if(col===0 || col===last) return;
+    const pid = $(this).closest('tr').find('a[data-pid]').data('pid');
+    if(pid) window.open('product-analysis.html?mode=self&pid='+pid, '_blank');
   });
   populateProductNames(document.getElementById('report'));
 }
@@ -717,27 +725,15 @@ $('#metricSel').on('change', fetchAndRenderAll);
 })();
 </script>
 <script src="assets/login.js"></script>
+<script src="assets/site-nav.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', ()=>{
   const siteListKey='managedSites';
   const currentSiteKey='currentSite';
   let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
   if(!Array.isArray(sites)||!sites.length){sites=['A站','B站','C站'];}
-  const menuEl=document.getElementById('managedMenu');
   const currentSiteEl=document.getElementById('currentSite');
-  function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));}
-  function renderMenu(){
-    menuEl.innerHTML='';
-    sites.forEach((name,idx)=>{
-      const li=document.createElement('li');
-      const a=document.createElement('a');
-      a.href='index.html';
-      a.textContent=name;
-      a.addEventListener('click',(e)=>{e.preventDefault();localStorage.setItem(currentSiteKey,name);window.location.href='index.html';});
-      a.addEventListener('dblclick',()=>{const n=prompt('修改站点名',name);if(n){sites[idx]=n;save();renderMenu();updateCurrent();}});
-      li.appendChild(a);menuEl.appendChild(li);
-    });
-  }
+  function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));renderSiteMenus();}
   function updateCurrent(){
     const name=localStorage.getItem(currentSiteKey)||sites[0];
     currentSiteEl.textContent='自运营 '+name;
@@ -747,13 +743,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const cur=localStorage.getItem(currentSiteKey)||sites[0];
     const idx=sites.indexOf(cur);
     const n=prompt('修改站点名',cur);
-    if(n){sites[idx]=n;save();renderMenu();localStorage.setItem(currentSiteKey,n);updateCurrent();}
+    if(n){sites[idx]=n;save();localStorage.setItem(currentSiteKey,n);updateCurrent();}
   });
   document.getElementById('addSite').addEventListener('click',()=>{
     const n=prompt('新增站点名');
-    if(n){sites.push(n);save();renderMenu();updateCurrent();}
+    if(n){sites.push(n);save();updateCurrent();}
   });
-  renderMenu();updateCurrent();
+  renderSiteMenus();
+  updateCurrent();
   const userArea=document.getElementById('userArea');
   function refreshUser(){
     const u=JSON.parse(localStorage.getItem('user')||'null');

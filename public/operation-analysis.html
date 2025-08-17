@@ -16,16 +16,15 @@
   <nav class="header-center">
     <ul class="platform-nav">
       <li class="ali active"><a href="#">速卖通</a>
-        <ul class="dropdown">
-          <li><a href="index.html">全托管</a></li>
-          <li><a href="self-operated.html">自运营</a></li>
-        </ul>
+        <ul class="dropdown" id="managedMenu"></ul>
       </li>
       <li class="amazon"><a href="amazon.html">亚马逊</a></li>
       <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
       <li class="temu"><a href="temu.html">Temu</a></li>
       <li class="ozon"><a href="ozon-detail.html">Ozon</a></li>
-      <li class="independent"><a href="independent-site.html">独立站</a></li>
+      <li class="independent"><a href="#">独立站</a>
+        <ul class="dropdown" id="indepMenu"></ul>
+      </li>
     </ul>
   </nav>
   <div id="userArea" class="user-section"></div>
@@ -53,6 +52,7 @@
     </div>
   </main>
 </div>
+<script src="assets/site-nav.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
   const params=new URLSearchParams(location.search);
@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
   if(!Array.isArray(sites)||!sites.length){sites=mode==='self'?['A站','B站','C站']:['主站'];}
   const currentSiteEl=document.getElementById('currentSite');
-  function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));}
+  function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));renderSiteMenus();}
   function updateCurrent(){
     const name=localStorage.getItem(currentSiteKey)||sites[0];
     if(mode==='self'){
@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const n=prompt('新增站点名');
     if(n){sites.push(n);save();updateCurrent();}
   });
+  renderSiteMenus();
   updateCurrent();
 
   if(mode==='self'){
