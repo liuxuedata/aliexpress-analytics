@@ -1,10 +1,10 @@
 drop table if exists public.ozon_product_report_wide;
 
 create table public.ozon_product_report_wide (
-  sku text not null,
+  sku text,
   den date not null,
   inserted_at timestamptz not null default now(),
-  tovary text null,
+  tovary text not null,
   kategoriya_1_urovnya text null,
   kategoriya_2_urovnya text null,
   kategoriya_3_urovnya text null,
@@ -79,7 +79,7 @@ create table public.ozon_product_report_wide (
   faktory_prodazh_srednee_vremya_dostavki numeric null,
   faktory_prodazh_otzyvy numeric null,
   faktory_prodazh_reyting_tovara numeric null,
-  primary key (sku, den)
+  primary key (tovary, den)
 );
 
 create or replace function public.refresh_ozon_schema_cache()

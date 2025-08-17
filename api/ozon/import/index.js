@@ -44,8 +44,8 @@ function parseSheet(path){
     headers.push(key);
   }
   const rows=[];
-  // data rows start after summary and description sections
-  for(let r=11;r<=range.e.r;r++){
+  // data rows start after header rows; skip optional description/summary lines
+  for(let r=9;r<=range.e.r;r++){
     const row=getRow(r);
     if(row.every(v=>v==null)) continue;
     const first=row[0];
@@ -136,7 +136,7 @@ module.exports = async function handler(req,res){
         cols = Object.keys(rows[0] || {});
       }
 
-      const required = ['sku','den'];
+      const required = ['tovary','den'];
       const unknown = cols.filter(c=>!tableCols.includes(c));
       const missing = required.filter(c=>!cols.includes(c));
       if(unknown.length || missing.length){
@@ -153,7 +153,7 @@ module.exports = async function handler(req,res){
       do{
         const resInsert = await supabase
           .from('public.ozon_product_report_wide')
-          .upsert(rows, { onConflict: 'sku,den' });
+          .upsert(rows, { onConflict: 'tovary,den' });
         error = resInsert.error;
         if(error && /schema cache/i.test(error.message)){
           await refresh();
