@@ -7,9 +7,6 @@
   <style>
     #report td:first-child{ text-align:left; }
     #report td:first-child a.name{ display:inline-block; max-width:180px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
-    #columnToggleWrapper{ position:relative; display:inline-block; }
-    #columnMenu{ display:none; position:absolute; top:100%; right:0; background:#fff; border:1px solid #ccc; padding:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); }
-    #columnMenu label{ display:block; margin:4px 0; white-space:nowrap; }
     .stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
   </style>
   <!-- DataTables & ECharts CDN -->
@@ -73,10 +70,6 @@
           <button id="uploadBtn" class="btn">上传数据</button>
           <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none;">
           <span id="uploadStatus" class="small"></span>
-          <div id="columnToggleWrapper">
-            <button id="columnToggle" class="btn">筛选列</button>
-            <div id="columnMenu" class="small"></div>
-          </div>
         </div>
       </div>
     </section>
@@ -113,7 +106,7 @@
             <table id="report" class="display nowrap" style="width:100%">
               <thead>
                 <tr>
-                  <th>产品</th><th>设备</th><th>网络</th><th>Campaign</th><th>日期</th>
+                  <th>产品</th>
                   <th>点击</th><th>曝光</th><th>CTR</th><th>Avg CPC</th><th>Cost</th>
                   <th>转化</th><th>Cost/Conv</th><th>All conv</th><th>Conv value</th>
                   <th>All conv rate</th><th>Conv rate</th>
@@ -183,23 +176,10 @@
   const siteInput = document.getElementById('site');
   const fromInput = document.getElementById('from');
   const toInput = document.getElementById('to');
-  const columnMenu = document.getElementById('columnMenu');
-  const columnToggle = document.getElementById('columnToggle');
   const networkSel = document.getElementById('networkSel');
   const campaignSel = document.getElementById('campaignSel');
   const loadStatusEl = document.getElementById('status');
   const clearBtn = document.getElementById('clearFilter');
-  const optionalCols = [
-    { idx:1, label:'设备' }
-  ];
-  optionalCols.forEach(c=>{
-    const lab=document.createElement('label');
-    lab.innerHTML=`<input type="checkbox" data-col="${c.idx}"> ${c.label}`;
-    columnMenu.appendChild(lab);
-  });
-  columnToggle.addEventListener('click',()=>{
-    columnMenu.style.display = columnMenu.style.display==='block' ? 'none' : 'block';
-  });
   let dt;
   let rawTable = [];
   let onlyNew = false;
@@ -228,23 +208,15 @@
     ].join(''));
   }
 
-  function aggregateTable(data, showDevice, showNetwork, showCampaign){
+  function aggregateTable(data){
     const map = {};
     data.forEach(r=>{
-      const keyParts=[r.day, r.landing_path];
-      if(showDevice) keyParts.push(r.device||'');
-      if(showNetwork) keyParts.push(r.network||'');
-      if(showCampaign) keyParts.push(r.campaign||'');
-      const key=keyParts.join('|');
+      const key = r.landing_path;
       if(!map[key]){
         map[key]={
           product:r.product,
           landing_path:r.landing_path,
           landing_url:r.landing_url,
-          day:r.day,
-          device: showDevice ? r.device : '',
-          network: showNetwork ? r.network : '',
-          campaign: showCampaign ? r.campaign : '',
           clicks:0, impr:0, cost:0, conversions:0, all_conv:0, conv_value:0
         };
       }
@@ -263,7 +235,7 @@
       m.cost_per_conv = m.conversions>0 ? m.cost/m.conversions : 0;
       m.all_conv_rate = m.clicks>0 ? m.all_conv/m.clicks : 0;
       return m;
-    }).sort((a,b)=> b.day.localeCompare(a.day));
+    }).sort((a,b)=> b.clicks - a.clicks);
   }
 
   function buildTable(){
@@ -272,10 +244,7 @@
     const camp = campaignSel.value;
     if(net) data = data.filter(r=>r.network===net);
     if(camp) data = data.filter(r=>r.campaign===camp);
-    const showDevice = $('#columnMenu input[data-col=1]').prop('checked');
-    const showNetwork = !!net;
-    const showCampaign = !!camp;
-    data = aggregateTable(data, showDevice, showNetwork, showCampaign);
+    data = aggregateTable(data);
     if(dt) dt.destroy();
     dt = $('#report').DataTable({
       destroy:true,
@@ -289,10 +258,6 @@
             const name = shorten(r.product || r.landing_path || '');
             return `<div style="display:flex;align-items:center;" data-url="${v}"><img style="width:40px;height:40px;object-fit:cover;margin-right:4px;display:none;"><a href="${v}" target="_blank" class="name" title="${name}">${name}</a></div>`;
           }},
-        { data:'device', render: v => v || '' },
-        { data:'network', render: v => v || '' },
-        { data:'campaign', render: v => v || '' },
-        { data:'day', render: v => v || '' },
         { data:'clicks', render: v => v ?? 0 },
         { data:'impr', render: v => v ?? 0 },
         { data:'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
@@ -306,14 +271,10 @@
         { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
       ]
     });
-    dt.column(1).visible(showDevice);
-    dt.column(2).visible(showNetwork);
-    dt.column(3).visible(showCampaign);
     enhanceMeta(document.getElementById('report'));
     dt.on('draw',()=>enhanceMeta(document.getElementById('report')));
   }
 
-  $('#columnMenu').on('change','input[type=checkbox]', buildTable);
   networkSel.addEventListener('change', load);
   campaignSel.addEventListener('change', load);
 
