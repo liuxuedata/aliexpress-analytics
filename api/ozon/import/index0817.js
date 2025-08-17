@@ -10,6 +10,13 @@ function supa(){
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
+function normalizeTableName(name, fallback = 'ozon_product_report_wide'){
+  let t = (name || fallback).trim();
+  t = t.replace(/^"+|"+$/g, '');
+  t = t.replace(/^public\./i, '');
+  return t;
+}
+
 // transliterate Russian headers to snake_case
 const map = {"а":"a","б":"b","в":"v","г":"g","д":"d","е":"e","ё":"yo","ж":"zh","з":"z","и":"i","й":"y","к":"k","л":"l","м":"m","н":"n","о":"o","п":"p","р":"r","с":"s","т":"t","у":"u","ф":"f","х":"h","ц":"ts","ч":"ch","ш":"sh","щ":"sch","ъ":"","ы":"y","ь":"","э":"e","ю":"yu","я":"ya","і":"i"};
 function translit(s){
@@ -97,6 +104,9 @@ module.exports = async function handler(req,res){
       let cols = Object.keys(rows[0] || {});
       const supabase = supa();
 
+      const RAW_TABLE = process.env.OZON_TABLE_NAME || 'ozon_product_report_wide';
+      const TABLE = normalizeTableName(RAW_TABLE);
+
       async function refresh(){
         const { error } = await supabase.rpc('refresh_ozon_schema_cache');
         if(error) console.error('schema cache refresh failed:', error.message);
@@ -106,7 +116,7 @@ module.exports = async function handler(req,res){
       let colData;
       for(let attempt=0;attempt<2;attempt++){
         const { data, error } = await supabase
-          .rpc('get_public_columns', { table_name: 'ozon_product_report_wide' });
+          .rpc('get_public_columns', { table_name: TABLE });
         if(!error){
           colData = data;
           break;
@@ -161,8 +171,9 @@ module.exports = async function handler(req,res){
       let error;
       do{
         const resInsert = await supabase
-          .from('public.ozon_product_report_wide')
-          .upsert(rows, { onConflict: 'tovary,den' });
+          .schema('public')
+          .from(TABLE)
+          .insert(rows);
         error = resInsert.error;
         if(error && /schema cache/i.test(error.message)){
           await refresh();

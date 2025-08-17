@@ -7,10 +7,20 @@ function supa(){
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
+function normalizeTableName(name, fallback = 'ozon_product_report_wide'){
+  let t = (name || fallback).trim();
+  t = t.replace(/^"+|"+$/g, '');
+  t = t.replace(/^public\./i, '');
+  return t;
+}
+
 module.exports = async function handler(req,res){
   try{
     const supabase = supa();
     let { date } = req.query || {};
+
+    const RAW_TABLE = process.env.OZON_TABLE_NAME || 'ozon_product_report_wide';
+    const TABLE = normalizeTableName(RAW_TABLE);
 
     async function refresh(){
       const { error } = await supabase.rpc('refresh_ozon_schema_cache');
@@ -22,7 +32,7 @@ module.exports = async function handler(req,res){
       let colData;
       for(let attempt=0;attempt<2;attempt++){
         const { data, error } = await supabase
-          .rpc('get_public_columns', { table_name: 'ozon_product_report_wide' });
+          .rpc('get_public_columns', { table_name: TABLE });
         if(!error){
           colData = data;
           break;
@@ -46,7 +56,8 @@ module.exports = async function handler(req,res){
     const uvCol = uvCandidates.find(c=>tableCols.includes(c)) || uvCandidates[0];
 
     const datesResp = await supabase
-      .from('public.ozon_product_report_wide')
+      .schema('public')
+      .from(TABLE)
       .select('den')
       .not('den', 'is', null)
       .order('den', { ascending: false });
@@ -66,11 +77,11 @@ module.exports = async function handler(req,res){
     const prevDate = dates[curIndex+1] || null;
 
     const select = `sku,tovary,voronka_prodazh_pokazy_vsego,${uvCol} as uv,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_vykupleno_tovarov`;
-    const curResp = await supabase.from('public.ozon_product_report_wide').select(select).eq('den', date);
+    const curResp = await supabase.schema('public').from(TABLE).select(select).eq('den', date);
     if(curResp.error) throw curResp.error;
     let prevResp = { data: [] };
     if(prevDate){
-      prevResp = await supabase.from('public.ozon_product_report_wide').select(select).eq('den', prevDate);
+      prevResp = await supabase.schema('public').from(TABLE).select(select).eq('den', prevDate);
       if(prevResp.error) throw prevResp.error;
     }
     function agg(rows){
