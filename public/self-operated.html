@@ -492,7 +492,9 @@ async function fetchAndRenderAll() {
     drawRatioBar(rowsA,rowsB);
     await drawTop6Both(rowsA,rowsB);
     renderProductChart(rowsA,rowsB,days,startISO,prevStart);
-    refreshFromPageRange();
+    if (window.refreshFromPageRange) {
+      window.refreshFromPageRange();
+    }
     $('#progress').text(`A: ${rowsA.length} 条 · B: ${rowsB.length} 条`);
     statusEl.textContent = '加载完成';
   } catch (err) {
@@ -639,6 +641,9 @@ $('#metricSel').on('change', fetchAndRenderAll);
       console.warn('[Self KPI] fetch failed:', e);
     }
   }
+
+  // expose for external calls (e.g., initial data fetch)
+  window.refreshFromPageRange = refreshFromPageRange;
 
   document.addEventListener('DOMContentLoaded', function(){
     const obs = new MutationObserver(()=>{
