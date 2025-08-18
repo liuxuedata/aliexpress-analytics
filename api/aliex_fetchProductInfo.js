@@ -24,35 +24,35 @@ module.exports = async (req, res) => {
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_KEY =
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-  if (!SUPABASE_URL || !SUPABASE_KEY) {
-    return res
-      .status(500)
-      .json({ error: 'Supabase credentials are not configured' });
-  }
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: { persistSession: false }
-  });
+  const supabase =
+    SUPABASE_URL && SUPABASE_KEY
+      ? createClient(SUPABASE_URL, SUPABASE_KEY, {
+          auth: { persistSession: false }
+        })
+      : null;
 
   try {
-    // 1. Try to read cached record from aliex_product table
-    const { data: existing, error: selectError } = await supabase
-      .from('aliex_product')
-      .select('*')
-      .eq('product_link', url)
-      .single();
-    if (selectError && selectError.code !== 'PGRST116') {
-      // Unexpected error (PGRST116 indicates no rows found)
-      throw selectError;
-    }
-    if (existing) {
-      return res.status(200).json({
-        title: existing.title || '',
-        description: existing.description || '',
-        image: existing.image || ''
-      });
+    // 1. Try to read cached record from aliex_product table if Supabase is configured
+    if (supabase) {
+      try {
+        const { data: existing, error: selectError } = await supabase
+          .from('aliex_product')
+          .select('*')
+          .eq('product_link', url)
+          .single();
+        if (!selectError && existing) {
+          return res.status(200).json({
+            title: existing.title || '',
+            description: existing.description || '',
+            image: existing.image || ''
+          });
+        }
+      } catch (e) {
+        // ignore cache read errors and fall through to fetch
+      }
     }
 
-    // 2. Not found in DB – fetch and parse AliExpress page
+    // 2. Not found or cache disabled – fetch and parse AliExpress page
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to fetch page: ${response.status} ${response.statusText}`);
@@ -72,15 +72,17 @@ module.exports = async (req, res) => {
     // Extract main image: use og:image meta as default
     const image = $('meta[property="og:image"]').attr('content') || '';
 
-    // 3. Insert new record into DB for caching
-    const { error: insertError } = await supabase.from('aliex_product').insert({
-      product_link: url,
-      title,
-      description,
-      image
-    });
-    if (insertError) {
-      throw insertError;
+    // 3. Insert new record into DB for caching if possible
+    if (supabase) {
+      supabase
+        .from('aliex_product')
+        .insert({
+          product_link: url,
+          title,
+          description,
+          image
+        })
+        .catch(() => {}); // ignore cache write errors
     }
 
     return res.status(200).json({ title, description, image });
