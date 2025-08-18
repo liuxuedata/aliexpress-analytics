@@ -13,7 +13,7 @@ const toMMDD = iso => { const d = new Date(iso + "T00:00:00Z"); return pad2(d.ge
   function viewOf(platform){
     if (platform === "managed") return "managed_new_products";
     if (platform === "self")    return "ae_self_new_products";
-    if (platform === "indep")  return "independent_new_products";
+    if (platform === "indep")  return "independent_first_seen";
     throw new Error("platform must be 'managed', 'self', or 'indep'");
   }
   function statsTableOf(platform){
@@ -56,21 +56,27 @@ module.exports = async (req, res) => {
       from = to = iso;
     }
 
-    const idCol = platform === 'indep' ? 'product_link' : 'product_id';
+    const idCol = platform === 'indep' ? 'landing_path' : 'product_id';
+    const firstSeenCol = platform === 'indep' ? 'first_seen_date' : 'first_seen';
+    const selectCols = platform === 'indep' ? `site,${idCol},${firstSeenCol}` : `${idCol},${firstSeenCol}`;
     const { data, error } = await supabase
       .from(view)
-      .select(`${idCol}, first_seen`)
-      .gte("first_seen", from)
-      .lte("first_seen", to)
-      .order("first_seen", { ascending: true })
+      .select(selectCols)
+      .gte(firstSeenCol, from)
+      .lte(firstSeenCol, to)
+      .order(firstSeenCol, { ascending: true })
       .limit(limit);
     if (error) throw error;
 
-    const items = (data||[]).map(r => ({
-      product_id: r[idCol],
-      first_seen: r.first_seen,
-      first_seen_mmdd: toMMDD(r.first_seen)
-    }));
+    const items = (data||[]).map(r => {
+      const first = r[firstSeenCol];
+      const id = platform === 'indep' ? `https://${r.site}${r[idCol]}` : r[idCol];
+      return {
+        product_id: id,
+        first_seen: first,
+        first_seen_mmdd: toMMDD(first)
+      };
+    });
 
     res.status(200).json({ ok:true, platform, range:{from,to}, new_count: items.length, items });
   } catch (e) {

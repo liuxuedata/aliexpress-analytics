@@ -135,61 +135,74 @@ async function handleFile(filePath, filename) {
 
   if (error) throw error;
 
-  // Track first_seen date for each product (landing_path) in a separate table
+  // Track first_seen_date for each landing_path per site
   const firstSeenMap = new Map();
   for (const row of deduped) {
-    const key = row.landing_url;
-    const day = row.day;
+    const key = `${row.site}|${row.landing_path}`;
     const prev = firstSeenMap.get(key);
-    if (!prev || day < prev) firstSeenMap.set(key, day);
+    if (!prev || row.day < prev.day) {
+      firstSeenMap.set(key, { site: row.site, landing_path: row.landing_path, day: row.day });
+    }
+  }
+  function groupBySite(map) {
+    const groups = new Map();
+    map.forEach(({ site, landing_path, day }) => {
+      if (!groups.has(site)) groups.set(site, []);
+      groups.get(site).push({ landing_path, day });
+    });
+    return groups;
   }
   if (firstSeenMap.size) {
-    const ids = Array.from(firstSeenMap.keys());
     const existSet = new Set();
     const MAX_QUERY_BYTES = 1900;
-    let batch = [];
-    let length = 0;
-    async function fetchExisting() {
-      if (!batch.length) return;
-      const { data: existed, error: e1 } = await supabase
-        .from('independent_new_products')
-        .select('product_link')
-        .in('product_link', batch);
-      if (e1) {
-        if (e1.code === '42P01') {
-          throw new Error(
-            "Table 'independent_new_products' is missing in the database; run the required migration and retry."
-          );
+    for (const [site, records] of groupBySite(firstSeenMap).entries()) {
+      let batch = [];
+      let length = 0;
+      async function fetchExisting() {
+        if (!batch.length) return;
+        const { data: existed, error: e1 } = await supabase
+          .from('independent_first_seen')
+          .select('landing_path')
+          .eq('site', site)
+          .in('landing_path', batch);
+        if (e1) {
+          if (e1.code === '42P01') {
+            throw new Error(
+              "Table 'independent_first_seen' is missing in the database; run the required migration and retry."
+            );
+          }
+          throw e1;
         }
-        throw e1;
+        (existed || []).forEach(r => existSet.add(`${site}|${r.landing_path}`));
       }
-      (existed || []).forEach(r => existSet.add(r.product_link));
-    }
 
-    for (const id of ids) {
-      const enc = encodeURIComponent(id);
-      if (batch.length && length + enc.length + 1 > MAX_QUERY_BYTES) {
-        await fetchExisting();
-        batch = [];
-        length = 0;
+      for (const { landing_path } of records) {
+        const enc = encodeURIComponent(landing_path);
+        if (batch.length && length + enc.length + 1 > MAX_QUERY_BYTES) {
+          await fetchExisting();
+          batch = [];
+          length = 0;
+        }
+        batch.push(landing_path);
+        length += enc.length + 1;
       }
-      batch.push(id);
-      length += enc.length + 1;
+      await fetchExisting();
     }
-    await fetchExisting();
 
     const insertRows = [];
-    firstSeenMap.forEach((day, link) => {
-      if (!existSet.has(link)) insertRows.push({ product_link: link, first_seen: day });
+    firstSeenMap.forEach(({ site, landing_path, day }) => {
+      if (!existSet.has(`${site}|${landing_path}`)) {
+        insertRows.push({ site, landing_path, first_seen_date: day });
+      }
     });
     if (insertRows.length) {
       const { error: e2 } = await supabase
-        .from('independent_new_products')
+        .from('independent_first_seen')
         .insert(insertRows);
       if (e2) {
         if (e2.code === '42P01') {
           throw new Error(
-            "Table 'independent_new_products' is missing in the database; run the required migration and retry."
+            "Table 'independent_first_seen' is missing in the database; run the required migration and retry."
           );
         }
         throw e2;
