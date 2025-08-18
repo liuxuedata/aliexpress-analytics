@@ -27,7 +27,10 @@ function parseUrlParts(u) {
 
 function coerceNum(x) {
   if (x === null || x === undefined || x === '' || x === '--') return 0;
-  const n = Number(String(x).replace(/[^0-9.-]/g, ''));
+  let s = String(x).trim();
+  if (s.includes(',') && !s.includes('.')) s = s.replace(',', '.');
+  s = s.replace(/[^0-9.-]/g, '');
+  const n = Number(s);
   return Number.isFinite(n) ? n : 0;
 }
 
@@ -55,12 +58,12 @@ async function handleFile(filePath, filename) {
   const header = rows[headerIdx];
   const dataRows = rows.slice(headerIdx + 1);
 
-  // Build a case-insensitive header lookup so "Conversions" or "conversions"
-  // (or other locale variations) are detected even if the exact casing differs
-  const headerLC = header.map(h => String(h || '').trim().toLowerCase());
+  // Build a case-insensitive header lookup tolerant of punctuation and spacing
+  const canon = s => String(s || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const headerCanon = header.map(canon);
   const col = (...names) => {
     for (const n of names) {
-      const idx = headerLC.indexOf(String(n).toLowerCase());
+      const idx = headerCanon.indexOf(canon(n));
       if (idx !== -1) return idx;
     }
     return -1;
@@ -111,12 +114,12 @@ async function handleFile(filePath, filename) {
       network: String(r[cNetwork] || '').trim(),
       device: String(r[cDevice] || '').trim(),
       currency_code: cCurrency >= 0 ? String(r[cCurrency] || '').trim() : null,
-      clicks: coerceNum(r[cClicks]),
-      impr: coerceNum(r[cImpr]),
-      ctr: coerceNum(r[cCTR]),
-      avg_cpc: coerceNum(r[cAvgCPC]),
-      cost: coerceNum(r[cCost]),
-      conversions: coerceNum(r[cConv]),
+      clicks: cClicks >= 0 ? coerceNum(r[cClicks]) : 0,
+      impr: cImpr >= 0 ? coerceNum(r[cImpr]) : 0,
+      ctr: cCTR >= 0 ? coerceNum(r[cCTR]) : 0,
+      avg_cpc: cAvgCPC >= 0 ? coerceNum(r[cAvgCPC]) : 0,
+      cost: cCost >= 0 ? coerceNum(r[cCost]) : 0,
+      conversions: cConv >= 0 ? coerceNum(r[cConv]) : 0,
       cost_per_conv: cCostPerConv >= 0 ? coerceNum(r[cCostPerConv]) : null,
       all_conv: cAllConv >= 0 ? coerceNum(r[cAllConv]) : null,
       conv_value: cConvValue >= 0 ? coerceNum(r[cConvValue]) : null,
