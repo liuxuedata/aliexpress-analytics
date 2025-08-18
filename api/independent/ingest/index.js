@@ -157,84 +157,84 @@ async function handleFile(filePath, filename) {
   }
   if (error) throw error;
 
-  // Track first_seen_date for each landing_path per site
-  const firstSeenMap = new Map();
-  for (const row of deduped) {
-    const key = `${row.site}|${row.landing_path}`;
-    const prev = firstSeenMap.get(key);
-    if (!prev || row.day < prev.day) {
-      firstSeenMap.set(key, { site: row.site, landing_path: row.landing_path, day: row.day });
-    }
-  }
-  function groupBySite(map) {
+  // Track first_seen_date for each landing_path per site.
+  // Sort rows chronologically and compare each day with historical products
+  // so a path is recorded the first time it ever appears.
+  deduped.sort((a, b) => a.day.localeCompare(b.day));
+
+  // Build list of paths to check existing first_seen records
+  function groupBySite(rows) {
     const groups = new Map();
-    map.forEach(({ site, landing_path, day }) => {
-      if (!groups.has(site)) groups.set(site, []);
-      groups.get(site).push({ landing_path, day });
+    rows.forEach(({ site, landing_path }) => {
+      if (!groups.has(site)) groups.set(site, new Set());
+      groups.get(site).add(landing_path);
     });
     return groups;
   }
-  if (firstSeenMap.size) {
-    const existSet = new Set();
-    const MAX_QUERY_BYTES = 1900;
-    for (const [site, records] of groupBySite(firstSeenMap).entries()) {
-      let batch = [];
-      let length = 0;
-      async function fetchExisting() {
-        if (!batch.length) return;
-        const { data: existed, error: e1 } = await supabase
-          .from('independent_first_seen')
-          .select('landing_path')
-          .eq('site', site)
-          .in('landing_path', batch);
-        if (e1) {
-          if (e1.code === '42P01') {
-            throw new Error(
-              "Table 'independent_first_seen' is missing in the database; run the required migration and retry."
-            );
-          }
-          throw e1;
-        }
-        (existed || []).forEach(r => existSet.add(`${site}|${r.landing_path}`));
-      }
 
-      for (const { landing_path } of records) {
-        const enc = encodeURIComponent(landing_path);
-        if (batch.length && length + enc.length + 1 > MAX_QUERY_BYTES) {
-          await fetchExisting();
-          batch = [];
-          length = 0;
-        }
-        batch.push(landing_path);
-        length += enc.length + 1;
-      }
-      await fetchExisting();
-    }
-
-    const insertRows = [];
-    firstSeenMap.forEach(({ site, landing_path, day }) => {
-      if (!existSet.has(`${site}|${landing_path}`)) {
-        insertRows.push({ site, landing_path, first_seen_date: day });
-      }
-    });
-    if (insertRows.length) {
-      const { error: e2 } = await supabase
+  const existSet = new Set();
+  const grouped = groupBySite(deduped);
+  const MAX_QUERY_BYTES = 1900;
+  for (const [site, paths] of grouped.entries()) {
+    let batch = [];
+    let length = 0;
+    async function fetchExisting() {
+      if (!batch.length) return;
+      const { data: existed, error: e1 } = await supabase
         .from('independent_first_seen')
-        .insert(insertRows);
-      if (e2) {
-        if (e2.code === '42P01') {
+        .select('landing_path')
+        .eq('site', site)
+        .in('landing_path', batch);
+      if (e1) {
+        if (e1.code === '42P01') {
           throw new Error(
             "Table 'independent_first_seen' is missing in the database; run the required migration and retry."
           );
         }
-        throw e2;
+        throw e1;
       }
+      (existed || []).forEach(r => existSet.add(`${site}|${r.landing_path}`));
+    }
+    for (const p of paths.values()) {
+      const enc = encodeURIComponent(p);
+      if (batch.length && length + enc.length + 1 > MAX_QUERY_BYTES) {
+        await fetchExisting();
+        batch = [];
+        length = 0;
+      }
+      batch.push(p);
+      length += enc.length + 1;
+    }
+    await fetchExisting();
+  }
+
+  // Iterate rows in order, inserting first appearances only
+  const seen = new Set(existSet);
+  const insertRows = [];
+  for (const row of deduped) {
+    const key = `${row.site}|${row.landing_path}`;
+    if (seen.has(key)) continue;
+    insertRows.push({ site: row.site, landing_path: row.landing_path, first_seen_date: row.day });
+    seen.add(key);
+  }
+  if (insertRows.length) {
+    const { error: e2 } = await supabase
+      .from('independent_first_seen')
+      .insert(insertRows);
+    if (e2) {
+      if (e2.code === '42P01') {
+        throw new Error(
+          "Table 'independent_first_seen' is missing in the database; run the required migration and retry."
+        );
+      }
+      throw e2;
     }
   }
 
   return {
     processed: payload.length,
     upserted: data?.length ?? deduped.length,
+    new_products: insertRows.length,
     count: payload.length,
   };
 }
