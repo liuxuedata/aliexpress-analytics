@@ -89,7 +89,15 @@ async function handleFile(filePath, filename) {
     const landing = r[cLanding];
     if (!landing || landing === 'Total') continue;
     const dayRaw = r[cDay];
-    const day = dayRaw ? new Date(dayRaw) : null;
+    let day = null;
+    if (typeof dayRaw === 'number') {
+      const parsed = XLSX.SSF && XLSX.SSF.parse_date_code(dayRaw);
+      if (parsed) {
+        day = new Date(Date.UTC(parsed.y, parsed.m - 1, parsed.d));
+      }
+    } else if (dayRaw) {
+      day = new Date(dayRaw);
+    }
     if (!day || isNaN(day.getTime())) continue;
 
     const { site, path } = parseUrlParts(String(landing).trim());
@@ -117,7 +125,7 @@ async function handleFile(filePath, filename) {
     });
   }
 
-  if (!payload.length) return { inserted: 0 };
+    if (!payload.length) return { processed: 0, upserted: 0 };
 
   // Deduplicate rows that target the same primary key to avoid
   // "ON CONFLICT DO UPDATE command cannot affect row a second time" errors
@@ -221,7 +229,10 @@ async function handleFile(filePath, filename) {
     }
   }
 
-  return { inserted: data?.length ?? deduped.length };
+  return {
+    processed: payload.length,
+    upserted: data?.length ?? deduped.length,
+  };
 }
 
 async function handler(req, res) {
