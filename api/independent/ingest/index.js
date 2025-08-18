@@ -82,6 +82,7 @@ async function handleFile(filePath, filename) {
   const cConvValue = col('conv. value', 'conv value', 'purchase value');
   const cAllConvRate = col('all conv. rate', 'all conv rate', 'total conv rate');
   const cConvRate = col('conv. rate', 'conv rate', 'conversion rate');
+  const cCurrencyCode = col('currency code');
 
   const payload = [];
   for (const r of dataRows) {
@@ -111,7 +112,8 @@ async function handleFile(filePath, filename) {
       all_conv: coerceNum(r[cAllConv]),
       conv_value: coerceNum(r[cConvValue]),
       all_conv_rate: coerceNum(r[cAllConvRate]),
-      conv_rate: coerceNum(r[cConvRate])
+      conv_rate: coerceNum(r[cConvRate]),
+      currency_code: String(r[cCurrencyCode] || '').trim()
     });
   }
 
