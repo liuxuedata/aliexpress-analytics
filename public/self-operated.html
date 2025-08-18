@@ -551,7 +551,7 @@ async function fetchAndRenderAll() {
     statusEl.textContent = '加载完成';
   } catch (err) {
     console.error(err);
-    statusEl.textContent = '加载失败';
+    statusEl.textContent = '加载失败：' + (err.message || err);
     alert('查询失败：' + (err.message || err));
     $('#progress').text('');
   }

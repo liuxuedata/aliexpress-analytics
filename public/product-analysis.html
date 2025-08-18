@@ -203,15 +203,20 @@ function card(title,cur,prev,isPct,avg,share){
     async function loadData(){
       const period=document.getElementById('periodSelect').value;
       localStorage.setItem('fmPeriod',period||'');
-        const idx=state.periods.indexOf(period); const prev=(idx>=0 && idx<state.periods.length-1)?state.periods[idx+1]:'';
+      const idx=state.periods.indexOf(period); const prev=(idx>=0 && idx<state.periods.length-1)?state.periods[idx+1]:'';
       const qsA=new URLSearchParams({granularity:state.granularity}); if(period)qsA.set('period_end',period);
       const qsB=new URLSearchParams({granularity:state.granularity}); if(prev)qsB.set('period_end',prev);
-      const [ja,jb]=await Promise.all([
-        fetch('/api/stats?'+qsA.toString()).then(r=>r.json()),
-        prev?fetch('/api/stats?'+qsB.toString()).then(r=>r.json()):Promise.resolve({rows:[]})
-      ]);
-      const rowsA=ja.rows||[]; const rowsB=jb.rows||[];
-      renderProductFM(rowsA,rowsB);
+      try{
+        const [ja,jb]=await Promise.all([
+          fetch('/api/stats?'+qsA.toString()).then(r=>r.json()),
+          prev?fetch('/api/stats?'+qsB.toString()).then(r=>r.json()):Promise.resolve({rows:[]})
+        ]);
+        const rowsA=ja.rows||[]; const rowsB=jb.rows||[];
+        renderProductFM(rowsA,rowsB);
+      }catch(err){
+        console.error(err);
+        alert('查询失败：'+(err.message||err));
+      }
     }
     function renderProductFM(rowsA,rowsB){
       const expMap=new Map();
@@ -288,32 +293,43 @@ function card(title,cur,prev,isPct,avg,share){
     if(stored && stored.includes(' to ')) input.value=stored; else {
       const today=new Date(); const end=today.toISOString().slice(0,10); const start=new Date(today.getTime()-6*86400000).toISOString().slice(0,10); const def=`${start} to ${end}`; input.value=def; localStorage.setItem(key,def);
     }
-        async function loadData(){
+    async function loadData(){
       const val=input.value; if(!val.includes(' to '))return; const [startISO,endISO]=val.split(' to '); localStorage.setItem(key,`${startISO} to ${endISO}`);
       const {prevStart,prevEnd,days}=periodShift(startISO,endISO);
-      if(mode==='indep'){
-        const [rowsA,rowsB]=await Promise.all([
-          fetchAgg(startISO,endISO),
-          fetchAgg(prevStart,prevEnd)
+      try{
+        if(mode==='indep'){
+          const [rowsA,rowsB]=await Promise.all([
+            fetchAgg(startISO,endISO),
+            fetchAgg(prevStart,prevEnd)
+          ]);
+          renderProductSelf(rowsA,rowsB,rowsA,rowsB,days,startISO,prevStart);
+          return;
+        }
+        const [rowsAggA,rowsAggB,rowsDayA,rowsDayB]=await Promise.all([
+          fetchAgg(startISO,endISO,'period'),
+          fetchAgg(prevStart,prevEnd,'period'),
+          fetchAgg(startISO,endISO,'day'),
+          fetchAgg(prevStart,prevEnd,'day')
         ]);
-        renderProductSelf(rowsA,rowsB,rowsA,rowsB,days,startISO,prevStart);
-        return;
+        renderProductSelf(rowsAggA,rowsAggB,rowsDayA,rowsDayB,days,startISO,prevStart);
+      }catch(err){
+        console.error(err);
+        alert('查询失败：'+(err.message||err));
       }
-      const [rowsAggA,rowsAggB,rowsDayA,rowsDayB]=await Promise.all([
-        fetchAgg(startISO,endISO,'period'),
-        fetchAgg(prevStart,prevEnd,'period'),
-        fetchAgg(startISO,endISO,'day'),
-        fetchAgg(prevStart,prevEnd,'day')
-      ]);
-      renderProductSelf(rowsAggA,rowsAggB,rowsDayA,rowsDayB,days,startISO,prevStart);
     }
-    function fetchAgg(start,end,gran){
+    async function fetchAgg(start,end,gran){
       if(mode==='indep'){
         const url=`/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${start}&to=${end}`;
-        return fetch(url).then(r=>r.json()).then(j=>j.table||[]);
+        const resp=await fetch(url);
+        const txt=await resp.text(); let j; try{ j=JSON.parse(txt);} catch(e){ throw new Error('Query API响应不是JSON：'+txt.slice(0,200)); }
+        if(!resp.ok || (j.ok!==undefined && !j.ok)) throw new Error(j.error||'查询失败');
+        return j.table||j.rows||[];
       }
       const url=`/api/ae_query?start=${start}&end=${end}&granularity=${gran}`;
-      return fetch(url).then(r=>r.json()).then(j=>j.rows||[]);
+      const resp=await fetch(url);
+      const txt=await resp.text(); let j; try{ j=JSON.parse(txt);} catch(e){ throw new Error('Query API响应不是JSON：'+txt.slice(0,200)); }
+      if(!resp.ok || (j.ok!==undefined && !j.ok)) throw new Error(j.error||'查询失败');
+      return j.rows||[];
     }
     function periodShift(startISO,endISO){
       const start=new Date(startISO+'T00:00:00'); const end=new Date(endISO+'T00:00:00');
