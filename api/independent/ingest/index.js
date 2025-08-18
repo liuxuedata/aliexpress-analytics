@@ -127,12 +127,23 @@ async function handleFile(filePath, filename) {
     if (!byKey.has(key)) byKey.set(key, row);
   }
   const deduped = Array.from(byKey.values());
-
   const supabase = getClient();
-  const { data, error } = await supabase
-    .from('independent_landing_metrics')
-    .upsert(deduped, { onConflict: 'day,site,landing_path,device,network,campaign' });
 
+  async function refreshSchema() {
+    const { error } = await supabase.rpc('refresh_independent_schema_cache');
+    if (error) console.error('schema cache refresh failed:', error.message);
+    await new Promise(r => setTimeout(r, 1000));
+  }
+
+  let data, error;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    ({ data, error } = await supabase
+      .from('independent_landing_metrics')
+      .upsert(deduped, { onConflict: 'day,site,landing_path,device,network,campaign' }));
+    if (!error) break;
+    if (/schema cache/i.test(error.message)) { await refreshSchema(); continue; }
+    throw error;
+  }
   if (error) throw error;
 
   // Track first_seen_date for each landing_path per site
