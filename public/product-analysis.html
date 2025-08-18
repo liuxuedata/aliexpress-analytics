@@ -203,15 +203,20 @@ function card(title,cur,prev,isPct,avg,share){
     async function loadData(){
       const period=document.getElementById('periodSelect').value;
       localStorage.setItem('fmPeriod',period||'');
-        const idx=state.periods.indexOf(period); const prev=(idx>=0 && idx<state.periods.length-1)?state.periods[idx+1]:'';
+      const idx=state.periods.indexOf(period); const prev=(idx>=0 && idx<state.periods.length-1)?state.periods[idx+1]:'';
       const qsA=new URLSearchParams({granularity:state.granularity}); if(period)qsA.set('period_end',period);
       const qsB=new URLSearchParams({granularity:state.granularity}); if(prev)qsB.set('period_end',prev);
-      const [ja,jb]=await Promise.all([
-        fetch('/api/stats?'+qsA.toString()).then(r=>r.json()),
-        prev?fetch('/api/stats?'+qsB.toString()).then(r=>r.json()):Promise.resolve({rows:[]})
-      ]);
-      const rowsA=ja.rows||[]; const rowsB=jb.rows||[];
-      renderProductFM(rowsA,rowsB);
+      try{
+        const [ja,jb]=await Promise.all([
+          fetch('/api/stats?'+qsA.toString()).then(r=>r.json()),
+          prev?fetch('/api/stats?'+qsB.toString()).then(r=>r.json()):Promise.resolve({rows:[]})
+        ]);
+        const rowsA=ja.rows||[]; const rowsB=jb.rows||[];
+        renderProductFM(rowsA,rowsB);
+      }catch(err){
+        console.error(err);
+        alert('查询失败：'+(err.message||err));
+      }
     }
     function renderProductFM(rowsA,rowsB){
       const expMap=new Map();
@@ -288,22 +293,43 @@ function card(title,cur,prev,isPct,avg,share){
     if(stored && stored.includes(' to ')) input.value=stored; else {
       const today=new Date(); const end=today.toISOString().slice(0,10); const start=new Date(today.getTime()-6*86400000).toISOString().slice(0,10); const def=`${start} to ${end}`; input.value=def; localStorage.setItem(key,def);
     }
-        async function loadData(){
+    async function loadData(){
       const val=input.value; if(!val.includes(' to '))return; const [startISO,endISO]=val.split(' to '); localStorage.setItem(key,`${startISO} to ${endISO}`);
       const {prevStart,prevEnd,days}=periodShift(startISO,endISO);
-      const [rowsA,rowsB]=await Promise.all([
-        fetchAgg(startISO,endISO),
-        fetchAgg(prevStart,prevEnd)
-      ]);
-      renderProductSelf(rowsA,rowsB,days,startISO,prevStart);
+      try{
+        if(mode==='indep'){
+          const [rowsA,rowsB]=await Promise.all([
+            fetchAgg(startISO,endISO),
+            fetchAgg(prevStart,prevEnd)
+          ]);
+          renderProductSelf(rowsA,rowsB,rowsA,rowsB,days,startISO,prevStart);
+          return;
+        }
+        const [rowsAggA,rowsAggB,rowsDayA,rowsDayB]=await Promise.all([
+          fetchAgg(startISO,endISO,'period'),
+          fetchAgg(prevStart,prevEnd,'period'),
+          fetchAgg(startISO,endISO,'day'),
+          fetchAgg(prevStart,prevEnd,'day')
+        ]);
+        renderProductSelf(rowsAggA,rowsAggB,rowsDayA,rowsDayB,days,startISO,prevStart);
+      }catch(err){
+        console.error(err);
+        alert('查询失败：'+(err.message||err));
+      }
     }
-    function fetchAgg(start,end){
+    async function fetchAgg(start,end,gran){
       if(mode==='indep'){
         const url=`/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${start}&to=${end}`;
-        return fetch(url).then(r=>r.json()).then(j=>j.table||[]);
+        const resp=await fetch(url);
+        const txt=await resp.text(); let j; try{ j=JSON.parse(txt);} catch(e){ throw new Error('Query API响应不是JSON：'+txt.slice(0,200)); }
+        if(!resp.ok || (j.ok!==undefined && !j.ok)) throw new Error(j.error||'查询失败');
+        return j.table||j.rows||[];
       }
-      const url=`/api/ae_query?start=${start}&end=${end}&granularity=day`;
-      return fetch(url).then(r=>r.json()).then(j=>j.rows||[]);
+      const url=`/api/ae_query?start=${start}&end=${end}&granularity=${gran}`;
+      const resp=await fetch(url);
+      const txt=await resp.text(); let j; try{ j=JSON.parse(txt);} catch(e){ throw new Error('Query API响应不是JSON：'+txt.slice(0,200)); }
+      if(!resp.ok || (j.ok!==undefined && !j.ok)) throw new Error(j.error||'查询失败');
+      return j.rows||[];
     }
     function periodShift(startISO,endISO){
       const start=new Date(startISO+'T00:00:00'); const end=new Date(endISO+'T00:00:00');
@@ -313,22 +339,22 @@ function card(title,cur,prev,isPct,avg,share){
       const fmt=d=>d.toISOString().slice(0,10);
       return{prevStart:fmt(prevStart),prevEnd:fmt(prevEnd),days};
     }
-    function renderProductSelf(rowsA,rowsB,days,startA,startB){
+    function renderProductSelf(rowsAggA,rowsAggB,rowsDayA,rowsDayB,days,startA,startB){
       const expMap=new Map();
       const linkMap=new Map();
       const getId=r=>mode==='indep'?(r.landing_path||r.product):r.product_id;
       const getExp=r=>mode==='indep'?Number(r.impr||0):Number(r.exposure||0);
-      const base=siteParam.replace(/\/$/,'');
-      rowsA.forEach(r=>{
+      const base = (mode==='indep' && siteParam) ? siteParam.replace(/\/$/,'') : '';
+      rowsAggA.forEach(r=>{
         const id=getId(r);
         expMap.set(id,(expMap.get(id)||0)+getExp(r));
         if(mode==='indep'){
           const baseUrl = r.landing_url && r.landing_url.startsWith('http') ? r.landing_url : base + (r.landing_url || '');
-          const link = baseUrl.replace(/\/$/, '') + (r.landing_path || '');
+          const link = (baseUrl || '').replace(/\/$/, '') + (r.landing_path || '');
           if(link) linkMap.set(id,link);
         }
       });
-      const totalsA=rowsA.reduce((a,r)=>({
+      const totalsA=rowsAggA.reduce((a,r)=>({
         exp:a.exp+getExp(r),
         uv:a.uv+Number(mode==='indep'?r.clicks||0:r.visitors||0),
         add:a.add+Number(mode==='indep'?0:r.add_people||0),
@@ -364,7 +390,7 @@ function card(title,cur,prev,isPct,avg,share){
         const mapExpA=new Map(), mapExpB=new Map();
         const mapUvRateA=new Map(), mapUvRateB=new Map();
         const mapAddRateA=new Map(), mapAddRateB=new Map();
-        rowsA.filter(r=>String(getId(r))===String(pid)).forEach(r=>{
+        rowsDayA.filter(r=>String(getId(r))===String(pid)).forEach(r=>{
           const d=mode==='indep'?r.day:r.bucket;
           const exp=getExp(r);
           const uv=Number(mode==='indep'?r.clicks||0:r.visitors||0);
@@ -373,7 +399,7 @@ function card(title,cur,prev,isPct,avg,share){
           mapUvRateA.set(d,exp?uv/exp:0);
           mapAddRateA.set(d,uv?add/uv:0);
         });
-        rowsB.filter(r=>String(getId(r))===String(pid)).forEach(r=>{
+        rowsDayB.filter(r=>String(getId(r))===String(pid)).forEach(r=>{
           const d=mode==='indep'?r.day:r.bucket;
           const exp=getExp(r);
           const uv=Number(mode==='indep'?r.clicks||0:r.visitors||0);
@@ -403,7 +429,7 @@ function card(title,cur,prev,isPct,avg,share){
         window.addEventListener('resize',()=>{expChart.resize();uvChart.resize();addChart.resize();});
       }
       function update(pid){
-        const cur=sum(rowsA,pid); const prev=sum(rowsB,pid);
+        const cur=sum(rowsAggA,pid); const prev=sum(rowsAggB,pid);
         const curUvRate=cur.exp?cur.uv/cur.exp:0;
         const prevUvRate=prev.exp?prev.uv/prev.exp:0;
         const curAddRate=cur.uv?cur.add/cur.uv:0;
@@ -427,7 +453,7 @@ function card(title,cur,prev,isPct,avg,share){
           card('总支付买家数',cur.pay,prev.pay,false,null,sharePay)
         ].join('');
         line(pid);
-        const dates=[...rowsA,...rowsB].filter(r=>String(getId(r))===String(pid)).map(r=>mode==='indep'?r.day:r.bucket).sort();
+        const dates=[...rowsDayA,...rowsDayB].filter(r=>String(getId(r))===String(pid)).map(r=>mode==='indep'?r.day:r.bucket).sort();
         document.getElementById('listingDate').textContent=dates.length?`上架日期：${dates[0]}`:'';
         const url = mode==='indep' ? linkMap.get(pid) : `https://aliexpress.com/item/${pid}.html`;
         const api = mode==='indep' ? '/api/indep_fetchProductInfo' : undefined;

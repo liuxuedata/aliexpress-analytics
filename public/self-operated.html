@@ -531,27 +531,27 @@ async function fetchAndRenderAll() {
     }
     localStorage.setItem('selfPeriod', `${startISO} to ${endISO}`);
     const { prevStart, prevEnd, days }=periodShift(startISO,endISO);
-    const [rowsA, rowsB] = await Promise.all([
+    const [rowsAggA, rowsAggB, rowsDayA, rowsDayB] = await Promise.all([
+      fetchAgg(startISO,endISO,'period'),
+      fetchAgg(prevStart,prevEnd,'period'),
       fetchAgg(startISO,endISO,'day'),
       fetchAgg(prevStart,prevEnd,'day')
     ]);
-    const rowsNowAgg = aggregateByProduct(rowsA, startISO, endISO);
-    const rowsPrevAgg = aggregateByProduct(rowsB, prevStart, prevEnd);
-    computeCards(rowsNowAgg, rowsPrevAgg);
-    await renderTable(rowsNowAgg,'period');
+    computeCards(rowsAggA, rowsAggB);
+    await renderTable(rowsAggA,'period');
     const metricKey=(function(k){ if(k==='exposure_sum')return 'exp'; if(k==='visitors_sum')return 'vis'; if(k==='add_people_sum')return 'add'; if(k==='orders_sum')return 'orders'; if(k==='fav_sum')return 'fav'; })(document.getElementById('metricSel').value);
-    drawLineChartDaily(rowsA,rowsB,days,startISO,prevStart,metricKey);
-    drawRatioBar(rowsA,rowsB);
-    await drawTop6Both(rowsA,rowsB);
-    renderProductChart(rowsA,rowsB,days,startISO,prevStart);
+    drawLineChartDaily(rowsDayA,rowsDayB,days,startISO,prevStart,metricKey);
+    drawRatioBar(rowsAggA,rowsAggB);
+    await drawTop6Both(rowsAggA,rowsAggB);
+    renderProductChart(rowsDayA,rowsDayB,days,startISO,prevStart);
     if (window.refreshFromPageRange) {
       window.refreshFromPageRange();
     }
-    $('#progress').text(`A: ${rowsA.length} 条 · B: ${rowsB.length} 条`);
+    $('#progress').text(`A: ${rowsDayA.length} 条 · B: ${rowsDayB.length} 条`);
     statusEl.textContent = '加载完成';
   } catch (err) {
     console.error(err);
-    statusEl.textContent = '加载失败';
+    statusEl.textContent = '加载失败：' + (err.message || err);
     alert('查询失败：' + (err.message || err));
     $('#progress').text('');
   }

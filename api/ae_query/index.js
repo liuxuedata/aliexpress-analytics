@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 /** 
- * GET /api/ae_query?start=YYYY-MM-DD&end=YYYY-MM-DD&granularity=day|week|month
+ * GET /api/ae_query?start=YYYY-MM-DD&end=YYYY-MM-DD&granularity=day|week|month|period
  * Returns rows aggregated to the requested granularity.
  * Includes new fields: order_items, search_ctr, avg_stay_seconds.
  * - Counts are summed
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   const { start, end } = req.query;
   const granularity = (req.query.granularity || 'day').toLowerCase();
   if (!start || !end) return res.status(400).json({ error: 'Missing start or end' });
-  if (!['day','week','month'].includes(granularity)) return res.status(400).json({ error: 'Invalid granularity' });
+  if (!['day','week','month','period'].includes(granularity)) return res.status(400).json({ error: 'Invalid granularity' });
 
   try {
     // Paged fetch from Supabase
@@ -64,6 +64,7 @@ export default async function handler(req, res) {
     }
 
     function bucketKey(dateISO, g) {
+      if (g === 'period') return 'period';
       const d = new Date(dateISO + 'T00:00:00Z');
       if (g === 'week') {
         // Monday-based week start
@@ -141,10 +142,12 @@ export default async function handler(req, res) {
       const avg_stay_seconds = x._stay_den > 0 ? (x._stay_num / x._stay_den) : null;
       return {
         product_id: x.product_id,
-        bucket: x.bucket,
+        bucket: granularity === 'period' ? start : x.bucket,
         bucket_label: (granularity === 'day')
           ? x.bucket
-          : (x.min_date === x.max_date ? x.min_date : `${x.min_date}~${x.max_date}`),
+          : (granularity === 'period'
+              ? `${start}~${end}`
+              : (x.min_date === x.max_date ? x.min_date : `${x.min_date}~${x.max_date}`)),
         exposure: x.exposure,
         visitors: x.visitors,
         views: x.views,
