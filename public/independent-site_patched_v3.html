@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>跨境电商数据分析平台</title>
+  <style>
+    #report td:first-child{ text-align:left; }
+    #report td:first-child a.name{ display:inline-block; max-width:180px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
+  </style>
+  <!-- DataTables & ECharts CDN -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="assets/login.css">
+  <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+  <script src="assets/product-meta.js"></script>
+</head>
+<body class="fm">
+
+<div id="loginOverlay" class="login-overlay">
+  <div class="login-container">
+    <div class="login-form-card login-card-enter">
+      <div class="form-header">
+        <div class="form-logo">AI</div>
+        <div class="form-title">跨境电商数据分析平台</div>
+        <div class="form-subtitle">登录账户以继续</div>
+      </div>
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label" for="email">邮箱</label>
+          <input id="email" type="email" class="form-input" required>
+        </div>
+        <div class="form-group password-input-wrapper">
+          <label class="form-label" for="password">密码</label>
+          <input id="password" type="password" class="form-input" required>
+          <span id="password-toggle" class="password-toggle">👁️</span>
+        </div>
+        <button id="loginSubmit" class="login-submit-btn" type="submit">登录</button>
+      </form>
+      <div class="demo-account-tip">
+        <div class="demo-account-header">演示账户</div>
+        <div class="demo-account-info">邮箱：demo@example.com<br>密码：demo123</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<header class="header">
+  <div class="logo-title">跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li class="ali"><a href="#">速卖通</a>
+        <ul class="dropdown" id="managedMenu"></ul>
+      </li>
+      <li class="amazon"><a href="amazon.html">亚马逊</a></li>
+      <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon"><a href="ozon-detail.html">Ozon</a></li>
+      <li class="independent active"><a href="#">独立站</a>
+        <ul class="dropdown" id="indepMenu"></ul>
+      </li>
+    </ul>
+  </nav>
+    <!-- 用户模块暂时隐藏 -->
+</header>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="site-header"><span id="currentSite">独立站</span></div>
+    <ul class="sub-nav">
+      <li><a href="#" data-jump="detail" class="active">明细数据</a></li>
+      <li><a href="#" data-jump="analysis">运营分析</a></li>
+      <li><a href="product-analysis.html?mode=indep">产品分析</a></li>
+    </ul>
+  </nav>
+
+  <main class="main mx-auto max-w-container px-6">
+    <div class="content">
+    <!-- 控件 -->
+    <section class="content-pad">
+      <div class="panel">
+        <div class="controls">
+          <label>站点：</label>
+          <select id="site"></select>
+          <span>日期：</span>
+          <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
+          <label>网络：</label>
+          <select id="networkSel"><option value="">全部</option></select>
+          <label>Campaign：</label>
+          <select id="campaignSel"><option value="">全部</option></select>
+          <span id="status" class="small"></span>
+          <button id="uploadBtn" class="btn">上传数据</button>
+          <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none;">
+          <span id="uploadStatus" class="small"></span>
+        </div>
+      </div>
+    </section>
+    <div id="kpi" class="stats-cards"></div>
+    <div class="divider"></div>
+
+    <!-- 运营分析 -->
+    <section id="analysis" class="content-pad" style="display:none;">
+      <div class="grid">
+        <div class="panel">
+          <h3>Daily 趋势（点击 / 曝光 / 转化价值）</h3>
+          <div id="lineChart" style="width:100%;height:360px;"></div>
+        </div>
+        <div class="panel">
+          <h3>Top Landing Pages（按转化数）</h3>
+          <div class="table-section">
+            <div class="table-wrapper">
+              <table id="topTable" class="display nowrap"><thead>
+                <tr><th>产品</th><th>点击</th><th>曝光</th><th>CTR</th><th>转化</th><th>花费</th><th>转化价值</th><th>CPA</th><th>ROAS</th></tr>
+              </thead><tbody></tbody></table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 明细表 -->
+    <section id="detail" class="content-pad">
+      <div class="panel">
+        <h3>Landing Pages 明细</h3>
+        <button id="clearFilter" class="btn" style="display:none;margin-left:10px;">清除筛选</button>
+        <div class="table-section">
+          <div class="table-wrapper">
+            <table id="report" class="display nowrap" style="width:100%">
+              <thead>
+                <tr>
+                  <th>产品</th>
+                  <th>点击</th><th>曝光</th><th>CTR</th><th>Avg CPC</th><th>Cost</th>
+                  <th>转化</th><th>Cost/Conv</th><th>All conv</th><th>Conv value</th>
+                  <th>All conv rate</th><th>Conv rate</th><th>产品详情</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 产品分析（占位） -->
+    <section id="product" class="content-pad" style="display:none;">
+      <div class="panel"><h3>产品分析</h3>
+        <div class="small">（后续可按路径映射到商品，增加售价、毛利、库存、类目等维度的分析）</div>
+      </div>
+    </section>
+    </div>
+  </main>
+</div>
+
+<script>
+// 左侧局部导航切换
+(function(){
+  const sb = document.getElementById('sidebar');
+  function show(to){
+    ['detail','analysis','product'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.style.display = (id===to?'':'none');
+    });
+    sb.querySelectorAll('a[data-jump]').forEach(x=>x.classList.remove('active'));
+    const link=sb.querySelector(`a[data-jump="${to}"]`);
+    if(link) link.classList.add('active');
+    setTimeout(()=>window.dispatchEvent(new Event('resize')),0);
+  }
+  sb.addEventListener('click', function(e){
+    const a=e.target.closest('a[data-jump]');
+    if(!a) return;
+    e.preventDefault();
+    show(a.getAttribute('data-jump'));
+  });
+  const hash=location.hash.replace('#','');
+  if(['detail','analysis','product'].includes(hash)) show(hash); else show('detail');
+})();
+</script>
+
+<script>
+// 页面逻辑：拉取 /api/independent/stats
+(function(){
+  const shorten=(s,l=30)=>{if(!s) return '';return s.length>l?s.slice(0,l)+'…':s;};
+  function enhanceMeta(root){
+    const nodes=root.querySelectorAll('[data-url]');
+    const cache=new Set();
+    nodes.forEach(node=>{
+      const url=node.dataset.url;
+      if(cache.has(url)) return; cache.add(url);
+      getProductMeta(url,url,'/api/indep_fetchProductInfo').then(m=>{
+        root.querySelectorAll(`[data-url="${url}"]`).forEach(el=>{
+          const nameEl=el.querySelector('.name');
+          if(m.title&&nameEl) nameEl.title=shorten(m.title);
+          const imgEl=el.querySelector('img');
+          if(m.image&&imgEl){imgEl.src=m.image; imgEl.style.display='';}
+        });
+      });
+    });
+  }
+  function getParam(name) {
+    const url = new URL(window.location.href);
+    return url.searchParams.get(name);
+  }
+  const siteInput = document.getElementById('site');
+  const dateInput = document.getElementById('dateFilter');
+  const networkSel = document.getElementById('networkSel');
+  const campaignSel = document.getElementById('campaignSel');
+  const loadStatusEl = document.getElementById('status');
+  const clearBtn = document.getElementById('clearFilter');
+  let dt;
+  let rawTable = [];
+  let onlyNew = false;
+  networkSel.addEventListener('change', load);
+  campaignSel.addEventListener('change', load);
+
+  function periodShift(startISO, endISO){
+    const start=new Date(startISO+'T00:00:00'); const end=new Date(endISO+'T00:00:00');
+    const days=Math.round((end-start)/86400000)+1; const prevEnd=new Date(start.getTime()-86400000); const prevStart=new Date(prevEnd.getTime()-(days-1)*86400000); const fmt=d=>d.toISOString().slice(0,10); return {prevStart:fmt(prevStart), prevEnd:fmt(prevEnd)};
+  }
+
+  function card(title, cur, prev, isPercent){
+    const diff=(cur-prev)||0; const arrow=diff>=0?'↑':'↓'; const delta=isPercent?Math.abs(diff).toFixed(2)+'%':Math.abs(diff).toString(); const curStr=isPercent?cur.toFixed(2)+'%':cur; const cls=diff>=0?'up':'down';
+    return `<div class="stat-card"><h4>${title}</h4><p>${curStr}</p><div class="sub"><span class="delta ${cls}">${arrow} ${delta}</span></div></div>`;
+  }
+  function renderKPI(k, p){
+    p = p || {};
+    $('#kpi').html([
+      card('平均点击率', +(k.avg_ctr||0), +(p.avg_ctr||0), true),
+      card('平均转化率', +(k.avg_conv_rate||0), +(p.avg_conv_rate||0), true),
+      card('曝光商品总数', +(k.exposure_product_count||0), +(p.exposure_product_count||0)),
+      card('点击商品总数', +(k.click_product_count||0), +(p.click_product_count||0)),
+      card('转化商品总数', +(k.conversion_product_count||0), +(p.conversion_product_count||0)),
+      `<div class="stat-card clickable" id="kpi-new"><h4>本周期新品数</h4><p>${+(k.new_product_count||0)}<a id="kpi-new-clear" class="mini-link" style="display:none">清除筛选</a></p></div>`
+    ].join(''));
+  }
+
+  function aggregateTable(data){
+    const map = {};
+    data.forEach(r=>{
+      const key = r.landing_path;
+      if(!map[key]){
+        map[key]={
+          landing_path:r.landing_path,
+          landing_url:r.landing_url,
+          clicks:0, impr:0, cost:0, conversions:0, all_conv:0, conv_value:0
+        };
+      }
+      const m=map[key];
+      m.clicks+=r.clicks||0;
+      m.impr+=r.impr||0;
+      m.cost+=r.cost||0;
+      m.conversions+=r.conversions||0;
+      m.all_conv+=r.all_conv||0;
+      m.conv_value+=r.conv_value||0;
+    });
+    return Object.values(map).map(m=>{
+      m.ctr = m.impr>0 ? m.clicks/m.impr : 0;
+      m.avg_cpc = m.clicks>0 ? m.cost/m.clicks : 0;
+      m.conv_rate = m.clicks>0 ? m.conversions/m.clicks : 0;
+      m.cost_per_conv = m.conversions>0 ? m.cost/m.conversions : 0;
+      m.all_conv_rate = m.clicks>0 ? m.all_conv/m.clicks : 0;
+      return m;
+    }).sort((a,b)=> b.clicks - a.clicks);
+  }
+
+  function buildTable(){
+    let data = rawTable;
+    const net = networkSel.value;
+    const camp = campaignSel.value;
+    if(net) data = data.filter(r=>r.network===net);
+    if(camp) data = data.filter(r=>r.campaign===camp);
+    data = aggregateTable(data);
+    if(dt) dt.destroy();
+    dt = $('#report').DataTable({
+      destroy:true,
+      pageLength:20,
+      data,
+      scrollX:true,
+      fixedHeader:true,
+      autoWidth:false,
+      columns:[
+        { data:'landing_url', render:(v,t,r)=>{
+            const pid = r.landing_path || r.product || '';
+            const name = shorten(r.landing_path || '');
+            const base = siteInput.value.trim().replace(/\/$/,'');
+            const baseUrl = v && v.startsWith('http') ? v : base + (v || '');
+            const url = baseUrl.replace(/\/$/, '') + (r.landing_path || '');
+            return `<div style="display:flex;align-items:center;" data-url="${url}"><img style="width:40px;height:40px;object-fit:cover;margin-right:4px;display:none;"><a href="${url}" target="_blank" class="name" title="${name}" data-pid="${pid}">${name}</a></div>`;
+          }},
+        { data:'clicks', render: v => v ?? 0 },
+        { data:'impr', render: v => v ?? 0 },
+        { data:'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
+        { data:'avg_cpc', render: v => (v ?? 0).toFixed(2) },
+        { data:'cost', render: v => (v ?? 0).toFixed(2) },
+        { data:'conversions', render: v => v ?? 0 },
+        { data:'cost_per_conv', render: v => (v ?? 0).toFixed(2) },
+        { data:'all_conv', render: v => v ?? 0 },
+        { data:'conv_value', render: v => (v ?? 0).toFixed(2) },
+        { data:'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
+        { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
+        { data:null, render:(v,t,r)=>{
+            const pid = r.landing_path || r.product || '';
+            const site = encodeURIComponent(siteInput.value.trim());
+            return `<a href="product-analysis.html?mode=indep&site=${site}&pid=${encodeURIComponent(pid)}" target="_blank">详情</a>`;
+          }}
+      ]
+    });
+    $('#report tbody').off('dblclick').on('dblclick','td',function(){
+      const col = dt.cell(this).index().column;
+      const last = dt.columns().count()-1;
+      if(col===0 || col===last) return;
+      const pid = $(this).closest('tr').find('[data-pid]').data('pid');
+      if(pid){
+        const site = encodeURIComponent(siteInput.value.trim());
+        window.open(`product-analysis.html?mode=indep&site=${site}&pid=${encodeURIComponent(pid)}`,'_blank');
+      }
+    });
+    enhanceMeta(document.getElementById('report'));
+    dt.on('draw',()=>enhanceMeta(document.getElementById('report')));
+  }
+
+  // 默认站点取 url 参数或本地存储
+  const storedPeriod = localStorage.getItem('indepPeriod');
+  if (storedPeriod && storedPeriod.includes(' to ')) {
+    dateInput.value = storedPeriod;
+  } else {
+    const today = new Date();
+    const endISO = today.toISOString().slice(0,10);
+    const startISO = new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
+    dateInput.value = `${startISO} to ${endISO}`;
+  }
+  window.fp = flatpickr('#dateFilter',{ mode:'range', dateFormat:'Y-m-d', onClose:(ds)=>{ if(ds.length===2) load(); } });
+  if (dateInput.value.includes(' to ')) {
+    const [s,e] = dateInput.value.split(' to ');
+    window.fp.setDate([s,e], true, 'Y-m-d');
+  }
+
+  function populateFilters(){
+    const nets = Array.from(new Set(rawTable.map(r=>r.network).filter(Boolean))).sort();
+    networkSel.innerHTML = '<option value="">全部</option>' + nets.map(n=>`<option value="${n}">${n}</option>`).join('');
+    const camps = Array.from(new Set(rawTable.map(r=>r.campaign).filter(Boolean))).sort();
+    campaignSel.innerHTML = '<option value="">全部</option>' + camps.map(c=>`<option value="${c}">${c}</option>`).join('');
+  }
+
+  async function load() {
+    loadStatusEl.textContent = '加载中...';
+    try {
+      const site = siteInput.value.trim();
+      let from, to;
+      const range = dateInput.value;
+      if (range && range.includes(' to ')) {
+        [from, to] = range.split(' to ');
+      } else {
+        const today = new Date();
+        to = today.toISOString().slice(0,10);
+        from = new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
+        dateInput.value = `${from} to ${to}`;
+        if (window.fp) window.fp.setDate([from,to], true, 'Y-m-d');
+      }
+      localStorage.setItem('indepPeriod', `${from} to ${to}`);
+      const params = new URLSearchParams({site, from, to});
+      const net = networkSel.value;
+      const camp = campaignSel.value;
+      if (net) params.append('network', net);
+      if (camp) params.append('campaign', camp);
+      if (onlyNew) params.append('only_new', '1');
+      const url = `/api/independent/stats?${params.toString()}`;
+      const { prevStart, prevEnd } = periodShift(from, to);
+      const prevParams = new URLSearchParams({site, from: prevStart, to: prevEnd});
+      if (net) prevParams.append('network', net);
+      if (camp) prevParams.append('campaign', camp);
+      if (onlyNew) prevParams.append('only_new', '1');
+      const prevUrl = `/api/independent/stats?${prevParams.toString()}`;
+      const [res, resPrev] = await Promise.all([fetch(url), fetch(prevUrl)]);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const [json, jsonPrev] = await Promise.all([res.json(), resPrev.json()]);
+      if (!json.ok) throw new Error(json.error || '加载失败');
+
+      rawTable = json.table || [];
+      renderKPI(json.kpis || {}, (jsonPrev.ok && jsonPrev.kpis) ? jsonPrev.kpis : {});
+      const newCard = document.getElementById('kpi-new');
+      const clearLink = document.getElementById('kpi-new-clear');
+      if (newCard) {
+        newCard.style.cursor = 'pointer';
+        newCard.onclick = () => { if (!onlyNew) { onlyNew = true; load(); } };
+      }
+      if (clearLink) {
+        clearLink.style.display = "inline";
+        clearLink.onclick = (e) => { e.stopPropagation(); if (onlyNew) { onlyNew = false; load(); } };
+      }
+      clearBtn.style.display = onlyNew ? '' : 'none';
+      populateFilters();
+      buildTable();
+
+      // 趋势图
+      const days = json.series.map(x=>x.day);
+      const clicks = json.series.map(x=>x.clicks);
+      const impr = json.series.map(x=>x.impr);
+      const value = json.series.map(x=>x.conv_value);
+      const ec = echarts.init(document.getElementById('lineChart'));
+      ec.setOption({
+        tooltip: { trigger: 'axis' },
+        legend: { data:['Clicks','Impr.','Conv value'] },
+        xAxis: { type:'category', data: days },
+        yAxis: [{ type:'value', name:'Clicks / Impr' }, { type:'value', name:'Value', position:'right' }],
+        series: [
+          { name:'Clicks', type:'line', smooth:true, data: clicks },
+          { name:'Impr.', type:'bar', data: impr },
+          { name:'Conv value', type:'line', yAxisIndex:1, smooth:true, data: value },
+        ]
+      });
+
+      // Top landing pages
+      const topRows = json.topList;
+      $('#topTable').DataTable({
+        destroy:true,
+        paging:false,
+        searching:false,
+        info:false,
+        data: topRows,
+        scrollX:true,
+        autoWidth:false,
+        columns:[
+          { data:'url', render:(v,t,r)=>{
+              const name=shorten(r.path || '');
+              return `<div style="display:flex;align-items:center;" data-url="${v}"><img style="width:40px;height:40px;object-fit:cover;margin-right:4px;display:none;"><a href="${v}" target="_blank" class="name" title="${name}">${name}</a></div>`;
+            }},
+          { data:'clicks' },
+          { data:'impr' },
+          { data:'ctr', render:v=>(v*100).toFixed(2)+'%' },
+          { data:'conversions' },
+          { data:'cost', render:v => (v ?? 0).toFixed(2) },
+          { data:'conv_value', render:v => (v ?? 0).toFixed(2) },
+          { data:'cpa', render:v=>v.toFixed(2) },
+          { data:'roas', render:v=>v.toFixed(2) }
+        ]
+      });
+      enhanceMeta(document.getElementById('topTable'));
+      loadStatusEl.textContent = '加载完成';
+    } catch(e) {
+      console.error(e);
+      loadStatusEl.textContent = '加载失败';
+      alert(e.message || '加载失败');
+    }
+  }
+
+  clearBtn.addEventListener('click', () => { onlyNew = false; load(); });
+  // 上传逻辑
+  const fileInput = document.getElementById('fileInput');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const statusEl = document.getElementById('uploadStatus');
+  uploadBtn.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', async () => {
+    if (!fileInput.files.length) return;
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    try {
+      statusEl.textContent = '导入中...';
+      uploadBtn.disabled = true;
+      const resp = await fetch('/api/independent/ingest', { method: 'POST', body: fd });
+const text = await resp.text();
+let json;
+try { json = JSON.parse(text); }
+catch { json = { ok:false, error:`HTTP ${resp.status}` }; }
+      if (!resp.ok || !json.ok) throw new Error(json.error || '上传失败');
+      statusEl.textContent = '导入完成，加载中...';
+      await load();
+      statusEl.textContent = `完成（共 ${ (json && (json.upserted ?? 0)) || 0 } 条）`;
+      alert(`上传成功，记录数: ${(json.upserted ?? 0)}`);
+    } catch(e) {
+      statusEl.textContent = `上传失败: ${e.message}`;
+      alert(`上传失败: ${e.message}`);
+    } finally {
+      fileInput.value = '';
+      uploadBtn.disabled = false;
+      setTimeout(() => { statusEl.textContent = ''; }, 3000);
+    }
+  });
+  window.loadIndependentData = load;
+})();
+</script>
+<script src="assets/site-nav.js"></script>
+
+<script>
+(async function(){
+  const siteSelect=document.getElementById("site");
+  const currentEl=document.getElementById("currentSite");
+  try{
+    const resp=await fetch("/api/independent/sites");
+    const j=await resp.json();
+    const sites=Array.from(new Set((j.sites||[]).filter(Boolean)));
+    siteSelect.innerHTML=sites.map(s=>`<option value="${s}">${s}</option>`).join("");
+    let cur=localStorage.getItem("currentIndepSite");
+    if(!cur||!sites.includes(cur)) cur=sites[0]||"";
+    if(cur){
+      siteSelect.value=cur;
+      currentEl.textContent=cur;
+      document.title = '独立站 · ' + cur;
+      localStorage.setItem("currentIndepSite",cur);
+    }
+    siteSelect.addEventListener("change",()=>{
+      const val=siteSelect.value;
+      currentEl.textContent=val;
+      document.title = '独立站 · ' + val;
+      localStorage.setItem("currentIndepSite",val);
+      if(typeof loadIndependentData==="function") loadIndependentData();
+    });
+    if(typeof loadIndependentData==="function") loadIndependentData();
+  }catch(e){
+    console.error("independent site list fetch failed",e);
+  }
+})();
+</script>
+<script src="assets/login.js"></script>
+
+</body>
+</html>
