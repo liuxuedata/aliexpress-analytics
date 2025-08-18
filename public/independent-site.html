@@ -472,8 +472,10 @@
       statusEl.textContent = `导入中: ${file.name}`;
       uploadBtn.disabled = true;
       const resp = await fetch('/api/independent/ingest', { method: 'POST', body: fd });
-      const json = await resp.json().catch(() => ({ ok:false, error:`HTTP ${resp.status}` }));
-      if (!resp.ok || !json.ok) throw new Error(json.error || '上传失败');
+      const text = await resp.text();
+      let json;
+      try { json = JSON.parse(text); } catch {}
+      if (!resp.ok || !json?.ok) throw new Error(json?.error || text || `HTTP ${resp.status}`);
       statusEl.textContent = '导入完成，加载中...';
       await load();
       statusEl.textContent = '完成';

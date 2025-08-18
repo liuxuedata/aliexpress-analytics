@@ -3,7 +3,7 @@
 // Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (recommended) or SUPABASE_ANON_KEY (insert allowed by RLS)
 const { createClient } = require('@supabase/supabase-js');
 // formidable handles multipart/form-data parsing
-const formidable = require('formidable');
+const { formidable } = require('formidable');
 const fs = require('fs');
 const XLSX = require('xlsx');
 
