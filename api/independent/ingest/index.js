@@ -232,6 +232,7 @@ async function handleFile(filePath, filename) {
   return {
     processed: payload.length,
     upserted: data?.length ?? deduped.length,
+    count: payload.length,
   };
 }
 
