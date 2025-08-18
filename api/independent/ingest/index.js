@@ -31,6 +31,16 @@ function coerceNum(x) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function coerceRate(x) {
+  if (x === null || x === undefined || x === '' || x === '--') return 0;
+  const s = String(x).trim();
+  const hasPct = s.includes('%');
+  const n = Number(s.replace(/[^0-9.-]/g, ''));
+  if (!Number.isFinite(n)) return 0;
+  if (hasPct) return n / 100;
+  return n > 1 ? n / 100 : n;
+}
+
 async function handleFile(filePath, filename) {
   const ext = (filename || '').toLowerCase();
   let rows = [];
@@ -103,15 +113,15 @@ async function handleFile(filePath, filename) {
       device: String(r[cDevice] || '').trim(),
       clicks: coerceNum(r[cClicks]),
       impr: coerceNum(r[cImpr]),
-      ctr: coerceNum(r[cCTR]),
+      ctr: coerceRate(r[cCTR]),
       avg_cpc: coerceNum(r[cAvgCPC]),
       cost: coerceNum(r[cCost]),
       conversions: coerceNum(r[cConv]),
       cost_per_conv: coerceNum(r[cCostPerConv]),
       all_conv: coerceNum(r[cAllConv]),
       conv_value: coerceNum(r[cConvValue]),
-      all_conv_rate: coerceNum(r[cAllConvRate]),
-      conv_rate: coerceNum(r[cConvRate])
+      all_conv_rate: coerceRate(r[cAllConvRate]),
+      conv_rate: coerceRate(r[cConvRate])
     });
   }
 
