@@ -165,6 +165,12 @@ async function handleFile(filePath, filename) {
 }
 
 async function handler(req, res) {
+  // Guard against extremely long URLs which may trigger 414 upstream
+  if (req.url && req.url.length > 2000) {
+    res.status(414).json({ ok: false, error: 'Request-URI Too Large' });
+    return;
+  }
+
   if (req.method === 'GET') {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.status(200).end(`<!doctype html><html><body>

@@ -6,12 +6,28 @@ const { createClient } = require('@supabase/supabase-js');
  * Fetch product metadata for independent sites with caching.
  * Stores records in `indep_product` table (product_link, title, image).
  */
-module.exports = async (req, res) => {
+async function handler(req, res) {
   // Support both GET /api/indep_fetchProductInfo?url=... and
   // POST { url: ... } to avoid extremely long query strings
-  const url = req.method === 'POST'
-    ? (req.body && req.body.url)
-    : req.query.url;
+  let url;
+  if (req.method === 'POST') {
+    // Some environments may not pre-parse JSON bodies
+    if (!req.body || typeof req.body !== 'object') {
+      try {
+        let raw = '';
+        await new Promise(resolve => {
+          req.on('data', chunk => raw += chunk);
+          req.on('end', resolve);
+        });
+        req.body = raw ? JSON.parse(raw) : {};
+      } catch {
+        req.body = {};
+      }
+    }
+    url = req.body && req.body.url;
+  } else {
+    url = req.query.url;
+  }
   if (!url) return res.status(400).json({ error: 'Missing url parameter' });
 
   const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -56,4 +72,12 @@ module.exports = async (req, res) => {
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
+}
+
+handler.config = {
+  api: {
+    bodyParser: { sizeLimit: '1mb' }
+  }
 };
+
+module.exports = handler;

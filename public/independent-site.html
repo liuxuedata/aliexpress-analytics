@@ -20,7 +20,6 @@
   <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
-  <script src="assets/product-meta.js"></script>
 </head>
 <body class="fm">
 
@@ -187,20 +186,39 @@
 // 页面逻辑：拉取 /api/independent/stats
 (function(){
   const shorten=(s,l=30)=>{if(!s) return '';return s.length>l?s.slice(0,l)+'…':s;};
+  const metaCache=new Map();
   function enhanceMeta(root){
     const nodes=root.querySelectorAll('[data-url]');
-    const cache=new Set();
     nodes.forEach(node=>{
       const url=node.dataset.url;
-      if(cache.has(url)) return; cache.add(url);
-      getProductMeta(url,url,'/api/indep_fetchProductInfo').then(m=>{
+      const cached=metaCache.get(url);
+      if(cached){
+        root.querySelectorAll(`[data-url="${url}"]`).forEach(el=>{
+          const nameEl=el.querySelector('.name');
+          if(cached.title&&nameEl) nameEl.title=shorten(cached.title);
+          const imgEl=el.querySelector('img');
+          if(cached.image&&imgEl){imgEl.src=cached.image; imgEl.style.display='';}
+        });
+        return;
+      }
+      if(cached===null) return; // already fetching
+      metaCache.set(url,null);
+      fetch('/api/indep_fetchProductInfo',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({url})
+      })
+      .then(r=>r.json())
+      .then(m=>{
+        metaCache.set(url,m||{});
         root.querySelectorAll(`[data-url="${url}"]`).forEach(el=>{
           const nameEl=el.querySelector('.name');
           if(m.title&&nameEl) nameEl.title=shorten(m.title);
           const imgEl=el.querySelector('img');
           if(m.image&&imgEl){imgEl.src=m.image; imgEl.style.display='';}
         });
-      });
+      })
+      .catch(()=>{metaCache.set(url,{});});
     });
   }
   function getParam(name) {
