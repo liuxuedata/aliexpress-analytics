@@ -147,14 +147,22 @@ async function handleFile(filePath, filename) {
     const MAX_QUERY_BYTES = 1900;
     let batch = [];
     let length = 0;
+    let skipFirstSeen = false;
 
     async function fetchExisting() {
-      if (!batch.length) return;
+      if (!batch.length || skipFirstSeen) return;
       const { data: existed, error: e1 } = await supabase
         .from('independent_new_products')
         .select('product_link')
         .in('product_link', batch);
-      if (e1) throw e1;
+      if (e1) {
+        if (e1.code === '42P01') {
+          // Table does not exist; skip tracking first_seen
+          skipFirstSeen = true;
+          return;
+        }
+        throw e1;
+      }
       (existed || []).forEach(r => existSet.add(r.product_link));
     }
 
@@ -170,15 +178,17 @@ async function handleFile(filePath, filename) {
     }
     await fetchExisting();
 
-    const insertRows = [];
-    firstSeenMap.forEach((day, link) => {
-      if (!existSet.has(link)) insertRows.push({ product_link: link, first_seen: day });
-    });
-    if (insertRows.length) {
-      const { error: e2 } = await supabase
-        .from('independent_new_products')
-        .insert(insertRows);
-      if (e2) throw e2;
+    if (!skipFirstSeen) {
+      const insertRows = [];
+      firstSeenMap.forEach((day, link) => {
+        if (!existSet.has(link)) insertRows.push({ product_link: link, first_seen: day });
+      });
+      if (insertRows.length) {
+        const { error: e2 } = await supabase
+          .from('independent_new_products')
+          .insert(insertRows);
+        if (e2 && e2.code !== '42P01') throw e2;
+      }
     }
   }
 
