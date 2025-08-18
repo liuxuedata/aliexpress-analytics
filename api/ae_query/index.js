@@ -16,12 +16,15 @@ export default async function handler(req, res) {
 
   const SUPABASE_URL = process.env.SUPABASE_URL;
   // Allow using the standard anon key if service role is not available
-  const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
+  const SUPABASE_KEY =
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
   const TABLE = process.env.AE_TABLE_NAME || 'ae_self_operated_daily';
-  if (!SUPABASE_URL || !SERVICE_ROLE) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
     return res.status(500).json({ error: 'Missing Supabase credentials' });
   }
-  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { persistSession: false }
+  });
 
   const { start, end } = req.query;
   const granularity = (req.query.granularity || 'day').toLowerCase();

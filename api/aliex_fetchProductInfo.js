@@ -5,7 +5,8 @@ const { createClient } = require('@supabase/supabase-js');
 /**
  * API handler for Vercel to fetch AliExpress product details with caching.
  *
- * - Reads `SUPABASE_URL` and `SUPABASE_KEY` from environment variables.
+ * - Reads `SUPABASE_URL` and a Supabase key (`SUPABASE_SERVICE_ROLE_KEY`
+ *   or `SUPABASE_ANON_KEY`) from environment variables.
  * - Uses Supabase table `aliex_product` to cache product data (link, title, description, image).
  * - If the product link already exists in the table, returns the cached record.
  * - Otherwise, fetches the AliExpress page, extracts title, description and image, stores them,
@@ -21,11 +22,16 @@ module.exports = async (req, res) => {
   }
 
   const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_KEY = process.env.SUPABASE_KEY;
+  const SUPABASE_KEY =
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
   if (!SUPABASE_URL || !SUPABASE_KEY) {
-    return res.status(500).json({ error: 'Supabase credentials are not configured' });
+    return res
+      .status(500)
+      .json({ error: 'Supabase credentials are not configured' });
   }
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { persistSession: false }
+  });
 
   try {
     // 1. Try to read cached record from aliex_product table
