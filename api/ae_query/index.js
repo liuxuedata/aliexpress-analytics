@@ -16,7 +16,9 @@ export default async function handler(req, res) {
 
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const TABLE = process.env.AE_TABLE_NAME || 'ae_self_operated_daily';
+  // Allow overriding the analytics table via AE_TABLE_NAME env var
+  // Default to the same table used by self_operated_api.js
+  const TABLE = process.env.AE_TABLE_NAME || 'self_operated_data';
   if (!SUPABASE_URL || !SERVICE_ROLE) {
     return res.status(500).json({ error: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables.' });
   }
