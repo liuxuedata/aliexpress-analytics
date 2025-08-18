@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     const { product_id, stat_date } = record;
 
     const { data: exists, error: queryErr } = await supabase
-      .from('self_operated_data')
+      .from('ae_self_operated_daily')
       .select('id')
       .eq('product_id', product_id)
       .eq('stat_date', stat_date)
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     }
 
     const { error: insertErr } = await supabase
-      .from('self_operated_data')
+      .from('ae_self_operated_daily')
       .insert(record);
 
     if (insertErr) {
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
 
   // ✅ 新增：上传完成后直接返回当前数据库的所有记录
   const { data: allData, error: fetchErr } = await supabase
-    .from('self_operated_data')
+    .from('ae_self_operated_daily')
     .select('*')
     .order('stat_date', { ascending: false })
     .order('product_id');

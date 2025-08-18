@@ -4,6 +4,9 @@
     { "src": "api/**/*.js", "use": "@vercel/node" },
     { "src": "public/**", "use": "@vercel/static" }
   ],
+  "env": {
+    "AE_TABLE_NAME": "ae_self_operated_daily"
+  },
   "routes": [
     { "src": "^/api/(.*)$", "dest": "/api/$1" },
     { "src": "^/$", "dest": "/public/index.html" },
