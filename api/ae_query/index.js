@@ -14,13 +14,19 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SUPABASE_URL =
+    process.env.SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL;
   // Allow using any provided Supabase key: service role, generic key, or anon key
   const SUPABASE_KEY =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_SERVICE_ROLE ||
     process.env.SUPABASE_KEY ||
-    process.env.SUPABASE_ANON_KEY;
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE ||
+    process.env.NEXT_PUBLIC_SUPABASE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const TABLE = process.env.AE_TABLE_NAME || 'ae_self_operated_daily';
   if (!SUPABASE_URL || !SUPABASE_KEY) {
     return res.status(500).json({ error: 'Missing Supabase credentials' });
