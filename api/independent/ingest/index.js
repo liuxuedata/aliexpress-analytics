@@ -77,11 +77,12 @@ async function handleFile(filePath, filename) {
   const cAvgCPC = col('avg. cpc', 'cpc', 'cost per click');
   const cCost = col('cost', 'amount spent');
   const cConv = col('conversions', 'results', 'purchases');
-  const cCostPerConv = col('cost / conv.', 'cost/conv.', 'cost/conv', 'cost per result');
+  const cCostPerConv = col('cost / conv.', 'cost/conv.', 'cost/conv', 'cost per result', 'avg. cost');
   const cAllConv = col('all conv.', 'all conv', 'total conv');
   const cConvValue = col('conv. value', 'conv value', 'purchase value');
   const cAllConvRate = col('all conv. rate', 'all conv rate', 'total conv rate');
   const cConvRate = col('conv. rate', 'conv rate', 'conversion rate');
+  const cCurrency = col('currency code', 'currency');
 
   const payload = [];
   for (const r of dataRows) {
@@ -101,17 +102,18 @@ async function handleFile(filePath, filename) {
       day: day.toISOString().slice(0,10),
       network: String(r[cNetwork] || '').trim(),
       device: String(r[cDevice] || '').trim(),
+      currency_code: cCurrency >= 0 ? String(r[cCurrency] || '').trim() : null,
       clicks: coerceNum(r[cClicks]),
       impr: coerceNum(r[cImpr]),
       ctr: coerceNum(r[cCTR]),
       avg_cpc: coerceNum(r[cAvgCPC]),
       cost: coerceNum(r[cCost]),
       conversions: coerceNum(r[cConv]),
-      cost_per_conv: coerceNum(r[cCostPerConv]),
-      all_conv: coerceNum(r[cAllConv]),
-      conv_value: coerceNum(r[cConvValue]),
-      all_conv_rate: coerceNum(r[cAllConvRate]),
-      conv_rate: coerceNum(r[cConvRate])
+      cost_per_conv: cCostPerConv >= 0 ? coerceNum(r[cCostPerConv]) : null,
+      all_conv: cAllConv >= 0 ? coerceNum(r[cAllConv]) : null,
+      conv_value: cConvValue >= 0 ? coerceNum(r[cConvValue]) : null,
+      all_conv_rate: cAllConvRate >= 0 ? coerceNum(r[cAllConvRate]) : null,
+      conv_rate: cConvRate >= 0 ? coerceNum(r[cConvRate]) : null
     });
   }
 
