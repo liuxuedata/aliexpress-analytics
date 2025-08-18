@@ -458,10 +458,18 @@
   uploadBtn.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', async () => {
     if (!fileInput.files.length) return;
+    const file = fileInput.files[0];
+    // 预先检查文件大小，避免超过服务端限制
+    const MAX_SIZE_MB = 5;
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      alert(`文件大于 ${MAX_SIZE_MB}MB，请分割后再上传`);
+      fileInput.value = '';
+      return;
+    }
     const fd = new FormData();
-    fd.append('file', fileInput.files[0]);
+    fd.append('file', file);
     try {
-      statusEl.textContent = '导入中...';
+      statusEl.textContent = `导入中: ${file.name}`;
       uploadBtn.disabled = true;
       const resp = await fetch('/api/independent/ingest', { method: 'POST', body: fd });
       const json = await resp.json().catch(() => ({ ok:false, error:`HTTP ${resp.status}` }));
