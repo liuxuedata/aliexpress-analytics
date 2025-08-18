@@ -7,7 +7,11 @@ const { createClient } = require('@supabase/supabase-js');
  * Stores records in `indep_product` table (product_link, title, image).
  */
 module.exports = async (req, res) => {
-  const { url } = req.query;
+  // Support both GET /api/indep_fetchProductInfo?url=... and
+  // POST { url: ... } to avoid extremely long query strings
+  const url = req.method === 'POST'
+    ? (req.body && req.body.url)
+    : req.query.url;
   if (!url) return res.status(400).json({ error: 'Missing url parameter' });
 
   const SUPABASE_URL = process.env.SUPABASE_URL;

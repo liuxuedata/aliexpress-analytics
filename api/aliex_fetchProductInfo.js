@@ -15,7 +15,10 @@ const { createClient } = require('@supabase/supabase-js');
  */
 
 module.exports = async (req, res) => {
-  const { url } = req.query;
+  // Allow POST { url } to avoid very long query strings
+  const url = req.method === 'POST'
+    ? (req.body && req.body.url)
+    : req.query.url;
   if (!url) {
     return res.status(400).json({ error: 'Missing url parameter' });
   }

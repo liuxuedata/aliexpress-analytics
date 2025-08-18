@@ -5,7 +5,11 @@ async function getProductMeta(idOrUrl, link, api){
   const url = link || (idOrUrl.startsWith('http') ? idOrUrl : `https://aliexpress.com/item/${idOrUrl}.html`);
   const endpoint = api || (url.includes('aliexpress') ? '/api/aliex_fetchProductInfo' : '/api/indep_fetchProductInfo');
   try{
-    const res = await fetch(endpoint+'?url='+encodeURIComponent(url));
+    const res = await fetch(endpoint, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({url})
+    });
     const j = await res.json();
     const meta = { title: j.title || idOrUrl, image: j.image || '' };
     window.productMetaCache[key] = meta;
