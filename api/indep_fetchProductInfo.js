@@ -14,6 +14,7 @@ module.exports = async (req, res) => {
   const SUPABASE_KEY =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_SERVICE_ROLE ||
+    process.env.SUPABASE_KEY ||
     process.env.SUPABASE_ANON_KEY;
   if (!SUPABASE_URL || !SUPABASE_KEY) {
     return res.status(500).json({ error: 'Supabase env not configured' });

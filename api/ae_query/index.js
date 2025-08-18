@@ -15,9 +15,12 @@ export default async function handler(req, res) {
   }
 
   const SUPABASE_URL = process.env.SUPABASE_URL;
-  // Allow using the standard anon key if service role is not available
+  // Allow using any provided Supabase key: service role, generic key, or anon key
   const SUPABASE_KEY =
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE ||
+    process.env.SUPABASE_KEY ||
+    process.env.SUPABASE_ANON_KEY;
   const TABLE = process.env.AE_TABLE_NAME || 'ae_self_operated_daily';
   if (!SUPABASE_URL || !SUPABASE_KEY) {
     return res.status(500).json({ error: 'Missing Supabase credentials' });
