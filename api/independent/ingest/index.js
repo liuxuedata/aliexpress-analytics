@@ -143,15 +143,24 @@ async function handleFile(filePath, filename) {
   }
   if (firstSeenMap.size) {
     const ids = Array.from(firstSeenMap.keys());
-    const { data: existed, error: e1 } = await supabase
-      .from('independent_new_products')
-      .select('product_link')
-      .in('product_link', ids);
-    if (e1) throw e1;
-    const existSet = new Set((existed || []).map(r => r.product_link));
+    // Supabase `.in()` filter puts all values into the query string which can
+    // easily exceed URL limits when `ids` is large. Query in chunks to avoid
+    // 414 Request-URI Too Large errors from the upstream edge.
+    const existedSet = new Set();
+    const chunkSize = 100; // keep query string short
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      const chunk = ids.slice(i, i + chunkSize);
+      const { data: existedChunk, error: e1 } = await supabase
+        .from('independent_new_products')
+        .select('product_link')
+        .in('product_link', chunk);
+      if (e1) throw e1;
+      (existedChunk || []).forEach(r => existedSet.add(r.product_link));
+    }
+
     const insertRows = [];
     firstSeenMap.forEach((day, link) => {
-      if (!existSet.has(link)) insertRows.push({ product_link: link, first_seen: day });
+      if (!existedSet.has(link)) insertRows.push({ product_link: link, first_seen: day });
     });
     if (insertRows.length) {
       const { error: e2 } = await supabase
