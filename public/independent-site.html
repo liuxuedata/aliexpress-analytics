@@ -458,19 +458,33 @@
   uploadBtn.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', async () => {
     if (!fileInput.files.length) return;
+    const file = fileInput.files[0];
     const fd = new FormData();
-    fd.append('file', fileInput.files[0]);
+    fd.append('file', file);
     try {
       statusEl.textContent = '导入中...';
       uploadBtn.disabled = true;
+      console.log('[independent-site] upload start', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
       const resp = await fetch('/api/independent/ingest', { method: 'POST', body: fd });
-      const json = await resp.json().catch(() => ({ ok:false, error:`HTTP ${resp.status}` }));
-      if (!resp.ok || !json.ok) throw new Error(json.error || '上传失败');
+      let json;
+      try {
+        json = await resp.json();
+      } catch(err) {
+        console.warn('[independent-site] response not JSON', err);
+        json = { ok: false, error: `HTTP ${resp.status}` };
+      }
+      console.log('[independent-site] upload response', { status: resp.status, body: json });
+      if (!resp.ok || !json.ok) throw new Error(json.error || `上传失败(${resp.status})`);
       statusEl.textContent = '导入完成，加载中...';
       await load();
       statusEl.textContent = '完成';
       alert(`上传成功，记录数: ${json.inserted}`);
     } catch(e) {
+      console.error('[independent-site] upload failed', e);
       statusEl.textContent = `上传失败: ${e.message}`;
       alert(`上传失败: ${e.message}`);
     } finally {
