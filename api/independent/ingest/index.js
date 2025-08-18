@@ -2,7 +2,8 @@
 // Upload Google Ads Landing Pages export (xlsx or csv) and upsert into Supabase
 // Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (recommended) or SUPABASE_ANON_KEY (insert allowed by RLS)
 const { createClient } = require('@supabase/supabase-js');
-const formidable = require('formidable').default;
+// formidable handles multipart/form-data parsing
+const formidable = require('formidable');
 const fs = require('fs');
 const XLSX = require('xlsx');
 
@@ -181,7 +182,8 @@ async function handler(req, res) {
     return;
   }
 
-  const form = formidable({ multiples: false, keepExtensions: true });
+  // limit file size on the server as a safeguard (5MB)
+  const form = formidable({ multiples: false, keepExtensions: true, maxFileSize: 5 * 1024 * 1024 });
   try {
     const { files } = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
@@ -202,9 +204,10 @@ async function handler(req, res) {
   }
 }
 
-handler.config = {
+module.exports = handler;
+// Disable Next.js default body parsing so formidable can handle the stream
+module.exports.config = {
   api: {
-    bodyParser: false, // we'll parse multipart manually
+    bodyParser: false,
   },
 };
-module.exports = handler;
