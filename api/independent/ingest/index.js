@@ -143,12 +143,17 @@ async function handleFile(filePath, filename) {
   }
   if (firstSeenMap.size) {
     const ids = Array.from(firstSeenMap.keys());
-    const { data: existed, error: e1 } = await supabase
-      .from('independent_new_products')
-      .select('product_link')
-      .in('product_link', ids);
-    if (e1) throw e1;
-    const existSet = new Set((existed || []).map(r => r.product_link));
+    const existed = [];
+    for (let i = 0; i < ids.length; i += 100) {
+      const batch = ids.slice(i, i + 100);
+      const { data: rows, error: e1 } = await supabase
+        .from('independent_new_products')
+        .select('product_link')
+        .in('product_link', batch);
+      if (e1) throw e1;
+      if (rows) existed.push(...rows);
+    }
+    const existSet = new Set(existed.map(r => r.product_link));
     const insertRows = [];
     firstSeenMap.forEach((day, link) => {
       if (!existSet.has(link)) insertRows.push({ product_link: link, first_seen: day });
