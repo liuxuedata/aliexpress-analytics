@@ -143,12 +143,39 @@ async function handleFile(filePath, filename) {
   }
   if (firstSeenMap.size) {
     const ids = Array.from(firstSeenMap.keys());
-    const { data: existed, error: e1 } = await supabase
-      .from('independent_new_products')
-      .select('product_link')
-      .in('product_link', ids);
-    if (e1) throw e1;
-    const existSet = new Set((existed || []).map(r => r.product_link));
+    const existSet = new Set();
+    const MAX_QUERY_BYTES = 1900;
+    let batch = [];
+    let length = 0;
+    async function fetchExisting() {
+      if (!batch.length) return;
+      const { data: existed, error: e1 } = await supabase
+        .from('independent_new_products')
+        .select('product_link')
+        .in('product_link', batch);
+      if (e1) {
+        if (e1.code === '42P01') {
+          throw new Error(
+            "Table 'independent_new_products' is missing in the database; run the required migration and retry."
+          );
+        }
+        throw e1;
+      }
+      (existed || []).forEach(r => existSet.add(r.product_link));
+    }
+
+    for (const id of ids) {
+      const enc = encodeURIComponent(id);
+      if (batch.length && length + enc.length + 1 > MAX_QUERY_BYTES) {
+        await fetchExisting();
+        batch = [];
+        length = 0;
+      }
+      batch.push(id);
+      length += enc.length + 1;
+    }
+    await fetchExisting();
+
     const insertRows = [];
     firstSeenMap.forEach((day, link) => {
       if (!existSet.has(link)) insertRows.push({ product_link: link, first_seen: day });
@@ -157,7 +184,14 @@ async function handleFile(filePath, filename) {
       const { error: e2 } = await supabase
         .from('independent_new_products')
         .insert(insertRows);
-      if (e2) throw e2;
+      if (e2) {
+        if (e2.code === '42P01') {
+          throw new Error(
+            "Table 'independent_new_products' is missing in the database; run the required migration and retry."
+          );
+        }
+        throw e2;
+      }
     }
   }
 
