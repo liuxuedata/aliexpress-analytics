@@ -175,6 +175,13 @@ async function handleFile(filePath, filename) {
 }
 
 async function handler(req, res) {
+  console.log('[independent ingest] request start', {
+    method: req.method,
+    url: req.url,
+    urlLength: (req.url || '').length,
+    contentType: req.headers['content-type'],
+    contentLength: req.headers['content-length'],
+  });
   if (req.method === 'GET') {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.status(200).end(`<!doctype html><html><body>
@@ -202,12 +209,19 @@ async function handler(req, res) {
     if (!uploaded) throw new Error('No file uploaded. Use form-data field name "file".');
     const filePath = uploaded.filepath || uploaded.path;
     if (!filePath) throw new Error('Upload failed: file path missing.');
+    console.log('[independent ingest] uploaded file', {
+      name: uploaded.originalFilename || uploaded.newFilename || uploaded.name,
+      type: uploaded.mimetype,
+      size: uploaded.size,
+    });
     const result = await handleFile(
       filePath,
       uploaded.originalFilename || uploaded.newFilename || uploaded.name
     );
+    console.log('[independent ingest] handleFile result', result);
     res.status(200).json({ ok: true, ...result });
   } catch (e) {
+    console.error('[independent ingest] handler error', e);
     res.status(500).json({ ok: false, error: e.message });
   }
 }
