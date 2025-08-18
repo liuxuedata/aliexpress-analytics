@@ -77,7 +77,7 @@ async function handleFile(filePath, filename) {
   const cAvgCPC = col('avg. cpc', 'cpc', 'cost per click');
   const cCost = col('cost', 'amount spent');
   const cConv = col('conversions', 'results', 'purchases');
-  const cCostPerConv = col('cost / conv.', 'cost/conv.', 'cost/conv', 'cost per result');
+  const cCostPerConv = col('cost / conv.', 'cost/conv.', 'cost/conv', 'cost per result', 'avg. cost');
   const cAllConv = col('all conv.', 'all conv', 'total conv');
   const cConvValue = col('conv. value', 'conv value', 'purchase value');
   const cAllConvRate = col('all conv. rate', 'all conv rate', 'total conv rate');
