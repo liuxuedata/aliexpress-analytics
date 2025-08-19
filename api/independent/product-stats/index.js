@@ -45,6 +45,7 @@ function dayDiff(a,b){
 }
 
 async function getSeriesWithSnapshot(supabase, site, product, fromDate, toDate){
+  console.log('getSeriesWithSnapshot', { site, product, fromDate, toDate });
   const needed = dayDiff(fromDate, toDate);
   const { data: snap, error: snapErr } = await supabase
     .from('indep_product_snapshot')
@@ -54,8 +55,10 @@ async function getSeriesWithSnapshot(supabase, site, product, fromDate, toDate){
     .gte('day', fromDate)
     .lte('day', toDate)
     .order('day', { ascending: true });
+  console.log('snapshot check', { count: snap ? snap.length : 0, error: snapErr && snapErr.message });
   if(!snapErr && snap && snap.length === needed) return snap;
 
+  console.log('snapshot missing, querying metrics');
   let { data, error } = await supabase
     .from('independent_landing_metrics')
     .select('day, clicks:sum(clicks), impr:sum(impr), conversions:sum(conversions), conv_value:sum(conv_value), cost:sum(cost)', { group: 'day' })
@@ -64,7 +67,10 @@ async function getSeriesWithSnapshot(supabase, site, product, fromDate, toDate){
     .gte('day', fromDate)
     .lte('day', toDate)
     .order('day', { ascending: true });
-  if(error) throw error;
+  if(error){
+    console.error('raw metrics query failed', error.message);
+    throw error;
+  }
   const rows = (data||[]).map(r=>({
     day: r.day,
     clicks: safeNum(r.clicks),
@@ -77,6 +83,7 @@ async function getSeriesWithSnapshot(supabase, site, product, fromDate, toDate){
   const { error: upErr } = await supabase
     .from('indep_product_snapshot')
     .upsert(upsertRows, { onConflict: 'site,product,day' });
+  console.log('snapshot upsert', { count: upsertRows.length, error: upErr && upErr.message });
   if(upErr) console.error('snapshot upsert failed', upErr.message);
   return rows;
 }
@@ -85,10 +92,12 @@ module.exports = async (req,res) => {
   try{
     const supabase = getClient();
     const { site, from, to, product } = req.query;
+    console.log('product-stats request', { site, product, from, to });
     if(!site) return res.status(400).json({ error: 'missing site param' });
     const def = lastWeek();
     const toDate = parseDate(to, def.to);
     const fromDate = parseDate(from, def.from);
+    console.log('product-stats range', { fromDate, toDate });
     if(product){
       const series = await getSeriesWithSnapshot(supabase, site, product, fromDate, toDate);
       const total = series.reduce((a,r)=>({
@@ -106,6 +115,7 @@ module.exports = async (req,res) => {
       .eq('site', site)
       .gte('day', fromDate)
       .lte('day', toDate);
+    console.log('list query', { count: data ? data.length : 0, error: error && error.message });
     if(error) return res.status(500).json({ error: error.message });
     const list = (data||[]).map(r=>({
       landing_path: r.landing_path,
@@ -119,6 +129,7 @@ module.exports = async (req,res) => {
     }));
     res.status(200).json({ ok:true, list });
   }catch(e){
+    console.error('product-stats failed', e);
     res.status(500).json({ error: e.message });
   }
 };
