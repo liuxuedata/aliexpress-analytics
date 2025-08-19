@@ -8,9 +8,6 @@
     #report td:first-child{ text-align:left; }
     #report td:first-child a.name{ display:inline-block; max-width:180px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
     .stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
-    .loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,.7);display:none;align-items:center;justify-content:center;z-index:1000}
-    .loading-overlay .spinner{width:40px;height:40px;border:4px solid #ccc;border-top-color:#3498db;border-radius:50%;animation:spin 1s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
   </style>
   <!-- DataTables & ECharts CDN -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
@@ -24,6 +21,7 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
   <script src="assets/product-meta.js"></script>
+  <script src="assets/loading.js"></script>
 </head>
 <body class="fm">
 
@@ -53,11 +51,6 @@
       </div>
     </div>
 </div>
-</div>
-
-
-<div id="loadingOverlay" class="loading-overlay">
-  <div class="spinner"></div>
 </div>
 
 <header class="header">
@@ -220,7 +213,6 @@
   const networkSel = document.getElementById('networkSel');
   const campaignSel = document.getElementById('campaignSel');
   const loadStatusEl = document.getElementById('status');
-  const loadingOverlay = document.getElementById('loadingOverlay');
   const clearBtn = document.getElementById('clearFilter');
   let dt;
   let rawTable = [];
@@ -359,7 +351,7 @@
 
   async function load() {
     loadStatusEl.textContent = '加载中...';
-    loadingOverlay.style.display = 'flex';
+    showLoading();
     try {
       const site = siteInput.value.trim();
       let from, to;
@@ -457,7 +449,7 @@
       console.error(e);
       loadStatusEl.textContent = `加载失败: ${e.message || ''}`;
     } finally {
-      loadingOverlay.style.display = 'none';
+      hideLoading();
     }
   }
 
