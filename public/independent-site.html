@@ -21,6 +21,7 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
   <script src="assets/product-meta.js"></script>
+  <script src="assets/loading.js"></script>
 </head>
 <body class="fm">
 
@@ -49,7 +50,7 @@
         <div class="demo-account-info">邮箱：demo@example.com<br>密码：demo123</div>
       </div>
     </div>
-  </div>
+</div>
 </div>
 
 <header class="header">
@@ -350,6 +351,7 @@
 
   async function load() {
     loadStatusEl.textContent = '加载中...';
+    showLoading();
     try {
       const site = siteInput.value.trim();
       let from, to;
@@ -445,8 +447,9 @@
       loadStatusEl.textContent = '加载完成';
     } catch(e) {
       console.error(e);
-      loadStatusEl.textContent = '加载失败';
-      alert(e.message || '加载失败');
+      loadStatusEl.textContent = `加载失败: ${e.message || ''}`;
+    } finally {
+      hideLoading();
     }
   }
 
