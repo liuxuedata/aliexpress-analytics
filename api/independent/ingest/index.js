@@ -135,7 +135,26 @@ async function handleFile(filePath, filename) {
   const byKey = new Map();
   for (const row of payload) {
     const key = [row.day, row.site, row.landing_path, row.device, row.network, row.campaign].join('|');
-    if (!byKey.has(key)) byKey.set(key, row);
+    if (!byKey.has(key)) {
+      byKey.set(key, row);
+    } else {
+      // Merge metrics for duplicate keys so later rows don't overwrite
+      // earlier ones with zeros. Additive fields are summed and derived
+      // rates are recomputed from the aggregated values.
+      const prev = byKey.get(key);
+      const add = f => {
+        const a = prev[f] == null ? 0 : prev[f];
+        const b = row[f] == null ? 0 : row[f];
+        prev[f] = a + b;
+      };
+      ['clicks', 'impr', 'cost', 'conversions', 'all_conv', 'conv_value'].forEach(add);
+
+      prev.avg_cpc = prev.clicks ? prev.cost / prev.clicks : prev.avg_cpc;
+      prev.ctr = prev.impr ? (prev.clicks / prev.impr) * 100 : prev.ctr;
+      prev.cost_per_conv = prev.conversions ? prev.cost / prev.conversions : prev.cost_per_conv;
+      prev.conv_rate = prev.clicks ? (prev.conversions / prev.clicks) * 100 : prev.conv_rate;
+      prev.all_conv_rate = prev.clicks ? (prev.all_conv / prev.clicks) * 100 : prev.all_conv_rate;
+    }
   }
   const deduped = Array.from(byKey.values());
   const supabase = getClient();
