@@ -297,8 +297,9 @@
       window._periodB = prev || '';
 
       if (state.table) { state.table.destroy(); }
+      const data = window._rowsA.map(mapRow);
       state.table = $('#report').DataTable({
-        serverSide:true,
+        data,
         processing:true,
         deferRender:true,
         paging:true,
@@ -309,21 +310,12 @@
         scrollY:'60vh',
         scrollCollapse:true,
         autoWidth:false,
-        ajax:function(data, callback){
-          const qs = new URLSearchParams({ granularity: state.granularity });
-          if(period) qs.set('period_end', period);
-          qs.set('limit', data.length);
-          qs.set('offset', data.start);
-          fetch('/api/stats?'+qs.toString()).then(r=>r.json()).then(j=>{
-            const rows = (j.rows||[]).map(mapRow);
-            callback({ data: rows, recordsTotal:j.total||rows.length, recordsFiltered:j.total||rows.length });
-          });
-        },
+        columnDefs:[{ targets:-1, orderable:false }],
         drawCallback:function(){
           populateProductNames(document.getElementById('report'));
         }
       });
-      $('#report tbody').on('dblclick','td',function(){
+      $('#report tbody').off('dblclick').on('dblclick','td',function(){
         const col = state.table.cell(this).index().column;
         const last = state.table.columns().count()-1;
         if(col===0 || col===last) return;
