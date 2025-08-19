@@ -73,6 +73,16 @@ module.exports = async (req, res) => {
     const toDate = rng.to;
     const onlyNew = String(only_new || '') === '1';
 
+    console.log('independent stats request', {
+      site,
+      period_end,
+      granularity: gran,
+      campaign,
+      network,
+      device,
+      only_new: onlyNew
+    });
+
     if (!site) return res.status(400).json({ error: 'missing site param, e.g. ?site=poolsvacuum.com' });
 
     // Fetch new product registrations within range
@@ -105,7 +115,20 @@ module.exports = async (req, res) => {
       if (network) query = query.eq('network', network);
       if (device) query = query.eq('device', device);
       const { data, error } = await query.range(fromIdx, toIdx);
-      if (error) return res.status(500).json({ error: error.message });
+      if (error) {
+        console.error('landing metrics query failed', {
+          message: error.message,
+          fromIdx,
+          toIdx,
+          site,
+          campaign,
+          network,
+          device,
+          fromDate,
+          toDate
+        });
+        return res.status(500).json({ error: error.message });
+      }
       rows = rows.concat(data);
       if (!data.length || data.length < PAGE_SIZE) break;
     }
@@ -187,6 +210,15 @@ module.exports = async (req, res) => {
     let { data: series, error: e2 } = await seriesQuery;
 
     if (e2) {
+      console.error('summary series query failed', {
+        message: e2.message,
+        site,
+        campaign,
+        network,
+        device,
+        fromDate,
+        toDate
+      });
       // fall back to aggregating from metrics table when summary view doesn't support the filter
       let fbQuery = supabase
         .from('independent_landing_metrics')
@@ -201,7 +233,18 @@ module.exports = async (req, res) => {
       if (network) fbQuery = fbQuery.eq('network', network);
       if (device) fbQuery = fbQuery.eq('device', device);
       const { data: fallback, error: e2b } = await fbQuery;
-      if (e2b) return res.status(500).json({ error: e2b.message });
+      if (e2b) {
+        console.error('fallback summary query failed', {
+          message: e2b.message,
+          site,
+          campaign,
+          network,
+          device,
+          fromDate,
+          toDate
+        });
+        return res.status(500).json({ error: e2b.message });
+      }
       series = fallback || [];
     } else {
       series = series || [];
@@ -286,6 +329,7 @@ module.exports = async (req, res) => {
 
     res.status(200).json({ ok: true, from: fromDate, to: toDate, period_end: rng.period_end, granularity: gran, table, series, topList, kpis });
   } catch (e) {
+    console.error('independent stats handler crashed', e);
     res.status(500).json({ error: e.message });
   }
 };
