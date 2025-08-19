@@ -51,7 +51,7 @@
           <div id="expLine" style="width:100%;height:260px;"></div>
           <h3 style="margin-top:24px;">访客比趋势</h3>
           <div id="uvRateLine" style="width:100%;height:260px;"></div>
-          <h3 style="margin-top:24px;">加购比趋势</h3>
+          <h3 id="rate3Title" style="margin-top:24px;">加购比趋势</h3>
           <div id="addRateLine" style="width:100%;height:260px;"></div>
         </div>
       </section>
@@ -288,6 +288,8 @@ function card(title,cur,prev,isPct,avg,share){
 
   function setupSelf(mode, siteParam){
     document.getElementById('lineWrap').style.display='block';
+    const rateTitle=document.getElementById('rate3Title');
+    if(rateTitle) rateTitle.textContent = mode==='indep' ? '转化比趋势' : '加购比趋势';
     const ctrl=document.getElementById('ctrl');
     ctrl.innerHTML='<input id="dateRange" class="date-filter" placeholder="选择日期范围">';
     const input=document.getElementById('dateRange');
@@ -396,26 +398,30 @@ function card(title,cur,prev,isPct,avg,share){
       function line(pid){
         const mapExpA=new Map(), mapExpB=new Map();
         const mapUvRateA=new Map(), mapUvRateB=new Map();
-        const mapAddRateA=new Map(), mapAddRateB=new Map();
+        const mapRate3A=new Map(), mapRate3B=new Map();
         rowsDayA.filter(r=>String(getId(r))===String(pid)).forEach(r=>{
           const d=mode==='indep'?r.day:r.bucket;
           const exp=getExp(r);
           const uv=Number(mode==='indep'?r.clicks||0:r.visitors||0);
-          const add=Number(mode==='indep'?0:r.add_people||0);
+          const add=Number(r.add_people||0);
+          const pay=Number(mode==='indep'?r.conversions||0:r.pay_buyers||0);
           mapExpA.set(d,exp);
           mapUvRateA.set(d,exp?uv/exp:0);
-          mapAddRateA.set(d,uv?add/uv:0);
+          const rate=mode==='indep'?(uv?pay/uv:0):(uv?add/uv:0);
+          mapRate3A.set(d,rate);
         });
         rowsDayB.filter(r=>String(getId(r))===String(pid)).forEach(r=>{
           const d=mode==='indep'?r.day:r.bucket;
           const exp=getExp(r);
           const uv=Number(mode==='indep'?r.clicks||0:r.visitors||0);
-          const add=Number(mode==='indep'?0:r.add_people||0);
+          const add=Number(r.add_people||0);
+          const pay=Number(mode==='indep'?r.conversions||0:r.pay_buyers||0);
           mapExpB.set(d,exp);
           mapUvRateB.set(d,exp?uv/exp:0);
-          mapAddRateB.set(d,uv?add/uv:0);
+          const rate=mode==='indep'?(uv?pay/uv:0):(uv?add/uv:0);
+          mapRate3B.set(d,rate);
         });
-        const labels=[], expA=[], expB=[], uvA=[], uvB=[], addA=[], addB=[];
+        const labels=[], expA=[], expB=[], uvA=[], uvB=[], rate3A=[], rate3B=[];
         for(let i=0;i<days;i++){
           const da=new Date(startA+'T00:00:00'); da.setDate(da.getDate()+i); const isoA=da.toISOString().slice(0,10);
           const db=new Date(startB+'T00:00:00'); db.setDate(db.getDate()+i); const isoB=db.toISOString().slice(0,10);
@@ -424,16 +430,16 @@ function card(title,cur,prev,isPct,avg,share){
           expB.push(mapExpB.get(isoB)||0);
           uvA.push((mapUvRateA.get(isoA)||0)*100);
           uvB.push((mapUvRateB.get(isoB)||0)*100);
-          addA.push((mapAddRateA.get(isoA)||0)*100);
-          addB.push((mapAddRateB.get(isoB)||0)*100);
+          rate3A.push((mapRate3A.get(isoA)||0)*100);
+          rate3B.push((mapRate3B.get(isoB)||0)*100);
         }
         const expChart=echarts.init(document.getElementById('expLine'));
         expChart.setOption({tooltip:{trigger:'axis'},legend:{data:['本周期','上一周期']},xAxis:{type:'category',data:labels},yAxis:{type:'value'},series:[{name:'本周期',type:'line',smooth:true,data:expA},{name:'上一周期',type:'line',smooth:true,data:expB}]});
         const uvChart=echarts.init(document.getElementById('uvRateLine'));
         uvChart.setOption({tooltip:{trigger:'axis',valueFormatter:v=>v+'%'},legend:{data:['本周期','上一周期']},xAxis:{type:'category',data:labels},yAxis:{type:'value',axisLabel:{formatter:'{value}%'}},series:[{name:'本周期',type:'line',smooth:true,data:uvA},{name:'上一周期',type:'line',smooth:true,data:uvB}]});
-        const addChart=echarts.init(document.getElementById('addRateLine'));
-        addChart.setOption({tooltip:{trigger:'axis',valueFormatter:v=>v+'%'},legend:{data:['本周期','上一周期']},xAxis:{type:'category',data:labels},yAxis:{type:'value',axisLabel:{formatter:'{value}%'}},series:[{name:'本周期',type:'line',smooth:true,data:addA},{name:'上一周期',type:'line',smooth:true,data:addB}]});
-        window.addEventListener('resize',()=>{expChart.resize();uvChart.resize();addChart.resize();});
+        const rate3Chart=echarts.init(document.getElementById('addRateLine'));
+        rate3Chart.setOption({tooltip:{trigger:'axis',valueFormatter:v=>v+'%'},legend:{data:['本周期','上一周期']},xAxis:{type:'category',data:labels},yAxis:{type:'value',axisLabel:{formatter:'{value}%'}},series:[{name:'本周期',type:'line',smooth:true,data:rate3A},{name:'上一周期',type:'line',smooth:true,data:rate3B}]});
+        window.addEventListener('resize',()=>{expChart.resize();uvChart.resize();rate3Chart.resize();});
       }
       function update(pid){
         const cur=sum(rowsAggA,pid); const prev=sum(rowsAggB,pid);
@@ -450,15 +456,20 @@ function card(title,cur,prev,isPct,avg,share){
         const shareUv=totalsA.uv?cur.uv/totalsA.uv:0;
         const shareAdd=totalsA.add?cur.add/totalsA.add:0;
         const sharePay=totalsA.pay?cur.pay/totalsA.pay:0;
-        document.getElementById('kpi').innerHTML=[
-          card('平均访客比',curUvRate,prevUvRate,true,avgUvRate),
-          card('平均加购比',curAddRate,prevAddRate,true,avgAddRate),
-          card('平均支付比',curPayRate,prevPayRate,true,avgPayRate),
-          card('总曝光量',cur.exp,prev.exp,false,null,shareExp),
-          card('总访客数',cur.uv,prev.uv,false,null,shareUv),
-          card('总加购人数',cur.add,prev.add,false,null,shareAdd),
-          card('总支付买家数',cur.pay,prev.pay,false,null,sharePay)
-        ].join('');
+        const cards=[
+          card('平均访客比',curUvRate,prevUvRate,true,avgUvRate)
+        ];
+        if(mode==='indep'){
+          cards.push(card('平均转化比',curPayRate,prevPayRate,true,avgPayRate));
+        }else{
+          cards.push(card('平均加购比',curAddRate,prevAddRate,true,avgAddRate));
+          cards.push(card('平均支付比',curPayRate,prevPayRate,true,avgPayRate));
+        }
+        cards.push(card('总曝光量',cur.exp,prev.exp,false,null,shareExp));
+        cards.push(card('总访客数',cur.uv,prev.uv,false,null,shareUv));
+        if(mode!=='indep') cards.push(card('总加购人数',cur.add,prev.add,false,null,shareAdd));
+        cards.push(card(mode==='indep'?'总转化数':'总支付买家数',cur.pay,prev.pay,false,null,sharePay));
+        document.getElementById('kpi').innerHTML=cards.join('');
         line(pid);
         const dates=[...rowsDayA,...rowsDayB].filter(r=>String(getId(r))===String(pid)).map(r=>mode==='indep'?r.day:r.bucket).sort();
         document.getElementById('listingDate').textContent=dates.length?`上架日期：${dates[0]}`:'';
