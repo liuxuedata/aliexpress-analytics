@@ -10,10 +10,43 @@ function getClient() {
   return createClient(url, key);
 }
 
-function parseDate(s, fallback) {
-  const d = s ? new Date(s) : null;
-  if (d && !isNaN(d.getTime())) return d.toISOString().slice(0,10);
-  return fallback;
+function fmtDate(d){
+  return d.toISOString().slice(0,10);
+}
+
+function lastWeek() {
+  const today = new Date();
+  const dow = today.getDay();
+  const mondayThisWeek = new Date(today);
+  mondayThisWeek.setDate(today.getDate() - ((dow + 6) % 7));
+  const from = new Date(mondayThisWeek);
+  from.setDate(mondayThisWeek.getDate() - 7);
+  const to = new Date(from);
+  to.setDate(from.getDate() + 6);
+  return { from: fmtDate(from), to: fmtDate(to), period_end: fmtDate(to) };
+}
+
+function lastMonth(){
+  const now=new Date();
+  const to=new Date(now.getFullYear(), now.getMonth(), 0);
+  const from=new Date(to.getFullYear(), to.getMonth(), 1);
+  return { from: fmtDate(from), to: fmtDate(to), period_end: fmtDate(to) };
+}
+
+function rangeForPeriod(gran, periodEnd){
+  if(!periodEnd){
+    return gran==='month'? lastMonth() : lastWeek();
+  }
+  const end=new Date(periodEnd);
+  if(isNaN(end.getTime())) return gran==='month'? lastMonth() : lastWeek();
+  if(gran==='month'){
+    const start=new Date(end.getFullYear(), end.getMonth(), 1);
+    return { from: fmtDate(start), to: fmtDate(end), period_end: fmtDate(end) };
+  } else {
+    const start=new Date(end);
+    start.setDate(end.getDate()-6);
+    return { from: fmtDate(start), to: fmtDate(end), period_end: fmtDate(end) };
+  }
 }
 
 function extractName(path) {
@@ -30,30 +63,14 @@ function safeNum(v){
 
 const PAGE_SIZE = 1000;
 
-function lastWeek() {
-  const today = new Date();
-  const dow = today.getDay();
-  // Monday of this week
-  const mondayThisWeek = new Date(today);
-  mondayThisWeek.setDate(today.getDate() - ((dow + 6) % 7));
-  // Previous week's Monday and Sunday
-  const from = new Date(mondayThisWeek);
-  from.setDate(mondayThisWeek.getDate() - 7);
-  const to = new Date(from);
-  to.setDate(from.getDate() + 6);
-  return {
-    from: from.toISOString().slice(0,10),
-    to: to.toISOString().slice(0,10)
-  };
-}
-
 module.exports = async (req, res) => {
   try {
     const supabase = getClient();
-    const { site, from, to, limit = '20000', only_new, campaign, network, device } = req.query;
-    const def = lastWeek();
-    const toDate = parseDate(to, def.to);
-    const fromDate = parseDate(from, def.from);
+    const { site, period_end, granularity = 'week', limit = '20000', only_new, campaign, network, device } = req.query;
+    const gran = String(granularity).toLowerCase() === 'month' ? 'month' : 'week';
+    const rng = rangeForPeriod(gran, period_end);
+    const fromDate = rng.from;
+    const toDate = rng.to;
     const onlyNew = String(only_new || '') === '1';
 
     if (!site) return res.status(400).json({ error: 'missing site param, e.g. ?site=poolsvacuum.com' });
@@ -75,8 +92,8 @@ module.exports = async (req, res) => {
 
     // table data (fetch all pages up to limit)
     const limitNum = Math.min(Number(limit) || PAGE_SIZE, 20000);
-    let table = [];
-    for (let fromIdx = 0; table.length < limitNum; fromIdx += PAGE_SIZE) {
+    let rows = [];
+    for (let fromIdx = 0; rows.length < limitNum; fromIdx += PAGE_SIZE) {
       const toIdx = Math.min(fromIdx + PAGE_SIZE - 1, limitNum - 1);
       let query = supabase
         .from('independent_landing_metrics')
@@ -89,27 +106,69 @@ module.exports = async (req, res) => {
       if (device) query = query.eq('device', device);
       const { data, error } = await query.range(fromIdx, toIdx);
       if (error) return res.status(500).json({ error: error.message });
-      table = table.concat(data);
+      rows = rows.concat(data);
       if (!data.length || data.length < PAGE_SIZE) break;
     }
 
-    table = (table || []).map(r => ({
+    rows = (rows || []).map(r => ({
       ...r,
-      product: extractName(r.landing_path),
       clicks: safeNum(r.clicks),
       impr: safeNum(r.impr),
-      ctr: safeNum(r.ctr),
-      avg_cpc: safeNum(r.avg_cpc),
       cost: safeNum(r.cost),
       conversions: safeNum(r.conversions),
-      cost_per_conv: safeNum(r.cost_per_conv),
       all_conv: safeNum(r.all_conv),
       conv_value: safeNum(r.conv_value),
-      all_conv_rate: safeNum(r.all_conv_rate),
-      conv_rate: safeNum(r.conv_rate),
       is_new: newMap.has(r.landing_path),
       first_seen_date: newMap.get(r.landing_path) || null
     }));
+
+    // aggregate by landing_path + campaign + network + device
+    const map = {};
+    for (const r of rows) {
+      const key = [r.landing_path, r.campaign || '', r.network || '', r.device || ''].join('||');
+      if (!map[key]) {
+        map[key] = {
+          landing_path: r.landing_path,
+          landing_url: r.landing_url,
+          campaign: r.campaign,
+          network: r.network,
+          device: r.device,
+          clicks: 0,
+          impr: 0,
+          cost: 0,
+          conversions: 0,
+          all_conv: 0,
+          conv_value: 0,
+          is_new: r.is_new,
+          first_seen_date: r.first_seen_date
+        };
+      }
+      const m = map[key];
+      m.clicks += r.clicks;
+      m.impr += r.impr;
+      m.cost += r.cost;
+      m.conversions += r.conversions;
+      m.all_conv += r.all_conv;
+      m.conv_value += r.conv_value;
+      if (r.is_new) m.is_new = true;
+      if (!m.first_seen_date && r.first_seen_date) m.first_seen_date = r.first_seen_date;
+    }
+    let table = Object.values(map).map(r => {
+      const ctr = r.impr > 0 ? r.clicks / r.impr : 0;
+      const avg_cpc = r.clicks > 0 ? r.cost / r.clicks : 0;
+      const cost_per_conv = r.conversions > 0 ? r.cost / r.conversions : 0;
+      const all_conv_rate = r.clicks > 0 ? r.all_conv / r.clicks : 0;
+      const conv_rate = r.clicks > 0 ? r.conversions / r.clicks : 0;
+      return {
+        ...r,
+        product: extractName(r.landing_path),
+        ctr,
+        avg_cpc,
+        cost_per_conv,
+        all_conv_rate,
+        conv_rate
+      };
+    });
 
     if (onlyNew) {
       table = table.filter(r => r.is_new);
@@ -159,7 +218,7 @@ module.exports = async (req, res) => {
 
     if (onlyNew) {
       const byDay = {};
-      table.forEach(r => {
+      rows.filter(r => r.is_new).forEach(r => {
         const d = r.day;
         if (!byDay[d]) byDay[d] = { day: d, clicks: 0, impr: 0, conversions: 0, conv_value: 0, cost: 0 };
         byDay[d].clicks += safeNum(r.clicks);
@@ -172,25 +231,8 @@ module.exports = async (req, res) => {
     }
 
     // top landing pages by conversions (aggregate all pages)
-    let topPages = [];
-    for (let fromIdx = 0;; fromIdx += PAGE_SIZE) {
-      const toIdx = fromIdx + PAGE_SIZE - 1;
-      let tpQuery = supabase
-        .from('independent_landing_metrics')
-        .select('landing_path, landing_url, conversions, conv_value, clicks, impr, cost')
-        .eq('site', site)
-        .gte('day', fromDate).lte('day', toDate);
-      if (campaign) tpQuery = tpQuery.eq('campaign', campaign);
-      if (network) tpQuery = tpQuery.eq('network', network);
-      if (device) tpQuery = tpQuery.eq('device', device);
-      const { data, error } = await tpQuery.range(fromIdx, toIdx);
-      if (error) return res.status(500).json({ error: error.message });
-      topPages = topPages.concat(data);
-      if (!data.length || data.length < PAGE_SIZE) break;
-    }
-
     const byPath = {};
-    for (const r of topPages) {
+    for (const r of table) {
       if (onlyNew && !newMap.has(r.landing_path)) continue;
       const key = r.landing_path;
       if (!byPath[key]) byPath[key] = { path: key, url: r.landing_url, conversions: 0, conv_value: 0, clicks: 0, impr: 0, cost: 0 };
@@ -242,7 +284,7 @@ module.exports = async (req, res) => {
       new_conversions: newConv
     };
 
-    res.status(200).json({ ok: true, from: fromDate, to: toDate, table, series, topList, kpis });
+    res.status(200).json({ ok: true, from: fromDate, to: toDate, period_end: rng.period_end, granularity: gran, table, series, topList, kpis });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

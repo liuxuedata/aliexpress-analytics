@@ -12,13 +12,11 @@
   <!-- DataTables & ECharts CDN -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link rel="stylesheet" href="assets/login.css">
   <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
   <script src="assets/product-meta.js"></script>
   <script src="assets/loading.js"></script>
@@ -90,8 +88,10 @@
         <div class="controls">
           <label>站点：</label>
           <select id="site"></select>
-          <span>日期：</span>
-          <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
+          <label>粒度：</label>
+          <label><input type="radio" name="gran" value="week"> 周</label>
+          <label><input type="radio" name="gran" value="month"> 月</label>
+          <select id="periodSelect" class="sel"><option value="">加载中...</option></select>
           <label>网络：</label>
           <select id="networkSel"><option value="">全部</option></select>
           <label>Campaign：</label>
@@ -209,20 +209,33 @@
     return url.searchParams.get(name);
   }
   const siteInput = document.getElementById('site');
-  const dateInput = document.getElementById('dateFilter');
+  const periodSel = document.getElementById('periodSelect');
   const networkSel = document.getElementById('networkSel');
   const campaignSel = document.getElementById('campaignSel');
   const loadStatusEl = document.getElementById('status');
   const clearBtn = document.getElementById('clearFilter');
+  const granRadios = document.querySelectorAll('input[name="gran"]');
+  const state = { granularity: localStorage.getItem('indepGranularity') || 'week', periods: [] };
+  document.querySelector(`input[name="gran"][value="${state.granularity}"]`).checked = true;
+  granRadios.forEach(r => r.addEventListener('change', e => { state.granularity = e.target.value; localStorage.setItem('indepGranularity', state.granularity); loadPeriods(); }));
+  periodSel.addEventListener('change', load);
   let dt;
   let rawTable = [];
   let onlyNew = false;
   networkSel.addEventListener('change', load);
   campaignSel.addEventListener('change', load);
 
-  function periodShift(startISO, endISO){
-    const start=new Date(startISO+'T00:00:00'); const end=new Date(endISO+'T00:00:00');
-    const days=Math.round((end-start)/86400000)+1; const prevEnd=new Date(start.getTime()-86400000); const prevStart=new Date(prevEnd.getTime()-(days-1)*86400000); const fmt=d=>d.toISOString().slice(0,10); return {prevStart:fmt(prevStart), prevEnd:fmt(prevEnd)};
+  async function loadPeriods(){
+    try{
+      const resp = await fetch('/api/periods');
+      const j = await resp.json();
+      const list = state.granularity === 'month' ? (j.months || []) : (j.weeks || []);
+      state.periods = list.slice();
+      periodSel.innerHTML = list.map(d=>`<option value="${d}">${d}</option>`).join('');
+      const stored = localStorage.getItem('indepPeriod');
+      if (stored && list.includes(stored)) periodSel.value = stored; else if(list.length) { periodSel.value = list[0]; localStorage.setItem('indepPeriod', list[0]); }
+      if (periodSel.value) load();
+    } catch(e) { console.error('periods fetch failed', e); }
   }
 
   function card(title, cur, prev, isPercent){
@@ -326,21 +339,7 @@
     dt.on('draw',()=>enhanceMeta(document.getElementById('report')));
   }
 
-  // 默认站点取 url 参数或本地存储
-  const storedPeriod = localStorage.getItem('indepPeriod');
-  if (storedPeriod && storedPeriod.includes(' to ')) {
-    dateInput.value = storedPeriod;
-  } else {
-    const today = new Date();
-    const endISO = today.toISOString().slice(0,10);
-    const startISO = new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
-    dateInput.value = `${startISO} to ${endISO}`;
-  }
-  window.fp = flatpickr('#dateFilter',{ mode:'range', dateFormat:'Y-m-d', onClose:(ds)=>{ if(ds.length===2) load(); } });
-  if (dateInput.value.includes(' to ')) {
-    const [s,e] = dateInput.value.split(' to ');
-    window.fp.setDate([s,e], true, 'Y-m-d');
-  }
+  loadPeriods();
 
   function populateFilters(){
     const nets = Array.from(new Set(rawTable.map(r=>r.network).filter(Boolean))).sort();
@@ -354,34 +353,32 @@
     showLoading();
     try {
       const site = siteInput.value.trim();
-      let from, to;
-      const range = dateInput.value;
-      if (range && range.includes(' to ')) {
-        [from, to] = range.split(' to ');
-      } else {
-        const today = new Date();
-        to = today.toISOString().slice(0,10);
-        from = new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
-        dateInput.value = `${from} to ${to}`;
-        if (window.fp) window.fp.setDate([from,to], true, 'Y-m-d');
-      }
-      localStorage.setItem('indepPeriod', `${from} to ${to}`);
-      const params = new URLSearchParams({site, from, to});
+      const period = periodSel.value;
+      localStorage.setItem('indepPeriod', period || '');
+      const params = new URLSearchParams({ site, granularity: state.granularity });
+      if (period) params.append('period_end', period);
       const net = networkSel.value;
       const camp = campaignSel.value;
       if (net) params.append('network', net);
       if (camp) params.append('campaign', camp);
       if (onlyNew) params.append('only_new', '1');
       const url = `/api/independent/stats?${params.toString()}`;
-      const { prevStart, prevEnd } = periodShift(from, to);
-      const prevParams = new URLSearchParams({site, from: prevStart, to: prevEnd});
+      let prev = '';
+      const idx = state.periods.indexOf(period);
+      if (idx >= 0 && idx < state.periods.length - 1) prev = state.periods[idx + 1];
+      const prevParams = new URLSearchParams({ site, granularity: state.granularity });
+      if (prev) prevParams.append('period_end', prev);
       if (net) prevParams.append('network', net);
       if (camp) prevParams.append('campaign', camp);
       if (onlyNew) prevParams.append('only_new', '1');
       const prevUrl = `/api/independent/stats?${prevParams.toString()}`;
-      const [res, resPrev] = await Promise.all([fetch(url), fetch(prevUrl)]);
+      const [res, resPrev] = await Promise.all([
+        fetch(url),
+        prev ? fetch(prevUrl) : Promise.resolve({ ok: true, json: async () => ({ ok: true, kpis: {} }) })
+      ]);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const [json, jsonPrev] = await Promise.all([res.json(), resPrev.json()]);
+      const json = await res.json();
+      const jsonPrev = prev && resPrev.ok ? await resPrev.json() : {};
       if (!json.ok) throw new Error(json.error || '加载失败');
 
       rawTable = json.table || [];
