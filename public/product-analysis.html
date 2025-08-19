@@ -303,11 +303,11 @@ function card(title,cur,prev,isPct,avg,share){
       showLoading();
       try{
         if(mode==='indep'){
-          const [rowsA,rowsB]=await Promise.all([
-            fetchAgg(startISO,endISO),
-            fetchAgg(prevStart,prevEnd)
+          const [rowsAggA,rowsAggB]=await Promise.all([
+            fetchIndepSummary(startISO,endISO),
+            fetchIndepSummary(prevStart,prevEnd)
           ]);
-          renderProductSelf(rowsA,rowsB,rowsA,rowsB,days,startISO,prevStart);
+          renderProductSelf(rowsAggA,rowsAggB,null,null,days,startISO,prevStart,endISO,prevEnd);
           return;
         }
         const [rowsAggA,rowsAggB,rowsDayA,rowsDayB]=await Promise.all([
@@ -316,7 +316,7 @@ function card(title,cur,prev,isPct,avg,share){
           fetchAgg(startISO,endISO,'day'),
           fetchAgg(prevStart,prevEnd,'day')
         ]);
-        renderProductSelf(rowsAggA,rowsAggB,rowsDayA,rowsDayB,days,startISO,prevStart);
+        renderProductSelf(rowsAggA,rowsAggB,rowsDayA,rowsDayB,days,startISO,prevStart,endISO,prevEnd);
       }catch(err){
         console.error(err);
         alert('查询失败：'+(err.message||err));
@@ -325,15 +325,6 @@ function card(title,cur,prev,isPct,avg,share){
       }
     }
     async function fetchAgg(start,end,gran){
-      if(mode==='indep'){
-        const url=`/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${start}&to=${end}`;
-        const resp=await fetch(url);
-        const txt=await resp.text();
-        if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        let j; try{ j=JSON.parse(txt);} catch(e){ throw new Error('Query API响应不是JSON'); }
-        if(j.ok!==undefined && !j.ok) throw new Error(j.error||'查询失败');
-        return j.table||j.rows||[];
-      }
       const url=`/api/ae_query?start=${start}&end=${end}&granularity=${gran}`;
       const resp=await fetch(url);
       const txt=await resp.text();
@@ -341,6 +332,26 @@ function card(title,cur,prev,isPct,avg,share){
       let j; try{ j=JSON.parse(txt);} catch(e){ throw new Error('Query API响应不是JSON'); }
       if(j.ok!==undefined && !j.ok) throw new Error(j.error||'查询失败');
       return j.rows||[];
+    }
+
+    async function fetchIndepSummary(start,end){
+      const url=`/api/independent/product-stats?site=${encodeURIComponent(siteParam)}&from=${start}&to=${end}`;
+      const resp=await fetch(url);
+      const txt=await resp.text();
+      if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      let j; try{ j=JSON.parse(txt);} catch(e){ throw new Error('Query API响应不是JSON'); }
+      if(j.error) throw new Error(j.error);
+      return j.list||[];
+    }
+
+    async function fetchIndepSeries(pid,start,end){
+      const url=`/api/independent/product-stats?site=${encodeURIComponent(siteParam)}&product=${encodeURIComponent(pid)}&from=${start}&to=${end}`;
+      const resp=await fetch(url);
+      const txt=await resp.text();
+      if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      let j; try{ j=JSON.parse(txt);} catch(e){ throw new Error('Query API响应不是JSON'); }
+      if(j.error) throw new Error(j.error);
+      return j;
     }
     function periodShift(startISO,endISO){
       const start=new Date(startISO+'T00:00:00'); const end=new Date(endISO+'T00:00:00');
@@ -350,7 +361,7 @@ function card(title,cur,prev,isPct,avg,share){
       const fmt=d=>d.toISOString().slice(0,10);
       return{prevStart:fmt(prevStart),prevEnd:fmt(prevEnd),days};
     }
-    function renderProductSelf(rowsAggA,rowsAggB,rowsDayA,rowsDayB,days,startA,startB){
+    function renderProductSelf(rowsAggA,rowsAggB,rowsDayA,rowsDayB,days,startA,startB,endA=startA,endB=startB){
       const expMap=new Map();
       const linkMap=new Map();
       const getId=r=>mode==='indep'?(r.landing_path||r.product):r.product_id;
@@ -390,31 +401,45 @@ function card(title,cur,prev,isPct,avg,share){
       sel.value=pid; update(pid);
       sel.onchange=()=>update(sel.value);
       function sum(rows,pid){
-        return rows.filter(r=>String(getId(r))===String(pid)).reduce((a,r)=>({
+        if(mode==='indep'){
+          const r=rows.find(x=>String(getId(x))===String(pid))||{};
+          return{exp:getExp(r),uv:Number(r.clicks||0),add:0,pay:Number(r.conversions||0)};
+        }
+        return rows.filter(r=>String(getId(r))===String(pid)).reduce((a,r)=>( {
           exp:a.exp+getExp(r),
-          uv:a.uv+Number(mode==='indep'?r.clicks||0:r.visitors||0),
-          add:a.add+Number(mode==='indep'?0:r.add_people||0),
-          pay:a.pay+Number(mode==='indep'?r.conversions||0:r.pay_buyers||0)
+          uv:a.uv+Number(r.visitors||0),
+          add:a.add+Number(r.add_people||0),
+          pay:a.pay+Number(r.pay_buyers||0)
         }),{exp:0,uv:0,add:0,pay:0});
       }
-      function line(pid){
+      let lastSeriesA=[], lastSeriesB=[];
+      async function line(pid){
+        let dayA=rowsDayA, dayB=rowsDayB;
+        if(mode==='indep'){
+          const [cur,prev]=await Promise.all([
+            fetchIndepSeries(pid,startA,endA),
+            fetchIndepSeries(pid,startB,endB)
+          ]);
+          dayA=cur.series||[]; dayB=prev.series||[];
+          lastSeriesA=dayA; lastSeriesB=dayB;
+        }
         const mapExpA=new Map(), mapExpB=new Map();
         const mapUvRateA=new Map(), mapUvRateB=new Map();
         const mapAddRateA=new Map(), mapAddRateB=new Map();
-        rowsDayA.filter(r=>String(getId(r))===String(pid)).forEach(r=>{
+        dayA.filter(r=>String(getId(r))===String(pid)).forEach(r=>{
           const d=mode==='indep'?r.day:r.bucket;
           const exp=getExp(r);
           const uv=Number(mode==='indep'?r.clicks||0:r.visitors||0);
-          const add=Number(mode==='indep'?0:r.add_people||0);
+          const add=Number(mode==='indep'?r.conversions||0:r.add_people||0);
           mapExpA.set(d,exp);
           mapUvRateA.set(d,exp?uv/exp:0);
           mapAddRateA.set(d,uv?add/uv:0);
         });
-        rowsDayB.filter(r=>String(getId(r))===String(pid)).forEach(r=>{
+        dayB.filter(r=>String(getId(r))===String(pid)).forEach(r=>{
           const d=mode==='indep'?r.day:r.bucket;
           const exp=getExp(r);
           const uv=Number(mode==='indep'?r.clicks||0:r.visitors||0);
-          const add=Number(mode==='indep'?0:r.add_people||0);
+          const add=Number(mode==='indep'?r.conversions||0:r.add_people||0);
           mapExpB.set(d,exp);
           mapUvRateB.set(d,exp?uv/exp:0);
           mapAddRateB.set(d,uv?add/uv:0);
@@ -439,7 +464,7 @@ function card(title,cur,prev,isPct,avg,share){
         addChart.setOption({tooltip:{trigger:'axis',valueFormatter:v=>v+'%'},legend:{data:['本周期','上一周期']},xAxis:{type:'category',data:labels},yAxis:{type:'value',axisLabel:{formatter:'{value}%'}},series:[{name:'本周期',type:'line',smooth:true,data:addA},{name:'上一周期',type:'line',smooth:true,data:addB}]});
         window.addEventListener('resize',()=>{expChart.resize();uvChart.resize();addChart.resize();});
       }
-      function update(pid){
+      async function update(pid){
         const cur=sum(rowsAggA,pid); const prev=sum(rowsAggB,pid);
         const curUvRate=cur.exp?cur.uv/cur.exp:0;
         const prevUvRate=prev.exp?prev.uv/prev.exp:0;
@@ -454,17 +479,29 @@ function card(title,cur,prev,isPct,avg,share){
         const shareUv=totalsA.uv?cur.uv/totalsA.uv:0;
         const shareAdd=totalsA.add?cur.add/totalsA.add:0;
         const sharePay=totalsA.pay?cur.pay/totalsA.pay:0;
-        document.getElementById('kpi').innerHTML=[
-          card('平均访客比',curUvRate,prevUvRate,true,avgUvRate),
-          card('平均加购比',curAddRate,prevAddRate,true,avgAddRate),
-          card('平均支付比',curPayRate,prevPayRate,true,avgPayRate),
-          card('总曝光量',cur.exp,prev.exp,false,null,shareExp),
-          card('总访客数',cur.uv,prev.uv,false,null,shareUv),
-          card('总加购人数',cur.add,prev.add,false,null,shareAdd),
-          card('总支付买家数',cur.pay,prev.pay,false,null,sharePay)
-        ].join('');
-        line(pid);
-        const dates=[...rowsDayA,...rowsDayB].filter(r=>String(getId(r))===String(pid)).map(r=>mode==='indep'?r.day:r.bucket).sort();
+        let cards;
+        if(mode==='indep'){
+          cards=[
+            card('平均访客比',curUvRate,prevUvRate,true,avgUvRate),
+            card('平均支付比',curPayRate,prevPayRate,true,avgPayRate),
+            card('总曝光量',cur.exp,prev.exp,false,null,shareExp),
+            card('总访客数',cur.uv,prev.uv,false,null,shareUv),
+            card('总支付买家数',cur.pay,prev.pay,false,null,sharePay)
+          ];
+        }else{
+          cards=[
+            card('平均访客比',curUvRate,prevUvRate,true,avgUvRate),
+            card('平均加购比',curAddRate,prevAddRate,true,avgAddRate),
+            card('平均支付比',curPayRate,prevPayRate,true,avgPayRate),
+            card('总曝光量',cur.exp,prev.exp,false,null,shareExp),
+            card('总访客数',cur.uv,prev.uv,false,null,shareUv),
+            card('总加购人数',cur.add,prev.add,false,null,shareAdd),
+            card('总支付买家数',cur.pay,prev.pay,false,null,sharePay)
+          ];
+        }
+        document.getElementById('kpi').innerHTML=cards.join('');
+        await line(pid);
+        const dates=[...lastSeriesA,...lastSeriesB].map(r=>mode==='indep'?r.day:r.bucket).sort();
         document.getElementById('listingDate').textContent=dates.length?`上架日期：${dates[0]}`:'';
         const url = mode==='indep' ? linkMap.get(pid) : `https://aliexpress.com/item/${pid}.html`;
         const api = mode==='indep' ? '/api/indep_fetchProductInfo' : undefined;
