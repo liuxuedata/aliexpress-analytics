@@ -63,12 +63,16 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok: true, kpis: null, rows: [], period_end: null, granularity: gran });
     }
 
-    // 拉该周期全部行
-    const { data: rows, error: e2 } = await supabase
+    const limit = Math.min(parseInt(req.query.limit,10) || 1000, 1000);
+    const offset = parseInt(req.query.offset,10) || 0;
+
+    const { data: rows, count, error: e2 } = await supabase
       .from("managed_stats")
-      .select("*")
+      .select("*", { count: "exact" })
       .eq("period_type", gran)
-      .eq("period_end", found);
+      .eq("period_end", found)
+      .order('product_id', { ascending: true })
+      .range(offset, offset + limit - 1);
 
     if (e2) throw e2;
 
@@ -106,7 +110,7 @@ module.exports = async (req, res) => {
       visitor_total: visitorTotal
     };
 
-    return res.status(200).json({ ok: true, kpis, rows, granularity: gran, period_end: found });
+    return res.status(200).json({ ok: true, kpis, rows, total: count || rows.length, granularity: gran, period_end: found });
   } catch (e) {
     console.error("stats-error:", e);
     return res.status(500).json({ ok: false, msg: e.message });

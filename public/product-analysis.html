@@ -9,6 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="assets/product-meta.js"></script>
+  <script src="assets/loading.js"></script>
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
 </head>
 <body>
@@ -201,11 +202,12 @@ function card(title,cur,prev,isPct,avg,share){
       });
     }
     async function loadData(){
+      showLoading();
       const period=document.getElementById('periodSelect').value;
       localStorage.setItem('fmPeriod',period||'');
       const idx=state.periods.indexOf(period); const prev=(idx>=0 && idx<state.periods.length-1)?state.periods[idx+1]:'';
-      const qsA=new URLSearchParams({granularity:state.granularity}); if(period)qsA.set('period_end',period);
-      const qsB=new URLSearchParams({granularity:state.granularity}); if(prev)qsB.set('period_end',prev);
+      const qsA=new URLSearchParams({granularity:state.granularity,limit:5000}); if(period)qsA.set('period_end',period);
+      const qsB=new URLSearchParams({granularity:state.granularity,limit:5000}); if(prev)qsB.set('period_end',prev);
       try{
         const [ja,jb]=await Promise.all([
           fetch('/api/stats?'+qsA.toString()).then(r=>r.json()),
@@ -216,6 +218,8 @@ function card(title,cur,prev,isPct,avg,share){
       }catch(err){
         console.error(err);
         alert('查询失败：'+(err.message||err));
+      }finally{
+        hideLoading();
       }
     }
     function renderProductFM(rowsA,rowsB){
@@ -296,6 +300,7 @@ function card(title,cur,prev,isPct,avg,share){
     async function loadData(){
       const val=input.value; if(!val.includes(' to '))return; const [startISO,endISO]=val.split(' to '); localStorage.setItem(key,`${startISO} to ${endISO}`);
       const {prevStart,prevEnd,days}=periodShift(startISO,endISO);
+      showLoading();
       try{
         if(mode==='indep'){
           const [rowsA,rowsB]=await Promise.all([
@@ -315,6 +320,8 @@ function card(title,cur,prev,isPct,avg,share){
       }catch(err){
         console.error(err);
         alert('查询失败：'+(err.message||err));
+      }finally{
+        hideLoading();
       }
     }
     async function fetchAgg(start,end,gran){
