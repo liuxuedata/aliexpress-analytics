@@ -27,7 +27,10 @@ function parseUrlParts(u) {
 
 function coerceNum(x) {
   if (x === null || x === undefined || x === '' || x === '--') return 0;
-  const n = Number(String(x).replace(/[^0-9.-]/g, ''));
+  let s = String(x).trim();
+  if (s.includes(',') && !s.includes('.')) s = s.replace(',', '.');
+  s = s.replace(/[^0-9.-]/g, '');
+  const n = Number(s);
   return Number.isFinite(n) ? n : 0;
 }
 
@@ -55,12 +58,12 @@ async function handleFile(filePath, filename) {
   const header = rows[headerIdx];
   const dataRows = rows.slice(headerIdx + 1);
 
-  // Build a case-insensitive header lookup so "Conversions" or "conversions"
-  // (or other locale variations) are detected even if the exact casing differs
-  const headerLC = header.map(h => String(h || '').trim().toLowerCase());
+  // Build a case-insensitive header lookup tolerant of punctuation and spacing
+  const canon = s => String(s || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const headerCanon = header.map(canon);
   const col = (...names) => {
     for (const n of names) {
-      const idx = headerLC.indexOf(String(n).toLowerCase());
+      const idx = headerCanon.indexOf(canon(n));
       if (idx !== -1) return idx;
     }
     return -1;
@@ -77,18 +80,27 @@ async function handleFile(filePath, filename) {
   const cAvgCPC = col('avg. cpc', 'cpc', 'cost per click');
   const cCost = col('cost', 'amount spent');
   const cConv = col('conversions', 'results', 'purchases');
-  const cCostPerConv = col('cost / conv.', 'cost/conv.', 'cost/conv', 'cost per result');
+  const cCostPerConv = col('cost / conv.', 'cost/conv.', 'cost/conv', 'cost per result', 'avg. cost');
   const cAllConv = col('all conv.', 'all conv', 'total conv');
   const cConvValue = col('conv. value', 'conv value', 'purchase value');
   const cAllConvRate = col('all conv. rate', 'all conv rate', 'total conv rate');
   const cConvRate = col('conv. rate', 'conv rate', 'conversion rate');
+  const cCurrency = col('currency code', 'currency');
 
   const payload = [];
   for (const r of dataRows) {
     const landing = r[cLanding];
     if (!landing || landing === 'Total') continue;
     const dayRaw = r[cDay];
-    const day = dayRaw ? new Date(dayRaw) : null;
+    let day = null;
+    if (typeof dayRaw === 'number') {
+      const parsed = XLSX.SSF && XLSX.SSF.parse_date_code(dayRaw);
+      if (parsed) {
+        day = new Date(Date.UTC(parsed.y, parsed.m - 1, parsed.d));
+      }
+    } else if (dayRaw) {
+      day = new Date(dayRaw);
+    }
     if (!day || isNaN(day.getTime())) continue;
 
     const { site, path } = parseUrlParts(String(landing).trim());
@@ -101,21 +113,22 @@ async function handleFile(filePath, filename) {
       day: day.toISOString().slice(0,10),
       network: String(r[cNetwork] || '').trim(),
       device: String(r[cDevice] || '').trim(),
-      clicks: coerceNum(r[cClicks]),
-      impr: coerceNum(r[cImpr]),
-      ctr: coerceNum(r[cCTR]),
-      avg_cpc: coerceNum(r[cAvgCPC]),
-      cost: coerceNum(r[cCost]),
-      conversions: coerceNum(r[cConv]),
-      cost_per_conv: coerceNum(r[cCostPerConv]),
-      all_conv: coerceNum(r[cAllConv]),
-      conv_value: coerceNum(r[cConvValue]),
-      all_conv_rate: coerceNum(r[cAllConvRate]),
-      conv_rate: coerceNum(r[cConvRate])
+      currency_code: cCurrency >= 0 ? String(r[cCurrency] || '').trim() : null,
+      clicks: cClicks >= 0 ? coerceNum(r[cClicks]) : 0,
+      impr: cImpr >= 0 ? coerceNum(r[cImpr]) : 0,
+      ctr: cCTR >= 0 ? coerceNum(r[cCTR]) : 0,
+      avg_cpc: cAvgCPC >= 0 ? coerceNum(r[cAvgCPC]) : 0,
+      cost: cCost >= 0 ? coerceNum(r[cCost]) : 0,
+      conversions: cConv >= 0 ? coerceNum(r[cConv]) : 0,
+      cost_per_conv: cCostPerConv >= 0 ? coerceNum(r[cCostPerConv]) : null,
+      all_conv: cAllConv >= 0 ? coerceNum(r[cAllConv]) : null,
+      conv_value: cConvValue >= 0 ? coerceNum(r[cConvValue]) : null,
+      all_conv_rate: cAllConvRate >= 0 ? coerceNum(r[cAllConvRate]) : null,
+      conv_rate: cConvRate >= 0 ? coerceNum(r[cConvRate]) : null
     });
   }
 
-  if (!payload.length) return { inserted: 0 };
+    if (!payload.length) return { processed: 0, upserted: 0 };
 
   // Deduplicate rows that target the same primary key to avoid
   // "ON CONFLICT DO UPDATE command cannot affect row a second time" errors
@@ -125,77 +138,105 @@ async function handleFile(filePath, filename) {
     if (!byKey.has(key)) byKey.set(key, row);
   }
   const deduped = Array.from(byKey.values());
-
   const supabase = getClient();
-  const { data, error } = await supabase
-    .from('independent_landing_metrics')
-    .upsert(deduped, { onConflict: 'day,site,landing_path,device,network,campaign' });
 
+  async function refreshSchema() {
+    const { error } = await supabase.rpc('refresh_independent_schema_cache');
+    if (error) console.error('schema cache refresh failed:', error.message);
+    await new Promise(r => setTimeout(r, 1000));
+  }
+
+  let data, error;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    ({ data, error } = await supabase
+      .from('independent_landing_metrics')
+      .upsert(deduped, { onConflict: 'day,site,landing_path,device,network,campaign' }));
+    if (!error) break;
+    if (/schema cache/i.test(error.message)) { await refreshSchema(); continue; }
+    throw error;
+  }
   if (error) throw error;
 
-  // Track first_seen date for each product (landing_path) in a separate table
-  const firstSeenMap = new Map();
-  for (const row of deduped) {
-    const key = row.landing_url;
-    const day = row.day;
-    const prev = firstSeenMap.get(key);
-    if (!prev || day < prev) firstSeenMap.set(key, day);
+  // Track first_seen_date for each landing_path per site.
+  // Sort rows chronologically and compare each day with historical products
+  // so a path is recorded the first time it ever appears.
+  deduped.sort((a, b) => a.day.localeCompare(b.day));
+
+  // Build list of paths to check existing first_seen records
+  function groupBySite(rows) {
+    const groups = new Map();
+    rows.forEach(({ site, landing_path }) => {
+      if (!groups.has(site)) groups.set(site, new Set());
+      groups.get(site).add(landing_path);
+    });
+    return groups;
   }
-  if (firstSeenMap.size) {
-    const ids = Array.from(firstSeenMap.keys());
-    const existSet = new Set();
-    const MAX_QUERY_BYTES = 1900;
+
+  const existSet = new Set();
+  const grouped = groupBySite(deduped);
+  const MAX_QUERY_BYTES = 1900;
+  for (const [site, paths] of grouped.entries()) {
     let batch = [];
     let length = 0;
     async function fetchExisting() {
       if (!batch.length) return;
       const { data: existed, error: e1 } = await supabase
-        .from('independent_new_products')
-        .select('product_link')
-        .in('product_link', batch);
+        .from('independent_first_seen')
+        .select('landing_path')
+        .eq('site', site)
+        .in('landing_path', batch);
       if (e1) {
         if (e1.code === '42P01') {
           throw new Error(
-            "Table 'independent_new_products' is missing in the database; run the required migration and retry."
+            "Table 'independent_first_seen' is missing in the database; run the required migration and retry."
           );
         }
         throw e1;
       }
-      (existed || []).forEach(r => existSet.add(r.product_link));
+      (existed || []).forEach(r => existSet.add(`${site}|${r.landing_path}`));
     }
-
-    for (const id of ids) {
-      const enc = encodeURIComponent(id);
+    for (const p of paths.values()) {
+      const enc = encodeURIComponent(p);
       if (batch.length && length + enc.length + 1 > MAX_QUERY_BYTES) {
         await fetchExisting();
         batch = [];
         length = 0;
       }
-      batch.push(id);
+      batch.push(p);
       length += enc.length + 1;
     }
     await fetchExisting();
+  }
 
-    const insertRows = [];
-    firstSeenMap.forEach((day, link) => {
-      if (!existSet.has(link)) insertRows.push({ product_link: link, first_seen: day });
-    });
-    if (insertRows.length) {
-      const { error: e2 } = await supabase
-        .from('independent_new_products')
-        .insert(insertRows);
-      if (e2) {
-        if (e2.code === '42P01') {
-          throw new Error(
-            "Table 'independent_new_products' is missing in the database; run the required migration and retry."
-          );
-        }
-        throw e2;
+  // Iterate rows in order, inserting first appearances only
+  const seen = new Set(existSet);
+  const insertRows = [];
+  for (const row of deduped) {
+    const key = `${row.site}|${row.landing_path}`;
+    if (seen.has(key)) continue;
+    insertRows.push({ site: row.site, landing_path: row.landing_path, first_seen_date: row.day });
+    seen.add(key);
+  }
+  if (insertRows.length) {
+    const { error: e2 } = await supabase
+      .from('independent_first_seen')
+      .insert(insertRows);
+    if (e2) {
+      if (e2.code === '42P01') {
+        throw new Error(
+          "Table 'independent_first_seen' is missing in the database; run the required migration and retry."
+        );
       }
+      throw e2;
     }
   }
 
-  return { inserted: data?.length ?? deduped.length };
+  return {
+    processed: payload.length,
+    upserted: data?.length ?? deduped.length,
+    new_products: insertRows.length,
+    count: payload.length,
+  };
 }
 
 async function handler(req, res) {
