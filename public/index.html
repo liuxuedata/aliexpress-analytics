@@ -15,6 +15,7 @@
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
   <script type="module" src="assets/chart.defaults.js"></script>
   <script src="assets/product-meta.js"></script>
+  <script src="assets/loading.js"></script>
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
 <style>
 /* NewKPICtrl */
@@ -247,40 +248,8 @@
   $('#periodSelect').on('change', loadData);
 
   
-  async function loadData(){
-    setStatus('加载中...');
-    const period = $('#periodSelect').val();
-    localStorage.setItem('fmPeriod', period || '');
-    localStorage.setItem('fmGranularity', state.granularity);
-    const qsA = new URLSearchParams({ granularity: state.granularity });
-    if (period) qsA.set('period_end', period);
-
-    // Determine previous period by index in state.periods
-    let prev = '';
-    if (state.periods && period){
-      const idx = state.periods.indexOf(period);
-      if (idx >= 0 && idx < state.periods.length - 1) prev = state.periods[idx + 1];
-    }
-    const qsB = new URLSearchParams({ granularity: state.granularity });
-    if (prev) qsB.set('period_end', prev);
-
-    // Fetch current (A) and previous (B) in parallel (B optional)
-    try{
-      const [ra, rb] = await Promise.all([ fetch('/api/stats?'+qsA.toString()), prev? fetch('/api/stats?'+qsB.toString()) : Promise.resolve(null) ]);
-      const ja = await ra.json();
-      const jb = rb ? await rb.json() : { ok:true, rows:[] };
-      if (!ja.ok) throw new Error(ja.msg||'查询失败');
-
-    // render KPI for current period (A)
-    try{ renderKPI(ja.kpis || {}, jb.kpis || {}); }catch(e){}
-
-    window._rowsA = (ja.rows||[]);
-    window._rowsB = (jb.rows||[]);
-    window._periodA = period || '';
-    window._periodB = prev || '';
-
-    // table uses current period A
-    const rows = window._rowsA.map(x => [
+  function mapRow(x){
+    return [
       '<a data-pid="'+(x.product_id||'')+'" data-link="'+(x.product_link || ('https://aliexpress.com/item/'+x.product_id+'.html'))+'" href="'+(x.product_link || ('https://aliexpress.com/item/'+x.product_id+'.html'))+'" target="_blank">'+(x.product_id||'')+'</a>',
       x.search_exposure || 0, x.uv || 0, x.pv || 0,
       x.add_to_cart_users || 0, x.add_to_cart_qty || 0,
@@ -289,10 +258,66 @@
       (x.add_to_cart_users ? ((x.pay_buyers||0)/x.add_to_cart_users*100).toFixed(2) : '0.00'),
       (x.search_exposure ? ((x.uv||0)/x.search_exposure*100).toFixed(2) : '0.00'),
       '<a href="product-analysis.html?mode=fm&pid='+ (x.product_id||'') +'" target="_blank">详情</a>'
-    ]);
-    if (state.table) state.table.clear().rows.add(rows).draw();
-    else {
-      state.table = $('#report').DataTable({ data: rows, paging:true, searching:true, info:true, order:[[2,'desc']], fixedHeader:true, scrollY:'60vh', scrollCollapse:true, autoWidth:false });
+    ];
+  }
+
+  async function loadData(){
+    showLoading();
+    setStatus('加载中...');
+    const period = $('#periodSelect').val();
+    localStorage.setItem('fmPeriod', period || '');
+    localStorage.setItem('fmGranularity', state.granularity);
+    const qsA = new URLSearchParams({ granularity: state.granularity, limit: 5000 });
+    if (period) qsA.set('period_end', period);
+
+    // Determine previous period by index in state.periods
+    let prev = '';
+    if (state.periods && period){
+      const idx = state.periods.indexOf(period);
+      if (idx >= 0 && idx < state.periods.length - 1) prev = state.periods[idx + 1];
+    }
+    const qsB = new URLSearchParams({ granularity: state.granularity, limit: 5000 });
+    if (prev) qsB.set('period_end', prev);
+
+    try{
+      const [ra, rb] = await Promise.all([ fetch('/api/stats?'+qsA.toString()), prev? fetch('/api/stats?'+qsB.toString()) : Promise.resolve(null) ]);
+      const ja = await ra.json();
+      const jb = rb ? await rb.json() : { ok:true, rows:[] };
+      if (!ja.ok) throw new Error(ja.msg||'查询失败');
+
+      renderKPI(ja.kpis || {}, jb.kpis || {});
+      window._rowsA = (ja.rows||[]);
+      window._rowsB = (jb.rows||[]);
+      window._periodA = period || '';
+      window._periodB = prev || '';
+
+      if (state.table) { state.table.destroy(); }
+      state.table = $('#report').DataTable({
+        serverSide:true,
+        processing:true,
+        deferRender:true,
+        paging:true,
+        searching:true,
+        info:true,
+        order:[[2,'desc']],
+        fixedHeader:true,
+        scrollY:'60vh',
+        scrollCollapse:true,
+        autoWidth:false,
+        ajax:function(data, callback){
+          const qs = new URLSearchParams({ granularity: state.granularity });
+          if(period) qs.set('period_end', period);
+          qs.set('limit', data.length);
+          qs.set('offset', data.start);
+          fetch('/api/stats?'+qs.toString()).then(r=>r.json()).then(j=>{
+            const rows = (j.rows||[]).map(mapRow);
+            callback({ data: rows, recordsTotal:j.total||rows.length, recordsFiltered:j.total||rows.length });
+          });
+        },
+        drawCallback:function(){
+          populateProductNames(document.getElementById('report'));
+        }
+      });
       $('#report tbody').on('dblclick','td',function(){
         const col = state.table.cell(this).index().column;
         const last = state.table.columns().count()-1;
@@ -300,14 +325,15 @@
         const pid = $(this).closest('tr').find('a[data-pid]').data('pid');
         if(pid) window.open('product-analysis.html?mode=fm&pid='+pid, '_blank');
       });
-    }
-    populateProductNames(document.getElementById('report'));
-    renderAnalysis(window._rowsA, window._rowsB);
-    renderProduct(window._rowsA, window._rowsB);
-    setStatus('加载完成');
+
+      renderAnalysis(window._rowsA, window._rowsB);
+      renderProduct(window._rowsA, window._rowsB);
+      setStatus('加载完成');
     }catch(err){
       console.error(err);
       setStatus('加载失败');
+    }finally{
+      hideLoading();
     }
   }
 

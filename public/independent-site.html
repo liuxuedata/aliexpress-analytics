@@ -468,11 +468,11 @@
       if (!resp.ok || !json.ok) throw new Error(json.error || '上传失败');
       statusEl.textContent = '导入完成，加载中...';
       await load();
-      statusEl.textContent = '完成';
-      alert(`上传成功，记录数: ${json.inserted}`);
+      statusEl.textContent = json.inserted !== undefined
+        ? `上传成功，记录数: ${json.inserted}`
+        : '上传成功';
     } catch(e) {
       statusEl.textContent = `上传失败: ${e.message}`;
-      alert(`上传失败: ${e.message}`);
     } finally {
       fileInput.value = '';
       uploadBtn.disabled = false;
