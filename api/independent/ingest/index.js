@@ -59,7 +59,14 @@ async function handleFile(filePath, filename) {
   const dataRows = rows.slice(headerIdx + 1);
 
   // Build a case-insensitive header lookup tolerant of punctuation and spacing
-  const canon = s => String(s || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+  // Canonicalize headers in a Unicode-aware way so that non-Latin scripts
+  // (e.g. Chinese localizations) are preserved for matching.
+  // Replace any non letter/number characters and lower-case the rest.
+  const canon = s =>
+    String(s || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, '');
   const headerCanon = header.map(canon);
   const col = (...names) => {
     for (const n of names) {
@@ -69,23 +76,42 @@ async function handleFile(filePath, filename) {
     return -1;
   };
 
-  const cLanding = col('landing page', 'url', 'website url');
-  const cCampaign = col('campaign', 'campaign name');
-  const cDay = col('day', 'date');
-  const cNetwork = col('network (with search partners)', 'network', 'source', 'platform');
-  const cDevice = col('device', 'device type');
-  const cClicks = col('clicks', 'link clicks');
-  const cImpr = col('impr.', 'impressions');
-  const cCTR = col('ctr', 'click-through rate');
-  const cAvgCPC = col('avg. cpc', 'cpc', 'cost per click');
-  const cCost = col('cost', 'amount spent');
-  const cConv = col('conversions', 'results', 'purchases');
-  const cCostPerConv = col('cost / conv.', 'cost/conv.', 'cost/conv', 'cost per result', 'avg. cost');
-  const cAllConv = col('all conv.', 'all conv', 'total conv');
-  const cConvValue = col('conv. value', 'conv value', 'purchase value');
-  const cAllConvRate = col('all conv. rate', 'all conv rate', 'total conv rate');
-  const cConvRate = col('conv. rate', 'conv rate', 'conversion rate');
-  const cCurrency = col('currency code', 'currency');
+  const cLanding = col('landing page', 'url', 'website url', '着陆页', '网址');
+  const cCampaign = col('campaign', 'campaign name', '广告系列');
+  const cDay = col('day', 'date', '日期');
+  const cNetwork = col(
+    'network (with search partners)',
+    'network',
+    'source',
+    'platform',
+    '网络'
+  );
+  const cDevice = col('device', 'device type', '设备');
+  const cClicks = col('clicks', 'link clicks', '点击次数');
+  const cImpr = col('impr.', 'impressions', '展示次数');
+  const cCTR = col('ctr', 'click-through rate', '点击率');
+  const cAvgCPC = col('avg. cpc', 'cpc', 'cost per click', '平均每次点击费用');
+  const cCost = col('cost', 'amount spent', '费用');
+  const cConv = col('conversions', 'results', 'purchases', '转化', '转化次数');
+  const cCostPerConv = col(
+    'cost / conv.',
+    'cost/conv.',
+    'cost/conv',
+    'cost per result',
+    '每次转化费用',
+    '每转化费用'
+  );
+  const cAllConv = col('all conv.', 'all conv', 'total conv', '所有转化', '全部转化');
+  const cConvValue = col('conv. value', 'conv value', 'purchase value', '转化价值');
+  const cAllConvRate = col(
+    'all conv. rate',
+    'all conv rate',
+    'total conv rate',
+    '所有转化率',
+    '全部转化率'
+  );
+  const cConvRate = col('conv. rate', 'conv rate', 'conversion rate', '转化率');
+  const cCurrency = col('currency code', 'currency', '货币');
 
   const payload = [];
   for (const r of dataRows) {
