@@ -33,5 +33,9 @@
     }
   }
   window.renderSiteMenus=render;
-  document.addEventListener('DOMContentLoaded',render);
+  if(document.readyState!=='loading'){
+    render();
+  }else{
+    document.addEventListener('DOMContentLoaded',render);
+  }
 })();
