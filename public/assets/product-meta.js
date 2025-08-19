@@ -6,6 +6,36 @@ async function fetchBatch(ids){
   return j.items || {};
 }
 
+async function getProductMeta(idOrUrl, link, api){
+  const key = idOrUrl;
+  if(window.productMetaCache[key]) return window.productMetaCache[key];
+  const url = link || (idOrUrl.startsWith('http') ? idOrUrl : `https://aliexpress.com/item/${idOrUrl}.html`);
+  if(!api && url.includes('aliexpress')){
+    try{
+      const batch = await fetchBatch([key]);
+      const meta = batch[key] || { title:key, image:'' };
+      window.productMetaCache[key] = meta;
+      return meta;
+    }catch(e){
+      const meta = { title:key, image:'' };
+      window.productMetaCache[key] = meta;
+      return meta;
+    }
+  }
+  const endpoint = api || (url.includes('aliexpress') ? '/api/aliex_fetchProductInfo' : '/api/indep_fetchProductInfo');
+  try{
+    const res = await fetch(endpoint+'?url='+encodeURIComponent(url));
+    const j = await res.json();
+    const meta = { title: j.title || key, image: j.image || '' };
+    window.productMetaCache[key] = meta;
+    return meta;
+  }catch(e){
+    const meta = { title:key, image:'' };
+    window.productMetaCache[key] = meta;
+    return meta;
+  }
+}
+
 async function populateProductNames(root){
   const els = Array.from(root.querySelectorAll('[data-pid],[data-url]'));
   const ids = [...new Set(els.map(el=>el.dataset.pid || el.dataset.url))];

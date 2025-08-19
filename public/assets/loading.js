@@ -6,7 +6,7 @@
       el = document.createElement('div');
       el.id = 'globalLoading';
       el.className = 'loading-overlay';
-      el.innerHTML = '<div class="spinner"></div>';
+      el.innerHTML = '<div class="loading-box"><div class="progress"><div class="bar"></div></div><div class="loading-text">我们在努力加载近期数据请等待...</div></div>';
       document.body.appendChild(el);
     }
     return el;
