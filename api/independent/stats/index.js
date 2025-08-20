@@ -58,6 +58,32 @@ module.exports = async (req, res) => {
 
     if (!site) return res.status(400).json({ error: 'missing site param, e.g. ?site=poolsvacuum.com' });
 
+    // determine latest available date for display
+    let lastDate = toDate;
+    try {
+      let lastQuery = supabase
+        .from('independent_landing_metrics')
+        .select('day')
+        .eq('site', site)
+        .gte('day', fromDate)
+        .lte('day', toDate)
+        .order('day', { ascending: false })
+        .limit(1);
+      if (campaign) lastQuery = lastQuery.eq('campaign', campaign);
+      if (network) lastQuery = lastQuery.eq('network', network);
+      if (device) lastQuery = lastQuery.eq('device', device);
+      const { data: lastRows, error: eLast } = await lastQuery;
+      if (eLast) throw eLast;
+      if (lastRows && lastRows.length) lastDate = lastRows[0].day;
+    } catch (e) {
+      console.error('latest day lookup failed', e.message);
+    }
+    const displayTo = new Date(
+      Math.min(new Date(toDate).getTime(), new Date(lastDate).getTime())
+    )
+      .toISOString()
+      .slice(0, 10);
+
     // Fetch new product registrations within range
     const newMap = new Map();
     try {
@@ -242,7 +268,7 @@ module.exports = async (req, res) => {
       new_conversions: newConv
     };
 
-    res.status(200).json({ ok: true, from: fromDate, to: toDate, table, series, topList, kpis });
+    res.status(200).json({ ok: true, from: fromDate, to: displayTo, table, series, topList, kpis });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
