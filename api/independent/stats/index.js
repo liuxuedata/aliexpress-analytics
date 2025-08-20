@@ -241,6 +241,16 @@ module.exports = async (req, res) => {
       new_clicks: newClicks,
       new_conversions: newConv
     };
+    // adjust date range to match available data
+    const days = Array.from(new Set([
+      ...table.map(r => r.day),
+      ...series.map(r => r.day)
+    ]));
+    if (days.length) {
+      days.sort();
+      fromDate = days[0];
+      toDate = days[days.length - 1];
+    }
 
     res.status(200).json({ ok: true, from: fromDate, to: toDate, table, series, topList, kpis });
   } catch (e) {
