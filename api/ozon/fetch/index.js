@@ -102,6 +102,10 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, count: 0, table: TABLE });
     }
 
+    if (req.query && req.query.preview) {
+      return res.status(200).json({ ok: true, count: rows.length, table: TABLE, rows: rows.slice(0, 5) });
+    }
+
     const { error } = await supabase.schema('public').from(TABLE).upsert(rows, { onConflict: 'sku,model,den' });
     if (error) {
       throw new Error(error.message);
