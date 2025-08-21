@@ -37,30 +37,41 @@ module.exports = async function handler(req, res) {
     d.setUTCDate(d.getUTCDate() - 1);
     const date = d.toISOString().slice(0, 10);
 
-    // 请求 Ozon Analytics API
-    const body = {
+    // 请求 Ozon Analytics API，分批获取全部数据
+    const limit = 1000; // Ozon API 允许的最大值
+    const baseBody = {
       date_from: date,
       date_to: date,
       dimension: ['sku', 'offer_id', 'title', 'brand', 'category_1', 'category_2', 'category_3'],
-      metrics: ['hits_view', 'hits_view_search', 'hits_view_pdp', 'hits_tocart_search', 'hits_tocart_pdp', 'ordered_units', 'delivered_units', 'revenue', 'cancelled_units', 'returned_units']
+      metrics: ['hits_view', 'hits_view_search', 'hits_view_pdp', 'hits_tocart_search', 'hits_tocart_pdp', 'ordered_units', 'delivered_units', 'revenue', 'cancelled_units', 'returned_units'],
+      limit,
+      offset: 0
     };
 
-    const resp = await fetch('https://api-seller.ozon.ru/v1/analytics/data', {
-      method: 'POST',
-      headers: {
-        'Client-Id': OZON_CLIENT_ID,
-        'Api-Key': OZON_API_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
+    const allData = [];
+    while (true) {
+      const resp = await fetch('https://api-seller.ozon.ru/v1/analytics/data', {
+        method: 'POST',
+        headers: {
+          'Client-Id': OZON_CLIENT_ID,
+          'Api-Key': OZON_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(baseBody)
+      });
 
-    const json = await resp.json();
-    if (!resp.ok) {
-      throw new Error(json.message || resp.statusText);
+      const json = await resp.json();
+      if (!resp.ok) {
+        throw new Error(json.message || resp.statusText);
+      }
+
+      const chunk = json.result?.data || [];
+      allData.push(...chunk);
+      if (chunk.length < limit) break;
+      baseBody.offset += limit;
     }
 
-    const data = json.result?.data || [];
+    const data = allData;
 
     const dimMap = {
       sku: 'sku',
