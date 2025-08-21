@@ -109,7 +109,8 @@ module.exports = async function handler(req, res) {
       return row;
     }).filter(r => r.sku);
 
-    if (req.query?.preview) {
+    const preview = ['1', 'true', 'yes'].includes(String(req.query.preview).toLowerCase());
+    if (preview) {
       return res
         .status(200)
         .json({ ok: true, count: rows.length, table: TABLE, rows: rows.slice(0, 5) });
