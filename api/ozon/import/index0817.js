@@ -41,23 +41,44 @@ function parseSheet(path){
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const range = xlsx.utils.decode_range(sheet['!ref']);
   const getRow = r => { const row=[]; for(let c=range.s.c;c<=range.e.c;c++){ const cell=sheet[xlsx.utils.encode_cell({r,c})]; row.push(cell?cell.v:null);} return row; };
-  const row7 = getRow(7), row8 = getRow(8);
-  let group=null, headers=[], counts={};
-  for(let i=0;i<row7.length;i++){
-    if(row7[i]) group=row7[i];
-    let name=row8[i]||row7[i];
-    if(!name) continue;
-    if(group && row8[i]) name=group+' '+row8[i];
-    // drop date ranges like "08.08.2025 – 15.08.2025" from header names
-    name = name.replace(/\d{2}\.\d{2}\.\d{4}\s*[–-]\s*\d{2}\.\d{2}\.\d{4}/g, '').trim();
-    let key=translit(name);
-    key = headerAliases[key] || key;
-    const n=counts[key]||0; counts[key]=n+1; if(n) key=key+'_'+(n+1);
-    headers.push(key);
+
+  const row0 = getRow(0);
+  const firstKey = translit(row0[0] || '');
+  let headers = [], counts = {}, start;
+
+  if(firstKey === 'tovary'){
+    // New template: headers are located in the first row
+    for(let i=0;i<row0.length;i++){
+      let name = row0[i];
+      if(!name) continue;
+      name = String(name).replace(/\d{2}\.\d{2}\.\d{4}\s*[–-]\s*\d{2}\.\d{2}\.\d{4}/g, '').trim();
+      let key = translit(name);
+      key = headerAliases[key] || key;
+      const n = counts[key] || 0; counts[key] = n + 1; if(n) key = key + '_' + (n + 1);
+      headers.push(key);
+    }
+    start = 1;
+  }else{
+    // Legacy template with multi-row headers at row7/row8
+    const row7 = getRow(7), row8 = getRow(8);
+    let group=null;
+    for(let i=0;i<row7.length;i++){
+      if(row7[i]) group=row7[i];
+      let name=row8[i]||row7[i];
+      if(!name) continue;
+      if(group && row8[i]) name=group+' '+row8[i];
+      // drop date ranges like "08.08.2025 – 15.08.2025" from header names
+      name = name.replace(/\d{2}\.\d{2}\.\d{4}\s*[–-]\s*\d{2}\.\d{2}\.\d{4}/g, '').trim();
+      let key=translit(name);
+      key = headerAliases[key] || key;
+      const n=counts[key]||0; counts[key]=n+1; if(n) key=key+'_'+(n+1);
+      headers.push(key);
+    }
+    start = 9;
   }
+
   const rows=[];
   // locate first data row after headers, skipping description/summary lines
-  let start=9;
   while(start<=range.e.r){
     const row=getRow(start);
     const first=row[0];
