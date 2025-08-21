@@ -113,12 +113,29 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, count: 0, table: TABLE });
     }
 
-    const { error } = await supabase.schema('public').from(TABLE).upsert(rows, { onConflict: 'sku,model,den' });
+    const { error } = await supabase
+      .schema('public')
+      .from(TABLE)
+      .upsert(rows, { onConflict: 'sku,model,den' });
     if (error) {
       throw new Error(error.message);
     }
 
-    res.status(200).json({ ok: true, count: rows.length, table: TABLE });
+    const { data: latestRows, error: latestErr } = await supabase
+      .schema('public')
+      .from(TABLE)
+      .select('den')
+      .order('den', { ascending: false })
+      .limit(1);
+    if (latestErr) {
+      throw new Error(latestErr.message);
+    }
+    const latestDen = latestRows?.[0]?.den || null;
+    const updated = latestDen === date;
+
+    res
+      .status(200)
+      .json({ ok: true, count: rows.length, table: TABLE, latestDen, updated });
   } catch (e) {
     res.status(500).json({ ok: false, msg: e.message });
   }
