@@ -31,8 +31,9 @@ module.exports = async function handler(req, res) {
     const RAW_TABLE = OZON_TABLE_NAME || 'ozon_product_report_wide';
     const TABLE = normalizeTableName(RAW_TABLE);
 
-    // 计算昨天日期（UTC）
+    // 计算昨天日期（GMT+8）
     const d = new Date();
+    d.setUTCHours(d.getUTCHours() + 8); // 转为 GMT+8
     d.setUTCDate(d.getUTCDate() - 1);
     const date = d.toISOString().slice(0, 10);
 
