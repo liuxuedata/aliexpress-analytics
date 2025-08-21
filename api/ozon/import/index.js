@@ -47,6 +47,25 @@ const headerAliases = {
   'voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_kartochki_tovaraasuv': 'voronka_prodazh_uv_s_prosmotrom_kartochki_tovara'
 };
 
+// Map headers from the newer single-row template to existing table columns
+const singleRowMap = {
+  ozon_id: 'sku',
+  unikalnye_posetiteli_vsego: 'voronka_prodazh_unikalnye_posetiteli_vsego',
+  unikalnye_posetiteli_s_prosmotrom_kartochki_tovara: 'voronka_prodazh_uv_s_prosmotrom_kartochki_tovara',
+  unikalnye_posetiteli_s_prosmotrom_v_poiske_ili_kataloge: 'voronka_prodazh_uv_s_prosmotrom_v_poiske_ili_kataloge',
+  pokazy_vsego: 'voronka_prodazh_pokazy_vsego',
+  pokazy_na_kartochke_tovara: 'voronka_prodazh_posescheniya_kartochki_tovara',
+  pokazy_v_poiske_i_kataloge: 'voronka_prodazh_pokazy_v_poiske_i_kataloge',
+  pozitsiya_v_poiske_i_kataloge: 'voronka_prodazh_pozitsiya_v_poiske_i_kataloge',
+  konversiya_v_korzinu_obschaya: 'voronka_prodazh_konversiya_v_korzinu_obschaya',
+  konversiya_v_korzinu_iz_kartochki_tovara: 'voronka_prodazh_konversiya_iz_kartochki_v_korzinu',
+  konversiya_v_korzinu_iz_poiska_ili_kataloga: 'voronka_prodazh_konversiya_iz_poiska_i_kataloga_v_korzinu',
+  v_korzinu_vsego: 'voronka_prodazh_dobavleniya_v_korzinu_vsego',
+  v_korzinu_iz_kartochki_tovara: 'voronka_prodazh_dobavleniya_iz_kartochki_v_korzinu',
+  v_korzinu_iz_poiska_ili_kataloga: 'voronka_prodazh_dobavleniya_iz_poiska_i_kataloga_v_korzinu',
+  zakazano_tovarov: 'voronka_prodazh_zakazano_tovarov'
+};
+
 function parseSheet(path){
   const wb = xlsx.readFile(path, { cellDates: true });
   const sheet = wb.Sheets[wb.SheetNames[0]];
@@ -65,6 +84,7 @@ function parseSheet(path){
       name = String(name).replace(/\d{2}\.\d{2}\.\d{4}\s*[–-]\s*\d{2}\.\d{2}\.\d{4}/g, '').trim();
       let key = translit(name);
       key = headerAliases[key] || key;
+      key = singleRowMap[key] || key;
       const n = counts[key] || 0; counts[key] = n + 1; if(n) key = key + '_' + (n + 1);
       headers.push(key);
     }
