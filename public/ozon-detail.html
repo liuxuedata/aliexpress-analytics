@@ -286,7 +286,7 @@
         track('done');
         await loadData();
       }else{
-        const msg = json.message || '未知错误';
+        const msg = (json.step? json.step+': ' : '') + (json.message || '未知错误');
         const samples = JSON.stringify(json.samples||[],null,2);
         alert(msg + (samples? '\n'+samples : ''));
         track('error');

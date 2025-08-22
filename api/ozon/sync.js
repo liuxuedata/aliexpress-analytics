@@ -10,7 +10,11 @@ function supa() {
 
 async function fetchFromOzon(days) {
   const { OZON_CLIENT_ID, OZON_API_KEY } = process.env;
-  if (!OZON_CLIENT_ID || !OZON_API_KEY) throw new Error('Missing OZON_CLIENT_ID or OZON_API_KEY');
+  if (!OZON_CLIENT_ID || !OZON_API_KEY) {
+    const err = new Error('Missing OZON_CLIENT_ID or OZON_API_KEY');
+    err.step = 'env';
+    throw err;
+  }
 
   const dimMap = {
     sku: 'product_id',
@@ -70,7 +74,9 @@ async function fetchFromOzon(days) {
       }
       if (!resp.ok) {
         const msg = json?.error?.message || json?.message || text || resp.statusText;
-        throw new Error(msg);
+        const err = new Error(msg);
+        err.step = 'fetch';
+        throw err;
       }
       const data = json?.result?.data || [];
     for (const item of data) {
@@ -99,19 +105,25 @@ function pickCoreFields(row) {
 }
 
 module.exports = async function handler(req, res) {
-  const result = { ok: false, fetched: 0, upserting: 0, upserted: 0, skipped: 0, samples: [], message: '' };
+  const result = { ok: false, fetched: 0, upserting: 0, upserted: 0, skipped: 0, samples: [], message: '', step: 'init' };
   if (req.method && req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     result.message = 'method not allowed';
+    result.step = 'init';
     return res.status(405).json(result);
   }
+  let step = 'env';
   try {
     const days = Math.max(1, parseInt(req.query?.days, 10) || 1);
     const siteId = req.query?.store_id || req.query?.site_id || 'demo';
 
+    const supabase = supa();
+
+    step = 'fetch';
     const raw = await fetchFromOzon(days);
     result.fetched = raw.length;
 
+    step = 'normalize';
     const normalized = raw.map(r => ({
       ...r,
       site_id: siteId,
@@ -127,11 +139,12 @@ module.exports = async function handler(req, res) {
     result.samples = normalized.slice(0, 3).map(pickCoreFields);
 
     if (normalized.length === 0) {
+      result.step = step;
       result.message = result.fetched === 0 ? 'Ozon 返回 0 条' : '主键缺失';
       return res.status(400).json(result);
     }
 
-    const supabase = supa();
+    step = 'upsert';
     const TABLE = 'ozon_daily';
 
     const { error, count } = await supabase
@@ -141,6 +154,7 @@ module.exports = async function handler(req, res) {
 
     if (error) {
       const msg = error.message || '';
+      result.step = step;
       if (/permission denied|rls/i.test(msg)) result.message = 'RLS/权限问题';
       else if (/column .* does not exist/i.test(msg)) result.message = '表结构不匹配';
       else result.message = msg;
@@ -149,11 +163,13 @@ module.exports = async function handler(req, res) {
 
     result.upserted = count || 0;
     result.ok = true;
+    result.step = 'done';
     if (result.upserted === 0) {
       result.message = '全为已存在数据（幂等）';
     }
     return res.status(200).json(result);
   } catch (e) {
+    result.step = e?.step || step;
     result.message = e?.message || '未知错误';
     return res.status(500).json(result);
   }
