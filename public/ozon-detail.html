@@ -266,11 +266,10 @@
     try{
       setStatus('加载中...');
       track('start');
-      const resp = await fetch('/api/ozon/fetch?days=7');
+      const resp = await fetch(`/api/ozon/sync?days=7&store_id=${encodeURIComponent(storeId)}`,{ method:'POST' });
       const json = await resp.json();
-      if(!json.ok) throw new Error(json.msg||'同步失败');
 
-      setStatus(`已读取到数据 ${json.count||0} 条`);
+      setStatus(`已读取到数据 ${json.fetched||0} 条`);
       track('data_fetched');
       await new Promise(r=>setTimeout(r,500));
 
@@ -278,9 +277,17 @@
       track('importing');
       await new Promise(r=>setTimeout(r,500));
 
-      setStatus('导入完成');
-      track('done');
-      await loadData();
+      const ok = json.ok && json.upserted>0;
+      setStatus(`导入完成 ${ok ? '✅' : '⚠️'}`);
+      if(ok){
+        track('done');
+        await loadData();
+      }else{
+        const msg = json.message || '未知错误';
+        const samples = JSON.stringify(json.samples||[],null,2);
+        alert(msg + (samples? '\n'+samples : ''));
+        track('error');
+      }
     }catch(err){
       console.error(err);
       setStatus('同步失败: '+(err.message||err));
