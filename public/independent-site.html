@@ -8,7 +8,9 @@
     #report td:first-child{ text-align:left; }
     #report td:first-child a.name{ display:inline-block; max-width:180px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
     .stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
-    .table-summary{margin-top:8px;font-weight:bold}
+    .panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+    .panel-header h3{margin:0;}
+    .table-summary{font-size:14px;color:#333;font-weight:400;margin:0;text-align:right;}
   </style>
   <!-- DataTables & ECharts CDN -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
@@ -130,8 +132,13 @@
     <!-- 明细表 -->
     <section id="detail" class="content-pad">
       <div class="panel">
-        <h3>Landing Pages 明细</h3>
-        <button id="clearFilter" class="btn" style="display:none;margin-left:10px;">清除筛选</button>
+        <div class="panel-header">
+          <div style="display:flex;align-items:center;">
+            <h3>Landing Pages 明细</h3>
+            <button id="clearFilter" class="btn" style="display:none;margin-left:10px;">清除筛选</button>
+          </div>
+          <div id="detailSummary" class="table-summary"></div>
+        </div>
         <div class="table-section">
           <div class="table-wrapper">
             <table id="report" class="display nowrap" style="width:100%">
@@ -146,7 +153,6 @@
               <tbody></tbody>
             </table>
           </div>
-          <div id="detailSummary" class="table-summary"></div>
         </div>
       </div>
     </section>
