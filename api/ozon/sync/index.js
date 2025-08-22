@@ -50,7 +50,11 @@ async function fetchFromOzon() {
   const rows = all.map(item => {
     const row = { stat_date: date };
     for (const d of item.dimensions || []) {
-      if (d.id === 'sku' || d.name === 'sku') row.product_id = d.value || d.name;
+      const key = d.id || d.key || d.name;
+      if (key === 'sku') {
+        row.product_id = d.value ?? d.name ?? d.key;
+        break;
+      }
     }
     return row;
   });
