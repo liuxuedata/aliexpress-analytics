@@ -267,7 +267,10 @@
       setStatus('加载中...');
       track('start');
       const resp = await fetch(`/api/ozon/sync?days=7&store_id=${encodeURIComponent(storeId)}`,{ method:'POST' });
-      const json = await resp.json();
+      const text = await resp.text();
+      let json;
+      try{ json = JSON.parse(text); }
+      catch{ throw new Error(text); }
 
       setStatus(`已读取到数据 ${json.fetched||0} 条`);
       track('data_fetched');
