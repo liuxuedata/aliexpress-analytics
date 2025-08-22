@@ -9,5 +9,5 @@
     { "src": "^/$", "dest": "/public/index.html" },
     { "src": "^(?!/api/)(.*)$", "dest": "/public/$1" }
   ],
-  "crons": [{ "path": "/api/ozon/sync", "schedule": "0 17 * * *" }]
+  "crons": [{ "path": "/api/ozon/sync?days=1", "schedule": "0 17 * * *" }]
 }
