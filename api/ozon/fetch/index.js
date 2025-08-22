@@ -31,36 +31,10 @@ module.exports = async function handler(req, res) {
     const RAW_TABLE = OZON_TABLE_NAME || 'ozon_product_report_wide';
     const TABLE = normalizeTableName(RAW_TABLE);
 
-    // 计算昨天日期（GMT+8）
-    const d = new Date();
-    d.setUTCHours(d.getUTCHours() + 8); // 转为 GMT+8
-    d.setUTCDate(d.getUTCDate() - 1);
-    const date = d.toISOString().slice(0, 10);
-
-    // 请求 Ozon Analytics API
-    const body = {
-      date_from: date,
-      date_to: date,
-      dimension: ['sku', 'offer_id', 'title', 'brand', 'category_1', 'category_2', 'category_3'],
-      metrics: ['hits_view', 'hits_view_search', 'hits_view_pdp', 'hits_tocart_search', 'hits_tocart_pdp', 'ordered_units', 'delivered_units', 'revenue', 'cancelled_units', 'returned_units']
-    };
-
-    const resp = await fetch('https://api-seller.ozon.ru/v1/analytics/data', {
-      method: 'POST',
-      headers: {
-        'Client-Id': OZON_CLIENT_ID,
-        'Api-Key': OZON_API_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-
-    const json = await resp.json();
-    if (!resp.ok) {
-      throw new Error(json.message || resp.statusText);
-    }
-
-    const data = json.result?.data || [];
+    const days = Math.max(1, parseInt(req.query?.days, 10) || 1);
+    const now = new Date();
+    now.setUTCHours(now.getUTCHours() + 8);
+    now.setUTCDate(now.getUTCDate() - 1);
 
     const dimMap = {
       sku: 'sku',
@@ -84,19 +58,47 @@ module.exports = async function handler(req, res) {
       returned_units: 'voronka_prodazh_vozvrascheno_tovarov_na_datu_vozvrata_'
     };
 
-    const rows = data.map(item => {
-      const row = { den: date };
-      for (const d of item.dimensions || []) {
-        const key = dimMap[d.id] || dimMap[d.name];
-        if (key) row[key] = d.value ?? d.name;
+    const rows = [];
+    for (let i = 0; i < days; i++) {
+      const date = new Date(now);
+      date.setUTCDate(now.getUTCDate() - i);
+      const dateStr = date.toISOString().slice(0, 10);
+      const body = {
+        date_from: dateStr,
+        date_to: dateStr,
+        dimension: ['sku', 'offer_id', 'title', 'brand', 'category_1', 'category_2', 'category_3'],
+        metrics: ['hits_view', 'hits_view_search', 'hits_view_pdp', 'hits_tocart_search', 'hits_tocart_pdp', 'ordered_units', 'delivered_units', 'revenue', 'cancelled_units', 'returned_units']
+      };
+
+      const resp = await fetch('https://api-seller.ozon.ru/v1/analytics/data', {
+        method: 'POST',
+        headers: {
+          'Client-Id': OZON_CLIENT_ID,
+          'Api-Key': OZON_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+
+      const json = await resp.json();
+      if (!resp.ok) {
+        throw new Error(json.message || resp.statusText);
       }
-      for (const m of item.metrics || []) {
-        const key = metricMap[m.id];
-        if (key) row[key] = Number(m.value);
+      const data = json.result?.data || [];
+      for (const item of data) {
+        const row = { den: dateStr };
+        for (const d of item.dimensions || []) {
+          const key = dimMap[d.id] || dimMap[d.name];
+          if (key) row[key] = d.value ?? d.name;
+        }
+        for (const m of item.metrics || []) {
+          const key = metricMap[m.id];
+          if (key) row[key] = Number(m.value);
+        }
+        if (!row.model) row.model = row.sku;
+        if (row.sku) rows.push(row);
       }
-      if (!row.model) row.model = row.sku;
-      return row;
-    }).filter(r => r.sku);
+    }
 
     if (rows.length === 0) {
       return res.status(200).json({ ok: true, count: 0, table: TABLE });

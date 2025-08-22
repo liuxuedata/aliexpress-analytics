@@ -60,6 +60,7 @@
           <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
           <label for="file" id="pickLabel" class="upload-btn">选择文件</label>
           <input type="file" id="file" accept=".xlsx,.xls,.csv" />
+          <button id="syncBtn" class="upload-btn">同步</button>
           <span id="status" class="notice"></span>
         </div>
       </div>
@@ -108,6 +109,10 @@
   let currentStart = '';
   let currentEnd = '';
   let newProducts = [];
+
+  function track(step){
+    window.dispatchEvent(new CustomEvent('ozonSync', { detail:{ step } }));
+  }
 
   function initTable(){
     if(!table){
@@ -255,6 +260,27 @@
       setStatus(`新增${result.inserted||0}条，重复${result.duplicates||0}条`);
     }catch(err){ console.error(err); setStatus('失败: '+err.message); }
     e.target.value='';
+  });
+
+  $('#syncBtn').on('click', async function(){
+    try{
+      setStatus('加载中...');
+      track('start');
+      const resp = await fetch('/api/ozon/fetch?days=7');
+      const json = await resp.json();
+      if(!json.ok) throw new Error(json.msg||'同步失败');
+      setStatus('已读取到数据');
+      track('data_fetched');
+      setStatus('导入数据库中');
+      track('importing');
+      setStatus('导入完成');
+      track('done');
+      await loadData();
+    }catch(err){
+      console.error(err);
+      setStatus('同步失败');
+      track('error');
+    }
   });
 
   document.getElementById('newModal').addEventListener('click',e=>{ if(e.target.id==='newModal') e.currentTarget.style.display='none'; });
