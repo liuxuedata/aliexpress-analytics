@@ -269,16 +269,21 @@
       const resp = await fetch('/api/ozon/fetch?days=7');
       const json = await resp.json();
       if(!json.ok) throw new Error(json.msg||'同步失败');
-      setStatus('已读取到数据');
+
+      setStatus(`已读取到数据 ${json.count||0} 条`);
       track('data_fetched');
+      await new Promise(r=>setTimeout(r,500));
+
       setStatus('导入数据库中');
       track('importing');
+      await new Promise(r=>setTimeout(r,500));
+
       setStatus('导入完成');
       track('done');
       await loadData();
     }catch(err){
       console.error(err);
-      setStatus('同步失败');
+      setStatus('同步失败: '+(err.message||err));
       track('error');
     }
   });

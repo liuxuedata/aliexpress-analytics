@@ -21,9 +21,11 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ ok: false, msg: 'method not allowed' });
   }
 
+  let step = 'init';
   try {
     const { OZON_CLIENT_ID, OZON_API_KEY, OZON_TABLE_NAME } = process.env;
     if (!OZON_CLIENT_ID || !OZON_API_KEY) {
+      step = 'env';
       throw new Error('Missing OZON_CLIENT_ID or OZON_API_KEY');
     }
 
@@ -70,6 +72,7 @@ module.exports = async function handler(req, res) {
         metrics: ['hits_view', 'hits_view_search', 'hits_view_pdp', 'hits_tocart_search', 'hits_tocart_pdp', 'ordered_units', 'delivered_units', 'revenue', 'cancelled_units', 'returned_units']
       };
 
+      step = 'fetch';
       const resp = await fetch('https://api-seller.ozon.ru/v1/analytics/data', {
         method: 'POST',
         headers: {
@@ -101,17 +104,20 @@ module.exports = async function handler(req, res) {
     }
 
     if (rows.length === 0) {
+      step = 'done';
       return res.status(200).json({ ok: true, count: 0, table: TABLE });
     }
 
+    step = 'upsert';
     const { error } = await supabase.schema('public').from(TABLE).upsert(rows, { onConflict: 'sku,model,den' });
     if (error) {
       throw new Error(error.message);
     }
 
+    step = 'done';
     res.status(200).json({ ok: true, count: rows.length, table: TABLE });
   } catch (e) {
-    res.status(500).json({ ok: false, msg: e.message });
+    res.status(500).json({ ok: false, step, msg: e.message });
   }
 };
 
