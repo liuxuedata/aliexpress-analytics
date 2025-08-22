@@ -22,43 +22,9 @@ module.exports = async function handler(req,res){
     const RAW_TABLE = process.env[`OZON_TABLE_NAME_${store_id}`] || process.env.OZON_TABLE_NAME || 'ozon_product_report_wide';
     const TABLE = normalizeTableName(RAW_TABLE);
 
-    async function refresh(){
-      const { error } = await supabase.rpc('refresh_ozon_schema_cache');
-      if(error) console.error('schema cache refresh failed:', error.message);
-      await new Promise(r=>setTimeout(r,1000));
-    }
-
-    async function getCols(){
-      let colData;
-      for(let attempt=0;attempt<2;attempt++){
-        const { data, error } = await supabase
-          .rpc('get_public_columns', { table_name: TABLE });
-        if(!error){
-          colData = data;
-          break;
-        }
-        if(/schema cache/i.test(error.message)){
-          await refresh();
-          continue;
-        }
-        throw error;
-      }
-      if(!colData) throw new Error('unable to load column metadata');
-      return (colData||[]).map(c=>c.column_name);
-    }
-
-    const tableCols = await getCols();
-    const uvCandidates = [
-      'voronka_prodazh_uv_s_prosmotrom_kartochki_tovara',
-      'voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_kartochki_tovara',
-      'voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_kartochki_tovara'.slice(0,63)
-    ];
-    const uvCol = uvCandidates.find(c=>tableCols.includes(c)) || uvCandidates[0];
-
-
     const idOf = r => `${r.sku}@@${r.model||''}`;
 
- const select = `sku,model,tovary,voronka_prodazh_pokazy_vsego,uv:${uvCol},voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_vykupleno_tovarov`;
+ const select = `sku,model,tovary,voronka_prodazh_pokazy_vsego,uv:voronka_prodazh_unikalnye_posetiteli_vsego,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov`;
 
 
     if(start && end){
@@ -81,7 +47,7 @@ module.exports = async function handler(req,res){
           const e=Number(r.voronka_prodazh_pokazy_vsego)||0; sums.exposure+=e;
           const u=Number(r.uv)||0; sums.uv+=u;
           const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; sums.cart+=c; if(c>0) cartProds.add(id);
-          const p=Number(r.voronka_prodazh_vykupleno_tovarov)||0; sums.pay+=p; if(p>0) payProds.add(id);
+          const p=Number(r.voronka_prodazh_zakazano_tovarov)||0; sums.pay+=p; if(p>0) payProds.add(id);
         }
         return {sums, prodSet, cartProds, payProds, rows};
       }
@@ -91,8 +57,8 @@ module.exports = async function handler(req,res){
       const visitorRatePrev = prev.sums.exposure ? prev.sums.uv / prev.sums.exposure : 0;
       const cartRate = cur.sums.uv ? cur.sums.cart / cur.sums.uv : 0;
       const cartRatePrev = prev.sums.uv ? prev.sums.cart / prev.sums.uv : 0;
-      const payRate = cur.sums.uv ? cur.sums.pay / cur.sums.uv : 0;
-      const payRatePrev = prev.sums.uv ? prev.sums.pay / prev.sums.uv : 0;
+      const payRate = cur.sums.cart ? cur.sums.pay / cur.sums.cart : 0;
+      const payRatePrev = prev.sums.cart ? prev.sums.pay / prev.sums.cart : 0;
       const newIds=[...cur.prodSet].filter(id=>!prev.prodSet.has(id));
       const newProducts=curResp.data.filter(r=>newIds.includes(idOf(r))).map(r=>({sku:r.sku,model:r.model,title:r.tovary}));
       return res.json({
@@ -150,7 +116,7 @@ module.exports = async function handler(req,res){
         const e=Number(r.voronka_prodazh_pokazy_vsego)||0; sums.exposure+=e;
         const u=Number(r.uv)||0; sums.uv+=u;
         const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; sums.cart+=c; if(c>0) cartProds.add(id);
-        const p=Number(r.voronka_prodazh_vykupleno_tovarov)||0; sums.pay+=p; if(p>0) payProds.add(id);
+        const p=Number(r.voronka_prodazh_zakazano_tovarov)||0; sums.pay+=p; if(p>0) payProds.add(id);
       }
       return {sums, prodSet, cartProds, payProds, rows};
     }
@@ -160,8 +126,8 @@ module.exports = async function handler(req,res){
     const visitorRatePrev = prev.sums.exposure ? prev.sums.uv / prev.sums.exposure : 0;
     const cartRate = cur.sums.uv ? cur.sums.cart / cur.sums.uv : 0;
     const cartRatePrev = prev.sums.uv ? prev.sums.cart / prev.sums.uv : 0;
-    const payRate = cur.sums.uv ? cur.sums.pay / cur.sums.uv : 0;
-    const payRatePrev = prev.sums.uv ? prev.sums.pay / prev.sums.uv : 0;
+    const payRate = cur.sums.cart ? cur.sums.pay / cur.sums.cart : 0;
+    const payRatePrev = prev.sums.cart ? prev.sums.pay / prev.sums.cart : 0;
     const newIds=[...cur.prodSet].filter(id=>!prev.prodSet.has(id));
     const newProducts=cur.rows.filter(r=>newIds.includes(idOf(r))).map(r=>({sku:r.sku,model:r.model,title:r.tovary}));
     res.json({

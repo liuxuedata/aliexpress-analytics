@@ -14,10 +14,8 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
   <style>
-    #report td:first-child{max-width:200px;white-space:normal;word-break:break-word;}
-    #newModal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;}
-    #newModal .box{background:#fff;padding:20px;border-radius:8px;max-width:400px;max-height:60vh;overflow:auto;}
-    #newModal ul{margin:0;padding-left:20px;}
+    #report td:first-child a{display:inline-block;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none;}
   </style>
 </head>
 <body class="fm">
@@ -76,18 +74,20 @@
                 <tr>
                   <th>产品名</th>
                   <th>型号</th>
-                  <th>搜索排名</th>
-                  <th>曝光量</th>
-                  <th>访客数</th>
-                  <th>浏览量</th>
-                  <th>加购人数</th>
-                  <th>加购件数</th>
-                  <th>支付件数</th>
-                  <th>支付订单数</th>
-                  <th>支付买家数</th>
-                  <th>访客→加购</th>
-                  <th>加购→支付</th>
+                  <th>总展示次数</th>
+                  <th>在搜索和目录中的展示次数</th>
+                  <th>商品详情页展示次数</th>
+                  <th>总独立访客数</th>
+                  <th>在搜索或目录中浏览过的独立访客</th>
+                  <th>浏览过商品详情页的独立访客</th>
+                  <th>总加入购物车数</th>
+                  <th>从搜索和目录加入购物车</th>
+                  <th>从商品详情页加入购物车</th>
+                  <th>已订购商品数</th>
+                  <th>已订购商品总金额</th>
                   <th>访客比</th>
+                  <th>加购比</th>
+                  <th>支付比</th>
                   <th>产品详情</th>
                 </tr>
               </thead>
@@ -97,9 +97,8 @@
         </div>
       </section>
     </div>
-  </main>
+</main>
 </div>
-<div id="newModal"><div class="box"><h4>新品列表</h4><ul id="newItems"></ul></div></div>
 <script src="assets/site-nav.js"></script>
 <script>
 (function(){
@@ -108,6 +107,7 @@
   let currentStart = '';
   let currentEnd = '';
   let newProducts = [];
+  let onlyNew = false;
 
   function initTable(){
     if(!table){
@@ -115,7 +115,7 @@
         paging:true,
         searching:true,
         info:true,
-        order:[[4,'desc']],
+        order:[[5,'desc']],
         scrollY:'60vh',
         scrollCollapse:true,
         autoWidth:false,
@@ -154,37 +154,40 @@
       const resp = await fetch(url);
       const json = await resp.json();
       if(!json.ok) throw new Error(json.msg||'查询失败');
-      const mapped = (json.rows||[]).map(r=>{
-      const impressions = Number(r.exposure)||0;
-      const sessions = Number(r.uv)||0;
-      const pageviews = Number(r.pv)||0;
-      const atcUsers = Number(r.add_to_cart_users)||0;
-      const atcQty = Number(r.add_to_cart_qty)||0;
-      const itemsSold = Number(r.pay_items)||0;
-      const orders = Number(r.pay_orders)||0;
-      const buyers = Number(r.pay_buyers)||0;
-      const v2a = sessions ? (atcUsers/sessions*100).toFixed(2)+'%' : '0%';
-      const a2p = atcUsers ? (orders/atcUsers*100).toFixed(2)+'%' : '0%';
-        const visitRate = impressions ? (sessions/impressions*100).toFixed(2)+'%' : '0%';
-        const rank = r.search_rank!=null ? Number(r.search_rank).toFixed(2) : '';
+      let rows = json.rows || [];
+      if(onlyNew && newProducts.length){
+        const idSet = new Set(newProducts.map(p=>`${p.sku}@@${p.model||''}`));
+        rows = rows.filter(r=>idSet.has(`${r.product_id}@@${r.model||''}`));
+      }
+      const mapped = rows.map(r=>{
+        const exposure = Number(r.voronka_prodazh_pokazy_vsego)||0;
+        const visitors = Number(r.voronka_prodazh_unikalnye_posetiteli_vsego)||0;
+        const cart = Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0;
+        const pay = Number(r.voronka_prodazh_zakazano_tovarov)||0;
+        const visitorRate = exposure ? (visitors/exposure) : 0;
+        const cartRate = visitors ? (cart/visitors) : 0;
+        const payRate = cart ? (pay/cart) : 0;
+        const title = r.product_title || r.product_id;
         return [
-          `<a data-pid="${r.product_id}" href="https://ozon.ru/product/${r.product_id}" target="_blank" rel="noopener">${r.product_title || r.product_id}</a>`,
+          `<a data-pid="${r.product_id}" href="https://ozon.ru/product/${r.product_id}" target="_blank" rel="noopener" title="${title}">${title}</a>`,
           r.model || '',
-          rank,
-          impressions,
-          sessions,
-          pageviews,
-          atcUsers,
-          atcQty,
-          itemsSold,
-          orders,
-          buyers,
-          v2a,
-          a2p,
-          visitRate,
+          exposure,
+          Number(r.voronka_prodazh_pokazy_v_poiske_i_kataloge)||0,
+          Number(r.voronka_prodazh_pokazy_na_kartochke_tovara)||0,
+          visitors,
+          Number(r.voronka_prodazh_uv_s_prosmotrom_v_poiske_ili_kataloge)||0,
+          Number(r.voronka_prodazh_uv_s_prosmotrom_kartochki_tovara)||0,
+          cart,
+          Number(r.voronka_prodazh_dobavleniya_iz_poiska_i_kataloge_v_korzinu)||0,
+          Number(r.voronka_prodazh_dobavleniya_iz_kartochki_v_korzinu)||0,
+          pay,
+          Number(r.prodazhi_zakazano_na_summu)||0,
+          (visitorRate*100).toFixed(2)+'%',
+          (cartRate*100).toFixed(2)+'%',
+          (payRate*100).toFixed(2)+'%',
           `<a href="ozon-product-insights.html?pid=${r.product_id}" target="_blank">详情</a>`
         ];
-    });
+      });
       const dt = initTable();
       dt.clear().rows.add(mapped).draw();
       loadKpi().catch(err=>console.error(err));
@@ -211,22 +214,34 @@
     if(!host) return;
     const delta = (c,p,isPct)=>{ const d=c-p; const cls=d>=0?'up':'down'; const val=isPct ? (d*100).toFixed(2)+'%' : d; const sign=d>=0&&isPct?'+':''; return `<span class="delta ${cls}">${sign}${val}</span>`; };
     host.innerHTML = [
-      `<div class="card"><h4>访客比</h4><p>${(k.visitor_rate.current*100).toFixed(2)}%${delta(k.visitor_rate.current,k.visitor_rate.previous,true)}</p></div>`,
+      `<div class="card"><h4>总访客比</h4><p>${(k.visitor_rate.current*100).toFixed(2)}%${delta(k.visitor_rate.current,k.visitor_rate.previous,true)}</p></div>`,
       `<div class="card"><h4>加购比</h4><p>${(k.cart_rate.current*100).toFixed(2)}%${delta(k.cart_rate.current,k.cart_rate.previous,true)}</p></div>`,
       `<div class="card"><h4>支付比</h4><p>${(k.pay_rate.current*100).toFixed(2)}%${delta(k.pay_rate.current,k.pay_rate.previous,true)}</p></div>`,
       `<div class="card"><h4>商品总数</h4><p>${k.product_total.current}${delta(k.product_total.current,k.product_total.previous,false)}</p></div>`,
       `<div class="card"><h4>有加购商品总数</h4><p>${k.cart_product_total.current}${delta(k.cart_product_total.current,k.cart_product_total.previous,false)}</p></div>`,
       `<div class="card"><h4>有支付商品总数</h4><p>${k.pay_product_total.current}${delta(k.pay_product_total.current,k.pay_product_total.previous,false)}</p></div>`,
-      `<div class="card clickable" id="kpi-new"><h4>新品数</h4><p>${k.new_product_total}</p></div>`
+      `<div class="card clickable" id="kpi-new"><h4>新品数</h4><p>${k.new_product_total}<a id="kpi-new-clear" class="mini-link" style="display:${onlyNew?'inline':'none'}">清除筛选</a></p></div>`
     ].join('');
     newProducts = k.new_products || [];
     const newCard = document.getElementById('kpi-new');
-    if(newCard) newCard.addEventListener('click',()=>{
-      const modal=document.getElementById('newModal');
-      const ul=document.getElementById('newItems');
-      ul.innerHTML=newProducts.map(p=>`<li>${p.title||p.sku}</li>`).join('');
-      modal.style.display='flex';
-    });
+    const clearLink = document.getElementById('kpi-new-clear');
+    if(newCard){
+      newCard.addEventListener('click',()=>{
+        if(!onlyNew){
+          onlyNew = true;
+          loadData().catch(err=>console.error(err));
+        }
+      });
+    }
+    if(clearLink){
+      clearLink.addEventListener('click',e=>{
+        e.stopPropagation();
+        if(onlyNew){
+          onlyNew = false;
+          loadData().catch(err=>console.error(err));
+        }
+      });
+    }
   }
 
   async function loadKpi(){
@@ -256,8 +271,6 @@
     }catch(err){ console.error(err); setStatus('失败: '+err.message); }
     e.target.value='';
   });
-
-  document.getElementById('newModal').addEventListener('click',e=>{ if(e.target.id==='newModal') e.currentTarget.style.display='none'; });
 
   window.fp = flatpickr('#dateFilter',{ mode:'range', dateFormat:'Y-m-d', onClose:(ds)=>{ if(ds.length===2) loadData().catch(err=>console.error(err)); } });
   loadData().catch(err=>console.error(err));
