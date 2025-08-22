@@ -1,11 +1,18 @@
-// /api/ozon/sync/index.js —— Ozon → Supabase 宽表同步（终版，合并现有实现 + 额外鲁棒性）
-// 运行：Vercel Node，无需额外依赖（Node18+ 自带 fetch）。
-// 环境变量：
-//  - SUPABASE_URL
-//  - SUPABASE_SERVICE_ROLE_KEY
-//  - OZON_CLIENT_ID
-//  - OZON_API_KEY
-//  - （可选）OZON_TABLE_NAME = ozon_product_report_wide
+// /api/ozon/sync/index.js —— Ozon → Supabase 宽表同步（终版，支持多日、预览、调试、补全Модель/Артикул）
+// 运行环境：Vercel Node 18+（全局 fetch 可用）
+// 依赖：@supabase/supabase-js（已在项目中）
+//
+// 必需环境变量：
+//   SUPABASE_URL
+//   SUPABASE_SERVICE_ROLE_KEY
+//   OZON_CLIENT_ID
+//   OZON_API_KEY
+// 可选：
+//   OZON_TABLE_NAME（默认 ozon_product_report_wide）
+//
+// 说明：
+// - 宽表主键：sku, model, den
+// - 若 analytics 返回缺少 offer_id/Модель，会调用产品接口批量补全（v3/product/info/list）
 
 const { createClient } = require('@supabase/supabase-js');
 
@@ -13,13 +20,13 @@ const { createClient } = require('@supabase/supabase-js');
 function supa() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-  if (!url || !key) throw new Error('Missing Supabase env');
+  if (!url || !key) throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
   return createClient(url, key, { auth: { persistSession: false } });
 }
 function normalizeTableName(name, fallback = 'ozon_product_report_wide') {
   let t = (name || fallback).trim();
   t = t.replace(/^"+|"+$/g, '');
-  t = t.replace(/^public\./i, '');
+  t = t.replace(/^public\./i, ''); // 统一不带 schema 前缀
   return t;
 }
 function yestInCST8() {
@@ -36,7 +43,7 @@ function dateRange(from, to){
   return out;
 }
 
-// ---------- 维度/指标定义（请求顺序与映射一一对应） ----------
+// ---------- Ozon 维度/指标（顺序与映射一一对应） ----------
 const REQ_DIMENSIONS = ['sku', 'offer_id', 'title', 'brand', 'category_1', 'category_2', 'category_3'];
 const REQ_METRICS = [
   'hits_view', 'hits_view_search', 'hits_view_pdp',
@@ -45,10 +52,10 @@ const REQ_METRICS = [
   'cancelled_units', 'returned_units'
 ];
 
-// Ozon → 你表的 俄文列名
+// Ozon → 表列（俄文列名）
 const DIM_COL = {
   sku: 'sku',
-  offer_id: 'model',
+  offer_id: 'model', // 先放 model，后续用产品接口补齐/矫正
   title: 'tovary',
   brand: 'brend',
   category_1: 'kategoriya_1_urovnya',
@@ -72,7 +79,7 @@ const METRIC_COL = {
 function mapOzonItemToRow(item, den) {
   const row = { den };
 
-  // 维度：常见返回形态为 [{ id: 'SKU', name: '商品名' }, ...]
+  // 维度：常见返回 [{ id: 'SKU', name: '标题' }, ...]
   if (Array.isArray(item.dimensions)) {
     for (const d of item.dimensions) {
       const id = (d.id || '').toString();
@@ -109,14 +116,14 @@ function mapOzonItemToRow(item, den) {
   }
 
   // 主键/必填兜底
-  if (!row.model) row.model = row.sku || '';       // 主键2
+  if (!row.model) row.model = row.sku || '';       // 主键2（先兜底，后面二次补全会改）
   if (!row.tovary) row.tovary = row.model || '';   // NOT NULL
   if (!row.sku || !row.model || !row.den) return null;
 
   return row;
 }
 
-// —— 拉取单日 Ozon ——
+// —— 拉取单日 Ozon Analytics ——
 async function fetchOzonOneDay(date, creds, limit=1000){
   const body = {
     date_from: date,
@@ -139,13 +146,81 @@ async function fetchOzonOneDay(date, creds, limit=1000){
     });
     const text = await resp.text();
     let json; try{ json = JSON.parse(text); }catch{ json = { parse_error: text?.slice(0,400) }; }
-    if (!resp.ok) throw new Error(json?.message || resp.statusText || 'Ozon API error');
+    if (!resp.ok) {
+      const msg = json?.message || resp.statusText || 'Ozon API error';
+      throw new Error(`analytics/data error: ${msg}`);
+    }
     const chunk = json?.result?.data || json?.data || json?.rows || [];
     all.push(...chunk);
     if (chunk.length < body.limit) break;
     body.offset += body.limit;
   }
   return all;
+}
+
+// ====== 扩展：用商品接口补全 Модель / Артикул（offer_id） ======
+async function fetchProductInfoBatch(productIds, creds) {
+  if (!productIds.length) return new Map();
+  const BATCH = 100;
+  const map = new Map(); // product_id → { offerId, modelAttr }
+  for (let i = 0; i < productIds.length; i += BATCH) {
+    const ids = productIds.slice(i, i + BATCH);
+    const resp = await fetch('https://api-seller.ozon.ru/v3/product/info/list', {
+      method: 'POST',
+      headers: {
+        'Client-Id': creds.clientId,
+        'Api-Key': creds.apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ product_id: ids.map(Number) })
+    });
+    const text = await resp.text();
+    let json; try { json = JSON.parse(text); } catch { json = { parse_error: text?.slice(0,400) }; }
+    if (!resp.ok) {
+      const msg = json?.message || resp.statusText || 'product/info/list error';
+      throw new Error(msg);
+    }
+
+    // 兼容不同版本字段名：items / result / products
+    const list = json?.items || json?.result || json?.products || [];
+    for (const it of list) {
+      const pid = it?.product_id ?? it?.id ?? it?.product?.id;
+      const offerId = it?.offer_id ?? it?.offer_id_value ?? it?.product?.offer_id;
+
+      // attributes 里可能有 { name: 'Модель', value: 'xxx' } / 或 name_ru
+      const attrs = it?.attributes || it?.product?.attributes || [];
+      const modelAttr =
+        (attrs.find(a => (a.name || a.attribute?.name) === 'Модель')?.value) ??
+        (attrs.find(a => a?.name_ru === 'Модель')?.value) ?? null;
+
+      if (pid != null) map.set(String(pid), { offerId: offerId ?? null, modelAttr });
+    }
+  }
+  return map;
+}
+
+// 把补全结果写回 rows：优先 Модель → 其次 offer_id
+function enrichRowsWithModelAndArtikul(rows, pidToInfo) {
+  for (const r of rows) {
+    const pid = String(r.sku || '');
+    const info = pidToInfo.get(pid);
+    if (!info) continue;
+    const { offerId, modelAttr } = info;
+
+    // artikul：俄文“Артикул”，通常就是 offer_id
+    if (offerId && !r.artikul) r.artikul = String(offerId);
+
+    // model：优先 ‘Модель’ 属性；其次 offer_id；最后保持原值
+    if (modelAttr) {
+      r.model = String(modelAttr);
+    } else if (offerId && (!r.model || r.model === r.sku)) {
+      r.model = String(offerId);
+    }
+
+    if (!r.model) r.model = r.sku;      // 兜底保护
+    if (!r.tovary) r.tovary = r.model;  // NOT NULL 保护
+  }
+  return rows;
 }
 
 // —— 读取现有列（可选，用于过滤未存在的列，避免 schema cache 报错） ——
@@ -194,14 +269,14 @@ module.exports = async function handler(req, res) {
 
     const creds = { clientId: OZON_CLIENT_ID, apiKey: OZON_API_KEY };
 
-    // 取数
+    // 1) 拉 Ozon Analytics
     const rawByDay = [];
     for (const d of dates) {
       const arr = await fetchOzonOneDay(d, creds, limit);
       rawByDay.push({ date: d, rows: arr });
     }
 
-    // 映射
+    // 2) 映射为宽表行
     let rows = [];
     for (const pack of rawByDay) {
       for (const it of pack.rows) {
@@ -210,7 +285,14 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // 调试/预览
+    // 2.5) 用商品接口补全 Модель/Артикул
+    const productIds = Array.from(new Set(rows.map(r => String(r.sku)).filter(Boolean)));
+    if (productIds.length) {
+      const pidToInfo = await fetchProductInfoBatch(productIds, creds);
+      enrichRowsWithModelAndArtikul(rows, pidToInfo);
+    }
+
+    // 3) 调试/预览
     if (debug) {
       const first = rawByDay[0]?.rows || [];
       return res.status(200).json({
@@ -229,13 +311,12 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, count: 0, table: TABLE });
     }
 
-    // 列白名单过滤（避免 schema 缓存导致的未知列错误）
+    // 3.5) 列白名单过滤（避免 REST 缓存导致的未知列错误）
     const colSet = await getColumnSet(supabase, TABLE);
     if (colSet) rows = filterByColumns(rows, colSet);
 
-    // 分批 upsert（幂等）
+    // 4) 分批 upsert（幂等，主键 sku,model,den）
     const CHUNK = 800; // 留点余量
-    let upserted = 0;
     for (let i = 0; i < rows.length; i += CHUNK) {
       const chunk = rows.slice(i, i + CHUNK);
       const { error } = await supabase
@@ -243,10 +324,9 @@ module.exports = async function handler(req, res) {
         .from(TABLE)
         .upsert(chunk, { onConflict: 'sku,model,den' });
       if (error) throw new Error(error.message);
-      upserted += chunk.length;
     }
 
-    // 回查最新日期作为“是否更新”的信号
+    // 5) 回查最新日期作为“是否更新”的信号
     const { data: latestRows, error: latestErr } = await supabase
       .schema('public')
       .from(TABLE)
