@@ -37,30 +37,41 @@ module.exports = async function handler(req, res) {
     d.setUTCDate(d.getUTCDate() - 1);
     const date = d.toISOString().slice(0, 10);
 
-    // 请求 Ozon Analytics API
-    const body = {
+    // 请求 Ozon Analytics API，分批获取全部数据
+    const limit = 1000; // Ozon API 允许的最大值
+    const baseBody = {
       date_from: date,
       date_to: date,
       dimension: ['sku', 'offer_id', 'title', 'brand', 'category_1', 'category_2', 'category_3'],
-      metrics: ['hits_view', 'hits_view_search', 'hits_view_pdp', 'hits_tocart_search', 'hits_tocart_pdp', 'ordered_units', 'delivered_units', 'revenue', 'cancelled_units', 'returned_units']
+      metrics: ['hits_view', 'hits_view_search', 'hits_view_pdp', 'hits_tocart_search', 'hits_tocart_pdp', 'ordered_units', 'delivered_units', 'revenue', 'cancelled_units', 'returned_units'],
+      limit,
+      offset: 0
     };
 
-    const resp = await fetch('https://api-seller.ozon.ru/v1/analytics/data', {
-      method: 'POST',
-      headers: {
-        'Client-Id': OZON_CLIENT_ID,
-        'Api-Key': OZON_API_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
+    const allData = [];
+    while (true) {
+      const resp = await fetch('https://api-seller.ozon.ru/v1/analytics/data', {
+        method: 'POST',
+        headers: {
+          'Client-Id': OZON_CLIENT_ID,
+          'Api-Key': OZON_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(baseBody)
+      });
 
-    const json = await resp.json();
-    if (!resp.ok) {
-      throw new Error(json.message || resp.statusText);
+      const json = await resp.json();
+      if (!resp.ok) {
+        throw new Error(json.message || resp.statusText);
+      }
+
+      const chunk = json.result?.data || [];
+      allData.push(...chunk);
+      if (chunk.length < limit) break;
+      baseBody.offset += limit;
     }
 
-    const data = json.result?.data || [];
+    const data = allData;
 
     const dimMap = {
       sku: 'sku',
@@ -98,16 +109,40 @@ module.exports = async function handler(req, res) {
       return row;
     }).filter(r => r.sku);
 
+    const preview = ['1', 'true', 'yes'].includes(String(req.query.preview).toLowerCase());
+    if (preview) {
+      return res
+        .status(200)
+        .json({ ok: true, count: rows.length, table: TABLE, rows: rows.slice(0, 5) });
+    }
+
     if (rows.length === 0) {
       return res.status(200).json({ ok: true, count: 0, table: TABLE });
     }
 
-    const { error } = await supabase.schema('public').from(TABLE).upsert(rows, { onConflict: 'sku,model,den' });
+    const { error } = await supabase
+      .schema('public')
+      .from(TABLE)
+      .upsert(rows, { onConflict: 'sku,model,den' });
     if (error) {
       throw new Error(error.message);
     }
 
-    res.status(200).json({ ok: true, count: rows.length, table: TABLE });
+    const { data: latestRows, error: latestErr } = await supabase
+      .schema('public')
+      .from(TABLE)
+      .select('den')
+      .order('den', { ascending: false })
+      .limit(1);
+    if (latestErr) {
+      throw new Error(latestErr.message);
+    }
+    const latestDen = latestRows?.[0]?.den || null;
+    const updated = latestDen === date;
+
+    res
+      .status(200)
+      .json({ ok: true, count: rows.length, table: TABLE, latestDen, updated });
   } catch (e) {
     res.status(500).json({ ok: false, msg: e.message });
   }
