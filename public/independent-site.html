@@ -8,6 +8,7 @@
     #report td:first-child{ text-align:left; }
     #report td:first-child a.name{ display:inline-block; max-width:180px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
     .stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
+    .table-summary{margin-top:8px;font-weight:bold}
   </style>
   <!-- DataTables & ECharts CDN -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
@@ -145,6 +146,7 @@
               <tbody></tbody>
             </table>
           </div>
+          <div id="detailSummary" class="table-summary"></div>
         </div>
       </div>
     </section>
@@ -277,6 +279,21 @@
     if(net) data = data.filter(r=>r.network===net);
     if(camp) data = data.filter(r=>r.campaign===camp);
     data = aggregateTable(data);
+    const totals = data.reduce((acc,r)=>{
+      acc.clicks += r.clicks || 0;
+      acc.impr += r.impr || 0;
+      acc.conversions += r.conversions || 0;
+      acc.all_conv += r.all_conv || 0;
+      return acc;
+    },{clicks:0,impr:0,conversions:0,all_conv:0});
+    const sumEl = document.getElementById('detailSummary');
+    if(sumEl){
+      sumEl.textContent =
+        '曝光数: ' + totals.impr +
+        ' 点击数: ' + totals.clicks +
+        ' 转化数: ' + totals.conversions +
+        ' All conv总数: ' + totals.all_conv;
+    }
     if(dt) dt.destroy();
     dt = $('#report').DataTable({
       destroy:true,
