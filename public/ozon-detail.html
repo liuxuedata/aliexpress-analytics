@@ -60,7 +60,6 @@
           <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
           <label for="file" id="pickLabel" class="upload-btn">选择文件</label>
           <input type="file" id="file" accept=".xlsx,.xls,.csv" />
-          <button id="syncBtn" class="upload-btn">同步数据</button>
           <span id="status" class="notice"></span>
         </div>
       </div>
@@ -256,30 +255,6 @@
       setStatus(`新增${result.inserted||0}条，重复${result.duplicates||0}条`);
     }catch(err){ console.error(err); setStatus('失败: '+err.message); }
     e.target.value='';
-  });
-
-  document.getElementById('syncBtn').addEventListener('click', async ()=>{
-    const btn = document.getElementById('syncBtn');
-    try{
-      btn.disabled = true;
-      setStatus('同步中...');
-      const resp = await fetch('/api/ozon/fetch');
-      const json = await resp.json();
-      if(!json.ok) throw new Error(json.msg||'同步失败');
-      if(json.count === 0){
-        setStatus('同步完成：无新数据');
-      }else if(!json.updated){
-        setStatus(`同步完成但数据库未更新，最新日期为${json.latestDen||'未知'}`);
-      }else{
-        setStatus(`同步完成：更新${json.count||0}条`);
-      }
-      await loadData();
-    }catch(err){
-      console.error(err);
-      setStatus('失败: '+err.message);
-    }finally{
-      btn.disabled = false;
-    }
   });
 
   document.getElementById('newModal').addEventListener('click',e=>{ if(e.target.id==='newModal') e.currentTarget.style.display='none'; });
