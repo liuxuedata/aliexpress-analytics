@@ -35,7 +35,7 @@
   <nav class="sidebar" id="sidebar">
     <div class="site-header"><span id="currentSite"></span><button id="addSite" class="add-site-btn">+</button></div>
     <ul class="sub-nav">
-      <li><a id="detailLink" href="index.html">详细数据</a></li>
+      <li><a id="detailLink" href="managed.html">详细数据</a></li>
       <li><a id="analysisLink" href="operation-analysis.html">运营分析</a></li>
       <li><a class="active" href="#">产品分析</a></li>
     </ul>
@@ -87,9 +87,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     aliLi?.classList.add('active');
     aliLi?.querySelectorAll('.dropdown li').forEach(li=>li.classList.remove('active'));
     if(mode==='self'){
-      aliLi?.querySelector('a[href="self-operated.html"]')?.parentElement.classList.add('active');
-    }else{
       aliLi?.querySelector('a[href="index.html"]')?.parentElement.classList.add('active');
+    }else{
+      aliLi?.querySelector('a[href="managed.html"]')?.parentElement.classList.add('active');
     }
   }
   if(mode==='indep'){
@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   }
   if(mode==='self'){
-    if(detailLink)detailLink.href='self-operated.html';
+    if(detailLink)detailLink.href='index.html';
     if(analysisLink)analysisLink.href='operation-analysis.html?mode=self';
   }else if(mode==='indep'){
     if(detailLink)detailLink.href='independent-site.html';

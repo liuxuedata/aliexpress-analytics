@@ -33,7 +33,7 @@
   <nav class="sidebar" id="sidebar">
     <div class="site-header"><span id="currentSite"></span><button id="addSite" class="add-site-btn">+</button></div>
     <ul class="sub-nav">
-      <li><a id="detailLink" href="index.html">详细数据</a></li>
+      <li><a id="detailLink" href="managed.html">详细数据</a></li>
       <li><a class="active" href="#">运营分析</a></li>
       <li><a id="productLink" href="product-analysis.html">产品分析</a></li>
     </ul>
@@ -59,8 +59,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   const mode=params.get('mode');
   const detailLink=document.getElementById('detailLink');
   const productLink=document.getElementById('productLink');
-  if(mode==='self'){
-    if(detailLink)detailLink.href='self-operated.html';
+    if(mode==='self'){
+    if(detailLink)detailLink.href='index.html';
     if(productLink)productLink.href='product-analysis.html?mode=self';
   }
 

@@ -109,7 +109,7 @@ table.dataTable tbody td, table.dataTable thead th { border-color:#172554 !impor
 }
 
 
-/* ===== Stats cards layout (for index.html) ===== */
+/* ===== Stats cards layout (for managed.html) ===== */
 .stats-cards { display:flex; flex-wrap:wrap; gap:10px; }
 .stats-cards .stat-card { flex: 0 0 calc(16.66% - 10px); }
 @media (max-width: 1400px) { .stats-cards .stat-card { flex-basis: calc(33.33% - 10px); } }

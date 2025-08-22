@@ -2,7 +2,7 @@
   async function render(){
     const managedMenu=document.getElementById('managedMenu');
     if(managedMenu){
-      managedMenu.innerHTML='<li><a href="index.html">全托管</a></li><li><a href="self-operated.html">自运营</a></li>';
+      managedMenu.innerHTML='<li><a href="index.html">自运营</a></li><li><a href="managed.html">全托管</a></li>';
     }
     const indepMenu=document.getElementById('indepMenu');
     if(indepMenu){
