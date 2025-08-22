@@ -15,9 +15,7 @@
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
   <style>
     #report td:first-child{max-width:200px;white-space:normal;word-break:break-word;}
-    #newModal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;}
-    #newModal .box{background:#fff;padding:20px;border-radius:8px;max-width:400px;max-height:60vh;overflow:auto;}
-    #newModal ul{margin:0;padding-left:20px;}
+    .kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none;}
   </style>
 </head>
 <body class="fm">
@@ -97,9 +95,8 @@
         </div>
       </section>
     </div>
-  </main>
+</main>
 </div>
-<div id="newModal"><div class="box"><h4>新品列表</h4><ul id="newItems"></ul></div></div>
 <script src="assets/site-nav.js"></script>
 <script>
 (function(){
@@ -108,6 +105,7 @@
   let currentStart = '';
   let currentEnd = '';
   let newProducts = [];
+  let onlyNew = false;
 
   function initTable(){
     if(!table){
@@ -154,7 +152,12 @@
       const resp = await fetch(url);
       const json = await resp.json();
       if(!json.ok) throw new Error(json.msg||'查询失败');
-      const mapped = (json.rows||[]).map(r=>{
+      let rows = json.rows || [];
+      if(onlyNew && newProducts.length){
+        const idSet = new Set(newProducts.map(p=>`${p.sku}@@${p.model||''}`));
+        rows = rows.filter(r=>idSet.has(`${r.product_id}@@${r.model||''}`));
+      }
+      const mapped = rows.map(r=>{
       const impressions = Number(r.exposure)||0;
       const sessions = Number(r.uv)||0;
       const pageviews = Number(r.pv)||0;
@@ -217,16 +220,28 @@
       `<div class="card"><h4>商品总数</h4><p>${k.product_total.current}${delta(k.product_total.current,k.product_total.previous,false)}</p></div>`,
       `<div class="card"><h4>有加购商品总数</h4><p>${k.cart_product_total.current}${delta(k.cart_product_total.current,k.cart_product_total.previous,false)}</p></div>`,
       `<div class="card"><h4>有支付商品总数</h4><p>${k.pay_product_total.current}${delta(k.pay_product_total.current,k.pay_product_total.previous,false)}</p></div>`,
-      `<div class="card clickable" id="kpi-new"><h4>新品数</h4><p>${k.new_product_total}</p></div>`
+      `<div class="card clickable" id="kpi-new"><h4>新品数</h4><p>${k.new_product_total}<a id="kpi-new-clear" class="mini-link" style="display:${onlyNew?'inline':'none'}">清除筛选</a></p></div>`
     ].join('');
     newProducts = k.new_products || [];
     const newCard = document.getElementById('kpi-new');
-    if(newCard) newCard.addEventListener('click',()=>{
-      const modal=document.getElementById('newModal');
-      const ul=document.getElementById('newItems');
-      ul.innerHTML=newProducts.map(p=>`<li>${p.title||p.sku}</li>`).join('');
-      modal.style.display='flex';
-    });
+    const clearLink = document.getElementById('kpi-new-clear');
+    if(newCard){
+      newCard.addEventListener('click',()=>{
+        if(!onlyNew){
+          onlyNew = true;
+          loadData().catch(err=>console.error(err));
+        }
+      });
+    }
+    if(clearLink){
+      clearLink.addEventListener('click',e=>{
+        e.stopPropagation();
+        if(onlyNew){
+          onlyNew = false;
+          loadData().catch(err=>console.error(err));
+        }
+      });
+    }
   }
 
   async function loadKpi(){
@@ -256,8 +271,6 @@
     }catch(err){ console.error(err); setStatus('失败: '+err.message); }
     e.target.value='';
   });
-
-  document.getElementById('newModal').addEventListener('click',e=>{ if(e.target.id==='newModal') e.currentTarget.style.display='none'; });
 
   window.fp = flatpickr('#dateFilter',{ mode:'range', dateFormat:'Y-m-d', onClose:(ds)=>{ if(ds.length===2) loadData().catch(err=>console.error(err)); } });
   loadData().catch(err=>console.error(err));
