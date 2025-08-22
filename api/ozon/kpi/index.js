@@ -22,43 +22,9 @@ module.exports = async function handler(req,res){
     const RAW_TABLE = process.env[`OZON_TABLE_NAME_${store_id}`] || process.env.OZON_TABLE_NAME || 'ozon_product_report_wide';
     const TABLE = normalizeTableName(RAW_TABLE);
 
-    async function refresh(){
-      const { error } = await supabase.rpc('refresh_ozon_schema_cache');
-      if(error) console.error('schema cache refresh failed:', error.message);
-      await new Promise(r=>setTimeout(r,1000));
-    }
-
-    async function getCols(){
-      let colData;
-      for(let attempt=0;attempt<2;attempt++){
-        const { data, error } = await supabase
-          .rpc('get_public_columns', { table_name: TABLE });
-        if(!error){
-          colData = data;
-          break;
-        }
-        if(/schema cache/i.test(error.message)){
-          await refresh();
-          continue;
-        }
-        throw error;
-      }
-      if(!colData) throw new Error('unable to load column metadata');
-      return (colData||[]).map(c=>c.column_name);
-    }
-
-    const tableCols = await getCols();
-    const uvCandidates = [
-      'voronka_prodazh_uv_s_prosmotrom_kartochki_tovara',
-      'voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_kartochki_tovara',
-      'voronka_prodazh_unikalnye_posetiteli_s_prosmotrom_kartochki_tovara'.slice(0,63)
-    ];
-    const uvCol = uvCandidates.find(c=>tableCols.includes(c)) || uvCandidates[0];
-
-
     const idOf = r => `${r.sku}@@${r.model||''}`;
 
- const select = `sku,model,tovary,voronka_prodazh_pokazy_vsego,uv:${uvCol},voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov`;
+ const select = `sku,model,tovary,voronka_prodazh_pokazy_vsego,uv:voronka_prodazh_unikalnye_posetiteli_vsego,voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov`;
 
 
     if(start && end){
