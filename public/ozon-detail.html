@@ -14,7 +14,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
   <style>
-    #report td:first-child{max-width:200px;white-space:normal;word-break:break-word;}
+    #report td:first-child a{display:inline-block;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none;}
   </style>
 </head>
@@ -74,7 +74,6 @@
                 <tr>
                   <th>产品名</th>
                   <th>型号</th>
-                  <th>搜索排名</th>
                   <th>总展示次数</th>
                   <th>在搜索和目录中的展示次数</th>
                   <th>商品详情页展示次数</th>
@@ -85,7 +84,6 @@
                   <th>从搜索和目录加入购物车</th>
                   <th>从商品详情页加入购物车</th>
                   <th>已订购商品数</th>
-                  <th>已交付商品数</th>
                   <th>已订购商品总金额</th>
                   <th>访客比</th>
                   <th>加购比</th>
@@ -117,7 +115,7 @@
         paging:true,
         searching:true,
         info:true,
-        order:[[6,'desc']],
+        order:[[5,'desc']],
         scrollY:'60vh',
         scrollCollapse:true,
         autoWidth:false,
@@ -162,7 +160,6 @@
         rows = rows.filter(r=>idSet.has(`${r.product_id}@@${r.model||''}`));
       }
       const mapped = rows.map(r=>{
-        const rank = r.search_rank!=null ? Number(r.search_rank).toFixed(2) : '';
         const exposure = Number(r.voronka_prodazh_pokazy_vsego)||0;
         const visitors = Number(r.voronka_prodazh_unikalnye_posetiteli_vsego)||0;
         const cart = Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0;
@@ -170,10 +167,10 @@
         const visitorRate = exposure ? (visitors/exposure) : 0;
         const cartRate = visitors ? (cart/visitors) : 0;
         const payRate = cart ? (pay/cart) : 0;
+        const title = r.product_title || r.product_id;
         return [
-          `<a data-pid="${r.product_id}" href="https://ozon.ru/product/${r.product_id}" target="_blank" rel="noopener">${r.product_title || r.product_id}</a>`,
+          `<a data-pid="${r.product_id}" href="https://ozon.ru/product/${r.product_id}" target="_blank" rel="noopener" title="${title}">${title}</a>`,
           r.model || '',
-          rank,
           exposure,
           Number(r.voronka_prodazh_pokazy_v_poiske_i_kataloge)||0,
           Number(r.voronka_prodazh_pokazy_na_kartochke_tovara)||0,
@@ -184,7 +181,6 @@
           Number(r.voronka_prodazh_dobavleniya_iz_poiska_i_kataloge_v_korzinu)||0,
           Number(r.voronka_prodazh_dobavleniya_iz_kartochki_v_korzinu)||0,
           pay,
-          Number(r.voronka_prodazh_dostavleno_tovarov)||0,
           Number(r.prodazhi_zakazano_na_summu)||0,
           (visitorRate*100).toFixed(2)+'%',
           (cartRate*100).toFixed(2)+'%',
@@ -218,7 +214,7 @@
     if(!host) return;
     const delta = (c,p,isPct)=>{ const d=c-p; const cls=d>=0?'up':'down'; const val=isPct ? (d*100).toFixed(2)+'%' : d; const sign=d>=0&&isPct?'+':''; return `<span class="delta ${cls}">${sign}${val}</span>`; };
     host.innerHTML = [
-      `<div class="card"><h4>访客比</h4><p>${(k.visitor_rate.current*100).toFixed(2)}%${delta(k.visitor_rate.current,k.visitor_rate.previous,true)}</p></div>`,
+      `<div class="card"><h4>总访客比</h4><p>${(k.visitor_rate.current*100).toFixed(2)}%${delta(k.visitor_rate.current,k.visitor_rate.previous,true)}</p></div>`,
       `<div class="card"><h4>加购比</h4><p>${(k.cart_rate.current*100).toFixed(2)}%${delta(k.cart_rate.current,k.cart_rate.previous,true)}</p></div>`,
       `<div class="card"><h4>支付比</h4><p>${(k.pay_rate.current*100).toFixed(2)}%${delta(k.pay_rate.current,k.pay_rate.previous,true)}</p></div>`,
       `<div class="card"><h4>商品总数</h4><p>${k.product_total.current}${delta(k.product_total.current,k.product_total.previous,false)}</p></div>`,

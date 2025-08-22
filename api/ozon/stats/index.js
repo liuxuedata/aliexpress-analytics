@@ -61,7 +61,6 @@ module.exports = async function handler(req,res){
       'sku',
       'model',
       'tovary',
-      'voronka_prodazh_pozitsiya_v_poiske_i_kataloge',
       'voronka_prodazh_pokazy_vsego',
       'voronka_prodazh_pokazy_v_poiske_i_kataloge',
       'voronka_prodazh_pokazy_na_kartochke_tovara',
@@ -72,7 +71,6 @@ module.exports = async function handler(req,res){
       'voronka_prodazh_dobavleniya_iz_poiska_i_kataloge_v_korzinu',
       'voronka_prodazh_dobavleniya_iz_kartochki_v_korzinu',
       'voronka_prodazh_zakazano_tovarov',
-      'voronka_prodazh_dostavleno_tovarov',
       'prodazhi_zakazano_na_summu'
     ].join(',');
 
@@ -92,29 +90,21 @@ module.exports = async function handler(req,res){
             product_id: r.sku,
             model: r.model,
             product_title: r.tovary,
-            search_rank_sum: 0,
-            search_rank_count: 0,
             voronka_prodazh_pokazy_vsego: 0,
             voronka_prodazh_pokazy_v_poiske_i_kataloge: 0,
             voronka_prodazh_pokazy_na_kartochke_tovara: 0,
             voronka_prodazh_unikalnye_posetiteli_vsego: 0,
-            voronka_prodazh_uv_s_prosmotrom_v_poiske_ili_kataloge: 0,
+            voronka_prodazh_uv_s_prosmotrom_v_poiske_i_kataloge: 0,
             voronka_prodazh_uv_s_prosmotrom_kartochki_tovara: 0,
             voronka_prodazh_dobavleniya_v_korzinu_vsego: 0,
             voronka_prodazh_dobavleniya_iz_poiska_i_kataloge_v_korzinu: 0,
             voronka_prodazh_dobavleniya_iz_kartochki_v_korzinu: 0,
             voronka_prodazh_zakazano_tovarov: 0,
-            voronka_prodazh_dostavleno_tovarov: 0,
             prodazhi_zakazano_na_summu: 0
           });
         }
         const acc = map.get(key);
         acc.product_title = acc.product_title || r.tovary;
-        const sr = Number(r.voronka_prodazh_pozitsiya_v_poiske_i_kataloge);
-        if(!isNaN(sr)){
-          acc.search_rank_sum += sr;
-          acc.search_rank_count++;
-        }
         acc.voronka_prodazh_pokazy_vsego += Number(r.voronka_prodazh_pokazy_vsego)||0;
         acc.voronka_prodazh_pokazy_v_poiske_i_kataloge += Number(r.voronka_prodazh_pokazy_v_poiske_i_kataloge)||0;
         acc.voronka_prodazh_pokazy_na_kartochke_tovara += Number(r.voronka_prodazh_pokazy_na_kartochke_tovara)||0;
@@ -125,14 +115,12 @@ module.exports = async function handler(req,res){
         acc.voronka_prodazh_dobavleniya_iz_poiska_i_kataloge_v_korzinu += Number(r.voronka_prodazh_dobavleniya_iz_poiska_i_kataloge_v_korzinu)||0;
         acc.voronka_prodazh_dobavleniya_iz_kartochki_v_korzinu += Number(r.voronka_prodazh_dobavleniya_iz_kartochki_v_korzinu)||0;
         acc.voronka_prodazh_zakazano_tovarov += Number(r.voronka_prodazh_zakazano_tovarov)||0;
-        acc.voronka_prodazh_dostavleno_tovarov += Number(r.voronka_prodazh_dostavleno_tovarov)||0;
         acc.prodazhi_zakazano_na_summu += Number(r.prodazhi_zakazano_na_summu)||0;
       }
       const rows = Array.from(map.values()).map(r=>({
         product_id: r.product_id,
         model: r.model,
         product_title: r.product_title,
-        search_rank: r.search_rank_count ? r.search_rank_sum / r.search_rank_count : null,
         voronka_prodazh_pokazy_vsego: r.voronka_prodazh_pokazy_vsego,
         voronka_prodazh_pokazy_v_poiske_i_kataloge: r.voronka_prodazh_pokazy_v_poiske_i_kataloge,
         voronka_prodazh_pokazy_na_kartochke_tovara: r.voronka_prodazh_pokazy_na_kartochke_tovara,
@@ -143,7 +131,6 @@ module.exports = async function handler(req,res){
         voronka_prodazh_dobavleniya_iz_poiska_i_kataloge_v_korzinu: r.voronka_prodazh_dobavleniya_iz_poiska_i_kataloge_v_korzinu,
         voronka_prodazh_dobavleniya_iz_kartochki_v_korzinu: r.voronka_prodazh_dobavleniya_iz_kartochki_v_korzinu,
         voronka_prodazh_zakazano_tovarov: r.voronka_prodazh_zakazano_tovarov,
-        voronka_prodazh_dostavleno_tovarov: r.voronka_prodazh_dostavleno_tovarov,
         prodazhi_zakazano_na_summu: r.prodazhi_zakazano_na_summu
       }));
       return res.json({ok:true, rows, start, end});
@@ -177,18 +164,16 @@ module.exports = async function handler(req,res){
       product_id: r.sku,
       model: r.model,
       product_title: r.tovary,
-      search_rank: r.voronka_prodazh_pozitsiya_v_poiske_i_kataloge,
       voronka_prodazh_pokazy_vsego: r.voronka_prodazh_pokazy_vsego,
       voronka_prodazh_pokazy_v_poiske_i_kataloge: r.voronka_prodazh_pokazy_v_poiske_i_kataloge,
       voronka_prodazh_pokazy_na_kartochke_tovara: r.voronka_prodazh_pokazy_na_kartochke_tovara,
       voronka_prodazh_unikalnye_posetiteli_vsego: r.voronka_prodazh_unikalnye_posetiteli_vsego,
-      voronka_prodazh_uv_s_prosmotrom_v_poiske_ili_kataloge: r.voronka_prodazh_uv_s_prosmotrom_v_poiske_ili_kataloge,
+      voronka_prodazh_uv_s_prosmotrom_v_poiske_ili_kataloge: r.voronka_prodazh_uv_s_prosmotrom_v_poiske_i_kataloge,
       voronka_prodazh_uv_s_prosmotrom_kartochki_tovara: r.voronka_prodazh_uv_s_prosmotrom_kartochki_tovara,
       voronka_prodazh_dobavleniya_v_korzinu_vsego: r.voronka_prodazh_dobavleniya_v_korzinu_vsego,
       voronka_prodazh_dobavleniya_iz_poiska_i_kataloge_v_korzinu: r.voronka_prodazh_dobavleniya_iz_poiska_i_kataloge_v_korzinu,
       voronka_prodazh_dobavleniya_iz_kartochki_v_korzinu: r.voronka_prodazh_dobavleniya_iz_kartochki_v_korzinu,
       voronka_prodazh_zakazano_tovarov: r.voronka_prodazh_zakazano_tovarov,
-      voronka_prodazh_dostavleno_tovarov: r.voronka_prodazh_dostavleno_tovarov,
       prodazhi_zakazano_na_summu: r.prodazhi_zakazano_na_summu
     }));
     res.json({ok:true, rows, date, dates});
