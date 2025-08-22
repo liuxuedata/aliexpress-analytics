@@ -87,6 +87,9 @@
                   <th>已订购商品数</th>
                   <th>已交付商品数</th>
                   <th>已订购商品总金额</th>
+                  <th>访客比</th>
+                  <th>加购比</th>
+                  <th>支付比</th>
                   <th>产品详情</th>
                 </tr>
               </thead>
@@ -160,22 +163,32 @@
       }
       const mapped = rows.map(r=>{
         const rank = r.search_rank!=null ? Number(r.search_rank).toFixed(2) : '';
+        const exposure = Number(r.voronka_prodazh_pokazy_vsego)||0;
+        const visitors = Number(r.voronka_prodazh_unikalnye_posetiteli_vsego)||0;
+        const cart = Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0;
+        const pay = Number(r.voronka_prodazh_zakazano_tovarov)||0;
+        const visitorRate = exposure ? (visitors/exposure) : 0;
+        const cartRate = visitors ? (cart/visitors) : 0;
+        const payRate = cart ? (pay/cart) : 0;
         return [
           `<a data-pid="${r.product_id}" href="https://ozon.ru/product/${r.product_id}" target="_blank" rel="noopener">${r.product_title || r.product_id}</a>`,
           r.model || '',
           rank,
-          Number(r.voronka_prodazh_pokazy_vsego)||0,
+          exposure,
           Number(r.voronka_prodazh_pokazy_v_poiske_i_kataloge)||0,
           Number(r.voronka_prodazh_pokazy_na_kartochke_tovara)||0,
-          Number(r.voronka_prodazh_unikalnye_posetiteli_vsego)||0,
+          visitors,
           Number(r.voronka_prodazh_uv_s_prosmotrom_v_poiske_ili_kataloge)||0,
           Number(r.voronka_prodazh_uv_s_prosmotrom_kartochki_tovara)||0,
-          Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0,
+          cart,
           Number(r.voronka_prodazh_dobavleniya_iz_poiska_i_kataloge_v_korzinu)||0,
           Number(r.voronka_prodazh_dobavleniya_iz_kartochki_v_korzinu)||0,
-          Number(r.voronka_prodazh_zakazano_tovarov)||0,
+          pay,
           Number(r.voronka_prodazh_dostavleno_tovarov)||0,
           Number(r.prodazhi_zakazano_na_summu)||0,
+          (visitorRate*100).toFixed(2)+'%',
+          (cartRate*100).toFixed(2)+'%',
+          (payRate*100).toFixed(2)+'%',
           `<a href="ozon-product-insights.html?pid=${r.product_id}" target="_blank">详情</a>`
         ];
       });
