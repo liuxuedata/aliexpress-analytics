@@ -69,7 +69,8 @@ module.exports = async function handler(req, res) {
         date_from: dateStr,
         date_to: dateStr,
         dimension: ['sku', 'offer_id', 'title', 'brand', 'category_1', 'category_2', 'category_3'],
-        metrics: ['hits_view', 'hits_view_search', 'hits_view_pdp', 'hits_tocart_search', 'hits_tocart_pdp', 'ordered_units', 'delivered_units', 'revenue', 'cancelled_units', 'returned_units']
+        metrics: ['hits_view', 'hits_view_search', 'hits_view_pdp', 'hits_tocart_search', 'hits_tocart_pdp', 'ordered_units', 'delivered_units', 'revenue', 'cancelled_units', 'returned_units'],
+        limit: 1000
       };
 
       step = 'fetch';
@@ -83,11 +84,18 @@ module.exports = async function handler(req, res) {
         body: JSON.stringify(body)
       });
 
-      const json = await resp.json();
-      if (!resp.ok) {
-        throw new Error(json.message || resp.statusText);
+      const text = await resp.text();
+      let json;
+      try {
+        json = JSON.parse(text);
+      } catch (_) {
+        json = null;
       }
-      const data = json.result?.data || [];
+      if (!resp.ok) {
+        const msg = json?.error?.message || json?.message || text || resp.statusText;
+        throw new Error(msg);
+      }
+      const data = json?.result?.data || [];
       for (const item of data) {
         const row = { den: dateStr };
         for (const d of item.dimensions || []) {
