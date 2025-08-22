@@ -1,6 +1,12 @@
-// /api/ozon/sync.js —— Ozon → Supabase 宽表（俄文列名）
-// 运行环境：Vercel Node，无需额外依赖；若本地旧 Node 版本没有全局 fetch，可安装 node-fetch@2 并取消下行注释。
-// const fetch = require('node-fetch');
+// /api/ozon/sync/index.js —— Ozon → Supabase 宽表同步（终版，合并现有实现 + 额外鲁棒性）
+// 运行：Vercel Node，无需额外依赖（Node18+ 自带 fetch）。
+// 环境变量：
+//  - SUPABASE_URL
+//  - SUPABASE_SERVICE_ROLE_KEY
+//  - OZON_CLIENT_ID
+//  - OZON_API_KEY
+//  - （可选）OZON_TABLE_NAME = ozon_product_report_wide
+
 const { createClient } = require('@supabase/supabase-js');
 
 // ---------- 工具 ----------
@@ -23,6 +29,12 @@ function yestInCST8() {
   return d.toISOString().slice(0, 10);
 }
 function isTrue(v) { return ['1', 'true', 'yes'].includes(String(v || '').toLowerCase()); }
+function isISODate(s){ return /^\d{4}-\d{2}-\d{2}$/.test(String(s||'')); }
+function dateRange(from, to){
+  const out=[]; const s=new Date(from+'T00:00:00Z'); const e=new Date(to+'T00:00:00Z');
+  for(let d=new Date(s); d<=e; d=new Date(d.getTime()+86400000)) out.push(d.toISOString().slice(0,10));
+  return out;
+}
 
 // ---------- 维度/指标定义（请求顺序与映射一一对应） ----------
 const REQ_DIMENSIONS = ['sku', 'offer_id', 'title', 'brand', 'category_1', 'category_2', 'category_3'];
@@ -56,25 +68,18 @@ const METRIC_COL = {
   returned_units:     'voronka_prodazh_vozvrascheno_tovarov_na_datu_vozvrata_'
 };
 
-// 将一条 Ozon 返回映射为库里的一行
+// —— 将 Ozon 返回映射为宽表的一行 ——
 function mapOzonItemToRow(item, den) {
   const row = { den };
 
   // 维度：常见返回形态为 [{ id: 'SKU', name: '商品名' }, ...]
   if (Array.isArray(item.dimensions)) {
-    // 兼容：若服务端只返回一个主要维度（sku+name），也能取到
     for (const d of item.dimensions) {
-      // d 可能是 {id, name} 或 {id: 'title', value: 'xxx'}
-      // 优先用 {id:'sku'|'offer_id'|'title'... , value/name:实际值}
       const id = (d.id || '').toString();
       const key = DIM_COL[id];
-      if (key) {
-        // 标准形态 value/name 二选一
-        row[key] = (d.value ?? d.name ?? '').toString();
-      }
+      if (key) row[key] = (d.value ?? d.name ?? '').toString();
     }
-
-    // 如果只有一个维度对象（常见：{id: <SKU>, name: <标题>})
+    // 兼容只有一个维度对象（{id:<SKU>, name:<标题>}）
     if (!row.sku && item.dimensions[0]) {
       row.sku = String(item.dimensions[0].id ?? item.dimensions[0].value ?? '').trim();
     }
@@ -83,9 +88,8 @@ function mapOzonItemToRow(item, den) {
     }
   }
 
-  // 指标：常见是纯数字数组，顺序与请求一致；也兼容 [{id,value}] 形式
+  // 指标：纯数字数组（与请求顺序一致）或 [{id,value}]
   if (Array.isArray(item.metrics)) {
-    // 纯数字序列
     if (typeof item.metrics[0] !== 'object') {
       for (let i = 0; i < REQ_METRICS.length; i++) {
         const k = REQ_METRICS[i];
@@ -95,10 +99,8 @@ function mapOzonItemToRow(item, den) {
         row[col] = Number.isFinite(v) ? v : 0;
       }
     } else {
-      // [{id,value}] 形式
       for (const m of item.metrics) {
-        const k = m.id;
-        const col = METRIC_COL[k];
+        const col = METRIC_COL[m.id];
         if (!col) continue;
         const v = Number(m.value ?? 0);
         row[col] = Number.isFinite(v) ? v : 0;
@@ -106,12 +108,62 @@ function mapOzonItemToRow(item, den) {
     }
   }
 
-  // 主键与必填兜底
-  if (!row.model) row.model = row.sku || '';    // 主键2
-  if (!row.tovary) row.tovary = row.model || '';// NOT NULL
+  // 主键/必填兜底
+  if (!row.model) row.model = row.sku || '';       // 主键2
+  if (!row.tovary) row.tovary = row.model || '';   // NOT NULL
   if (!row.sku || !row.model || !row.den) return null;
 
   return row;
+}
+
+// —— 拉取单日 Ozon ——
+async function fetchOzonOneDay(date, creds, limit=1000){
+  const body = {
+    date_from: date,
+    date_to: date,
+    dimension: REQ_DIMENSIONS,
+    metrics: REQ_METRICS,
+    limit: Math.min(limit||1000, 1000),
+    offset: 0
+  };
+  const all=[];
+  while(true){
+    const resp = await fetch('https://api-seller.ozon.ru/v1/analytics/data', {
+      method: 'POST',
+      headers: {
+        'Client-Id': creds.clientId,
+        'Api-Key': creds.apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    const text = await resp.text();
+    let json; try{ json = JSON.parse(text); }catch{ json = { parse_error: text?.slice(0,400) }; }
+    if (!resp.ok) throw new Error(json?.message || resp.statusText || 'Ozon API error');
+    const chunk = json?.result?.data || json?.data || json?.rows || [];
+    all.push(...chunk);
+    if (chunk.length < body.limit) break;
+    body.offset += body.limit;
+  }
+  return all;
+}
+
+// —— 读取现有列（可选，用于过滤未存在的列，避免 schema cache 报错） ——
+async function getColumnSet(supabase, table){
+  try{
+    const { data, error } = await supabase
+      .schema('information_schema')
+      .from('columns')
+      .select('column_name')
+      .eq('table_schema','public')
+      .eq('table_name', table);
+    if (error) return null;
+    return new Set((data||[]).map(x=>x.column_name));
+  }catch{ return null; }
+}
+function filterByColumns(rows, colSet){
+  if (!colSet || !rows?.length) return rows;
+  return rows.map(r=>Object.fromEntries(Object.entries(r).filter(([k])=>colSet.has(k))));
 }
 
 // ---------- 入口 ----------
@@ -123,72 +175,51 @@ module.exports = async function handler(req, res) {
 
   try {
     const { OZON_CLIENT_ID, OZON_API_KEY, OZON_TABLE_NAME } = process.env;
-    if (!OZON_CLIENT_ID || !OZON_API_KEY) {
-      throw new Error('Missing OZON_CLIENT_ID or OZON_API_KEY');
-    }
+    if (!OZON_CLIENT_ID || !OZON_API_KEY) throw new Error('Missing OZON_CLIENT_ID or OZON_API_KEY');
+
     const supabase = supa();
     const TABLE = normalizeTableName(OZON_TABLE_NAME || 'ozon_product_report_wide');
 
     // 查询参数
     const q = req.query || {};
-    const date = (q.date && /^\d{4}-\d{2}-\d{2}$/.test(q.date)) ? q.date : yestInCST8();
-    const preview = isTrue(q.preview);
-    const debug = isTrue(q.debug);
     const limit = Math.min(Number(q.limit) || 1000, 1000);
+    const preview = isTrue(q.preview);
+    const debug   = isTrue(q.debug);
 
-    // 1) 拉 Ozon（分页）
-    const body = {
-      date_from: date,
-      date_to: date,
-      dimension: REQ_DIMENSIONS, // 如遇权限/口径问题，可临时改为 ['sku'] 再试
-      metrics: REQ_METRICS,
-      limit,
-      offset: 0
-    };
+    // 支持单日或区间（from/to 优先）
+    let dates = [];
+    if (isISODate(q.from) && isISODate(q.to)) dates = dateRange(q.from, q.to);
+    else if (isISODate(q.date)) dates = [q.date];
+    else dates = [yestInCST8()];
 
-    const all = [];
-    while (true) {
-      const resp = await fetch('https://api-seller.ozon.ru/v1/analytics/data', {
-        method: 'POST',
-        headers: {
-          'Client-Id': OZON_CLIENT_ID,
-          'Api-Key': OZON_API_KEY,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-      });
-      const text = await resp.text();
-      let json;
-      try { json = JSON.parse(text); } catch { json = { parse_error: text?.slice(0, 400) }; }
+    const creds = { clientId: OZON_CLIENT_ID, apiKey: OZON_API_KEY };
 
-      if (!resp.ok) {
-        return res.status(resp.status).json({ ok: false, msg: json?.message || resp.statusText, payload: json });
+    // 取数
+    const rawByDay = [];
+    for (const d of dates) {
+      const arr = await fetchOzonOneDay(d, creds, limit);
+      rawByDay.push({ date: d, rows: arr });
+    }
+
+    // 映射
+    let rows = [];
+    for (const pack of rawByDay) {
+      for (const it of pack.rows) {
+        const r = mapOzonItemToRow(it, pack.date);
+        if (r) rows.push(r);
       }
-
-      const chunk = json?.result?.data || json?.data || json?.rows || [];
-      all.push(...chunk);
-      if (chunk.length < limit) break;
-      body.offset += limit;
     }
 
-    // 2) 映射为宽表行
-    const rows = [];
-    const skipped = [];
-    for (const it of all) {
-      const r = mapOzonItemToRow(it, date);
-      if (r) rows.push(r);
-      else skipped.push(it?.dimensions?.[0] || {});
-    }
-
-    // 3) 调试/预览
+    // 调试/预览
     if (debug) {
+      const first = rawByDay[0]?.rows || [];
       return res.status(200).json({
         ok: true,
-        fetched: all.length,
+        days: dates.length,
+        fetched: rawByDay.reduce((a,b)=>a + (b.rows?.length||0), 0),
         mapped: rows.length,
-        sample_raw: all.slice(0, 2),
-        sample_rows: rows.slice(0, 2),
-        requestBody: body
+        sample_raw: first.slice(0,2),
+        sample_rows: rows.slice(0,2)
       });
     }
     if (preview) {
@@ -198,14 +229,24 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, count: 0, table: TABLE });
     }
 
-    // 4) 入库（幂等 upsert）
-    const { error } = await supabase
-      .schema('public')
-      .from(TABLE)
-      .upsert(rows, { onConflict: 'sku,model,den' });
-    if (error) throw new Error(error.message);
+    // 列白名单过滤（避免 schema 缓存导致的未知列错误）
+    const colSet = await getColumnSet(supabase, TABLE);
+    if (colSet) rows = filterByColumns(rows, colSet);
 
-    // 5) 回查最新日期作为“是否更新”的信号
+    // 分批 upsert（幂等）
+    const CHUNK = 800; // 留点余量
+    let upserted = 0;
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const chunk = rows.slice(i, i + CHUNK);
+      const { error } = await supabase
+        .schema('public')
+        .from(TABLE)
+        .upsert(chunk, { onConflict: 'sku,model,den' });
+      if (error) throw new Error(error.message);
+      upserted += chunk.length;
+    }
+
+    // 回查最新日期作为“是否更新”的信号
     const { data: latestRows, error: latestErr } = await supabase
       .schema('public')
       .from(TABLE)
@@ -220,7 +261,7 @@ module.exports = async function handler(req, res) {
       count: rows.length,
       table: TABLE,
       latestDen,
-      updated: latestDen === date
+      updated: dates.includes(latestDen)
     });
   } catch (e) {
     return res.status(500).json({ ok: false, msg: e.message || 'unknown error' });
