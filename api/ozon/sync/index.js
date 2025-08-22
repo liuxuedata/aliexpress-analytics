@@ -1,3 +1,5 @@
+// /api/ozon/sync.js  —— Ozon → ozon_product_report_wide（宽表）
+// CommonJS 版，与你当前项目保持一致
 const fetch = require('node-fetch');
 const { createClient } = require('@supabase/supabase-js');
 
@@ -8,118 +10,148 @@ function supa() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-async function fetchFromOzon() {
-  const { OZON_CLIENT_ID, OZON_API_KEY } = process.env;
-  if (!OZON_CLIENT_ID || !OZON_API_KEY) throw new Error('Missing Ozon env');
+function normalizeTableName(name, fallback = 'ozon_product_report_wide') {
+  let t = (name || fallback).trim();
+  t = t.replace(/^"+|"+$/g, '');
+  t = t.replace(/^public\./i, '');
+  return t;
+}
 
-  // compute yesterday date in GMT+8
+function yestInCST8() {
   const d = new Date();
   d.setUTCHours(d.getUTCHours() + 8);
   d.setUTCDate(d.getUTCDate() - 1);
-  const date = d.toISOString().slice(0, 10);
-
-  const limit = 1000;
-  const baseBody = {
-    date_from: date,
-    date_to: date,
-    dimension: ['sku'],
-    metrics: ['hits_view'],
-    limit,
-    offset: 0
-  };
-
-  const all = [];
-  while (true) {
-    const resp = await fetch('https://api-seller.ozon.ru/v1/analytics/data', {
-      method: 'POST',
-      headers: {
-        'Client-Id': OZON_CLIENT_ID,
-        'Api-Key': OZON_API_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(baseBody)
-    });
-    const json = await resp.json();
-    if (!resp.ok) throw new Error(json.message || resp.statusText);
-    const chunk = json.result?.data || [];
-    all.push(...chunk);
-    if (chunk.length < limit) break;
-    baseBody.offset += limit;
-  }
-  // map to simple rows
-  const rows = all.map(item => {
-    const row = { stat_date: date };
-    for (const d of item.dimensions || []) {
-      if (d.id === 'sku' || d.name === 'sku') row.product_id = d.value || d.name;
-    }
-    return row;
-  });
-  return rows;
-}
-
-function mapToRow(item) {
-  return {
-    product_id: item.product_id,
-    stat_date: item.stat_date,
-    platform: item.platform || 'ozon',
-    site_id: item.site_id || null,
-    source: item.source || null
-  };
-}
-
-function pickCoreFields(row) {
-  return {
-    product_id: row.product_id,
-    stat_date: row.stat_date,
-    platform: row.platform,
-    site_id: row.site_id
-  };
+  return d.toISOString().slice(0, 10);
 }
 
 module.exports = async function handler(req, res) {
-  const result = { ok: false, fetched: 0, upserting: 0, upserted: 0, skipped: 0, samples: [], message: '' };
+  if (req.method && req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    return res.status(405).json({ ok: false, msg: 'method not allowed' });
+  }
 
   try {
-    const raw = await fetchFromOzon();
-    result.fetched = raw.length;
-
-    const normalized = raw.map(mapToRow).filter(r => {
-      const ok = r.product_id && r.stat_date;
-      if (!ok) result.skipped++;
-      return ok;
-    });
-    result.upserting = normalized.length;
-    result.samples = normalized.slice(0, 3).map(pickCoreFields);
-
-    if (normalized.length === 0) {
-      result.message = result.fetched === 0 ? 'Ozon 返回 0 条' : '主键缺失';
-      return res.status(400).json(result);
+    const { OZON_CLIENT_ID, OZON_API_KEY, OZON_TABLE_NAME } = process.env;
+    if (!OZON_CLIENT_ID || !OZON_API_KEY) {
+      throw new Error('Missing OZON_CLIENT_ID or OZON_API_KEY');
     }
 
     const supabase = supa();
-    const TABLE = 'ozon_daily';
-    const { error, count } = await supabase
+    const TABLE = normalizeTableName(OZON_TABLE_NAME || 'ozon_product_report_wide');
+
+    // 时间参数：?date=YYYY-MM-DD（单日）；不传则默认“昨天(UTC+8)”
+    const q = req.query || {};
+    const date = (q.date && /^\d{4}-\d{2}-\d{2}$/.test(q.date)) ? q.date : yestInCST8();
+
+    // 1) 拉 Ozon Analytics（维度/指标对齐宽表）
+    const limit = 1000;
+    const body = {
+      date_from: date,
+      date_to: date,
+      dimension: ['sku', 'offer_id', 'title', 'brand', 'category_1', 'category_2', 'category_3'],
+      metrics: [
+        'hits_view', 'hits_view_search', 'hits_view_pdp',
+        'hits_tocart_search', 'hits_tocart_pdp',
+        'ordered_units', 'delivered_units', 'revenue',
+        'cancelled_units', 'returned_units'
+      ],
+      limit,
+      offset: 0
+    };
+
+    const all = [];
+    while (true) {
+      const resp = await fetch('https://api-seller.ozon.ru/v1/analytics/data', {
+        method: 'POST',
+        headers: {
+          'Client-Id': OZON_CLIENT_ID,
+          'Api-Key': OZON_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+      const json = await resp.json();
+      if (!resp.ok) throw new Error(json.message || resp.statusText);
+
+      const chunk = json.result?.data || [];
+      all.push(...chunk);
+      if (chunk.length < limit) break;
+      body.offset += limit;
+    }
+
+    // 2) 映射：Ozon → 你的俄文宽表列（与 /api/ozon/fetch 一致）
+    const dimMap = {
+      sku: 'sku',
+      offer_id: 'model',
+      title: 'tovary',
+      brand: 'brend',
+      category_1: 'kategoriya_1_urovnya',
+      category_2: 'kategoriya_2_urovnya',
+      category_3: 'kategoriya_3_urovnya'
+    };
+    const metricMap = {
+      hits_view: 'voronka_prodazh_pokazy_vsego',
+      hits_view_search: 'voronka_prodazh_pokazy_v_poiske_i_kataloge',
+      hits_view_pdp: 'voronka_prodazh_posescheniya_kartochki_tovara',
+      hits_tocart_search: 'voronka_prodazh_dobavleniya_iz_poiska_i_kataloge_v_korzinu',
+      hits_tocart_pdp: 'voronka_prodazh_dobavleniya_iz_kartochki_v_korzinu',
+      ordered_units: 'voronka_prodazh_zakazano_tovarov',
+      delivered_units: 'voronka_prodazh_dostavleno_tovarov',
+      revenue: 'prodazhi_zakazano_na_summu',
+      cancelled_units: 'voronka_prodazh_otmeneno_tovarov_na_datu_otmeny_',
+      returned_units: 'voronka_prodazh_vozvrascheno_tovarov_na_datu_vozvrata_'
+    };
+
+    const rows = all.map(item => {
+      const row = { den: date };
+      for (const d of item.dimensions || []) {
+        const key = dimMap[d.id] || dimMap[d.name];
+        if (key) row[key] = d.value ?? d.name;
+      }
+      for (const m of item.metrics || []) {
+        const key = metricMap[m.id];
+        if (key) row[key] = Number(m.value || 0);
+      }
+      // 主键与 NOT NULL 兜底
+      if (!row.model) row.model = row.sku;           // 主键2兜底
+      if (!row.tovary) row.tovary = row.model || ''; // NOT NULL 兜底
+      return row;
+    }).filter(r => r.sku); // 主键1必须有
+
+    // 3) 预览模式
+    const preview = ['1','true','yes'].includes(String(q.preview || '').toLowerCase());
+    if (preview) {
+      return res.status(200).json({ ok: true, count: rows.length, table: TABLE, rows: rows.slice(0, 5) });
+    }
+    if (rows.length === 0) {
+      return res.status(200).json({ ok: true, count: 0, table: TABLE });
+    }
+
+    // 4) 入库（幂等）
+    const { error } = await supabase
+      .schema('public')
       .from(TABLE)
-      .upsert(normalized, { onConflict: 'site_id,source,product_id,stat_date', ignoreDuplicates: false })
-      .select('product_id', { count: 'exact', head: true });
+      .upsert(rows, { onConflict: 'sku,model,den' }); // 与主键一致
+    if (error) throw new Error(error.message);
 
-    if (error) {
-      const msg = error.message || '';
-      if (/permission denied|rls/i.test(msg)) result.message = 'RLS/权限问题';
-      else if (/does not exist/i.test(msg)) result.message = '表结构不匹配';
-      else result.message = msg;
-      return res.status(500).json(result);
-    }
+    // 5) 回查最新日期，给前端“是否更新成功”的信号
+    const { data: latestRows, error: latestErr } = await supabase
+      .schema('public')
+      .from(TABLE)
+      .select('den')
+      .order('den', { ascending: false })
+      .limit(1);
+    if (latestErr) throw new Error(latestErr.message);
+    const latestDen = latestRows?.[0]?.den || null;
 
-    result.upserted = count || 0;
-    result.ok = true;
-    if (result.upserted === 0) {
-      result.message = '全为已存在数据（幂等）';
-    }
-    return res.status(200).json(result);
+    return res.status(200).json({
+      ok: true,
+      count: rows.length,
+      table: TABLE,
+      latestDen,
+      updated: latestDen === date
+    });
   } catch (e) {
-    result.message = e?.message || '未知错误';
-    return res.status(500).json(result);
+    return res.status(500).json({ ok: false, msg: e.message });
   }
 };
-
