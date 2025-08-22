@@ -50,10 +50,22 @@ async function fetchFromOzon() {
   const rows = all.map(item => {
     const row = { stat_date: date };
     for (const d of item.dimensions || []) {
-      const key = d.id || d.key || d.name;
-      if (key === 'sku') {
-        row.product_id = d.value ?? d.name ?? d.key;
-        break;
+      const key = [d.id, d.key, d.name, d.type, d.dimension].find(
+        v => typeof v === 'string'
+      );
+      if (key && key.toLowerCase().includes('sku')) {
+        const val = d.value ?? d.name ?? d.key ?? d.id ?? d.value_text;
+        if (val !== undefined && val !== null && String(val).trim() !== '') {
+          row.product_id = String(val);
+          break;
+        }
+      }
+    }
+    if (!row.product_id) {
+      const fallback =
+        item.sku || item.sku_id || item.product_id || item.offer_id || null;
+      if (fallback !== null && fallback !== undefined && fallback !== '') {
+        row.product_id = String(fallback);
       }
     }
     return row;
