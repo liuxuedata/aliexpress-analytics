@@ -85,9 +85,9 @@
                   <th>支付件数</th>
                   <th>支付订单数</th>
                   <th>支付买家数</th>
+                  <th>访客比</th>
                   <th>访客→加购</th>
                   <th>加购→支付</th>
-                  <th>访客比</th>
                   <th>产品详情</th>
                 </tr>
               </thead>
@@ -165,25 +165,25 @@
       const buyers = Number(r.pay_buyers)||0;
       const v2a = sessions ? (atcUsers/sessions*100).toFixed(2)+'%' : '0%';
       const a2p = atcUsers ? (orders/atcUsers*100).toFixed(2)+'%' : '0%';
-        const visitRate = impressions ? (sessions/impressions*100).toFixed(2)+'%' : '0%';
-        const rank = r.search_rank!=null ? Number(r.search_rank).toFixed(2) : '';
-        return [
-          `<a data-pid="${r.product_id}" href="https://ozon.ru/product/${r.product_id}" target="_blank" rel="noopener">${r.product_title || r.product_id}</a>`,
-          r.model || '',
-          rank,
-          impressions,
-          sessions,
-          pageviews,
-          atcUsers,
-          atcQty,
-          itemsSold,
-          orders,
-          buyers,
-          v2a,
-          a2p,
-          visitRate,
-          `<a href="ozon-product-insights.html?pid=${r.product_id}" target="_blank">详情</a>`
-        ];
+      const visitRate = impressions ? (sessions/impressions*100).toFixed(2)+'%' : '0%';
+      const rank = r.search_rank!=null ? Number(r.search_rank).toFixed(2) : '';
+      return [
+        `<a data-pid="${r.product_id}" href="https://ozon.ru/product/${r.product_id}" target="_blank" rel="noopener">${r.product_title || r.product_id}</a>`,
+        r.model || '',
+        rank,
+        impressions,
+        sessions,
+        pageviews,
+        atcUsers,
+        atcQty,
+        itemsSold,
+        orders,
+        buyers,
+        visitRate,
+        v2a,
+        a2p,
+        `<a href="ozon-product-insights.html?pid=${r.product_id}" target="_blank">详情</a>`
+      ];
     });
       const dt = initTable();
       dt.clear().rows.add(mapped).draw();
