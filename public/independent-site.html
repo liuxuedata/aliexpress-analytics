@@ -10,7 +10,7 @@
     .stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
     .panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
     .panel-header h3{margin:0;}
-    .table-summary{font-size:14px;color:#333;font-weight:400;margin:0;text-align:right;}
+    .table-summary{font-size:13px;color:#555;font-weight:400;margin:0;text-align:right;}
   </style>
   <!-- DataTables & ECharts CDN -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
@@ -295,10 +295,10 @@
     const sumEl = document.getElementById('detailSummary');
     if(sumEl){
       sumEl.textContent =
-        '曝光数: ' + totals.impr +
-        ' 点击数: ' + totals.clicks +
-        ' 转化数: ' + totals.conversions +
-        ' All conv总数: ' + totals.all_conv;
+        '汇总：曝光数 ' + totals.impr +
+        ' · 点击数 ' + totals.clicks +
+        ' · 转化数 ' + totals.conversions +
+        ' · All conv总数 ' + totals.all_conv;
     }
     if(dt) dt.destroy();
     dt = $('#report').DataTable({
