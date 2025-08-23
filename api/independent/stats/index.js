@@ -19,8 +19,13 @@ function parseDate(s, fallback) {
 function extractName(path) {
   const p = path || '';
   const seg = p.split('/').filter(Boolean).pop();
-  const name = seg ? decodeURIComponent(seg) : '';
-  return name || decodeURIComponent(p);
+  try {
+    const name = seg ? decodeURIComponent(seg) : '';
+    return name || decodeURIComponent(p);
+  } catch (e) {
+    console.warn('Failed to decode landing_path', p, e.message);
+    return p;
+  }
 }
 
 function safeNum(v){
