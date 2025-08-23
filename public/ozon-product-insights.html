@@ -115,7 +115,14 @@
     const url=`/api/ozon/stats?store_id=${encodeURIComponent(storeId)}&start=${start}&end=${end}`;
     const resp=await fetch(url); const json=await resp.json();
     if(!json.ok) throw new Error(json.msg||'fetch failed');
-    return json.rows||[];
+    return (json.rows||[]).map(r=>({
+      product_id:r.product_id,
+      product_title:r.product_title,
+      exposure:Number(r.voronka_prodazh_pokazy_vsego)||0,
+      uv:Number(r.voronka_prodazh_uv_s_prosmotrom_kartochki_tovara)||0,
+      add_to_cart_users:Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0,
+      pay_buyers:Number(r.voronka_prodazh_zakazano_tovarov)||0
+    }));
   }
 
   function fetchTrend(pid,start,end){
@@ -166,11 +173,11 @@
     const prevUvRate=prev.exp?prev.uv/prev.exp:0;
     const curAddRate=cur.uv?cur.add/cur.uv:0;
     const prevAddRate=prev.uv?prev.add/prev.uv:0;
-    const curPayRate=cur.uv?cur.pay/cur.uv:0;
-    const prevPayRate=prev.uv?prev.pay/prev.uv:0;
+    const curPayRate=cur.add?cur.pay/cur.add:0;
+    const prevPayRate=prev.add?prev.pay/prev.add:0;
     const avgUvRate=totalsCur.exp?totalsCur.uv/totalsCur.exp:0;
     const avgAddRate=totalsCur.uv?totalsCur.add/totalsCur.uv:0;
-    const avgPayRate=totalsCur.uv?totalsCur.pay/totalsCur.uv:0;
+    const avgPayRate=totalsCur.add?totalsCur.pay/totalsCur.add:0;
     const shareExp=totalsCur.exp?cur.exp/totalsCur.exp:0;
     const shareUv=totalsCur.uv?cur.uv/totalsCur.uv:0;
     const shareAdd=totalsCur.add?cur.add/totalsCur.add:0;
