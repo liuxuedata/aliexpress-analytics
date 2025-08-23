@@ -142,12 +142,20 @@
     if(range && range.includes(' to ')){
       [startISO, endISO] = range.split(' to ');
     } else {
-      const now=new Date();
-      endISO = now.toISOString().slice(0,10);
-      startISO = new Date(now.getTime()-6*86400000).toISOString().slice(0,10);
-      $('#dateFilter').val(`${startISO} to ${endISO}`);
-      if(window.fp) window.fp.setDate([startISO,endISO], true, 'Y-m-d');
+      const stored = localStorage.getItem('ozonRange');
+      if(stored && stored.includes(' to ')){
+        [startISO, endISO] = stored.split(' to ');
+        $('#dateFilter').val(stored);
+        if(window.fp) window.fp.setDate([startISO,endISO], true, 'Y-m-d');
+      }else{
+        const now=new Date();
+        endISO = now.toISOString().slice(0,10);
+        startISO = new Date(now.getTime()-6*86400000).toISOString().slice(0,10);
+        $('#dateFilter').val(`${startISO} to ${endISO}`);
+        if(window.fp) window.fp.setDate([startISO,endISO], true, 'Y-m-d');
+      }
     }
+    localStorage.setItem('ozonRange', `${startISO} to ${endISO}`);
     currentStart = startISO;
     currentEnd = endISO;
     try{
@@ -274,7 +282,23 @@
     e.target.value='';
   });
 
-  window.fp = flatpickr('#dateFilter',{ mode:'range', dateFormat:'Y-m-d', onClose:(ds)=>{ if(ds.length===2) loadData().catch(err=>console.error(err)); } });
+  window.fp = flatpickr('#dateFilter',{
+    mode:'range',
+    dateFormat:'Y-m-d',
+    onClose:(ds)=>{
+      if(ds.length===2){
+        const s=ds[0].toISOString().slice(0,10);
+        const e=ds[1].toISOString().slice(0,10);
+        localStorage.setItem('ozonRange', `${s} to ${e}`);
+        loadData().catch(err=>console.error(err));
+      }
+    }
+  });
+  const stored = localStorage.getItem('ozonRange');
+  if(stored && stored.includes(' to ')){
+    $('#dateFilter').val(stored);
+    window.fp.setDate(stored.split(' to '), true, 'Y-m-d');
+  }
   loadData().catch(err=>console.error(err));
 })();
 </script>
