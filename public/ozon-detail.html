@@ -16,6 +16,7 @@
   <style>
     #report td:first-child a{display:inline-block;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none;}
+    .help{margin-left:4px;color:#888;cursor:pointer;}
   </style>
 </head>
 <body class="fm">
@@ -85,8 +86,8 @@
                   <th>从商品详情页加入购物车</th>
                   <th>已订购商品数</th>
                   <th>已订购商品总金额</th>
-                  <th>访客比</th>
-                  <th>加购比</th>
+                  <th>访客比<span class="help" onclick="alert('访客比 = 浏览过商品详情页的独立访客 / 总展示次数')">?</span></th>
+                  <th>加购比<span class="help" onclick="alert('加购比 = 总加入购物车次数 / 浏览过商品详情页的独立访客')">?</span></th>
                   <th>支付比</th>
                   <th>产品详情</th>
                 </tr>
@@ -161,11 +162,12 @@
       }
       const mapped = rows.map(r=>{
         const exposure = Number(r.voronka_prodazh_pokazy_vsego)||0;
-        const visitors = Number(r.voronka_prodazh_unikalnye_posetiteli_vsego)||0;
+        const allUv = Number(r.voronka_prodazh_unikalnye_posetiteli_vsego)||0;
+        const detailUv = Number(r.voronka_prodazh_uv_s_prosmotrom_kartochki_tovara)||0;
         const cart = Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0;
         const pay = Number(r.voronka_prodazh_zakazano_tovarov)||0;
-        const visitorRate = exposure ? (visitors/exposure) : 0;
-        const cartRate = visitors ? (cart/visitors) : 0;
+        const visitorRate = exposure ? (detailUv/exposure) : 0;
+        const cartRate = detailUv ? (cart/detailUv) : 0;
         const payRate = cart ? (pay/cart) : 0;
         const title = r.product_title || r.product_id;
         return [
@@ -174,9 +176,9 @@
           exposure,
           Number(r.voronka_prodazh_pokazy_v_poiske_i_kataloge)||0,
           Number(r.voronka_prodazh_pokazy_na_kartochke_tovara)||0,
-          visitors,
+          allUv,
           Number(r.voronka_prodazh_uv_s_prosmotrom_v_poiske_ili_kataloge)||0,
-          Number(r.voronka_prodazh_uv_s_prosmotrom_kartochki_tovara)||0,
+          detailUv,
           cart,
           Number(r.voronka_prodazh_dobavleniya_iz_poiska_i_kataloge_v_korzinu)||0,
           Number(r.voronka_prodazh_dobavleniya_iz_kartochki_v_korzinu)||0,
@@ -214,8 +216,8 @@
     if(!host) return;
     const delta = (c,p,isPct)=>{ const d=c-p; const cls=d>=0?'up':'down'; const val=isPct ? (d*100).toFixed(2)+'%' : d; const sign=d>=0&&isPct?'+':''; return `<span class="delta ${cls}">${sign}${val}</span>`; };
     host.innerHTML = [
-      `<div class="card"><h4>总访客比</h4><p>${(k.visitor_rate.current*100).toFixed(2)}%${delta(k.visitor_rate.current,k.visitor_rate.previous,true)}</p></div>`,
-      `<div class="card"><h4>加购比</h4><p>${(k.cart_rate.current*100).toFixed(2)}%${delta(k.cart_rate.current,k.cart_rate.previous,true)}</p></div>`,
+      `<div class="card"><h4>总访客比<span class=\"help\" onclick=\"alert('访客比 = 浏览过商品详情页的独立访客 / 总展示次数')\">?</span></h4><p>${(k.visitor_rate.current*100).toFixed(2)}%${delta(k.visitor_rate.current,k.visitor_rate.previous,true)}</p></div>`,
+      `<div class="card"><h4>加购比<span class=\"help\" onclick=\"alert('加购比 = 总加入购物车次数 / 浏览过商品详情页的独立访客')\">?</span></h4><p>${(k.cart_rate.current*100).toFixed(2)}%${delta(k.cart_rate.current,k.cart_rate.previous,true)}</p></div>`,
       `<div class="card"><h4>支付比</h4><p>${(k.pay_rate.current*100).toFixed(2)}%${delta(k.pay_rate.current,k.pay_rate.previous,true)}</p></div>`,
       `<div class="card"><h4>商品总数</h4><p>${k.product_total.current}${delta(k.product_total.current,k.product_total.previous,false)}</p></div>`,
       `<div class="card"><h4>有加购商品总数</h4><p>${k.cart_product_total.current}${delta(k.cart_product_total.current,k.cart_product_total.previous,false)}</p></div>`,

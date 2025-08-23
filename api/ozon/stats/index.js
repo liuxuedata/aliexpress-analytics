@@ -94,7 +94,8 @@ module.exports = async function handler(req,res){
             voronka_prodazh_pokazy_v_poiske_i_kataloge: 0,
             voronka_prodazh_pokazy_na_kartochke_tovara: 0,
             voronka_prodazh_unikalnye_posetiteli_vsego: 0,
-            voronka_prodazh_uv_s_prosmotrom_v_poiske_i_kataloge: 0,
+            // 在搜索或目录中浏览过的独立访客
+            voronka_prodazh_uv_s_prosmotrom_v_poiske_ili_kataloge: 0,
             voronka_prodazh_uv_s_prosmotrom_kartochki_tovara: 0,
             voronka_prodazh_dobavleniya_v_korzinu_vsego: 0,
             voronka_prodazh_dobavleniya_iz_poiska_i_kataloge_v_korzinu: 0,
@@ -168,7 +169,8 @@ module.exports = async function handler(req,res){
       voronka_prodazh_pokazy_v_poiske_i_kataloge: r.voronka_prodazh_pokazy_v_poiske_i_kataloge,
       voronka_prodazh_pokazy_na_kartochke_tovara: r.voronka_prodazh_pokazy_na_kartochke_tovara,
       voronka_prodazh_unikalnye_posetiteli_vsego: r.voronka_prodazh_unikalnye_posetiteli_vsego,
-      voronka_prodazh_uv_s_prosmotrom_v_poiske_ili_kataloge: r.voronka_prodazh_uv_s_prosmotrom_v_poiske_i_kataloge,
+      // 在搜索或目录中浏览过的独立访客
+      voronka_prodazh_uv_s_prosmotrom_v_poiske_ili_kataloge: r.voronka_prodazh_uv_s_prosmotrom_v_poiske_ili_kataloge,
       voronka_prodazh_uv_s_prosmotrom_kartochki_tovara: r.voronka_prodazh_uv_s_prosmotrom_kartochki_tovara,
       voronka_prodazh_dobavleniya_v_korzinu_vsego: r.voronka_prodazh_dobavleniya_v_korzinu_vsego,
       voronka_prodazh_dobavleniya_iz_poiska_i_kataloge_v_korzinu: r.voronka_prodazh_dobavleniya_iz_poiska_i_kataloge_v_korzinu,

@@ -9,10 +9,8 @@
         if (s) return s;
       }catch(e){}
       const p = location.pathname.toLowerCase();
-      if (p.includes("self")) return "self";
-      if (p.includes("self-operated")) return "self";
-      if (p.includes("independent")) return "indep";
-      if (p.includes("indep")) return "indep";
+      if (p.includes("index.html") || p.includes("self")) return "self";
+      if (p.includes("independent") || p.includes("indep")) return "indep";
       return "managed";
     }
 

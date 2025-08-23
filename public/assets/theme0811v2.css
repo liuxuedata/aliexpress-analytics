@@ -2,7 +2,7 @@
 /* =====================================================================
    Unified Light Theme (white content + dark sidebar)
    Drop-in replacement for assets/theme.css
-   Works for: index.html (全托管) and self-operated.html (自运营)
+   Works for: index.html (自运营) and managed.html (全托管)
    ===================================================================== */
 
 /* ------ CSS Variables (Light) ------ */
@@ -85,7 +85,7 @@ body{
 /* Divider */
 .divider{ height:1px; background:var(--panel-border); margin:8px 0 12px }
 
-/* ------ KPI Cards (index.html) ------ */
+/* ------ KPI Cards (managed.html) ------ */
 .stat-card{
   background:#fff; border:1px solid var(--panel-border);
   border-radius:14px; padding:12px 14px; box-shadow:var(--shadow);
@@ -169,7 +169,7 @@ table.dataTable thead th.sorting_desc{
 
 
 /* ====== Self-Operated KPI (always one line) ======
-   Works with .kpi container and .card items used by self-operated.html
+   Works with .kpi container and .card items used by index.html (自运营)
    Guaranteed single row via flex + horizontal scroll on narrow screens.
 */
 .kpi{
