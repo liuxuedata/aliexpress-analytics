@@ -224,3 +224,96 @@ curl -X POST http://localhost:3000/api/amazon/upsert \
 - 所有密钥仅存储在 Vercel 环境变量；严禁提交到代码仓库。
 - 访问日志中避免打印完整凭据；必要时做哈希或掩码。
 ```
+```md
+report-poll.js # 轮询报表状态
+report-download.js # 下载/解密/解压 → JSON 行
+upsert.js # 分片 upsert（key: asin+stat_date+marketplace_id）
+query.js # 聚合查询（day|week|month）
+cron-daily.js # 串行调度（create→poll→download→upsert）
+vercel.json # 增加 crons（UTC 00:00）
+```
+
+
+## 5. 本地开发
+```bash
+# 1) 拉代码并安装依赖
+npm i
+
+
+# 2) 启动本地（若使用 vercel dev）
+vercel dev
+
+
+# 3) 造数（CSV 引导入库）
+# 组织示例列：asin,stat_date,sessions,page_views,units_ordered,ordered_product_sales,buy_box_pct
+curl -X POST http://localhost:3000/api/amazon/upsert \
+-H 'Content-Type: application/json' \
+-d '{"rows":[{"asin":"B0EXXXXXXX","stat_date":"2025-08-20","sessions":100,"page_views":250,"units_ordered":12,"ordered_product_sales":399.99,"buy_box_pct":85.5}]}'
+
+
+# 4) 打开页面调试
+# http://localhost:3000/amazon-overview.html
+```
+
+
+## 6. 接口契约
+- `POST /api/amazon/report-create` → `{ reportId }`
+- `GET /api/amazon/report-poll?reportId=...` → `{ processingStatus, documentId? }`
+- `GET /api/amazon/report-download?documentId=...` → `{ rows:[...] }`
+- `POST /api/amazon/upsert` → `{ ok:true, upserted }`
+- `GET /api/amazon/query?start=YYYY-MM-DD&end=YYYY-MM-DD&granularity=day|week|month` → `{ ok:true, rows:[...] }`
+- `GET /api/amazon/healthz` → `{ ok:true, time }`
+
+
+## 7. 定时任务（Vercel Cron）
+在 `vercel.json` 增加：
+```json
+{
+"crons": [
+{ "path": "/api/amazon/cron-daily", "schedule": "0 0 * * *" }
+]
+}
+```
+> 说明：UTC 00:00 = SGT 08:00。`cron-daily` 内部串起 create→poll→download→upsert，并打印日志。
+
+
+## 8. 页面接入要点（amazon-overview.html）
+- 复用 `self-operated.html` 的布局/组件（日期范围、Tabs、KPI、ECharts+DataTables）。
+- 字段映射：
+- 曝光 ≈ `page_views`
+- 访客 = `sessions`
+- 下单 ≈ `units_ordered`
+- GMV = `ordered_product_sales`
+- Buy Box = `buy_box_pct`
+- ASIN 列生成外链：`https://www.amazon.com/dp/<ASIN>`。
+
+
+## 9. 验收清单（DoD）
+- [ ] Upsert 幂等；重复写入不放大
+- [ ] `/api/amazon/query` 支撑 KPI/图表/表格
+- [ ] `amazon-overview.html` 能显示最近 7 天数据
+- [ ] Vercel Cron 在 SGT 08:00 成功跑通一轮（有日志）
+- [ ] README_AMAZON.md / 运营文档已更新
+
+
+## 10. 常见问题排查（FAQ）
+**Q1: SP‑API 报 401/403？**
+- 检查 LWA 凭据、Refresh Token 是否对应同一应用；IAM Role 权限是否正确；Marketplaces 是否在授权范围。
+
+
+**Q2: 下载报表失败或内容为空？**
+- 确认 `dataStartTime`/`dataEndTime` 覆盖 T-1 天完整 UTC 窗口；若卖家无数据则行数为 0。
+
+
+**Q3: 指标和页面漏斗口径不一致？**
+- 明确当前阶段“加购”口径：Amazon 不直接提供加购，先用 `units_ordered/sessions` 近似转化率；如需严格口径，请后续接 Amazon Ads/Attribution。
+
+
+**Q4: 表格/图表样式不一致？**
+- 统一替换 `assets/theme.css` 为团队版浅色主题（theme_unified_0811b.css 的内容）。
+
+
+## 11. 安全与合规
+- 所有密钥仅存储在 Vercel 环境变量；严禁提交到代码仓库。
+- 访问日志中避免打印完整凭据；必要时做哈希或掩码。
+```
