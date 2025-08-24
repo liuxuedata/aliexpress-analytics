@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Amazon 数据总览</title>
+  <link rel="stylesheet" href="assets/login.css">
+  <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
+</head>
+<body class="fm">
+<header class="header">
+  <div class="logo-title">跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li class="ali"><a href="#">速卖通</a>
+        <ul class="dropdown" id="managedMenu"></ul>
+      </li>
+      <li class="amazon active"><a href="amazon-overview.html">亚马逊</a></li>
+      <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon"><a href="ozon-detail.html">Ozon</a></li>
+      <li class="independent"><a href="#">独立站</a>
+        <ul class="dropdown" id="indepMenu"></ul>
+      </li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+<div class="layout container">
+  <nav class="sidebar" id="sidebar">
+    <div class="site-header"><span>数据总览</span></div>
+    <ul class="sub-nav">
+      <li><a href="amazon-overview.html" class="active">总览</a></li>
+      <li><a href="amazon-ads.html">广告</a></li>
+    </ul>
+  </nav>
+  <main class="main">
+    <h2 style="font-size:24px;font-weight:700;margin-bottom:1rem;">最近 7 天概况</h2>
+    <table id="report" class="table">
+      <thead>
+        <tr>
+          <th>日期</th>
+          <th>访客</th>
+          <th>曝光</th>
+          <th>下单</th>
+          <th>GMV</th>
+          <th>Buy Box%</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </main>
+</div>
+<script>
+async function load(){
+  const end = new Date();
+  const start = new Date(end.getTime() - 6*24*3600*1000);
+  const qs = `start=${start.toISOString().slice(0,10)}&end=${end.toISOString().slice(0,10)}&granularity=day`;
+  const res = await fetch(`/api/amazon/query?${qs}`).then(r=>r.json()).catch(()=>({rows:[]}));
+  const tbody = document.querySelector('#report tbody');
+  (res.rows||[]).forEach(r=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r.bucket_label}</td><td>${r.sessions}</td><td>${r.page_views}</td><td>${r.units_ordered}</td><td>${r.ordered_product_sales}</td><td>${r.buy_box_pct? (r.buy_box_pct*100).toFixed(2)+'%': ''}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+load();
+</script>
+<script src="assets/site-nav.js"></script>
+</body>
+</html>
