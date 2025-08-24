@@ -16,11 +16,24 @@ function parseDate(s, fallback) {
   return fallback;
 }
 
+function decodeSafe(s) {
+  try {
+    return decodeURIComponent(s);
+  } catch (e) {
+    console.warn('Failed to decode landing_path', s, e.message);
+    return s;
+  }
+}
+
 function extractName(path) {
-  const p = path || '';
-  const seg = p.split('/').filter(Boolean).pop();
-  const name = seg ? decodeURIComponent(seg) : '';
-  return name || decodeURIComponent(p);
+  const p = typeof path === 'string' ? path : String(path || '');
+  const seg = p.split('/').filter(Boolean).pop() || '';
+  const name = seg ? decodeSafe(seg) : '';
+  if (name && name !== seg) return name;
+  const full = decodeSafe(p);
+  if (full !== p) return full;
+  if (/%(?![0-9A-Fa-f]{2})/.test(p)) console.warn('Invalid landing_path encoding', p);
+  return p;
 }
 
 function safeNum(v){
