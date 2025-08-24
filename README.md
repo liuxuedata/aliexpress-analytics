@@ -65,3 +65,13 @@
 - 主题统一：深色侧边栏 + 白色内容区
 - 自运营 `.kpi` 保持单行卡片布局，窄屏横向滑动
 - 所有上传、查询、渲染功能与上线前一致
+
+- ## 贡献 & 反馈
+
+- 🐞 [报告 Bug](https://github.com/<owner>/<repo>/issues/new?template=bug_report.md)
+- ✨ [提出功能](https://github.com/<owner>/<repo>/issues/new?template=feature_request.md)
+- 🛒 [申请接入 Amazon](https://github.com/<owner>/<repo>/issues/new?template=amazon_onboarding.md)
+- 🔀 [发起 PR](https://github.com/<owner>/<repo>/compare)
+
+> 提交 PR 时请遵循 [.github/pull_request_template.md](./.github/pull_request_template.md)
+
