@@ -68,8 +68,21 @@
 
 - ## 贡献 & 反馈
 
--.github/ ISSUE_TEMPLATE/ bug_report.md feature_request.md amazon_onboarding.md config.yml pull_request_template.md README.md --- ### .github/pull_request_template.md
-md
+.github/
+  ISSUE_TEMPLATE/
+    bug_report.md
+    feature_request.md
+    amazon_onboarding.md
+    config.yml
+  pull_request_template.md
+README.md
+README_AMAZON.md
+
+---
+
+### `.github/pull_request_template.md`
+
+```md
 ### 背景
 请简要说明本 PR 要解决的问题或新增的功能（如：closes #123）。
 
@@ -93,8 +106,13 @@ md
 ### 其他说明
 - 环境变量是否有变更：
 - 文档更新：是否更新了 README 或相关文档
---- ### README.md（在底部加“贡献 & 反馈”入口）
-md
+```
+
+---
+
+### `README.md`（在底部加“贡献 & 反馈”入口）
+
+```md
 ## 贡献 & 反馈
 
 - 🐞 [报告 Bug](https://github.com/liuxuedata/aliexpress-analytics/issues/new?template=bug_report.md)
@@ -103,4 +121,6 @@ md
 - 🔀 [发起 Pull Request](https://github.com/liuxuedata/aliexpress-analytics/compare)
 
 > 提交 PR 时请遵循 [.github/pull_request_template.md](.github/pull_request_template.md)
+```
+
 
