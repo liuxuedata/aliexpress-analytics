@@ -549,7 +549,7 @@
   try{
     const resp=await fetch("/api/independent/sites");
     const j=await resp.json();
-    const sites=Array.from(new Set((j.sites||[]).filter(Boolean)));
+    const sites=Array.from(new Set([...(j.sites||[]).filter(Boolean), 'icyberite.com']));
     siteSelect.innerHTML=sites.map(s=>`<option value="${s}">${s}</option>`).join("");
     let cur=localStorage.getItem("currentIndepSite");
     if(!cur||!sites.includes(cur)) cur=sites[0]||"";

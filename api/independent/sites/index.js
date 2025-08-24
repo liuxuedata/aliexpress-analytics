@@ -15,7 +15,9 @@ module.exports = async (req,res) => {
       .select('site', { distinct: true })
       .order('site', { ascending: true });
     if (error) throw error;
-    const sites = (data || []).map(r => r.site).filter(Boolean);
+    let sites = (data || []).map(r => r.site).filter(Boolean);
+    sites.push('icyberite.com');
+    sites = Array.from(new Set(sites)).sort();
     res.status(200).json({ ok: true, sites });
   } catch (e) {
     res.status(500).json({ error: e.message });
