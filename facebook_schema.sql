@@ -72,19 +72,21 @@ create table if not exists meta_ad (
 
 -- Product dimension and mapping
 create table if not exists dim_product (
-  product_id    text primary key,
   site_id       text references core_site(site_id),
+  product_id    text,
   product_title text,
   product_url   text,
-  created_at    timestamptz default now()
+  created_at    timestamptz default now(),
+  primary key (site_id, product_id)
 );
 
 create table if not exists map_product_meta (
   map_id        uuid primary key default gen_random_uuid(),
   site_id       text references core_site(site_id),
   raw_identifier text not null,
-  product_id    text references dim_product(product_id),
+  product_id    text,
   confidence    int default 100,
+  foreign key (site_id, product_id) references dim_product(site_id, product_id),
   unique(site_id, raw_identifier)
 );
 
@@ -117,6 +119,7 @@ create table if not exists fact_meta_daily (
   purchase_web  int default 0,
   purchase_meta int default 0,
   batch_id      uuid references core_ingestion_batch(batch_id),
+  foreign key (site_id, product_id) references dim_product(site_id, product_id),
   primary key (site_id, date, level, campaign_id, adset_id, ad_id, product_id)
 );
 
