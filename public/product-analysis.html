@@ -363,8 +363,12 @@ function card(title,cur,prev,isPct,avg,share){
         const id=getId(r);
         expMap.set(id,(expMap.get(id)||0)+getExp(r));
         if(mode==='indep'){
-          const baseUrl = r.landing_url && r.landing_url.startsWith('http') ? r.landing_url : base + (r.landing_url || '');
-          const link = (baseUrl || '').replace(/\/$/, '') + (r.landing_path || '');
+          let link = '';
+          if(r.landing_url && r.landing_url.startsWith('http')){
+            link = r.landing_url;
+          }else if(r.landing_path){
+            link = base + r.landing_path;
+          }
           if(link) linkMap.set(id,link);
         }
       });
