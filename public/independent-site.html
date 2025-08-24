@@ -342,8 +342,9 @@
             const pid = r.landing_path || r.product || '';
             const name = shorten(r.landing_path || '');
             const base = siteInput.value.trim().replace(/\/$/,'');
-            const baseUrl = v && v.startsWith('http') ? v : base + (v || '');
-            const url = baseUrl.replace(/\/$/, '') + (r.landing_path || '');
+            const url = (v && v.startsWith('http'))
+              ? v
+              : base + (r.landing_path || v || '');
             return `<div style="display:flex;align-items:center;" data-url="${url}"><img style="width:40px;height:40px;object-fit:cover;margin-right:4px;display:none;"><a href="${url}" target="_blank" class="name" title="${name}" data-pid="${pid}">${name}</a></div>`;
           }},
         { data:'clicks', render: v => v ?? 0 },
