@@ -95,36 +95,51 @@ create table if not exists fact_meta_daily (
   site_id       text references core_site(site_id),
   date          date not null,
   level         text,
-  campaign_id   text,
-  adset_id      text,
-  ad_id         text,
-  product_id    text,
+  campaign_name text,
+  adset_name    text,
+  status        text,
+  attribution_setting text,
+  product_identifier text,
   reach         bigint default 0,
   impressions   bigint default 0,
   frequency     numeric(10,4),
   all_clicks    bigint default 0,
   link_clicks   bigint default 0,
+  unique_link_clicks bigint default 0,
+  unique_all_clicks  bigint default 0,
   ctr_all       numeric(10,6),
+  unique_all_ctr numeric(10,6),
   ctr_link      numeric(10,6),
   spend_usd     numeric(18,6) default 0,
+  cost_per_result numeric(18,6),
   cpm           numeric(18,6),
   cpc_all       numeric(18,6),
   cpc_link      numeric(18,6),
   atc_total     int default 0,
   atc_web       int default 0,
   atc_meta      int default 0,
+  wishlist_adds int default 0,
   ic_total      int default 0,
   ic_web        int default 0,
   ic_meta       int default 0,
   purchase_web  int default 0,
   purchase_meta int default 0,
+  views         bigint default 0,
+  shop_clicks   int default 0,
+  result_type   text,
+  result_count  int default 0,
+  landing_url   text,
+  creative_name text,
+  report_start  date,
+  report_end    date,
+  row_start_date date,
+  row_end_date   date,
   batch_id      uuid references core_ingestion_batch(batch_id),
-  foreign key (site_id, product_id) references dim_product(site_id, product_id),
-  primary key (site_id, date, level, campaign_id, adset_id, ad_id, product_id)
+  primary key (site_id, date, level, campaign_name, adset_name, product_identifier)
 );
 
 create index if not exists idx_fact_meta_daily_site_date on fact_meta_daily(site_id, date);
-create index if not exists idx_fact_meta_daily_rollup on fact_meta_daily(site_id, level, campaign_id, adset_id);
+create index if not exists idx_fact_meta_daily_rollup on fact_meta_daily(site_id, level, campaign_name, adset_name);
 
 -- Weekly materialized view
 create materialized view if not exists mv_meta_weekly as
@@ -132,7 +147,7 @@ select
   site_id,
   date_trunc('week', date)::date as week_start,
   max(date) as week_end,
-  level, campaign_id, adset_id, ad_id, product_id,
+  level, campaign_name, adset_name, product_identifier,
   sum(reach) as reach,
   sum(impressions) as impressions,
   sum(spend_usd) as spend_usd,
@@ -144,6 +159,6 @@ select
   (case when sum(impressions)>0 then sum(spend_usd)/sum(impressions)*1000 end) as cpm,
   (case when sum(link_clicks)>0 then sum(spend_usd)/sum(link_clicks) end) as cpc_link
 from fact_meta_daily
-group by 1,2,4,5,6,7,8;
+group by 1,2,4,5,6,7;
 
 create index if not exists idx_mv_meta_weekly on mv_meta_weekly(site_id, week_start);

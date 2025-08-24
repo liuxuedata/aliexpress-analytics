@@ -227,6 +227,8 @@
   let dt;
   let rawTable = [];
   let onlyNew = false;
+  const tableHeadEl = document.querySelector('#report thead');
+  const defaultHeadHTML = tableHeadEl.innerHTML;
   networkSel.addEventListener('change', load);
   campaignSel.addEventListener('change', load);
 
@@ -379,6 +381,63 @@
     dt.on('draw',()=>enhanceMeta(document.getElementById('report')));
   }
 
+  function buildFbTable(){
+    const data = rawTable;
+    const totals = data.reduce((acc,r)=>{
+      acc.impressions += r.impressions || 0;
+      acc.link_clicks += r.link_clicks || 0;
+      acc.purchase_web += r.purchase_web || 0;
+      return acc;
+    },{impressions:0,link_clicks:0,purchase_web:0});
+    const sumEl = document.getElementById('detailSummary');
+    if(sumEl){
+      sumEl.textContent = '曝光数: '+totals.impressions+' 链接点击: '+totals.link_clicks+' 网站购买: '+totals.purchase_web;
+    }
+    tableHeadEl.innerHTML = '<tr><th>产品</th><th>Campaign</th><th>曝光</th><th>链接点击</th><th>全部点击</th><th>CTR(全部)</th><th>花费USD</th><th>加入购物车</th><th>结账发起</th><th>网站购买</th></tr>';
+    if(dt) dt.destroy();
+    dt = $('#report').DataTable({
+      destroy:true,
+      pageLength:20,
+      data,
+      scrollX:true,
+      autoWidth:false,
+      columns:[
+        { data:'product_identifier', render:(v,t,r)=>{
+            const pid = (v||'').split(',')[0];
+            const name = shorten(v||'');
+            return `<div data-pid="${pid}">${name}</div>`;
+          }},
+        { data:'campaign_name' },
+        { data:'impressions' },
+        { data:'link_clicks' },
+        { data:'all_clicks' },
+        { data:'all_ctr', render:v=> (v*100).toFixed(2)+'%' },
+        { data:'spend_usd', render:v=> (v??0).toFixed(2) },
+        { data:'atc_total' },
+        { data:'ic_total' },
+        { data:'purchase_web' }
+      ]
+    });
+    populateProductNames(document.getElementById('report'));
+    dt.on('draw',()=>populateProductNames(document.getElementById('report')));
+  }
+
+  function renderFbKPI(rows){
+    const sum = (arr,k)=>arr.reduce((s,r)=>s+Number(r[k]||0),0);
+    const impressions=sum(rows,'impressions');
+    const clicks=sum(rows,'link_clicks');
+    const conv=sum(rows,'purchase_web');
+    const k={
+      avg_ctr: impressions?clicks/impressions*100:0,
+      avg_conv_rate: clicks?conv/clicks*100:0,
+      exposure_product_count:new Set(rows.filter(r=>r.impressions>0).map(r=>r.product_identifier)).size,
+      click_product_count:new Set(rows.filter(r=>r.link_clicks>0).map(r=>r.product_identifier)).size,
+      conversion_product_count:new Set(rows.filter(r=>r.purchase_web>0).map(r=>r.product_identifier)).size,
+      new_product_count:0
+    };
+    renderKPI(k,{});
+  }
+
   // 默认站点取 url 参数或本地存储
   const storedPeriod = localStorage.getItem('indepPeriod');
   if (storedPeriod && storedPeriod.includes(' to ')) {
@@ -407,6 +466,13 @@
     showLoading();
     try {
       const site = siteInput.value.trim();
+      if (site === 'icyberite.com') {
+        await loadFbSite(site);
+        loadStatusEl.textContent = '加载完成';
+        return;
+      }
+      networkSel.style.display = '';
+      campaignSel.style.display = '';
       let from, to;
       const range = dateInput.value;
       if (range && range.includes(' to ')) {
@@ -438,6 +504,7 @@
       if (!json.ok) throw new Error(json.error || '加载失败');
 
       rawTable = json.table || [];
+      tableHeadEl.innerHTML = defaultHeadHTML;
       renderKPI(json.kpis || {}, (jsonPrev.ok && jsonPrev.kpis) ? jsonPrev.kpis : {});
       const newCard = document.getElementById('kpi-new');
       const clearLink = document.getElementById('kpi-new-clear');
@@ -508,6 +575,31 @@
     }
   }
 
+  async function loadFbSite(site){
+    networkSel.style.display = 'none';
+    campaignSel.style.display = 'none';
+    let from, to;
+    const range = dateInput.value;
+    if(range && range.includes(' to ')){
+      [from,to] = range.split(' to ');
+    }else{
+      const today = new Date();
+      to = today.toISOString().slice(0,10);
+      from = new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
+      dateInput.value = `${from} to ${to}`;
+      if(window.fp) window.fp.setDate([from,to], true, 'Y-m-d');
+    }
+    const siteId = site.replace(/\.com$/,'');
+    const params = new URLSearchParams({site_id: siteId, from, to});
+    const resp = await fetch(`/api/fb_stats?${params.toString()}`);
+    if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const json = await resp.json();
+    if(!json.ok) throw new Error(json.error || '加载失败');
+    rawTable = json.table || [];
+    renderFbKPI(rawTable);
+    buildFbTable();
+  }
+
   clearBtn.addEventListener('click', () => { onlyNew = false; load(); });
   // 上传逻辑
   const fileInput = document.getElementById('fileInput');
@@ -521,7 +613,13 @@
     try {
       statusEl.textContent = '导入中...';
       uploadBtn.disabled = true;
-      const resp = await fetch('/api/independent/ingest', { method: 'POST', body: fd });
+      const site = siteInput.value.trim();
+      let endpoint = '/api/independent/ingest';
+      if (site === 'icyberite.com') {
+        const sid = site.replace(/\.com$/, '');
+        endpoint = `/api/fb_ingest?site_id=${sid}`;
+      }
+      const resp = await fetch(endpoint, { method: 'POST', body: fd });
       const json = await resp.json().catch(() => ({ ok:false, error:`HTTP ${resp.status}` }));
       if (!resp.ok || !json.ok) throw new Error(json.error || '上传失败');
       statusEl.textContent = '导入完成，加载中...';
