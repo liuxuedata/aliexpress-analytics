@@ -68,10 +68,39 @@
 
 - ## 贡献 & 反馈
 
-- 🐞 [报告 Bug](https://github.com/<owner>/<repo>/issues/new?template=bug_report.md)
-- ✨ [提出功能](https://github.com/<owner>/<repo>/issues/new?template=feature_request.md)
-- 🛒 [申请接入 Amazon](https://github.com/<owner>/<repo>/issues/new?template=amazon_onboarding.md)
-- 🔀 [发起 PR](https://github.com/<owner>/<repo>/compare)
+-.github/ ISSUE_TEMPLATE/ bug_report.md feature_request.md amazon_onboarding.md config.yml pull_request_template.md README.md --- ### .github/pull_request_template.md
+md
+### 背景
+请简要说明本 PR 要解决的问题或新增的功能（如：closes #123）。
 
-> 提交 PR 时请遵循 [.github/pull_request_template.md](./.github/pull_request_template.md)
+### 变更内容
+- [ ] 前端页面（新增/修改：_____）
+- [ ] 后端 API（新增/修改：_____）
+- [ ] 入库/定时任务（新增/修改：_____）
+- [ ] 数据库迁移（是否有新表/新字段）
+
+### 验证说明
+- [ ] 功能自测通过（截图或日志）
+- [ ] 单元/集成测试覆盖
+- [ ] 回滚策略（如何快速关闭或回退）
+
+### 影响范围
+- [ ] 速卖通全托管
+- [ ] 速卖通自运营
+- [ ] 亚马逊模块
+- [ ] 其他（请说明）
+
+### 其他说明
+- 环境变量是否有变更：
+- 文档更新：是否更新了 README 或相关文档
+--- ### README.md（在底部加“贡献 & 反馈”入口）
+md
+## 贡献 & 反馈
+
+- 🐞 [报告 Bug](https://github.com/liuxuedata/aliexpress-analytics/issues/new?template=bug_report.md)
+- ✨ [提出功能](https://github.com/liuxuedata/aliexpress-analytics/issues/new?template=feature_request.md)
+- 🛒 [申请接入 Amazon](https://github.com/liuxuedata/aliexpress-analytics/issues/new?template=amazon_onboarding.md)
+- 🔀 [发起 Pull Request](https://github.com/liuxuedata/aliexpress-analytics/compare)
+
+> 提交 PR 时请遵循 [.github/pull_request_template.md](.github/pull_request_template.md)
 
