@@ -359,20 +359,26 @@ function card(title,cur,prev,isPct,avg,share){
       const getId=r=>mode==='indep'?(r.landing_path||r.product):r.product_id;
       const getExp=r=>mode==='indep'?Number(r.impr||r.exposure||0):Number(r.exposure||0);
       const base = (mode==='indep' && siteParam) ? siteParam.replace(/\/$/,'') : '';
-      rowsAggA.forEach(r=>{
-        const id=getId(r);
-        expMap.set(id,(expMap.get(id)||0)+getExp(r));
-        if(mode==='indep'){
-          let link='';
-          if(r.landing_url && r.landing_url.startsWith('http')){
-            link=r.landing_url;
-          }else{
-            const path=r.landing_path || r.landing_url || '';
-            link=base+path;
+        rowsAggA.forEach(r=>{
+          const id=getId(r);
+          expMap.set(id,(expMap.get(id)||0)+getExp(r));
+          if(mode==='indep'){
+            let link='';
+            if(r.landing_url && /^https?:/i.test(r.landing_url)){
+              try{
+                const u=new URL(r.landing_url);
+                u.pathname=r.landing_path || u.pathname || '';
+                link=u.toString();
+              }catch{
+                link=r.landing_url;
+              }
+            }else{
+              const path=r.landing_path || r.landing_url || '';
+              link=base+path;
+            }
+            if(link) linkMap.set(id,link);
           }
-          if(link) linkMap.set(id,link);
-        }
-      });
+        });
       const totalsA=rowsAggA.reduce((a,r)=>({
         exp:a.exp+getExp(r),
         uv:a.uv+Number(mode==='indep'?r.clicks||0:r.visitors||0),
