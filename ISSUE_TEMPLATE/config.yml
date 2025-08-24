@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 闲聊 / 问题求助（Discussions）
+    url: https://github.com/<owner>/<repo>/discussions
+    about: 非 Bug 和非需求建议请发这里
