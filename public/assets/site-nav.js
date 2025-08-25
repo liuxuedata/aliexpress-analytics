@@ -11,7 +11,7 @@
       try{
         const resp=await fetch('/api/independent/sites');
         const j=await resp.json();
-        const sites=Array.from(new Set((j.sites||[]).filter(Boolean)));
+        const sites=Array.from(new Set([...(j.sites||[]).filter(Boolean), 'icyberite.com']));
         sites.forEach(name=>{
           const li=document.createElement('li');
           const a=document.createElement('a');
