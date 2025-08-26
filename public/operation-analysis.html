@@ -97,6 +97,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   renderSiteMenus();
   updateCurrent();
 
+  if(mode!=='self'){
+    ['uvRateChart','cartRateChart','payRateChart'].forEach(id=>{
+      const panel=document.getElementById(id)?.parentElement;
+      if(panel) panel.remove();
+    });
+  }
+
   if(mode==='self'){
     setupSelf();
   }else{
@@ -177,9 +184,10 @@ document.addEventListener('DOMContentLoaded',()=>{
       renderBar('uvChart',{cur:sum(rowsA,'uv'),prev:sum(rowsB,'uv')});
       renderBar('cartChart',{cur:sum(rowsA,'add_to_cart_users'),prev:sum(rowsB,'add_to_cart_users')});
       renderBar('payChart',{cur:sum(rowsA,'pay_buyers'),prev:sum(rowsB,'pay_buyers')});
-      // placeholder for self-mode specific charts
-      renderBar('cartProdChart',{cur:0,prev:0});
-      renderBar('payProdChart',{cur:0,prev:0});
+      const prodAdd=rows=>{const set=new Set();rows.forEach(r=>{if(Number(r.add_to_cart_users||0)>0)set.add(r.product_id);});return set.size;};
+      const prodPay=rows=>{const set=new Set();rows.forEach(r=>{if(Number(r.pay_buyers||0)>0)set.add(r.product_id);});return set.size;};
+      renderBar('cartProdChart',{cur:prodAdd(rowsA),prev:prodAdd(rowsB)});
+      renderBar('payProdChart',{cur:prodPay(rowsA),prev:prodPay(rowsB)});
     }
 
     loadPeriods();
