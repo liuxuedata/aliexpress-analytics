@@ -9,6 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
+  <style>.kpi-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:12px}</style>
 </head>
 <body>
 <header class="header">
@@ -42,11 +43,18 @@
     <div class="content">
       <section class="content-pad">
         <div id="ctrl" class="controls" style="margin-bottom:12px;"></div>
+        <div class="kpi-row"><div class="stat-card"><h4>产品总数</h4><p id="prodTotal">--</p></div></div>
         <div class="grid grid-2">
           <div class="panel"><h3>曝光量</h3><div id="expChart" style="width:100%;height:260px;"></div></div>
           <div class="panel"><h3>访客数</h3><div id="uvChart" style="width:100%;height:260px;"></div></div>
-          <div class="panel"><h3>加购人数</h3><div id="atcChart" style="width:100%;height:260px;"></div></div>
-          <div class="panel"><h3>支付买家数</h3><div id="payChart" style="width:100%;height:260px;"></div></div>
+          <div class="panel"><h3>加购次数</h3><div id="cartChart" style="width:100%;height:260px;"></div></div>
+          <div class="panel"><h3>支付订单数</h3><div id="payChart" style="width:100%;height:260px;"></div></div>
+          <div class="panel"><h3>曝光商品数</h3><div id="expProdChart" style="width:100%;height:260px;"></div></div>
+          <div class="panel"><h3>加购商品数</h3><div id="cartProdChart" style="width:100%;height:260px;"></div></div>
+          <div class="panel"><h3>支付商品数</h3><div id="payProdChart" style="width:100%;height:260px;"></div></div>
+          <div class="panel"><h3>访客比</h3><div id="uvRateChart" style="width:100%;height:260px;"></div></div>
+          <div class="panel"><h3>加购比</h3><div id="cartRateChart" style="width:100%;height:260px;"></div></div>
+          <div class="panel"><h3>支付比</h3><div id="payRateChart" style="width:100%;height:260px;"></div></div>
         </div>
       </section>
     </div>
@@ -92,10 +100,61 @@ document.addEventListener('DOMContentLoaded',()=>{
   renderSiteMenus();
   updateCurrent();
 
+  if(mode!=='self'){
+    ['uvRateChart','cartRateChart','payRateChart'].forEach(id=>{
+      const panel=document.getElementById(id)?.parentElement;
+      if(panel) panel.remove();
+    });
+  }
+
   if(mode==='self'){
     setupSelf();
   }else{
     setupFM();
+  }
+
+  async function loadProdTotal(){
+    const platform=mode==='self'?'self':'managed';
+    const today=new Date().toISOString().slice(0,10);
+    const qs=new URLSearchParams({platform,from:'2000-01-01',to:today,limit:'5000'});
+    try{
+      const r=await fetch('/api/new-products?'+qs.toString());
+      const j=await r.json();
+      document.getElementById('prodTotal').textContent=j.new_count||0;
+    }catch(e){
+      console.error(e);
+      document.getElementById('prodTotal').textContent='0';
+    }
+  }
+  loadProdTotal();
+
+  function renderBar(id,m){
+    const chart=echarts.init(document.getElementById(id));
+    chart.setOption({
+      tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+      xAxis:{type:'category',data:['本周期','上一周期']},
+      yAxis:{type:'value'},
+      series:[{
+        type:'bar',
+        data:[{value:m.cur,itemStyle:{color:'#3b82f6'}},{value:m.prev,itemStyle:{color:'#94a3b8'}}],
+        label:{show:true,position:'top'}
+      }]
+    });
+    window.addEventListener('resize',()=>chart.resize());
+  }
+
+  function renderLine(id,series){
+    const chart=echarts.init(document.getElementById(id));
+    chart.setOption({
+      tooltip:{trigger:'axis',formatter:p=>p.map(x=>`${x.seriesName}: ${x.data.toFixed(2)}%`).join('<br>')},
+      xAxis:{type:'category',data:series.labels},
+      yAxis:{type:'value',axisLabel:{formatter:'{value}%'}},
+      series:[
+        {name:'本周期',type:'line',smooth:true,data:series.cur},
+        {name:'上一周期',type:'line',smooth:true,data:series.prev}
+      ]
+    });
+    window.addEventListener('resize',()=>chart.resize());
   }
 
   function setupFM(){
@@ -137,27 +196,18 @@ document.addEventListener('DOMContentLoaded',()=>{
       const ja=await ra.json();
       const jb=rb?await rb.json():{rows:[]};
       const rowsA=ja.rows||[]; const rowsB=jb.rows||[];
-      function sumExp(rows){return rows.reduce((s,r)=>s+Number(r.search_exposure||r.exposure||r.pv||0),0);} 
+      function sumExp(rows){return rows.reduce((s,r)=>s+Number(r.search_exposure||r.exposure||r.pv||0),0);}
       const sum= (rows,key)=>rows.reduce((s,r)=>s+Number(r[key]||0),0);
       renderBar('expChart',{cur:sumExp(rowsA),prev:sumExp(rowsB)});
       renderBar('uvChart',{cur:sum(rowsA,'uv'),prev:sum(rowsB,'uv')});
-      renderBar('atcChart',{cur:sum(rowsA,'add_to_cart_users'),prev:sum(rowsB,'add_to_cart_users')});
+      renderBar('cartChart',{cur:sum(rowsA,'add_to_cart_users'),prev:sum(rowsB,'add_to_cart_users')});
       renderBar('payChart',{cur:sum(rowsA,'pay_buyers'),prev:sum(rowsB,'pay_buyers')});
-    }
-
-    function renderBar(id,m){
-      const chart=echarts.init(document.getElementById(id));
-      chart.setOption({
-        tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
-        xAxis:{type:'category',data:['本周期','上一周期']},
-        yAxis:{type:'value'},
-        series:[{
-          type:'bar',
-          data:[{value:m.cur,itemStyle:{color:'#3b82f6'}},{value:m.prev,itemStyle:{color:'#94a3b8'}}],
-          label:{show:true,position:'top'}
-        }]
-      });
-      window.addEventListener('resize',()=>chart.resize());
+      const prodExp=rows=>{const set=new Set();rows.forEach(r=>{if(Number(r.search_exposure||r.exposure||r.pv||0)>0)set.add(r.product_id);});return set.size;};
+      const prodAdd=rows=>{const set=new Set();rows.forEach(r=>{if(Number(r.add_to_cart_users||0)>0)set.add(r.product_id);});return set.size;};
+      const prodPay=rows=>{const set=new Set();rows.forEach(r=>{if(Number(r.pay_buyers||0)>0)set.add(r.product_id);});return set.size;};
+      renderBar('expProdChart',{cur:prodExp(rowsA),prev:prodExp(rowsB)});
+      renderBar('cartProdChart',{cur:prodAdd(rowsA),prev:prodAdd(rowsB)});
+      renderBar('payProdChart',{cur:prodPay(rowsA),prev:prodPay(rowsB)});
     }
 
     loadPeriods();
@@ -165,9 +215,9 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   function setupSelf(){
     const ctrl=document.getElementById('ctrl');
-    ctrl.innerHTML='<input id="dateRange" class="date-filter" placeholder="选择日期范围">';
-    const input=document.getElementById('dateRange');
-    const fp=flatpickr(input,{mode:'range',dateFormat:'Y-m-d',onClose:ds=>{if(ds.length===2)loadData();}});
+    ctrl.innerHTML='<input id="dateFilter" class="date-filter" placeholder="选择日期范围">';
+    const input=document.getElementById('dateFilter');
+    flatpickr(input,{mode:'range',dateFormat:'Y-m-d',onClose:ds=>{if(ds.length===2)loadData();}});
     const stored=localStorage.getItem('selfPeriod');
     if(stored && stored.includes(' to ')){
       input.value=stored;
@@ -182,35 +232,59 @@ document.addEventListener('DOMContentLoaded',()=>{
     async function loadData(){
       const val=input.value; if(!val.includes(' to '))return; const [startISO,endISO]=val.split(' to ');
       localStorage.setItem('selfPeriod', `${startISO} to ${endISO}`);
-      const {prevStart,prevEnd,days}=periodShift(startISO,endISO);
-      const [rowsCur,rowsPrev]=await Promise.all([
-        fetchAgg(startISO,endISO),
-        fetchAgg(prevStart,prevEnd)
+      const {prevStart,prevEnd}=periodShift(startISO,endISO);
+      const [rowsCur,rowsPrev,rowsCurDay,rowsPrevDay]=await Promise.all([
+        fetchAgg(startISO,endISO,'period'),
+        fetchAgg(prevStart,prevEnd,'period'),
+        fetchAgg(startISO,endISO,'day'),
+        fetchAgg(prevStart,prevEnd,'day')
       ]);
-      const agg=rows=>({
-        exp:aggregate(rows,'exposure'),
-        uv:aggregate(rows,'visitors'),
-        atc:aggregate(rows,'add_people'),
-        pay:aggregate(rows,'pay_buyers')
-      });
-      const curAgg=agg(rowsCur); const prevAgg=agg(rowsPrev);
-      const labels=[], expCur=[], expPrev=[], uvCur=[], uvPrev=[], atcCur=[], atcPrev=[], payCur=[], payPrev=[];
-      for(let i=0;i<days;i++){
-        const d=addDays(startISO,i); const dp=addDays(prevStart,i);
-        labels.push(formatMD(d));
-        expCur.push(curAgg.exp[d]||0); expPrev.push(prevAgg.exp[dp]||0);
-        uvCur.push(curAgg.uv[d]||0); uvPrev.push(prevAgg.uv[dp]||0);
-        atcCur.push(curAgg.atc[d]||0); atcPrev.push(prevAgg.atc[dp]||0);
-        payCur.push(curAgg.pay[d]||0); payPrev.push(prevAgg.pay[dp]||0);
-      }
-      renderLine('expChart',labels,expCur,expPrev);
-      renderLine('uvChart',labels,uvCur,uvPrev);
-      renderLine('atcChart',labels,atcCur,atcPrev);
-      renderLine('payChart',labels,payCur,payPrev);
+      const sum=(rows,key)=>rows.reduce((s,r)=>s+Number(r[key]||0),0);
+      const pickAdd=r=>Number(r.add_count)||Number(r.add_people)||0;
+      const pickPay=r=>Number(r.pay_orders)||Number(r.pay_buyers)||Number(r.pay_items)||0;
+      const sumAdd=rows=>rows.reduce((s,r)=>s+pickAdd(r),0);
+      const sumPay=rows=>rows.reduce((s,r)=>s+pickPay(r),0);
+      renderBar('expChart',{cur:sum(rowsCur,'exposure'),prev:sum(rowsPrev,'exposure')});
+      renderBar('uvChart',{cur:sum(rowsCur,'visitors'),prev:sum(rowsPrev,'visitors')});
+      renderBar('cartChart',{cur:sumAdd(rowsCur),prev:sumAdd(rowsPrev)});
+      renderBar('payChart',{cur:sumPay(rowsCur),prev:sumPay(rowsPrev)});
+      const prodExp=(rows)=>{const set=new Set();rows.forEach(r=>{if(Number(r.exposure||0)>0)set.add(r.product_id);});return set.size;};
+      const prodAdd=(rows)=>{const set=new Set();rows.forEach(r=>{if(pickAdd(r)>0)set.add(r.product_id);});return set.size;};
+      const prodPay=(rows)=>{const set=new Set();rows.forEach(r=>{if(pickPay(r)>0)set.add(r.product_id);});return set.size;};
+      renderBar('expProdChart',{cur:prodExp(rowsCur),prev:prodExp(rowsPrev)});
+      renderBar('cartProdChart',{cur:prodAdd(rowsCur),prev:prodAdd(rowsPrev)});
+      renderBar('payProdChart',{cur:prodPay(rowsCur),prev:prodPay(rowsPrev)});
+
+      const dailyAgg=rows=>{
+        const map=new Map();
+        rows.forEach(r=>{
+          const d=r.bucket||r.stat_date; if(!d) return;
+          if(!map.has(d)) map.set(d,{exposure:0,visitors:0,add_count:0,add_people:0,pay_orders:0,pay_buyers:0,pay_items:0});
+          const obj=map.get(d);
+          obj.exposure+=Number(r.exposure)||0;
+          obj.visitors+=Number(r.visitors)||0;
+          obj.add_count+=Number(r.add_count)||0;
+          obj.add_people+=Number(r.add_people)||0;
+          obj.pay_orders+=Number(r.pay_orders)||0;
+          obj.pay_buyers+=Number(r.pay_buyers)||0;
+          obj.pay_items+=Number(r.pay_items)||0;
+        });
+        return Array.from(map.entries()).sort(([a],[b])=>a.localeCompare(b)).map(([date,val])=>({date,...val}));
+      };
+      const curDay=dailyAgg(rowsCurDay);
+      const prevDay=dailyAgg(rowsPrevDay);
+      const labels=curDay.map(r=>r.date.slice(5));
+      const build=(arr,fn)=>labels.map((_,i)=>arr[i]?fn(arr[i]):0);
+      const uvRate=r=>r.exposure>0?(r.visitors/r.exposure*100):0;
+      const cartRate=r=>{const a=pickAdd(r);return r.visitors>0?(a/r.visitors*100):0;};
+      const payRate=r=>{const p=pickPay(r);return r.visitors>0?(p/r.visitors*100):0;};
+      renderLine('uvRateChart',{labels,cur:build(curDay,uvRate),prev:build(prevDay,uvRate)});
+      renderLine('cartRateChart',{labels,cur:build(curDay,cartRate),prev:build(prevDay,cartRate)});
+      renderLine('payRateChart',{labels,cur:build(curDay,payRate),prev:build(prevDay,payRate)});
     }
 
-    function fetchAgg(start,end){
-      const url=`/api/ae_query?start=${start}&end=${end}&granularity=day`;
+    function fetchAgg(start,end,gran='period'){
+      const url=`/api/ae_query?start=${start}&end=${end}&granularity=${gran}`;
       return fetch(url).then(r=>r.json()).then(j=>j.rows||[]);
     }
     function periodShift(startISO,endISO){
@@ -219,23 +293,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       const prevEnd=new Date(start.getTime()-86400000);
       const prevStart=new Date(prevEnd.getTime()-(days-1)*86400000);
       const fmt=d=>d.toISOString().slice(0,10);
-      return{prevStart:fmt(prevStart),prevEnd:fmt(prevEnd),days};
-    }
-    function aggregate(rows,key){
-      const m={}; rows.forEach(r=>{const d=r.bucket; m[d]=(m[d]||0)+Number(r[key]||0);}); return m;
-    }
-    function addDays(startISO,n){const d=new Date(startISO); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10);} 
-    function formatMD(iso){const d=new Date(iso); return (d.getMonth()+1)+'/'+d.getDate();}
-    function renderLine(id,labels,cur,prev){
-      const chart=echarts.init(document.getElementById(id));
-      chart.setOption({
-        tooltip:{trigger:'axis'},
-        legend:{data:['本周期','上一周期']},
-        xAxis:{type:'category',data:labels},
-        yAxis:{type:'value'},
-        series:[{name:'本周期',type:'line',smooth:true,data:cur},{name:'上一周期',type:'line',smooth:true,data:prev}]
-      });
-      window.addEventListener('resize',()=>chart.resize());
+      return{prevStart:fmt(prevStart),prevEnd:fmt(prevEnd)};
     }
   }
 });
