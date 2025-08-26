@@ -49,6 +49,9 @@
           <div class="panel"><h3>支付订单数</h3><div id="payChart" style="width:100%;height:260px;"></div></div>
           <div class="panel"><h3>加购商品数</h3><div id="cartProdChart" style="width:100%;height:260px;"></div></div>
           <div class="panel"><h3>支付商品数</h3><div id="payProdChart" style="width:100%;height:260px;"></div></div>
+          <div class="panel"><h3>访客比</h3><div id="uvRateChart" style="width:100%;height:260px;"></div></div>
+          <div class="panel"><h3>加购比</h3><div id="cartRateChart" style="width:100%;height:260px;"></div></div>
+          <div class="panel"><h3>支付比</h3><div id="payRateChart" style="width:100%;height:260px;"></div></div>
         </div>
       </section>
     </div>
@@ -111,6 +114,20 @@ document.addEventListener('DOMContentLoaded',()=>{
         data:[{value:m.cur,itemStyle:{color:'#3b82f6'}},{value:m.prev,itemStyle:{color:'#94a3b8'}}],
         label:{show:true,position:'top'}
       }]
+    });
+    window.addEventListener('resize',()=>chart.resize());
+  }
+
+  function renderLine(id,series){
+    const chart=echarts.init(document.getElementById(id));
+    chart.setOption({
+      tooltip:{trigger:'axis',formatter:p=>p.map(x=>`${x.seriesName}: ${x.data.toFixed(2)}%`).join('<br>')},
+      xAxis:{type:'category',data:series.labels},
+      yAxis:{type:'value',axisLabel:{formatter:'{value}%'}},
+      series:[
+        {name:'本周期',type:'line',smooth:true,data:series.cur},
+        {name:'上一周期',type:'line',smooth:true,data:series.prev}
+      ]
     });
     window.addEventListener('resize',()=>chart.resize());
   }
@@ -188,22 +205,56 @@ document.addEventListener('DOMContentLoaded',()=>{
       const val=input.value; if(!val.includes(' to '))return; const [startISO,endISO]=val.split(' to ');
       localStorage.setItem('selfPeriod', `${startISO} to ${endISO}`);
       const {prevStart,prevEnd}=periodShift(startISO,endISO);
-      const [rowsCur,rowsPrev]=await Promise.all([
-        fetchAgg(startISO,endISO),
-        fetchAgg(prevStart,prevEnd)
+      const [rowsCur,rowsPrev,rowsCurDay,rowsPrevDay]=await Promise.all([
+        fetchAgg(startISO,endISO,'period'),
+        fetchAgg(prevStart,prevEnd,'period'),
+        fetchAgg(startISO,endISO,'day'),
+        fetchAgg(prevStart,prevEnd,'day')
       ]);
       const sum=(rows,key)=>rows.reduce((s,r)=>s+Number(r[key]||0),0);
-      const prod=(rows,key)=>{const set=new Set();rows.forEach(r=>{if(Number(r[key])>0)set.add(r.product_id);});return set.size;};
+      const pickAdd=r=>Number(r.add_count)||Number(r.add_people)||0;
+      const pickPay=r=>Number(r.pay_orders)||Number(r.pay_buyers)||Number(r.pay_items)||0;
+      const sumAdd=rows=>rows.reduce((s,r)=>s+pickAdd(r),0);
+      const sumPay=rows=>rows.reduce((s,r)=>s+pickPay(r),0);
       renderBar('expChart',{cur:sum(rowsCur,'exposure'),prev:sum(rowsPrev,'exposure')});
       renderBar('uvChart',{cur:sum(rowsCur,'visitors'),prev:sum(rowsPrev,'visitors')});
-      renderBar('cartChart',{cur:sum(rowsCur,'add_count'),prev:sum(rowsPrev,'add_count')});
-      renderBar('payChart',{cur:sum(rowsCur,'pay_orders'),prev:sum(rowsPrev,'pay_orders')});
-      renderBar('cartProdChart',{cur:prod(rowsCur,'add_count'),prev:prod(rowsPrev,'add_count')});
-      renderBar('payProdChart',{cur:prod(rowsCur,'pay_orders'),prev:prod(rowsPrev,'pay_orders')});
+      renderBar('cartChart',{cur:sumAdd(rowsCur),prev:sumAdd(rowsPrev)});
+      renderBar('payChart',{cur:sumPay(rowsCur),prev:sumPay(rowsPrev)});
+      const prodAdd=(rows)=>{const set=new Set();rows.forEach(r=>{if(pickAdd(r)>0)set.add(r.product_id);});return set.size;};
+      const prodPay=(rows)=>{const set=new Set();rows.forEach(r=>{if(pickPay(r)>0)set.add(r.product_id);});return set.size;};
+      renderBar('cartProdChart',{cur:prodAdd(rowsCur),prev:prodAdd(rowsPrev)});
+      renderBar('payProdChart',{cur:prodPay(rowsCur),prev:prodPay(rowsPrev)});
+
+      const dailyAgg=rows=>{
+        const map=new Map();
+        rows.forEach(r=>{
+          const d=r.bucket||r.stat_date; if(!d) return;
+          if(!map.has(d)) map.set(d,{exposure:0,visitors:0,add_count:0,add_people:0,pay_orders:0,pay_buyers:0,pay_items:0});
+          const obj=map.get(d);
+          obj.exposure+=Number(r.exposure)||0;
+          obj.visitors+=Number(r.visitors)||0;
+          obj.add_count+=Number(r.add_count)||0;
+          obj.add_people+=Number(r.add_people)||0;
+          obj.pay_orders+=Number(r.pay_orders)||0;
+          obj.pay_buyers+=Number(r.pay_buyers)||0;
+          obj.pay_items+=Number(r.pay_items)||0;
+        });
+        return Array.from(map.entries()).sort(([a],[b])=>a.localeCompare(b)).map(([date,val])=>({date,...val}));
+      };
+      const curDay=dailyAgg(rowsCurDay);
+      const prevDay=dailyAgg(rowsPrevDay);
+      const labels=curDay.map(r=>r.date.slice(5));
+      const build=(arr,fn)=>labels.map((_,i)=>arr[i]?fn(arr[i]):0);
+      const uvRate=r=>r.exposure>0?(r.visitors/r.exposure*100):0;
+      const cartRate=r=>{const a=pickAdd(r);return r.visitors>0?(a/r.visitors*100):0;};
+      const payRate=r=>{const p=pickPay(r);return r.visitors>0?(p/r.visitors*100):0;};
+      renderLine('uvRateChart',{labels,cur:build(curDay,uvRate),prev:build(prevDay,uvRate)});
+      renderLine('cartRateChart',{labels,cur:build(curDay,cartRate),prev:build(prevDay,cartRate)});
+      renderLine('payRateChart',{labels,cur:build(curDay,payRate),prev:build(prevDay,payRate)});
     }
 
-    function fetchAgg(start,end){
-      const url=`/api/ae_query?start=${start}&end=${end}&granularity=period`;
+    function fetchAgg(start,end,gran='period'){
+      const url=`/api/ae_query?start=${start}&end=${end}&granularity=${gran}`;
       return fetch(url).then(r=>r.json()).then(j=>j.rows||[]);
     }
     function periodShift(startISO,endISO){
