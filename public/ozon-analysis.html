@@ -50,6 +50,7 @@
           <div class="panel"><h3>详情页访客数</h3><div id="uvChart" style="width:100%;height:260px;"></div></div>
           <div class="panel"><h3>加购次数</h3><div id="cartChart" style="width:100%;height:260px;"></div></div>
           <div class="panel"><h3>订购商品数</h3><div id="orderChart" style="width:100%;height:260px;"></div></div>
+          <div class="panel"><h3>有曝光商品数</h3><div id="expProdChart" style="width:100%;height:260px;"></div></div>
           <div class="panel"><h3>有加购商品数</h3><div id="cartProdChart" style="width:100%;height:260px;"></div></div>
           <div class="panel"><h3>有支付商品数</h3><div id="payProdChart" style="width:100%;height:260px;"></div></div>
         </div>
@@ -111,16 +112,17 @@
     return j.rows||[];
   }
   function sum(rows){
+    const expSet=new Set();
     const cartSet=new Set();
     const paySet=new Set();
     let exposure=0,uv=0,cart=0,pay=0;
     rows.forEach(r=>{
-      exposure+=Number(r.voronka_prodazh_pokazy_vsego)||0;
+      const e=Number(r.voronka_prodazh_pokazy_vsego)||0; exposure+=e; if(e>0) expSet.add(r.product_id||r.sku+'@@'+(r.model||''));
       const u=Number(r.voronka_prodazh_uv_s_prosmotrom_kartochki_tovara)||0; uv+=u;
       const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; cart+=c; if(c>0) cartSet.add(r.product_id||r.sku+'@@'+(r.model||''));
       const p=Number(r.voronka_prodazh_zakazano_tovarov)||0; pay+=p; if(p>0) paySet.add(r.product_id||r.sku+'@@'+(r.model||''));
     });
-    return {exposure,uv,cart,pay,cartProds:cartSet.size,payProds:paySet.size};
+    return {exposure,uv,cart,pay,expProds:expSet.size,cartProds:cartSet.size,payProds:paySet.size};
   }
 
   async function loadProdTotal(){
@@ -150,6 +152,7 @@
     renderBar('uvChart',{cur:cur.uv,prev:prev.uv});
     renderBar('cartChart',{cur:cur.cart,prev:prev.cart});
     renderBar('orderChart',{cur:cur.pay,prev:prev.pay});
+    renderBar('expProdChart',{cur:cur.expProds,prev:prev.expProds});
     renderBar('cartProdChart',{cur:cur.cartProds,prev:prev.cartProds});
     renderBar('payProdChart',{cur:cur.payProds,prev:prev.payProds});
 

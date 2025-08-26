@@ -49,6 +49,7 @@
           <div class="panel"><h3>访客数</h3><div id="uvChart" style="width:100%;height:260px;"></div></div>
           <div class="panel"><h3>加购次数</h3><div id="cartChart" style="width:100%;height:260px;"></div></div>
           <div class="panel"><h3>支付订单数</h3><div id="payChart" style="width:100%;height:260px;"></div></div>
+          <div class="panel"><h3>曝光商品数</h3><div id="expProdChart" style="width:100%;height:260px;"></div></div>
           <div class="panel"><h3>加购商品数</h3><div id="cartProdChart" style="width:100%;height:260px;"></div></div>
           <div class="panel"><h3>支付商品数</h3><div id="payProdChart" style="width:100%;height:260px;"></div></div>
           <div class="panel"><h3>访客比</h3><div id="uvRateChart" style="width:100%;height:260px;"></div></div>
@@ -195,14 +196,16 @@ document.addEventListener('DOMContentLoaded',()=>{
       const ja=await ra.json();
       const jb=rb?await rb.json():{rows:[]};
       const rowsA=ja.rows||[]; const rowsB=jb.rows||[];
-      function sumExp(rows){return rows.reduce((s,r)=>s+Number(r.search_exposure||r.exposure||r.pv||0),0);} 
+      function sumExp(rows){return rows.reduce((s,r)=>s+Number(r.search_exposure||r.exposure||r.pv||0),0);}
       const sum= (rows,key)=>rows.reduce((s,r)=>s+Number(r[key]||0),0);
       renderBar('expChart',{cur:sumExp(rowsA),prev:sumExp(rowsB)});
       renderBar('uvChart',{cur:sum(rowsA,'uv'),prev:sum(rowsB,'uv')});
       renderBar('cartChart',{cur:sum(rowsA,'add_to_cart_users'),prev:sum(rowsB,'add_to_cart_users')});
       renderBar('payChart',{cur:sum(rowsA,'pay_buyers'),prev:sum(rowsB,'pay_buyers')});
+      const prodExp=rows=>{const set=new Set();rows.forEach(r=>{if(Number(r.search_exposure||r.exposure||r.pv||0)>0)set.add(r.product_id);});return set.size;};
       const prodAdd=rows=>{const set=new Set();rows.forEach(r=>{if(Number(r.add_to_cart_users||0)>0)set.add(r.product_id);});return set.size;};
       const prodPay=rows=>{const set=new Set();rows.forEach(r=>{if(Number(r.pay_buyers||0)>0)set.add(r.product_id);});return set.size;};
+      renderBar('expProdChart',{cur:prodExp(rowsA),prev:prodExp(rowsB)});
       renderBar('cartProdChart',{cur:prodAdd(rowsA),prev:prodAdd(rowsB)});
       renderBar('payProdChart',{cur:prodPay(rowsA),prev:prodPay(rowsB)});
     }
@@ -245,8 +248,10 @@ document.addEventListener('DOMContentLoaded',()=>{
       renderBar('uvChart',{cur:sum(rowsCur,'visitors'),prev:sum(rowsPrev,'visitors')});
       renderBar('cartChart',{cur:sumAdd(rowsCur),prev:sumAdd(rowsPrev)});
       renderBar('payChart',{cur:sumPay(rowsCur),prev:sumPay(rowsPrev)});
+      const prodExp=(rows)=>{const set=new Set();rows.forEach(r=>{if(Number(r.exposure||0)>0)set.add(r.product_id);});return set.size;};
       const prodAdd=(rows)=>{const set=new Set();rows.forEach(r=>{if(pickAdd(r)>0)set.add(r.product_id);});return set.size;};
       const prodPay=(rows)=>{const set=new Set();rows.forEach(r=>{if(pickPay(r)>0)set.add(r.product_id);});return set.size;};
+      renderBar('expProdChart',{cur:prodExp(rowsCur),prev:prodExp(rowsPrev)});
       renderBar('cartProdChart',{cur:prodAdd(rowsCur),prev:prodAdd(rowsPrev)});
       renderBar('payProdChart',{cur:prodPay(rowsCur),prev:prodPay(rowsPrev)});
 
