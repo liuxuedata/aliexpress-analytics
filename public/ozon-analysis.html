@@ -10,6 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
+  <style>.kpi-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:12px}</style>
 </head>
 <body class="fm">
 <header class="header">
@@ -43,6 +44,7 @@
     <div class="content">
       <section class="content-pad">
         <div class="controls" style="margin-bottom:12px;"><input id="dateRange" class="date-filter" placeholder="选择日期范围"></div>
+        <div class="kpi-row"><div class="stat-card"><h4>产品总数</h4><p id="prodTotal">--</p></div></div>
         <div class="grid grid-2">
           <div class="panel"><h3>总展示数</h3><div id="expChart" style="width:100%;height:260px;"></div></div>
           <div class="panel"><h3>详情页访客数</h3><div id="uvChart" style="width:100%;height:260px;"></div></div>
@@ -121,6 +123,19 @@
     return {exposure,uv,cart,pay,cartProds:cartSet.size,payProds:paySet.size};
   }
 
+  async function loadProdTotal(){
+    try{
+      const today=new Date().toISOString().slice(0,10);
+      const url=`/api/ozon/kpi?store_id=${encodeURIComponent(storeId)}&start=2000-01-01&end=${today}`;
+      const r=await fetch(url); const j=await r.json();
+      const val=j.metrics?.product_total?.current||0;
+      document.getElementById('prodTotal').textContent=val;
+    }catch(e){
+      console.error(e);
+      document.getElementById('prodTotal').textContent='0';
+    }
+  }
+
   async function loadData(){
     const val=input.value; if(!val.includes(' to ')) return;
     const [start,end]=val.split(' to ');
@@ -187,6 +202,7 @@
     window.addEventListener('resize',()=>chart.resize());
   }
 
+  loadProdTotal();
   loadData();
 })();
 </script>
