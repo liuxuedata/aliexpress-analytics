@@ -66,7 +66,7 @@ function parseDay(dayRaw) {
   return isNaN(d.getTime()) ? null : d;
 }
 
-async function handleFile(filePath, filename) {
+async function handleFile(filePath, filename, source = '') {
   const ext = (filename || '').toLowerCase();
   let rows = [];
 
@@ -81,17 +81,29 @@ async function handleFile(filePath, filename) {
     rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
   }
 
-  // Find header row (contains "Landing page"/"URL", "Campaign", "Day", etc.)
+  // Find header row (contains "Landing page"/"URL"/"网址", etc.)
   let headerIdx = rows.findIndex(r => (r||[]).some(c => {
     const cell = String(c||'').trim().toLowerCase();
-    return cell === 'landing page' || cell === 'url' || cell === 'website url';
+    return (
+      cell === 'landing page' ||
+      cell === 'url' ||
+      cell === 'website url' ||
+      cell === '网址' ||
+      cell.includes('链接（广告设置）') ||
+      cell.includes('链接(广告设置)')
+    );
   }));
   if (headerIdx === -1) throw new Error('Header row not found. Make sure the sheet has a "Landing page" or "URL" column.');
   const header = rows[headerIdx];
   const dataRows = rows.slice(headerIdx + 1);
 
-  // Build a case-insensitive header lookup tolerant of punctuation and spacing
-  const canon = s => String(s || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+  // Build a case-insensitive header lookup tolerant of punctuation and spacing.
+  // Allow non-Latin characters (e.g., Chinese) to remain for matching.
+  const canon = s =>
+    String(s || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[\s\.\-_\/()（）]+/g, '');
   const headerCanon = header.map(canon);
   const col = (...names) => {
     for (const n of names) {
@@ -101,18 +113,38 @@ async function handleFile(filePath, filename) {
     return -1;
   };
 
-  const cLanding = col('landing page', 'url', 'website url');
-  const cCampaign = col('campaign', 'campaign name');
-  const cDay = col('day', 'date');
-  const cNetwork = col('network (with search partners)', 'network', 'source', 'platform');
-  const cDevice = col('device', 'device type');
-  const cClicks = col('clicks', 'link clicks');
-  const cImpr = col('impr.', 'impressions');
-  const cCTR = col('ctr', 'click-through rate');
-  const cAvgCPC = col('avg. cpc', 'cpc', 'cost per click');
-  const cCost = col('cost', 'amount spent');
-  const cConv = col('conversions', 'results', 'purchases');
-  const cCostPerConv = col('cost / conv.', 'cost/conv.', 'cost/conv', 'cost per result', 'avg. cost');
+  const cLanding = col(
+    'landing page',
+    'url',
+    'website url',
+    '网址',
+    '链接（广告设置）',
+    '链接(广告设置)',
+    '链接'
+  );
+  const cCampaign = col('campaign', 'campaign name', '广告系列名称');
+  const cDay = col('day', 'date', '报告开始日期', '开始日期');
+  const cNetwork = col(
+    'network (with search partners)',
+    'network',
+    'source',
+    'platform'
+  );
+  const cDevice = col('device', 'device type', '设备');
+  const cClicks = col('clicks', 'link clicks', '链接点击量');
+  const cImpr = col('impr.', 'impressions', '展示次数');
+  const cCTR = col('ctr', 'click-through rate', '点击率（全部）', '链接点击率');
+  const cAvgCPC = col('avg. cpc', 'cpc', 'cost per click', '单次链接点击费用');
+  const cCost = col('cost', 'amount spent', '已花费金额usd', '已花费金额');
+  const cConv = col('conversions', 'results', 'purchases', '成效', '网站购物');
+  const cCostPerConv = col(
+    'cost / conv.',
+    'cost/conv.',
+    'cost/conv',
+    'cost per result',
+    'avg. cost',
+    '单次成效费用'
+  );
   const cAllConv = col('all conv.', 'all conv', 'total conv');
   const cConvValue = col('conv. value', 'conv value', 'purchase value');
   const cAllConvRate = col('all conv. rate', 'all conv rate', 'total conv rate');
@@ -135,7 +167,7 @@ async function handleFile(filePath, filename) {
       landing_path: path,
       campaign: String(r[cCampaign] || '').trim(),
       day: day.toISOString().slice(0,10),
-      network: String(r[cNetwork] || '').trim(),
+      network: cNetwork >= 0 ? String(r[cNetwork] || '').trim() : String(source || '').trim(),
       device: String(r[cDevice] || '').trim(),
       currency_code: cCurrency >= 0 ? String(r[cCurrency] || '').trim() : null,
       clicks: cClicks >= 0 ? coerceNum(r[cClicks]) : 0,
@@ -301,6 +333,7 @@ async function handler(req, res) {
 
   const form = formidable({ multiples: false, keepExtensions: true });
   try {
+    const source = (req.query && req.query.source ? String(req.query.source) : '').toLowerCase();
     const { files } = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
         if (err) reject(err); else resolve({ fields, files });
@@ -312,7 +345,8 @@ async function handler(req, res) {
     if (!filePath) throw new Error('Upload failed: file path missing.');
     const result = await handleFile(
       filePath,
-      uploaded.originalFilename || uploaded.newFilename || uploaded.name
+      uploaded.originalFilename || uploaded.newFilename || uploaded.name,
+      source
     );
     res.status(200).json({ ok: true, ...result });
   } catch (e) {

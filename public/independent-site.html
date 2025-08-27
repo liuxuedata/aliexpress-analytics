@@ -106,6 +106,11 @@
           <label>Campaign：</label>
           <select id="campaignSel"><option value="">全部</option></select>
           <span id="status" class="small"></span>
+          <label>数据源：</label>
+          <select id="sourceSel">
+            <option value="google">Google</option>
+            <option value="facebook">Facebook</option>
+          </select>
           <button id="uploadBtn" class="btn">上传数据</button>
           <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none;">
           <span id="uploadStatus" class="small"></span>
@@ -519,6 +524,7 @@
   const fileInput = document.getElementById('fileInput');
   const uploadBtn = document.getElementById('uploadBtn');
   const statusEl = document.getElementById('uploadStatus');
+  const sourceSel = document.getElementById('sourceSel');
   uploadBtn.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', async () => {
     if (!fileInput.files.length) return;
@@ -527,7 +533,8 @@
     try {
       statusEl.textContent = '导入中...';
       uploadBtn.disabled = true;
-      const resp = await fetch('/api/independent/ingest', { method: 'POST', body: fd });
+      const source = sourceSel.value || 'google';
+      const resp = await fetch(`/api/independent/ingest?source=${encodeURIComponent(source)}`, { method: 'POST', body: fd });
       const json = await resp.json().catch(() => ({ ok:false, error:`HTTP ${resp.status}` }));
       if (!resp.ok || !json.ok) throw new Error(json.error || '上传失败');
       statusEl.textContent = '导入完成，加载中...';
