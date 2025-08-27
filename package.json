@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "migrate": "bash scripts/migrate.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
