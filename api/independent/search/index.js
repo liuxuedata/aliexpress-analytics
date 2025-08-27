@@ -15,6 +15,16 @@ function safeNum(v){
   return Number.isFinite(n) ? n : 0;
 }
 
+function buildPattern(q){
+  if(!q) return '%';
+  const tokens = q
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(t=>t.replace(/[%_]/g,''));
+  return `%${tokens.join('%')}%`;
+}
+
 function aggregate(rows){
   const map = {};
   (rows||[]).forEach(r=>{
@@ -50,7 +60,7 @@ module.exports = async (req,res) => {
       .from('independent_landing_metrics')
       .select('landing_path, landing_url, clicks, impr, cost, conversions, conv_value')
       .eq('site', site)
-      .ilike('landing_path', `%${q}%`)
+      .ilike('landing_path', buildPattern(q))
       .limit(1000);
     if(error) throw error;
     const items = aggregate(data).sort((a,b)=>b.clicks - a.clicks).slice(0, limitNum);
@@ -61,3 +71,4 @@ module.exports = async (req,res) => {
 };
 
 module.exports._aggregate = aggregate;
+module.exports._buildPattern = buildPattern;

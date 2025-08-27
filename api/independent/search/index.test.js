@@ -1,4 +1,4 @@
-const { _aggregate } = require('./index.js');
+const { _aggregate, _buildPattern } = require('./index.js');
 const test = require('node:test');
 const assert = require('assert');
 
@@ -13,4 +13,8 @@ test('aggregate sums metrics and computes rates', () => {
     { landing_path:'/a', landing_url:'/a', clicks:15, impr:30, cost:8, conversions:3, conv_value:45, ctr:0.5, conv_rate:0.2 },
     { landing_path:'/b', landing_url:'/b', clicks:2, impr:4, cost:1, conversions:0, conv_value:0, ctr:0.5, conv_rate:0 }
   ]);
+});
+
+test('buildPattern joins tokens with wildcards', () => {
+  assert.strictEqual(_buildPattern('bestway inflatable pool'), '%bestway%inflatable%pool%');
 });
