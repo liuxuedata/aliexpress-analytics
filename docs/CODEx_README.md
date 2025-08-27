@@ -2,9 +2,10 @@
 
 目标：
 - 在当前分支新增独立站“Landing Pages 明细”页面（`independent-site.html`）。
-- 新建 Supabase 表 `independent_landing_metrics` 并提供两个 API：
+- 新建 Supabase 表 `independent_landing_metrics` 并提供三个 API：
   - `POST /api/independent/ingest`：上传 Google Ads 导出的 xlsx/csv，自动 upsert。
   - `GET  /api/independent/stats`：按站点、日期区间返回表格数据与图表数据。
+  - `GET  /api/independent/search`：按站点和 `landing_path` 关键字模糊搜索相关商品，`q` 参数可用空格分隔多个关键词。
 
 ## 1. 代码变更（提交到当前分支）
 新增文件：
