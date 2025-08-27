@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(addBtn) addBtn.style.display='none';
     renderSiteMenus();
     fetch('/api/independent/sites').then(r=>r.json()).then(j=>{
-      const sites=j.sites||[];
+      const sites=Array.from(new Set([...(j.sites||[]), 'icyberite.com'].filter(Boolean)));
       const paramSite=params.get('site');
       const stored=localStorage.getItem('currentIndepSite');
       let site=sites[0]||'';
