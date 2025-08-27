@@ -1,4 +1,4 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-  <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/>
-  <path d="M12 12V3a9 9 0 0 1 9 9h-9z" fill="currentColor"/>
+  <circle cx="12" cy="12" r="9" stroke="#94a3b8" stroke-width="2" fill="none"/>
+  <path d="M12 12V3a9 9 0 0 1 9 9h-9z" fill="#94a3b8"/>
 </svg>
