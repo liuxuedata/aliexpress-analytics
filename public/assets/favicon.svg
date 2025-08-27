@@ -1,6 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <circle cx="32" cy="32" r="28" fill="#1e40af"/>
-  <path d="M4 32h56" stroke="#fff" stroke-width="4"/>
-  <ellipse cx="32" cy="32" rx="12" ry="28" stroke="#fff" stroke-width="4" fill="none"/>
-  <ellipse cx="32" cy="32" rx="4" ry="28" stroke="#fff" stroke-width="4" fill="none"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect x="2" y="18" width="6" height="12" fill="#1e40af"/>
+  <rect x="12" y="14" width="6" height="16" fill="#1e40af"/>
+  <rect x="22" y="10" width="6" height="20" fill="#1e40af"/>
+  <polyline points="2,22 12,12 18,18 30,6" stroke="#1e40af" stroke-width="3" fill="none"/>
+  <polyline points="26,6 30,6 30,10" stroke="#1e40af" stroke-width="3" fill="none"/>
 </svg>

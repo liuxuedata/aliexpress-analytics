@@ -107,6 +107,8 @@ body{
 }
 .sidebar h3{ margin:0 0 10px; font-size:16px }
 .site-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.site-header .site-name{display:flex;align-items:center;gap:4px}
+.site-header .site-icon{width:16px;height:16px}
 .add-site-btn{ background:var(--brand); color:#fff; border:none; border-radius:4px; width:20px; height:20px; cursor:pointer; line-height:20px; text-align:center; }
 .add-site-btn:hover{ background:#2563eb; }
 .sidebar ul{ list-style:none; padding-left:0; margin:0 }
