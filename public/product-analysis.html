@@ -2,7 +2,7 @@
 <html lang="zh-CN" data-theme="light">
 <head>
   <meta charset="utf-8">
-  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg" sizes="64x64">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>产品分析</title>
   <link rel="stylesheet" href="assets/theme.css?v=20250812-deep">
@@ -34,11 +34,17 @@
 </header>
 <div class="layout container">
   <nav class="sidebar" id="sidebar">
-    <div class="site-header"><span id="currentSite"></span><button id="addSite" class="add-site-btn">+</button></div>
+    <div class="site-header">
+      <div class="site-title">
+        <svg class="site-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 0 20M12 2a15.3 15.3 0 0 0 0 20"/></svg>
+        <span id="currentSite"></span>
+      </div>
+      <button id="addSite" class="add-site-btn">+</button>
+    </div>
     <ul class="sub-nav">
-      <li><a id="detailLink" href="managed.html">详细数据</a></li>
-      <li><a id="analysisLink" href="operation-analysis.html">运营分析</a></li>
-      <li><a class="active" href="#">产品分析</a></li>
+      <li><a id="detailLink" href="managed.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/><line x1="15" y1="9" x2="15" y2="21"/></svg>详细数据</a></li>
+      <li><a id="analysisLink" href="operation-analysis.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 3h7v7"/></svg>运营分析</a></li>
+      <li><a class="active" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3v8h8"/></svg>产品分析</a></li>
     </ul>
   </nav>
   <main class="main">
