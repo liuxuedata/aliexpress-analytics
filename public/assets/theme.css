@@ -123,9 +123,9 @@ body{
 .sidebar .sub-nav{ list-style:none; padding-left:0; margin:0 }
 .sidebar .sub-nav li{ margin-bottom:6px }
 .sidebar .sub-nav a{ display:flex; align-items:center }
-.sidebar .sub-nav .nav-icon{ width:16px; height:16px; margin-right:6px; flex-shrink:0 }
+.sidebar .sub-nav .nav-icon{ width:16px; height:16px; margin-right:6px; flex-shrink:0; opacity:.8 }
 .sidebar .sub-nav a:hover .nav-icon,
-.sidebar .sub-nav a.active .nav-icon{ filter:brightness(0) invert(1); }
+.sidebar .sub-nav a.active .nav-icon{ opacity:1 }
 .sidebar .sub-nav a.active{ color:#fff; background:var(--brand) }
 
 /* ------ Layout ------ */
