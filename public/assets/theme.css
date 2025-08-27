@@ -122,6 +122,8 @@ body{
 .sidebar .submenu a.active{ color:#fff; background:var(--brand) }
 .sidebar .sub-nav{ list-style:none; padding-left:0; margin:0 }
 .sidebar .sub-nav li{ margin-bottom:6px }
+.sidebar .sub-nav a{ display:flex; align-items:center }
+.sidebar .sub-nav .nav-icon{ width:16px; height:16px; margin-right:6px }
 .sidebar .sub-nav a.active{ color:#fff; background:var(--brand) }
 
 /* ------ Layout ------ */
