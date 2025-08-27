@@ -66,6 +66,160 @@ function parseDay(dayRaw) {
   return isNaN(d.getTime()) ? null : d;
 }
 
+// Parse and upsert Meta/Facebook ads export into dedicated tables
+async function handleFacebookFile(filePath, filename, site = 'icyberite') {
+  const wb = XLSX.readFile(filePath);
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+  if (!rows.length) return { processed: 0, upserted: 0 };
+
+  const header = rows[0];
+  const dataRows = rows.slice(1);
+
+  const canon = s =>
+    String(s || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[\s\.\-_\/()（）]+/g, '');
+  const headerCanon = header.map(canon);
+  const col = (...names) => {
+    for (const n of names) {
+      const idx = headerCanon.indexOf(canon(n));
+      if (idx !== -1) return idx;
+    }
+    return -1;
+  };
+
+  const cDate = col('date', 'day', 'reportdate', 'report_start');
+  const cLevel = col('level');
+  const cCampaignId = col('campaignid', 'campaign_id');
+  const cCampaignName = col('campaignname');
+  const cAdsetId = col('adsetid', 'adset_id');
+  const cAdsetName = col('adsetname');
+  const cAdId = col('adid', 'ad_id');
+  const cAdName = col('adname');
+  const cCurrency = col('currency', 'currencycode');
+  const cSpend = col('spend', 'amountspent');
+  const cReach = col('reach');
+  const cImpr = col('impressions');
+  const cFreq = col('frequency');
+  const cLinkClicks = col('linkclicks');
+  const cAllClicks = col('clicks', 'allclicks');
+  const cLinkCtr = col('linkctr', 'linkclickthroughrate');
+  const cCtr = col('ctr', 'clickthroughrate');
+  const cCpc = col('cpclink', 'cpc');
+  const cCpm = col('cpm');
+  const cAtcWeb = col('atcweb', 'websiteaddtocart', 'adds to cart (website)');
+  const cIcWeb = col('icweb', 'websitecheckout', 'initiate checkout (website)');
+  const cPurchaseWeb = col('purchaseweb', 'websitepurchases');
+  const cProductId = col('productid', 'contentid');
+  const cProductTitle = col('producttitle');
+  const cLanding = col('landingurl', 'url');
+  const cCreative = col('creativename');
+
+  const supabase = getClient();
+  const rawRows = [];
+  const factRows = [];
+  const campaignMap = new Map();
+  const adsetMap = new Map();
+  const adMap = new Map();
+
+  for (const r of dataRows) {
+    if (!r || !r.length) continue;
+    const rowObj = {};
+    header.forEach((h, i) => { rowObj[h] = r[i]; });
+    rawRows.push({ site_id: site, channel_id: 'meta_ads', row_data: rowObj });
+
+    const day = parseDay(r[cDate]);
+    if (!day) continue;
+    const report_date = day.toISOString().slice(0,10);
+    const level = cLevel >= 0 ? String(r[cLevel] || '').trim().toLowerCase() : 'ad';
+    const campaign_id = cCampaignId >= 0 ? String(r[cCampaignId] || '').trim() : null;
+    const adset_id = cAdsetId >= 0 ? String(r[cAdsetId] || '').trim() : null;
+    const ad_id = cAdId >= 0 ? String(r[cAdId] || '').trim() : null;
+    if (campaign_id && !campaignMap.has(campaign_id)) {
+      campaignMap.set(campaign_id, { campaign_id, site_id: site, campaign_name: cCampaignName>=0?String(r[cCampaignName]||'').trim():null });
+    }
+    if (adset_id && !adsetMap.has(adset_id)) {
+      adsetMap.set(adset_id, { adset_id, site_id: site, campaign_id, adset_name: cAdsetName>=0?String(r[cAdsetName]||'').trim():null });
+    }
+    if (ad_id && !adMap.has(ad_id)) {
+      adMap.set(ad_id, { ad_id, site_id: site, adset_id, ad_name: cAdName>=0?String(r[cAdName]||'').trim():null });
+    }
+
+    factRows.push({
+      site_id: site,
+      channel_id: 'meta_ads',
+      level,
+      campaign_id,
+      adset_id,
+      ad_id,
+      report_date,
+      currency_code: cCurrency>=0?String(r[cCurrency]||'').trim():null,
+      spend_usd: cSpend>=0?coerceNum(r[cSpend]):null,
+      reach: cReach>=0?coerceNum(r[cReach]):null,
+      impressions: cImpr>=0?coerceNum(r[cImpr]):null,
+      frequency: cFreq>=0?coerceNum(r[cFreq]):null,
+      link_clicks: cLinkClicks>=0?coerceNum(r[cLinkClicks]):null,
+      all_clicks: cAllClicks>=0?coerceNum(r[cAllClicks]):null,
+      link_ctr: cLinkCtr>=0?coerceNum(r[cLinkCtr]):null,
+      all_ctr: cCtr>=0?coerceNum(r[cCtr]):null,
+      cpc_link: cCpc>=0?coerceNum(r[cCpc]):null,
+      cpm: cCpm>=0?coerceNum(r[cCpm]):null,
+      atc_web: cAtcWeb>=0?coerceNum(r[cAtcWeb]):null,
+      ic_web: cIcWeb>=0?coerceNum(r[cIcWeb]):null,
+      purchase_web: cPurchaseWeb>=0?coerceNum(r[cPurchaseWeb]):null,
+      product_identifier: cProductId>=0?String(r[cProductId]||'').trim():null,
+      product_title_guess: cProductTitle>=0?String(r[cProductTitle]||'').trim():null,
+      landing_url: cLanding>=0?String(r[cLanding]||'').trim():null,
+      creative_name: cCreative>=0?String(r[cCreative]||'').trim():null
+    });
+  }
+
+  if (!rawRows.length) return { processed: 0, upserted: 0 };
+
+  async function refreshSchema() {
+    const { error } = await supabase.rpc('refresh_meta_schema_cache');
+    if (error) console.error('schema cache refresh failed:', error.message);
+    await new Promise(r => setTimeout(r, 1000));
+  }
+
+  let error;
+  for (let attempt=0; attempt<2; attempt++) {
+    ({ error } = await supabase.from('fb_raw').insert(rawRows));
+    if (!error) break;
+    if (/schema cache/i.test(error.message)) { await refreshSchema(); continue; }
+    throw error;
+  }
+  if (error) throw error;
+
+  const campaignRows = Array.from(campaignMap.values());
+  if (campaignRows.length) {
+    await supabase.from('meta_campaign').upsert(campaignRows, { onConflict: 'campaign_id' });
+  }
+  const adsetRows = Array.from(adsetMap.values());
+  if (adsetRows.length) {
+    await supabase.from('meta_adset').upsert(adsetRows, { onConflict: 'adset_id' });
+  }
+  const adRows = Array.from(adMap.values());
+  if (adRows.length) {
+    await supabase.from('meta_ad').upsert(adRows, { onConflict: 'ad_id' });
+  }
+
+  let data;
+  for (let attempt=0; attempt<2; attempt++) {
+    ({ data, error } = await supabase
+      .from('fact_meta_daily')
+      .upsert(factRows, { onConflict: 'site_id,channel_id,report_date,level,campaign_id,adset_id,ad_id' }));
+    if (!error) break;
+    if (/schema cache/i.test(error.message)) { await refreshSchema(); continue; }
+    throw error;
+  }
+  if (error) throw error;
+
+  return { processed: dataRows.length, upserted: data?.length ?? factRows.length };
+}
+
 async function handleFile(filePath, filename, source = '') {
   const ext = (filename || '').toLowerCase();
   let rows = [];
@@ -334,6 +488,7 @@ async function handler(req, res) {
   const form = formidable({ multiples: false, keepExtensions: true });
   try {
     const source = (req.query && req.query.source ? String(req.query.source) : '').toLowerCase();
+    const site = (req.query && req.query.site ? String(req.query.site) : 'icyberite');
     const { files } = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
         if (err) reject(err); else resolve({ fields, files });
@@ -343,12 +498,21 @@ async function handler(req, res) {
     if (!uploaded) throw new Error('No file uploaded. Use form-data field name "file".');
     const filePath = uploaded.filepath || uploaded.path;
     if (!filePath) throw new Error('Upload failed: file path missing.');
-    const result = await handleFile(
-      filePath,
-      uploaded.originalFilename || uploaded.newFilename || uploaded.name,
-      source
-    );
-    res.status(200).json({ ok: true, ...result });
+    if (source === 'facebook' || source === 'fb' || source === 'meta') {
+      const result = await handleFacebookFile(
+        filePath,
+        uploaded.originalFilename || uploaded.newFilename || uploaded.name,
+        site
+      );
+      res.status(200).json({ ok: true, ...result });
+    } else {
+      const result = await handleFile(
+        filePath,
+        uploaded.originalFilename || uploaded.newFilename || uploaded.name,
+        source
+      );
+      res.status(200).json({ ok: true, ...result });
+    }
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
