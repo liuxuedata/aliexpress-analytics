@@ -5,6 +5,7 @@ const { createClient } = require('@supabase/supabase-js');
 const formidable = require('formidable').default;
 const fs = require('fs');
 const XLSX = require('xlsx');
+const { parseDay } = require('../../lib/date');
 
 function getClient() {
   const url = process.env.SUPABASE_URL;
@@ -32,38 +33,6 @@ function coerceNum(x) {
   s = s.replace(/[^0-9.-]/g, '');
   const n = Number(s);
   return Number.isFinite(n) ? n : 0;
-}
-
-// Normalize assorted date representations to a Date in UTC.
-function parseDay(dayRaw) {
-  if (dayRaw === null || dayRaw === undefined || dayRaw === '') return null;
-
-  if (typeof dayRaw === 'number') {
-    const s = String(dayRaw);
-    // Handle numbers shaped like 20250818 (YYYYMMDD)
-    if (/^\d{8}$/.test(s)) {
-      return new Date(Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8)));
-    }
-    // Otherwise assume an Excel serial date
-    const parsed = XLSX.SSF && XLSX.SSF.parse_date_code(dayRaw);
-    if (parsed && parsed.y && parsed.m && parsed.d) {
-      return new Date(Date.UTC(parsed.y, parsed.m - 1, parsed.d));
-    }
-    return null;
-  }
-
-  const s = String(dayRaw).trim();
-  // Support "YYYY/M/D" or "YYYY-M-D"
-  let m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
-  if (m) {
-    return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
-  }
-  // Plain 8-digit string
-  if (/^\d{8}$/.test(s)) {
-    return new Date(Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8)));
-  }
-  const d = new Date(s);
-  return isNaN(d.getTime()) ? null : d;
 }
 
 async function handleFile(filePath, filename) {
@@ -327,5 +296,4 @@ handler.config = {
 };
 module.exports = handler;
 // expose for tests
-module.exports._parseDay = parseDay;
 
