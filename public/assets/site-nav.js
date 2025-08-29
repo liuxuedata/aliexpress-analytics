@@ -60,7 +60,7 @@
     footer.style.textAlign='center';
     footer.style.fontSize='12px';
     footer.style.margin='2rem 0';
-    footer.innerHTML='<a href="consent-privacy-notice.html" target="_blank">Consent & Privacy Notice</a>';
+    footer.innerHTML='<a href="consent-privacy-notice.html" target="_blank">Consent & Privacy Notice / 同意与隐私声明</a>';
     document.body.appendChild(footer);
   }
 
