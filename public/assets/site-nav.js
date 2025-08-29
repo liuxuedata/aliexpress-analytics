@@ -55,6 +55,16 @@
     applyNavIcons();
   }
 
+  function renderFooter(){
+    const footer=document.createElement('footer');
+    footer.style.textAlign='center';
+    footer.style.fontSize='12px';
+    footer.style.margin='2rem 0';
+    footer.innerHTML='<a href="consent-privacy-notice.html" target="_blank">Consent & Privacy Notice</a>';
+    document.body.appendChild(footer);
+  }
+
   window.renderSiteMenus=render;
   document.addEventListener('DOMContentLoaded',render);
+  document.addEventListener('DOMContentLoaded',renderFooter);
 })();
