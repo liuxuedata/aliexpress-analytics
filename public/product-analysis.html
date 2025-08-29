@@ -117,7 +117,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(detailLink)detailLink.href='index.html';
     if(analysisLink)analysisLink.href='operation-analysis.html?mode=self';
   }else if(mode==='indep'){
-    if(detailLink)detailLink.href='independent-site.html';
+    if(detailLink){
+      detailLink.href='independent-site.html#detail';
+      detailLink.innerHTML = detailLink.innerHTML.replace('详细数据','明细表（Facebook）');
+    }
     if(analysisLink)analysisLink.href='independent-site.html#analysis';
   }else if(mode==='ozon'){
     if(detailLink)detailLink.href='ozon-detail.html';
@@ -132,7 +135,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(addBtn) addBtn.style.display='none';
     renderSiteMenus();
     fetch('/api/independent/sites').then(r=>r.json()).then(j=>{
-      const sites=j.sites||[];
+      const sites=Array.from(new Set([...(j.sites||[]), 'icyberite.com'].filter(Boolean)));
       const paramSite=params.get('site');
       const stored=localStorage.getItem('currentIndepSite');
       let site=sites[0]||'';
