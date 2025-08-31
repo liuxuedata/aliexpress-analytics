@@ -847,10 +847,18 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   if (window.location.pathname === '/' || window.location.pathname.endsWith('index.html')) {
     // 检查是否已经有特定的站点选择
     const currentSiteId = localStorage.getItem('currentSite');
-    if (!currentSiteId || currentSiteId === 'ae_self_operated_a') {
-      // 如果没有选择站点或选择的是自运营A站，重定向到全托管页面
-      console.log('重定向到全托管页面');
+    // 只有当没有选择任何站点时，才重定向到全托管页面
+    // 如果用户选择了自运营站点，应该留在当前页面
+    if (!currentSiteId) {
+      // 如果没有选择站点，重定向到全托管页面
+      console.log('未选择站点，重定向到全托管页面');
       window.location.href = 'managed.html';
+      return;
+    }
+    // 如果选择了自运营站点，应该重定向到自运营页面
+    if (currentSiteId.startsWith('ae_self_operated')) {
+      console.log('选择了自运营站点，重定向到自运营页面');
+      window.location.href = 'self-operated.html';
       return;
     }
   }
