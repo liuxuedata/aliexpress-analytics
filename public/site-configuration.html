@@ -701,7 +701,7 @@ async function testDataUpload() {
     return;
   }
   
-  if (!fileInput.files.length) {
+  if (!fileInput || !fileInput.files || !fileInput.files.length) {
     showStatus('请选择要上传的文件', 'error');
     return;
   }
@@ -795,6 +795,12 @@ async function testAPI() {
   try {
     showStatus('正在测试API连接...', 'info');
     
+    // 测试基础API
+    console.log('测试基础API...');
+    const testResponse = await fetch('/api/test');
+    const testData = await testResponse.json();
+    console.log('基础API结果:', testData);
+    
     // 测试站点配置API
     console.log('测试站点配置API...');
     const sitesResponse = await fetch('/api/site-configs');
@@ -807,13 +813,21 @@ async function testAPI() {
     const templatesData = await templatesResponse.json();
     console.log('模板API结果:', templatesData);
     
+    // 测试动态数据摄入API
+    console.log('测试动态数据摄入API...');
+    const dynamicResponse = await fetch('/api/dynamic-ingest/test', { method: 'POST' });
+    console.log('动态数据摄入API状态:', dynamicResponse.status);
+    
     let message = 'API测试完成！\n';
+    message += `基础API: ${testResponse.ok ? '正常' : '失败'}\n`;
     message += `站点配置API: ${sitesResponse.ok ? '正常' : '失败'}\n`;
     message += `模板API: ${templatesResponse.ok ? '正常' : '失败'}\n`;
+    message += `动态数据摄入API: ${dynamicResponse.status === 400 ? '正常(需要站点ID)' : '失败'}\n`;
     message += `站点数量: ${sitesData.data?.length || 0}\n`;
     message += `模板数量: ${templatesData.data?.length || 0}`;
     
-    showStatus(message, sitesResponse.ok && templatesResponse.ok ? 'success' : 'error');
+    const allAPIsWorking = testResponse.ok && sitesResponse.ok && templatesResponse.ok;
+    showStatus(message, allAPIsWorking ? 'success' : 'error');
     
   } catch (error) {
     console.error('API测试错误:', error);
