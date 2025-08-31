@@ -20,8 +20,18 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
   
+  console.log('API请求信息:', {
+    method: req.method,
+    url: req.url,
+    query: req.query,
+    body: req.body
+  });
+  
   const { id } = req.query;
+  console.log('解析的站点ID:', id);
+  
   if (!id) {
+    console.log('站点ID为空，返回错误');
     return res.status(400).json({ error: 'Site ID is required' });
   }
 

@@ -718,6 +718,13 @@ async function testDataUpload() {
   const siteId = document.getElementById('testSite').value;
   const fileInput = document.getElementById('testFile');
   
+  console.log('文件上传检查:', {
+    siteId: siteId,
+    fileInput: fileInput,
+    files: fileInput?.files,
+    filesLength: fileInput?.files?.length
+  });
+  
   if (!siteId) {
     showStatus('请选择要测试的站点', 'error');
     return;
