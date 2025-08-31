@@ -44,6 +44,10 @@
       "dest": "/api/test.js"
     },
     {
+      "src": "/api/test-site-configs",
+      "dest": "/api/test-site-configs.js"
+    },
+    {
       "src": "/api/health",
       "dest": "/api/health.js"
     },
