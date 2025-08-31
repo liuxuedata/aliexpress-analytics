@@ -230,7 +230,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       input.value=stored;
     }else{
       const today=new Date(); const end=today.toISOString().slice(0,10);
-      const start=new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
+      // 如果今天是2024年或更早，使用2025-07-01作为开始日期
+const start = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime()-30*86400000).toISOString().slice(0,10);
       const def=`${start} to ${end}`;
       input.value=def; localStorage.setItem('selfPeriod',def);
     }

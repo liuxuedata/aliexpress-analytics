@@ -474,7 +474,13 @@ async function fetchAndRenderAll() {
   try {
     const val=$('#dateFilter').val(); let startISO,endISO;
     if (val && val.includes(' to ')) { const [s,e]=val.split(' to '); startISO=s; endISO=e; }
-    else { const today=new Date(); endISO=today.toISOString().slice(0,10); startISO=new Date(today.getTime()-6*86400000).toISOString().slice(0,10); $('#dateFilter').val(`${startISO} to ${endISO}`); }
+    else { 
+  const today=new Date(); 
+  endISO=today.toISOString().slice(0,10); 
+  // 如果今天是2024年或更早，使用2025-07-01作为开始日期
+  startISO = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime()-30*86400000).toISOString().slice(0,10); 
+  $('#dateFilter').val(`${startISO} to ${endISO}`); 
+}
     const g = 'day';$('#progress').text('查询中…');
 
     const rowsNowAgg=await fetchAgg(startISO,endISO,g);
@@ -500,8 +506,11 @@ $('#refreshBtn').on('click', fetchAndRenderAll);
 $('#metricSel').on('change', fetchAndRenderAll);
 
 (async function initDefault(){
-  const today=new Date(); const end=today.toISOString().slice(0,10);
-  const startDate=new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
+  // 设置默认日期范围为2025年7月1日到今天
+  const today=new Date(); 
+  const end=today.toISOString().slice(0,10);
+  // 如果今天是2024年或更早，使用2025-07-01作为开始日期
+  const startDate = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime()-30*86400000).toISOString().slice(0,10);
   $('#dateFilter').val(`${startDate} to ${end}`);
   await fetchAndRenderAll();
 })();
@@ -534,7 +543,8 @@ $('#metricSel').on('change', fetchAndRenderAll);
     }
     const today = new Date();
     const to = today.toISOString().slice(0,10);
-    const from = new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
+    // 如果今天是2024年或更早，使用2025-07-01作为开始日期
+const from = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime()-30*86400000).toISOString().slice(0,10);
     return { from, to };
   }
   function ensureCard(){

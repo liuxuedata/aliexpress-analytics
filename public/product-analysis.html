@@ -309,7 +309,10 @@ function card(title,cur,prev,isPct,avg,share){
     const fp=flatpickr(input,{mode:'range',dateFormat:'Y-m-d',onClose:ds=>{if(ds.length===2)loadData();}});
     const stored=localStorage.getItem(key);
     if(stored && stored.includes(' to ')) input.value=stored; else {
-      const today=new Date(); const end=today.toISOString().slice(0,10); const start=new Date(today.getTime()-6*86400000).toISOString().slice(0,10); const def=`${start} to ${end}`; input.value=def; localStorage.setItem(key,def);
+      const today=new Date(); const end=today.toISOString().slice(0,10); 
+// 如果今天是2024年或更早，使用2025-07-01作为开始日期
+const start = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime()-30*86400000).toISOString().slice(0,10); 
+const def=`${start} to ${end}`; input.value=def; localStorage.setItem(key,def);
     }
     async function loadData(){
       const val=input.value; if(!val.includes(' to '))return; const [startISO,endISO]=val.split(' to '); localStorage.setItem(key,`${startISO} to ${endISO}`);
