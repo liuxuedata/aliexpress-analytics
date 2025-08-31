@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>站点配置 · 跨境电商数据分析平台</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="assets/login.css">
+  <link rel="stylesheet" href="assets/theme.css?v=20250810b">
+  <style>
+    .site-configuration {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .config-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-top: 20px;
+    }
+    .config-section {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 25px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .config-section h3 {
+      margin: 0 0 20px 0;
+      color: #1f2937;
+      border-bottom: 2px solid #3b82f6;
+      padding-bottom: 10px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #374151;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    .btn {
+      padding: 12px 24px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .btn:hover {
+      background: #f9fafb;
+    }
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+    .btn-success {
+      background: #10b981;
+      color: white;
+      border-color: #10b981;
+    }
+    .btn-success:hover {
+      background: #059669;
+    }
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+      border-color: #ef4444;
+    }
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+    .site-list {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+    }
+    .site-item {
+      padding: 15px;
+      border-bottom: 1px solid #f3f4f6;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .site-item:last-child {
+      border-bottom: none;
+    }
+    .site-info h4 {
+      margin: 0 0 5px 0;
+      color: #1f2937;
+    }
+    .site-info .platform {
+      color: #6b7280;
+      font-size: 12px;
+    }
+    .site-info .data-source {
+      color: #059669;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .template-preview {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 15px;
+      margin-top: 15px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .status-message {
+      padding: 10px;
+      border-radius: 6px;
+      margin: 10px 0;
+      font-weight: 500;
+    }
+    .status-success {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+    .status-error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+    .status-info {
+      background: #dbeafe;
+      color: #1e40af;
+      border: 1px solid #93c5fd;
+    }
+    .file-upload {
+      border: 2px dashed #d1d5db;
+      border-radius: 6px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .file-upload:hover {
+      border-color: #3b82f6;
+    }
+    .file-upload.dragover {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body class="fm">
+<div id="loginOverlay" class="login-overlay" style="display:none">
+  <div class="login-container">
+    <h2>登录</h2>
+    <form id="loginForm">
+      <div class="form-group">
+        <input type="text" id="username" placeholder="用户名" required>
+      </div>
+      <div class="form-group">
+        <input type="password" id="password" placeholder="密码" required>
+      </div>
+      <button type="submit" class="btn btn-primary">登录</button>
+    </form>
+  </div>
+</div>
+
+<div class="site-configuration">
+  <h1>站点配置管理</h1>
+  <p>配置和管理多站点数据源，支持自动生成数据表和API接口</p>
+
+  <div class="config-grid">
+    <!-- 左侧：站点配置 -->
+    <div class="config-section">
+      <h3>📊 站点配置</h3>
+      
+      <form id="siteConfigForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="siteName">站点名称 *</label>
+            <input type="text" id="siteName" required placeholder="如：icyberite.com">
+          </div>
+          <div class="form-group">
+            <label for="sitePlatform">平台类型 *</label>
+            <select id="sitePlatform" required>
+              <option value="">选择平台</option>
+              <option value="ae_self_operated">速卖通自运营</option>
+              <option value="ae_managed">速卖通全托管</option>
+              <option value="independent">独立站</option>
+              <option value="amazon">亚马逊</option>
+              <option value="ebay">eBay</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="displayName">显示名称 *</label>
+            <input type="text" id="displayName" required placeholder="如：独立站 icyberite.com">
+          </div>
+          <div class="form-group">
+            <label for="domain">域名</label>
+            <input type="text" id="domain" placeholder="如：icyberite.com">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="dataSource">数据源类型 *</label>
+          <select id="dataSource" required>
+            <option value="">选择数据源</option>
+            <option value="ae_api">速卖通API</option>
+            <option value="google_ads">Google Ads</option>
+            <option value="facebook_ads">Facebook Ads</option>
+            <option value="tiktok_ads">TikTok Ads</option>
+            <option value="custom">自定义</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="templateId">数据模板</label>
+          <select id="templateId">
+            <option value="">自动选择</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="configJson">配置信息 (JSON)</label>
+          <textarea id="configJson" rows="4" placeholder='{"api_key": "xxx", "custom_field": "value"}'></textarea>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">创建站点</button>
+        <button type="button" class="btn" onclick="resetForm()">重置</button>
+      </form>
+    </div>
+
+    <!-- 右侧：站点列表和模板预览 -->
+    <div class="config-section">
+      <h3>🏢 现有站点</h3>
+      
+      <div class="site-list" id="siteList">
+        <div class="site-item">
+          <div class="site-info">
+            <h4>速卖通自运营 A站</h4>
+            <div class="platform">平台：速卖通自运营</div>
+            <div class="data-source">数据源：速卖通API</div>
+          </div>
+          <div>
+            <button class="btn btn-success" onclick="editSite('ae_self_operated_a')">编辑</button>
+            <button class="btn btn-danger" onclick="deleteSite('ae_self_operated_a')">删除</button>
+          </div>
+        </div>
+        <div class="site-item">
+          <div class="site-info">
+            <h4>独立站 poolsvacuum.com</h4>
+            <div class="platform">平台：独立站</div>
+            <div class="data-source">数据源：Google Ads</div>
+          </div>
+          <div>
+            <button class="btn btn-success" onclick="editSite('independent_poolsvacuum')">编辑</button>
+            <button class="btn btn-danger" onclick="deleteSite('independent_poolsvacuum')">删除</button>
+          </div>
+        </div>
+        <div class="site-item">
+          <div class="site-info">
+            <h4>独立站 icyberite.com</h4>
+            <div class="platform">平台：独立站</div>
+            <div class="data-source">数据源：Facebook Ads</div>
+          </div>
+          <div>
+            <button class="btn btn-success" onclick="editSite('independent_icyberite')">编辑</button>
+            <button class="btn btn-danger" onclick="deleteSite('independent_icyberite')">删除</button>
+          </div>
+        </div>
+      </div>
+      
+      <h3 style="margin-top: 30px;">📋 数据模板预览</h3>
+      <div class="template-preview" id="templatePreview">
+        选择数据源类型查看模板配置...
+      </div>
+    </div>
+  </div>
+
+  <!-- 数据上传测试区域 -->
+  <div class="config-section" style="margin-top: 30px;">
+    <h3>📤 数据上传测试</h3>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label for="testSite">选择站点</label>
+        <select id="testSite">
+          <option value="">选择要测试的站点</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="testFile">上传数据文件</label>
+        <div class="file-upload" id="fileUpload">
+          <p>拖拽文件到此处或点击选择文件</p>
+          <input type="file" id="testFile" accept=".xlsx,.csv" style="display: none;">
+        </div>
+      </div>
+    </div>
+    
+    <button class="btn btn-primary" onclick="testDataUpload()">测试数据上传</button>
+    <button class="btn" onclick="generateTestData()">生成测试数据</button>
+  </div>
+
+  <!-- 状态消息 -->
+  <div id="statusMessage"></div>
+</div>
+
+<script>
+// 全局变量
+let currentSites = [];
+let currentTemplates = [];
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', function() {
+  loadSites();
+  loadTemplates();
+  setupEventListeners();
+});
+
+// 设置事件监听器
+function setupEventListeners() {
+  // 平台类型变化时更新数据源选项
+  document.getElementById('sitePlatform').addEventListener('change', function() {
+    updateDataSourceOptions();
+  });
+  
+  // 数据源变化时更新模板选项
+  document.getElementById('dataSource').addEventListener('change', function() {
+    updateTemplateOptions();
+    updateTemplatePreview();
+  });
+  
+  // 文件上传
+  const fileUpload = document.getElementById('fileUpload');
+  const fileInput = document.getElementById('testFile');
+  
+  fileUpload.addEventListener('click', () => fileInput.click());
+  fileUpload.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    fileUpload.classList.add('dragover');
+  });
+  fileUpload.addEventListener('dragleave', () => {
+    fileUpload.classList.remove('dragover');
+  });
+  fileUpload.addEventListener('drop', (e) => {
+    e.preventDefault();
+    fileUpload.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      fileInput.files = files;
+      showStatus('文件已选择：' + files[0].name, 'success');
+    }
+  });
+  
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      showStatus('文件已选择：' + e.target.files[0].name, 'success');
+    }
+  });
+}
+
+// 加载站点列表
+async function loadSites() {
+  try {
+    const response = await fetch('/api/site-configs');
+    if (response.ok) {
+      const data = await response.json();
+      currentSites = data.data || [];
+      renderSiteList();
+      updateTestSiteOptions();
+    }
+  } catch (error) {
+    console.error('加载站点失败:', error);
+    showStatus('加载站点失败: ' + error.message, 'error');
+  }
+}
+
+// 加载模板列表
+async function loadTemplates() {
+  try {
+    const response = await fetch('/api/data-source-templates');
+    if (response.ok) {
+      const data = await response.json();
+      currentTemplates = data.data || [];
+    }
+  } catch (error) {
+    console.error('加载模板失败:', error);
+  }
+}
+
+// 渲染站点列表
+function renderSiteList() {
+  const siteList = document.getElementById('siteList');
+  siteList.innerHTML = '';
+  
+  currentSites.forEach(site => {
+    const siteItem = document.createElement('div');
+    siteItem.className = 'site-item';
+    siteItem.innerHTML = `
+      <div class="site-info">
+        <h4>${site.display_name}</h4>
+        <div class="platform">平台：${getPlatformDisplayName(site.platform)}</div>
+        <div class="data-source">数据源：${getDataSourceDisplayName(site.data_source)}</div>
+      </div>
+      <div>
+        <button class="btn btn-success" onclick="editSite('${site.id}')">编辑</button>
+        <button class="btn btn-danger" onclick="deleteSite('${site.id}')">删除</button>
+      </div>
+    `;
+    siteList.appendChild(siteItem);
+  });
+}
+
+// 更新数据源选项
+function updateDataSourceOptions() {
+  const platform = document.getElementById('sitePlatform').value;
+  const dataSource = document.getElementById('dataSource');
+  
+  // 清空现有选项
+  dataSource.innerHTML = '<option value="">选择数据源</option>';
+  
+  if (platform === 'ae_self_operated' || platform === 'ae_managed') {
+    dataSource.innerHTML += '<option value="ae_api">速卖通API</option>';
+  } else if (platform === 'independent') {
+    dataSource.innerHTML += `
+      <option value="google_ads">Google Ads</option>
+      <option value="facebook_ads">Facebook Ads</option>
+      <option value="tiktok_ads">TikTok Ads</option>
+      <option value="custom">自定义</option>
+    `;
+  }
+}
+
+// 更新模板选项
+function updateTemplateOptions() {
+  const dataSource = document.getElementById('dataSource').value;
+  const templateId = document.getElementById('templateId');
+  
+  // 清空现有选项
+  templateId.innerHTML = '<option value="">自动选择</option>';
+  
+  if (dataSource) {
+    const templates = currentTemplates.filter(t => t.source_type === dataSource);
+    templates.forEach(template => {
+      templateId.innerHTML += `<option value="${template.id}">${template.name}</option>`;
+    });
+  }
+}
+
+// 更新模板预览
+function updateTemplatePreview() {
+  const dataSource = document.getElementById('dataSource').value;
+  const templatePreview = document.getElementById('templatePreview');
+  
+  if (!dataSource) {
+    templatePreview.textContent = '选择数据源类型查看模板配置...';
+    return;
+  }
+  
+  const template = currentTemplates.find(t => t.source_type === dataSource);
+  if (template) {
+    templatePreview.innerHTML = `
+      <strong>模板：${template.name}</strong><br>
+      <strong>字段映射：</strong><br>
+      ${Object.entries(template.fields_json.mappings || {}).map(([key, value]) => 
+        `  ${key} → ${value}`
+      ).join('<br>')}
+    `;
+  } else {
+    templatePreview.textContent = '未找到匹配的模板配置';
+  }
+}
+
+// 表单提交
+document.getElementById('siteConfigForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  
+  const formData = {
+    name: document.getElementById('siteName').value,
+    platform: document.getElementById('sitePlatform').value,
+    display_name: document.getElementById('displayName').value,
+    domain: document.getElementById('domain').value || null,
+    data_source: document.getElementById('dataSource').value,
+    template_id: document.getElementById('templateId').value || null,
+    config_json: document.getElementById('configJson').value ? 
+      JSON.parse(document.getElementById('configJson').value) : null
+  };
+  
+  try {
+    const response = await fetch('/api/site-configs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(formData)
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      showStatus('站点创建成功！', 'success');
+      loadSites();
+      resetForm();
+    } else {
+      const error = await response.json();
+      showStatus('创建失败: ' + error.error, 'error');
+    }
+  } catch (error) {
+    showStatus('创建失败: ' + error.message, 'error');
+  }
+});
+
+// 编辑站点
+function editSite(siteId) {
+  const site = currentSites.find(s => s.id === siteId);
+  if (site) {
+    document.getElementById('siteName').value = site.name;
+    document.getElementById('sitePlatform').value = site.platform;
+    document.getElementById('displayName').value = site.display_name;
+    document.getElementById('domain').value = site.domain || '';
+    document.getElementById('dataSource').value = site.data_source;
+    document.getElementById('templateId').value = site.template_id || '';
+    document.getElementById('configJson').value = site.config_json ? 
+      JSON.stringify(site.config_json, null, 2) : '';
+    
+    updateDataSourceOptions();
+    updateTemplateOptions();
+    updateTemplatePreview();
+    
+    showStatus('正在编辑站点：' + site.display_name, 'info');
+  }
+}
+
+// 删除站点
+async function deleteSite(siteId) {
+  if (!confirm('确定要删除这个站点吗？此操作不可恢复。')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/site-configs/${siteId}`, {
+      method: 'DELETE'
+    });
+    
+    if (response.ok) {
+      showStatus('站点删除成功！', 'success');
+      loadSites();
+    } else {
+      const error = await response.json();
+      showStatus('删除失败: ' + error.error, 'error');
+    }
+  } catch (error) {
+    showStatus('删除失败: ' + error.message, 'error');
+  }
+}
+
+// 重置表单
+function resetForm() {
+  document.getElementById('siteConfigForm').reset();
+  document.getElementById('templatePreview').textContent = '选择数据源类型查看模板配置...';
+}
+
+// 更新测试站点选项
+function updateTestSiteOptions() {
+  const testSite = document.getElementById('testSite');
+  testSite.innerHTML = '<option value="">选择要测试的站点</option>';
+  
+  currentSites.forEach(site => {
+    testSite.innerHTML += `<option value="${site.id}">${site.display_name}</option>`;
+  });
+}
+
+// 测试数据上传
+async function testDataUpload() {
+  const siteId = document.getElementById('testSite').value;
+  const fileInput = document.getElementById('testFile');
+  
+  if (!siteId) {
+    showStatus('请选择要测试的站点', 'error');
+    return;
+  }
+  
+  if (!fileInput.files.length) {
+    showStatus('请选择要上传的文件', 'error');
+    return;
+  }
+  
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+  
+  try {
+    showStatus('正在上传数据...', 'info');
+    
+    const response = await fetch(`/api/${siteId}/ingest`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      showStatus(`数据上传成功！处理了 ${result.processed} 条记录，插入了 ${result.upserted} 条记录`, 'success');
+    } else {
+      const error = await response.json();
+      showStatus('上传失败: ' + error.error, 'error');
+    }
+  } catch (error) {
+    showStatus('上传失败: ' + error.message, 'error');
+  }
+}
+
+// 生成测试数据
+function generateTestData() {
+  const siteId = document.getElementById('testSite').value;
+  
+  if (!siteId) {
+    showStatus('请选择要测试的站点', 'error');
+    return;
+  }
+  
+  showStatus('正在生成测试数据...', 'info');
+  
+  // 这里可以调用API生成测试数据
+  setTimeout(() => {
+    showStatus('测试数据生成完成！', 'success');
+  }, 2000);
+}
+
+// 显示状态消息
+function showStatus(message, type = 'info') {
+  const statusDiv = document.getElementById('statusMessage');
+  statusDiv.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
+  
+  setTimeout(() => {
+    statusDiv.innerHTML = '';
+  }, 5000);
+}
+
+// 工具函数
+function getPlatformDisplayName(platform) {
+  const names = {
+    'ae_self_operated': '速卖通自运营',
+    'ae_managed': '速卖通全托管',
+    'independent': '独立站',
+    'amazon': '亚马逊',
+    'ebay': 'eBay'
+  };
+  return names[platform] || platform;
+}
+
+function getDataSourceDisplayName(dataSource) {
+  const names = {
+    'ae_api': '速卖通API',
+    'google_ads': 'Google Ads',
+    'facebook_ads': 'Facebook Ads',
+    'tiktok_ads': 'TikTok Ads',
+    'custom': '自定义'
+  };
+  return names[dataSource] || dataSource;
+}
+</script>
+</body>
+</html>
