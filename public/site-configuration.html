@@ -357,8 +357,9 @@
       </div>
     </div>
     
-    <button class="btn btn-primary" onclick="testDataUpload()">测试数据上传</button>
-    <button class="btn" onclick="generateTestData()">生成测试数据</button>
+         <button class="btn btn-primary" onclick="testDataUpload()">测试数据上传</button>
+     <button class="btn" onclick="generateTestData()">生成测试数据</button>
+     <button class="btn" onclick="testAPI()">测试API连接</button>
   </div>
 
   <!-- 状态消息 -->
@@ -430,7 +431,12 @@ async function loadSites() {
   try {
     showStatus('正在加载站点列表...', 'info');
     const response = await fetch('/api/site-configs');
+    
+    console.log('站点API响应状态:', response.status);
+    console.log('站点API响应头:', response.headers);
+    
     const data = await response.json();
+    console.log('站点API响应数据:', data);
     
     if (response.ok) {
       currentSites = data.data || [];
@@ -449,10 +455,19 @@ async function loadSites() {
 // 加载模板列表
 async function loadTemplates() {
   try {
+    console.log('开始加载模板列表...');
     const response = await fetch('/api/data-source-templates');
+    
+    console.log('模板API响应状态:', response.status);
+    const data = await response.json();
+    console.log('模板API响应数据:', data);
+    
     if (response.ok) {
-      const data = await response.json();
       currentTemplates = data.data || [];
+      console.log('加载的模板数量:', currentTemplates.length);
+      console.log('模板数据:', currentTemplates);
+    } else {
+      console.error('模板加载失败:', data.error || data.message);
     }
   } catch (error) {
     console.error('加载模板失败:', error);
@@ -531,12 +546,17 @@ function updateTemplatePreview() {
   const dataSource = document.getElementById('dataSource').value;
   const templatePreview = document.getElementById('templatePreview');
   
+  console.log('更新模板预览，数据源:', dataSource);
+  console.log('当前模板列表:', currentTemplates);
+  
   if (!dataSource) {
     templatePreview.textContent = '选择数据源类型查看模板配置...';
     return;
   }
   
   const template = currentTemplates.find(t => t.source_type === dataSource);
+  console.log('找到的模板:', template);
+  
   if (template) {
     templatePreview.innerHTML = `
       <strong>模板：${template.name}</strong><br>
@@ -546,7 +566,8 @@ function updateTemplatePreview() {
       ).join('<br>')}
     `;
   } else {
-    templatePreview.textContent = '未找到匹配的模板配置';
+    templatePreview.textContent = `未找到匹配的模板配置 (数据源: ${dataSource})`;
+    console.log('未找到模板，可用的数据源类型:', currentTemplates.map(t => t.source_type));
   }
 }
 
@@ -631,11 +652,14 @@ async function deleteSite(siteId) {
   try {
     showStatus('正在删除站点...', 'info', true);
     
+    console.log('删除站点ID:', siteId);
     const response = await fetch(`/api/site-configs/${siteId}`, {
       method: 'DELETE'
     });
     
+    console.log('删除API响应状态:', response.status);
     const result = await response.json();
+    console.log('删除API响应数据:', result);
     
     if (response.ok) {
       showStatus('站点删除成功！', 'success');
@@ -644,6 +668,7 @@ async function deleteSite(siteId) {
       showStatus('删除失败: ' + (result.error || result.message || '未知错误'), 'error');
     }
   } catch (error) {
+    console.error('删除站点错误:', error);
     showStatus('删除失败: ' + error.message, 'error');
   }
 }
@@ -687,12 +712,17 @@ async function testDataUpload() {
   try {
     showStatus('正在上传数据，请稍候...', 'info', true);
     
+    console.log('上传站点ID:', siteId);
+    console.log('上传文件:', fileInput.files[0].name);
+    
     const response = await fetch(`/api/dynamic-ingest/${siteId}`, {
       method: 'POST',
       body: formData
     });
     
+    console.log('上传API响应状态:', response.status);
     const result = await response.json();
+    console.log('上传API响应数据:', result);
     
     if (response.ok) {
       const message = `数据上传成功！处理了 ${result.processed} 条记录，插入了 ${result.upserted} 条记录`;
@@ -712,6 +742,7 @@ async function testDataUpload() {
       showStatus('上传失败: ' + (result.error || result.message || '未知错误'), 'error');
     }
   } catch (error) {
+    console.error('上传数据错误:', error);
     showStatus('上传失败: ' + error.message, 'error');
   }
 }
@@ -757,6 +788,37 @@ function showStatus(message, type = 'info', showProgress = false) {
   setTimeout(() => {
     statusDiv.innerHTML = '';
   }, timeout);
+}
+
+// 测试API连接
+async function testAPI() {
+  try {
+    showStatus('正在测试API连接...', 'info');
+    
+    // 测试站点配置API
+    console.log('测试站点配置API...');
+    const sitesResponse = await fetch('/api/site-configs');
+    const sitesData = await sitesResponse.json();
+    console.log('站点配置API结果:', sitesData);
+    
+    // 测试模板API
+    console.log('测试模板API...');
+    const templatesResponse = await fetch('/api/data-source-templates');
+    const templatesData = await templatesResponse.json();
+    console.log('模板API结果:', templatesData);
+    
+    let message = 'API测试完成！\n';
+    message += `站点配置API: ${sitesResponse.ok ? '正常' : '失败'}\n`;
+    message += `模板API: ${templatesResponse.ok ? '正常' : '失败'}\n`;
+    message += `站点数量: ${sitesData.data?.length || 0}\n`;
+    message += `模板数量: ${templatesData.data?.length || 0}`;
+    
+    showStatus(message, sitesResponse.ok && templatesResponse.ok ? 'success' : 'error');
+    
+  } catch (error) {
+    console.error('API测试错误:', error);
+    showStatus('API测试失败: ' + error.message, 'error');
+  }
 }
 
 // 工具函数
