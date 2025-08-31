@@ -291,7 +291,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
     function fetchAgg(start,end,gran='period'){
-      const url=`/api/ae_query?start=${start}&end=${end}&granularity=${gran}`;
+      const currentSite = localStorage.getItem('currentSite') || 'A站';
+      const url=`/api/ae_query?start=${start}&end=${end}&granularity=${gran}&site=${encodeURIComponent(currentSite)}`;
       return fetch(url).then(r=>r.json()).then(j=>j.rows||[]);
     }
     function periodShift(startISO,endISO){
