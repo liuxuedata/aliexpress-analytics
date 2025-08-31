@@ -634,7 +634,8 @@ document.getElementById('siteConfigForm').addEventListener('submit', async funct
           body: JSON.stringify({
             siteId: editingSiteId || result.data.id,
             oldSiteId: editingSiteId, // 如果是更新操作，传递旧ID
-            action: editingSiteId ? 'update' : 'create'
+            action: editingSiteId ? 'update' : 'create',
+            oldSiteName: editingSiteId ? currentSites.find(s => s.id === editingSiteId)?.name : null
           })
         });
         

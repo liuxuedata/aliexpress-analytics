@@ -51,22 +51,19 @@
 </div>
 
 <header class="header">
-  <div class="logo-title">跨境电商数据分析平台</div>
+  <div class="logo-title"><img src="assets/logo.svg" alt="Ecommerce Analytics" class="site-logo"> 跨境电商数据分析平台</div>
   <nav class="header-center">
     <ul class="platform-nav">
-      <li><a href="#">速卖通</a>
-        <ul class="dropdown">
-          <li class="submenu"><a href="#">全托管</a>
-            <ul id="managedMenu"></ul>
-          </li>
-          <li><a href="self-operated.html">自运营</a></li>
-        </ul>
+      <li class="ali"><a href="#">速卖通</a>
+        <ul class="dropdown" id="managedMenu"></ul>
       </li>
-      <li><a href="#">亚马逊</a></li>
-      <li><a href="#">TikTok Shop</a></li>
-      <li><a href="#">Temu</a></li>
-      <li><a href="#">Ozon</a></li>
-      <li><a href="independent-site.html">独立站</a></li>
+      <li class="amazon"><a href="amazon-overview.html">亚马逊</a></li>
+      <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon"><a href="ozon-detail.html">Ozon</a></li>
+      <li class="independent active"><a href="#">独立站</a>
+        <ul class="dropdown" id="indepMenu"></ul>
+      </li>
     </ul>
   </nav>
   <div id="userArea" class="user-section"></div>
@@ -313,8 +310,12 @@
   networkSel.addEventListener('change', buildTable);
   campaignSel.addEventListener('change', buildTable);
 
-  // 默认站点取 url 参数或从示例取
-  siteInput.value = getParam('site') || 'poolsvacuum.com';
+  // 获取当前选中的独立站站点ID
+  const currentIndepSiteId = localStorage.getItem('currentIndepSite');
+  const currentIndepSiteName = localStorage.getItem('currentIndepSiteName');
+  
+  // 默认站点取 url 参数、当前选中的站点或从示例取
+  siteInput.value = getParam('site') || currentIndepSiteName || 'poolsvacuum.com';
   const today = new Date();
   const dow = today.getDay();
   const mondayThisWeek = new Date(today);
@@ -337,10 +338,22 @@
 
   async function load() {
     try {
-      const site = siteInput.value.trim();
+      const siteName = siteInput.value.trim();
       const from = fromInput.value;
       const to = toInput.value;
-      const url = `/api/independent/stats?site=${encodeURIComponent(site)}&from=${from}&to=${to}`;
+      
+      // 获取当前选中的独立站站点ID
+      const currentIndepSiteId = localStorage.getItem('currentIndepSite');
+      
+      // 如果当前选中的站点名称与输入框中的站点名称匹配，使用站点ID
+      // 否则使用站点名称（向后兼容）
+      const siteParam = (currentIndepSiteId && siteName === localStorage.getItem('currentIndepSiteName')) 
+        ? currentIndepSiteId 
+        : siteName;
+      
+      console.log('独立站查询参数:', { siteName, currentIndepSiteId, siteParam });
+      
+      const url = `/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${from}&to=${to}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
@@ -417,21 +430,8 @@
 
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
-  const siteListKey='managedSites';
-  let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
-  if(!Array.isArray(sites)||!sites.length){sites=['A站','B站','C站'];localStorage.setItem(siteListKey,JSON.stringify(sites));}
-  const menuEl=document.getElementById('managedMenu');
-  if(menuEl){
-    sites.forEach(name=>{
-      const li=document.createElement('li');
-      const a=document.createElement('a');
-      a.href='index.html';
-      a.textContent=name;
-      a.addEventListener('click',e=>{e.preventDefault();localStorage.setItem('currentSite',name);window.location.href='index.html';});
-      li.appendChild(a);
-      menuEl.appendChild(li);
-    });
-  }
+  // 移除旧的硬编码站点逻辑，现在使用统一的site-nav.js
+  // 站点菜单由site-nav.js统一管理
   const userArea=document.getElementById('userArea');
   function refreshUser(){
     const u=JSON.parse(localStorage.getItem('user')||'null');

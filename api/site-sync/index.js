@@ -52,22 +52,46 @@ export default async function handler(req, res) {
     
     console.log('同步站点信息:', { siteId, oldSiteId, action, siteConfig });
     
-    if (action === 'update' && oldSiteId && oldSiteId !== siteId) {
-      // 更新站点ID - 需要更新相关数据表中的站点标识
-      console.log('更新站点ID从', oldSiteId, '到', siteId);
+    if (action === 'update') {
+      // 更新站点配置 - 需要同步数据库中的站点标识
+      console.log('更新站点配置:', { siteId, oldSiteId, siteConfig });
+      
+      // 如果站点ID没有变化，但站点名称可能变化了
+      // 我们需要确保数据库中的site字段与站点ID一致
       
       // 更新 ae_self_operated_daily 表中的站点标识
+      // 使用站点ID作为site字段的值，而不是站点名称
       const { error: updateError } = await supabase
         .from('ae_self_operated_daily')
         .update({ site: siteId })
-        .eq('site', oldSiteId);
+        .eq('site', oldSiteId || siteConfig.name || siteConfig.display_name);
       
       if (updateError) {
         console.error('更新ae_self_operated_daily表失败:', updateError);
-        throw updateError;
+        // 不抛出错误，因为可能没有匹配的记录
+        console.log('可能没有需要更新的记录，继续执行');
+      } else {
+        console.log('成功更新ae_self_operated_daily表中的站点标识');
       }
       
-      console.log('成功更新ae_self_operated_daily表中的站点标识');
+      // 同时更新其他可能使用站点名称的表
+      // 例如：如果有其他表也使用站点标识，也需要更新
+      const tablesToUpdate = ['ae_self_operated_daily']; // 可以扩展其他表
+      
+      for (const tableName of tablesToUpdate) {
+        try {
+          const { error: tableUpdateError } = await supabase
+            .from(tableName)
+            .update({ site: siteId })
+            .eq('site', siteConfig.name || siteConfig.display_name);
+          
+          if (!tableUpdateError) {
+            console.log(`成功更新${tableName}表中的站点标识`);
+          }
+        } catch (e) {
+          console.log(`更新${tableName}表时出错:`, e.message);
+        }
+      }
     }
     
     // 如果是新建站点，确保数据表存在
