@@ -150,7 +150,8 @@ BEGIN
     IF column_defs != '' THEN
       column_defs := column_defs || ', ';
     END IF;
-    column_defs := column_defs || field_name || ' ' || field_type;
+    -- 移除数据类型名称周围的引号，确保正确的SQL语法
+    column_defs := column_defs || field_name || ' ' || trim(both '"' from field_type);
   END LOOP;
   
   -- 创建表

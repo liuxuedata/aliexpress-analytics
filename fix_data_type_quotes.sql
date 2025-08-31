@@ -1,5 +1,5 @@
--- 修复动态表生成问题
--- 删除可能存在的错误表并重新生成
+-- 修复数据类型引号问题
+-- 这个问题是由于 jsonb_each 返回的值包含引号导致的
 
 -- 1. 删除可能存在的错误表
 DROP TABLE IF EXISTS public.independent_icyberite_facebook_ads_daily;
@@ -93,7 +93,7 @@ SELECT public.generate_dynamic_table(
 );
 
 -- 4. 验证表创建结果
-SELECT 'Dynamic table generation completed' as status;
+SELECT 'Data type quotes fix completed' as status;
 SELECT 
   table_name,
   column_name,

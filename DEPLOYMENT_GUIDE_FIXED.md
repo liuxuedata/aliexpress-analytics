@@ -81,20 +81,27 @@ function pushFacebookReportToVercel() {
 1. 先执行 `fix_updated_at_columns.sql`
 2. 然后执行 `site_configuration_framework.sql`
 
-### 如果遇到 "type numeric(10,2) does not exist" 错误
+### 如果遇到 "type numeric(10,2) does not exist" 或 "type integer does not exist" 错误
 
-这个错误是由于动态表生成时列定义顺序混乱导致的。请执行：
+这个错误是由于动态表生成时数据类型名称包含引号导致的。请执行：
+
+```sql
+-- 在 Supabase SQL Editor 中执行
+-- 文件：fix_data_type_quotes.sql
+```
+
+这个脚本会：
+1. 删除可能存在的错误表
+2. 重新创建修复版本的 `generate_dynamic_table` 函数（移除数据类型名称的引号）
+3. 重新生成 Facebook Ads 数据表
+4. 验证表创建结果
+
+如果上述脚本仍然有问题，也可以尝试：
 
 ```sql
 -- 在 Supabase SQL Editor 中执行
 -- 文件：fix_dynamic_table_generation.sql
 ```
-
-这个脚本会：
-1. 删除可能存在的错误表
-2. 重新创建修复版本的 `generate_dynamic_table` 函数
-3. 重新生成 Facebook Ads 数据表
-4. 验证表创建结果
 
 ### 如果遇到其他错误
 
