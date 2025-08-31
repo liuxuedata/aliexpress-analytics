@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS public.dynamic_tables (
   table_name  text not null,                    -- 生成的表名
   table_schema jsonb not null,                  -- 表结构定义
   created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now()
+  updated_at  timestamptz not null default now(),
+  UNIQUE(site_id, table_name)                   -- 确保每个站点的表名唯一
 );
 
 -- 4. 插入预定义的数据源模板
@@ -215,6 +216,19 @@ SELECT public.generate_dynamic_table(
 ALTER TABLE public.site_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.data_source_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dynamic_tables ENABLE ROW LEVEL SECURITY;
+
+-- 删除已存在的RLS策略（如果存在）
+DROP POLICY IF EXISTS p_site_configs_sel_all ON public.site_configs;
+DROP POLICY IF EXISTS p_site_configs_ins_all ON public.site_configs;
+DROP POLICY IF EXISTS p_site_configs_upd_all ON public.site_configs;
+
+DROP POLICY IF EXISTS p_data_source_templates_sel_all ON public.data_source_templates;
+DROP POLICY IF EXISTS p_data_source_templates_ins_all ON public.data_source_templates;
+DROP POLICY IF EXISTS p_data_source_templates_upd_all ON public.data_source_templates;
+
+DROP POLICY IF EXISTS p_dynamic_tables_sel_all ON public.dynamic_tables;
+DROP POLICY IF EXISTS p_dynamic_tables_ins_all ON public.dynamic_tables;
+DROP POLICY IF EXISTS p_dynamic_tables_upd_all ON public.dynamic_tables;
 
 -- 创建RLS策略
 CREATE POLICY p_site_configs_sel_all ON public.site_configs FOR SELECT TO anon USING (true);
