@@ -162,6 +162,7 @@ FOR UPDATE TO anon USING (true) WITH CHECK (true);
 DO $$
 BEGIN
     RAISE NOTICE '=== 验证修复结果 ===';
+    RAISE NOTICE 'Database structure fix completed successfully!';
 END $$;
 
 -- 检查最终表结构
@@ -197,5 +198,3 @@ ORDER BY record_count DESC;
 
 -- 检查站点配置
 SELECT * FROM sites ORDER BY created_at;
-
-RAISE NOTICE 'Database structure fix completed successfully!';
