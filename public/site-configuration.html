@@ -171,9 +171,39 @@
       border-color: #3b82f6;
       background: #eff6ff;
     }
-    .hidden {
-      display: none;
-    }
+         .hidden {
+       display: none;
+     }
+     .progress-bar {
+       width: 100%;
+       height: 4px;
+       background-color: #e5e7eb;
+       border-radius: 2px;
+       overflow: hidden;
+       margin: 10px 0;
+     }
+     .progress-fill {
+       height: 100%;
+       background-color: #3b82f6;
+       width: 0%;
+       transition: width 0.3s ease;
+       animation: progress-animation 2s infinite;
+     }
+     @keyframes progress-animation {
+       0% { width: 0%; }
+       50% { width: 70%; }
+       100% { width: 100%; }
+     }
+     .status-message {
+       padding: 10px;
+       border-radius: 6px;
+       margin: 10px 0;
+       font-weight: 500;
+       position: relative;
+     }
+     .status-message.with-progress {
+       padding-bottom: 20px;
+     }
   </style>
 </head>
 <body class="fm">
@@ -398,12 +428,17 @@ function setupEventListeners() {
 // 加载站点列表
 async function loadSites() {
   try {
+    showStatus('正在加载站点列表...', 'info');
     const response = await fetch('/api/site-configs');
+    const data = await response.json();
+    
     if (response.ok) {
-      const data = await response.json();
       currentSites = data.data || [];
       renderSiteList();
       updateTestSiteOptions();
+      showStatus(`成功加载 ${currentSites.length} 个站点`, 'success');
+    } else {
+      showStatus('加载站点失败: ' + (data.error || data.message || '未知错误'), 'error');
     }
   } catch (error) {
     console.error('加载站点失败:', error);
@@ -429,12 +464,20 @@ function renderSiteList() {
   const siteList = document.getElementById('siteList');
   siteList.innerHTML = '';
   
+  console.log('渲染站点列表，站点数量:', currentSites.length);
+  console.log('站点数据:', currentSites);
+  
+  if (currentSites.length === 0) {
+    siteList.innerHTML = '<div class="site-item"><div class="site-info"><p>暂无站点配置</p></div></div>';
+    return;
+  }
+  
   currentSites.forEach(site => {
     const siteItem = document.createElement('div');
     siteItem.className = 'site-item';
     siteItem.innerHTML = `
       <div class="site-info">
-        <h4>${site.display_name}</h4>
+        <h4>${site.display_name || site.name}</h4>
         <div class="platform">平台：${getPlatformDisplayName(site.platform)}</div>
         <div class="data-source">数据源：${getDataSourceDisplayName(site.data_source)}</div>
       </div>
@@ -529,6 +572,8 @@ document.getElementById('siteConfigForm').addEventListener('submit', async funct
     const method = editingSiteId ? 'PUT' : 'POST';
     const url = editingSiteId ? `/api/site-configs/${editingSiteId}` : '/api/site-configs';
     
+    showStatus(editingSiteId ? '正在更新站点...' : '正在创建站点...', 'info', true);
+    
     const response = await fetch(url, {
       method: method,
       headers: {
@@ -541,7 +586,7 @@ document.getElementById('siteConfigForm').addEventListener('submit', async funct
     
     if (response.ok) {
       showStatus(editingSiteId ? '站点更新成功！' : '站点创建成功！', 'success');
-      loadSites();
+      await loadSites(); // 等待加载完成
       resetForm();
       editingSiteId = null;
     } else {
@@ -584,6 +629,8 @@ async function deleteSite(siteId) {
   }
   
   try {
+    showStatus('正在删除站点...', 'info', true);
+    
     const response = await fetch(`/api/site-configs/${siteId}`, {
       method: 'DELETE'
     });
@@ -592,7 +639,7 @@ async function deleteSite(siteId) {
     
     if (response.ok) {
       showStatus('站点删除成功！', 'success');
-      loadSites();
+      await loadSites(); // 等待加载完成
     } else {
       showStatus('删除失败: ' + (result.error || result.message || '未知错误'), 'error');
     }
@@ -638,7 +685,7 @@ async function testDataUpload() {
   formData.append('file', fileInput.files[0]);
   
   try {
-    showStatus('正在上传数据...', 'info');
+    showStatus('正在上传数据，请稍候...', 'info', true);
     
     const response = await fetch(`/api/dynamic-ingest/${siteId}`, {
       method: 'POST',
@@ -648,12 +695,19 @@ async function testDataUpload() {
     const result = await response.json();
     
     if (response.ok) {
-      showStatus(`数据上传成功！处理了 ${result.processed} 条记录，插入了 ${result.upserted} 条记录`, 'success');
+      const message = `数据上传成功！处理了 ${result.processed} 条记录，插入了 ${result.upserted} 条记录`;
+      showStatus(message, 'success');
+      
       // 清空文件选择
       fileInput.value = '';
       document.getElementById('fileUpload').innerHTML = `
         <p>拖拽文件到此处或点击选择文件</p>
       `;
+      
+      // 显示详细结果
+      setTimeout(() => {
+        showStatus(`上传详情：处理 ${result.processed} 条，插入 ${result.upserted} 条，表名：${result.table}`, 'info');
+      }, 3000);
     } else {
       showStatus('上传失败: ' + (result.error || result.message || '未知错误'), 'error');
     }
@@ -691,13 +745,18 @@ async function generateTestData() {
 }
 
 // 显示状态消息
-function showStatus(message, type = 'info') {
+function showStatus(message, type = 'info', showProgress = false) {
   const statusDiv = document.getElementById('statusMessage');
-  statusDiv.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
+  const progressHtml = showProgress ? '<div class="progress-bar"><div class="progress-fill"></div></div>' : '';
+  const progressClass = showProgress ? ' with-progress' : '';
   
+  statusDiv.innerHTML = `<div class="status-message status-${type}${progressClass}">${message}${progressHtml}</div>`;
+  
+  // 如果是进度消息，延长显示时间
+  const timeout = showProgress ? 10000 : 5000;
   setTimeout(() => {
     statusDiv.innerHTML = '';
-  }, 5000);
+  }, timeout);
 }
 
 // 工具函数
