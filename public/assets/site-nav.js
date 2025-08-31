@@ -41,9 +41,16 @@
     try {
       console.log('正在从API获取站点配置...');
       const response = await fetch('/api/site-configs');
-      const data = await response.json();
+      console.log('站点配置API响应状态:', response.status);
       
-      if (response.ok && data.data) {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('站点配置API响应数据:', data);
+      
+      if (data && data.data && Array.isArray(data.data)) {
         const sites = data.data;
         console.log('从API获取的站点数据:', sites);
         
@@ -110,12 +117,12 @@
         
         console.log('站点菜单渲染完成');
       } else {
-        console.error('API返回错误:', data);
-        // 如果 site_configs API 失败，尝试使用 sites 表作为备选
+        console.warn('站点配置API返回的数据格式不正确:', data);
+        // 如果数据格式不正确，尝试使用 sites 表作为备选
         await renderFallbackSites();
       }
     } catch (error) {
-      console.error('获取站点配置失败:', error);
+      console.error('获取站点配置失败:', error.message);
       // 如果 site_configs API 失败，尝试使用 sites 表作为备选
       await renderFallbackSites();
     }
@@ -128,9 +135,16 @@
     console.log('使用备选方案：从 sites 表获取数据...');
     try {
       const response = await fetch('/api/sites');
-      const data = await response.json();
+      console.log('Sites API响应状态:', response.status);
       
-      if (response.ok && data.data) {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('Sites API响应数据:', data);
+      
+      if (data && data.data && Array.isArray(data.data)) {
         const sites = data.data;
         console.log('从 sites 表获取的数据:', sites);
         
@@ -181,9 +195,13 @@
             indepMenu.appendChild(li);
           });
         }
+        
+        console.log('备选方案渲染完成');
+      } else {
+        console.error('Sites API返回的数据格式不正确:', data);
       }
     } catch (error) {
-      console.error('备选方案也失败了:', error);
+      console.error('备选方案也失败了:', error.message);
     }
   }
 
