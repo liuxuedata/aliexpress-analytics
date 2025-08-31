@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API调试测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+    </style>
+</head>
+<body>
+    <h1>API调试测试页面</h1>
+    
+    <div class="test-section">
+        <h3>1. 测试站点配置API</h3>
+        <button onclick="testSiteConfigs()">测试 /api/site-configs</button>
+        <button onclick="testSites()">测试 /api/sites</button>
+        <div id="siteConfigsResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. 测试自运营数据查询API</h3>
+        <button onclick="testAeQuery()">测试 /api/ae_query (robot站)</button>
+        <button onclick="testAeQueryWithDate()">测试 /api/ae_query (指定日期)</button>
+        <div id="aeQueryResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. 测试环境信息</h3>
+        <button onclick="testEnvironment()">检查环境变量</button>
+        <div id="envResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>4. 测试localStorage状态</h3>
+        <button onclick="testLocalStorage()">检查localStorage</button>
+        <button onclick="clearLocalStorage()">清除localStorage</button>
+        <div id="localStorageResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>5. 测试网络连接</h3>
+        <button onclick="testNetwork()">测试网络连接</button>
+        <div id="networkResult" class="result"></div>
+    </div>
+
+    <script>
+        // 1. 测试站点配置API
+        async function testSiteConfigs() {
+            const resultDiv = document.getElementById('siteConfigsResult');
+            resultDiv.textContent = '正在测试站点配置API...';
+            resultDiv.className = 'result loading';
+
+            try {
+                const response = await fetch('/api/site-configs');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.textContent = '✅ 站点配置API正常:\n' + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = '❌ 站点配置API失败:\n' + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = '❌ 请求错误:\n' + error.message;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function testSites() {
+            const resultDiv = document.getElementById('siteConfigsResult');
+            resultDiv.textContent = '正在测试sites API...';
+            resultDiv.className = 'result loading';
+
+            try {
+                const response = await fetch('/api/sites');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.textContent = '✅ Sites API正常:\n' + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = '❌ Sites API失败:\n' + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = '❌ 请求错误:\n' + error.message;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // 2. 测试自运营数据查询API
+        async function testAeQuery() {
+            const resultDiv = document.getElementById('aeQueryResult');
+            resultDiv.textContent = '正在测试自运营数据查询...';
+            resultDiv.className = 'result loading';
+
+            try {
+                const url = '/api/ae_query?start=2025-07-01&end=2025-12-31&granularity=day&site=ae_self_operated_a';
+                console.log('测试URL:', url);
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.textContent = '✅ 自运营数据查询成功:\n' + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = '❌ 自运营数据查询失败:\n' + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = '❌ 请求错误:\n' + error.message;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function testAeQueryWithDate() {
+            const resultDiv = document.getElementById('aeQueryResult');
+            resultDiv.textContent = '正在测试指定日期查询...';
+            resultDiv.className = 'result loading';
+
+            try {
+                const today = new Date();
+                const end = today.toISOString().slice(0, 10);
+                const start = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime() - 30 * 86400000).toISOString().slice(0, 10);
+                
+                const url = `/api/ae_query?start=${start}&end=${end}&granularity=day&site=ae_self_operated_a`;
+                console.log('测试URL:', url);
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.textContent = `✅ 指定日期查询成功 (${start} 到 ${end}):\n` + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = '❌ 指定日期查询失败:\n' + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = '❌ 请求错误:\n' + error.message;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // 3. 测试环境信息
+        async function testEnvironment() {
+            const resultDiv = document.getElementById('envResult');
+            resultDiv.textContent = '正在检查环境信息...';
+            resultDiv.className = 'result loading';
+
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.textContent = '✅ 环境检查成功:\n' + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = '❌ 环境检查失败:\n' + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = '❌ 环境检查错误:\n' + error.message;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // 4. 测试localStorage状态
+        function testLocalStorage() {
+            const resultDiv = document.getElementById('localStorageResult');
+            const currentSite = localStorage.getItem('currentSite');
+            const currentSiteName = localStorage.getItem('currentSiteName');
+            const selfPeriod = localStorage.getItem('selfPeriod');
+            
+            resultDiv.textContent = `localStorage状态:\n` +
+                `currentSite: ${currentSite || '未设置'}\n` +
+                `currentSiteName: ${currentSiteName || '未设置'}\n` +
+                `selfPeriod: ${selfPeriod || '未设置'}\n` +
+                `当前时间: ${new Date().toISOString()}`;
+            resultDiv.className = 'result info';
+        }
+
+        function clearLocalStorage() {
+            localStorage.clear();
+            const resultDiv = document.getElementById('localStorageResult');
+            resultDiv.textContent = '✅ localStorage已清除';
+            resultDiv.className = 'result success';
+        }
+
+        // 5. 测试网络连接
+        async function testNetwork() {
+            const resultDiv = document.getElementById('networkResult');
+            resultDiv.textContent = '正在测试网络连接...';
+            resultDiv.className = 'result loading';
+
+            try {
+                const startTime = Date.now();
+                const response = await fetch('/api/health');
+                const endTime = Date.now();
+                const responseTime = endTime - startTime;
+                
+                if (response.ok) {
+                    resultDiv.textContent = `✅ 网络连接正常\n响应时间: ${responseTime}ms\n状态码: ${response.status}`;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = `❌ 网络连接异常\n状态码: ${response.status}\n响应时间: ${responseTime}ms`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = '❌ 网络连接失败:\n' + error.message;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // 页面加载时自动运行一些测试
+        window.addEventListener('load', () => {
+            testLocalStorage();
+            testNetwork();
+        });
+    </script>
+</body>
+</html>
