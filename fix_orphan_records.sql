@@ -1,22 +1,22 @@
--- 修复孤立记录和数据不一致问题
--- 解决 sites 表中有5条记录，site_configs 表中有4条记录的问题
+                                -- 修复孤立记录和数据不一致问题
+                                -- 解决 sites 表中有5条记录，site_configs 表中有4条记录的问题
 
--- 1. 查看具体的孤立记录
-SELECT '=== 查看孤立记录详情 ===' as info;
+                                -- 1. 查看具体的孤立记录
+                                SELECT '=== 查看孤立记录详情 ===' as info;
 
--- 查看 sites 表中存在但 site_configs 中不存在的记录
-SELECT 
-    'sites 表中的孤立记录' as record_type,
-    s.id,
-    s.name,
-    s.platform,
-    s.display_name,
-    s.created_at
-FROM sites s
-LEFT JOIN site_configs sc ON s.id = sc.id
-WHERE sc.id IS NULL;
+                                -- 查看 sites 表中存在但 site_configs 中不存在的记录
+                                SELECT 
+                                    'sites 表中的孤立记录' as record_type,
+                                    s.id,
+                                    s.name,
+                                    s.platform,
+                                    s.display_name,
+                                    s.created_at
+                                FROM sites s
+                                LEFT JOIN site_configs sc ON s.id = sc.id
+                                WHERE sc.id IS NULL;
 
--- 2. 查看 site_configs 表中存在但 sites 中不存在的记录
+                                -- 2. 查看 site_configs 表中存在但 sites 中不存在的记录
 SELECT 
     'site_configs 表中的孤立记录' as record_type,
     sc.id,

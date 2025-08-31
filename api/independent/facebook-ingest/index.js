@@ -136,7 +136,7 @@ async function handleFile(filePath, filename, siteId) {
     const record = {
       site: siteId,
       day: dayStr,
-      campaign: campaign,
+      campaign_name: campaign, // 修复字段名
       adset_name: adset,
       landing_url: landingUrl,
       impressions: coerceNum(row[impressionsCol]),
@@ -250,8 +250,13 @@ export default async function handler(req, res) {
 
     console.log(`处理了 ${records.length} 条记录`);
 
-    // 确定表名
-    const tableName = `independent_${currentIndepSiteId.replace('independent_', '')}_facebook_ads_daily`;
+    // 确定表名 - 修复表名生成逻辑
+    const siteName = currentIndepSiteId.replace('independent_', '');
+    const tableName = `independent_${siteName}_facebook_ads_daily`;
+    
+    console.log('目标表名:', tableName);
+    console.log('站点ID:', currentIndepSiteId);
+    console.log('站点名称:', siteName);
     
     // 检查表是否存在，如果不存在则创建
     try {
@@ -262,8 +267,17 @@ export default async function handler(req, res) {
       
       if (tableCheckError) {
         console.log('表不存在，尝试创建:', tableName);
-        // 这里可以调用动态表创建函数
-        // 暂时跳过，让用户手动创建表
+        // 调用动态表创建函数
+        const { error: createError } = await supabase.rpc('generate_dynamic_table', {
+          p_site_id: currentIndepSiteId,
+          p_table_name: tableName,
+          p_data_source: 'facebook_ads'
+        });
+        
+        if (createError) {
+          console.error('创建表失败:', createError);
+          return res.status(500).json({ error: `Failed to create table: ${createError.message}` });
+        }
       }
     } catch (e) {
       console.log('表检查失败，可能表不存在:', e.message);
