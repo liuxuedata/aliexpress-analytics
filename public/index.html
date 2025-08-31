@@ -734,30 +734,43 @@ $('#metricSel').on('change', fetchAndRenderAll);
 <script src="assets/login.js"></script>
 <script src="assets/site-nav.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', ()=>{
-  const siteListKey='managedSites';
+document.addEventListener('DOMContentLoaded',()=>{
   const currentSiteKey='currentSite';
-  let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
-  if(!Array.isArray(sites)||!sites.length){sites=['A站','B站','C站'];}
   const currentSiteEl=document.getElementById('currentSite');
-  function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));renderSiteMenus();}
-  function updateCurrent(){
-    const name=localStorage.getItem(currentSiteKey)||sites[0];
-    currentSiteEl.textContent='自运营 '+name;
-    localStorage.setItem(currentSiteKey,name);
+  const addBtn=document.getElementById('addSite');
+
+  async function loadSites(){
+    try{
+      const resp=await fetch('/api/sites');
+      const j=await resp.json();
+      const list=j.sites||[];
+      if(list.length){
+        const cur=localStorage.getItem(currentSiteKey)||list[0].name;
+        currentSiteEl.textContent='自运营 '+cur;
+        localStorage.setItem(currentSiteKey,cur);
+      }
+    }catch(e){
+      console.error('site list load failed',e);
+    }
   }
-  currentSiteEl.addEventListener('dblclick',()=>{
-    const cur=localStorage.getItem(currentSiteKey)||sites[0];
-    const idx=sites.indexOf(cur);
-    const n=prompt('修改站点名',cur);
-    if(n){sites[idx]=n;save();localStorage.setItem(currentSiteKey,n);updateCurrent();}
-  });
-  document.getElementById('addSite').addEventListener('click',()=>{
-    const n=prompt('新增站点名');
-    if(n){sites.push(n);save();updateCurrent();}
-  });
-  renderSiteMenus();
-  updateCurrent();
+
+  async function addSite(){
+    const name=prompt('新增站点名');
+    if(!name) return;
+    try{
+      const resp=await fetch('/api/sites',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+      if(!resp.ok) throw new Error('request failed');
+      const j=await resp.json();
+      const cur=j.site?.name||name;
+      currentSiteEl.textContent='自运营 '+cur;
+      localStorage.setItem(currentSiteKey,cur);
+    }catch(e){
+      alert('新增失败: '+e.message);
+    }
+  }
+
+  addBtn.addEventListener('click',addSite);
+  loadSites();
   const userArea=document.getElementById('userArea');
   function refreshUser(){
     const u=JSON.parse(localStorage.getItem('user')||'null');
