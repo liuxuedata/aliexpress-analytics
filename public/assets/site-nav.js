@@ -39,6 +39,7 @@
     
     // 从站点配置API获取所有站点
     try {
+      console.log('正在从API获取站点配置...');
       const response = await fetch('/api/site-configs');
       const data = await response.json();
       
@@ -46,93 +47,91 @@
         const sites = data.data;
         console.log('从API获取的站点数据:', sites);
         
-                 // 更新速卖通自运营站点菜单
-         const aeSelfOperatedSites = sites.filter(site => site.platform === 'ae_self_operated');
-         console.log('速卖通自运营站点:', aeSelfOperatedSites);
-         
-         const managedMenu = document.getElementById('managedMenu');
-         if (managedMenu) {
-           console.log('开始渲染速卖通菜单...');
-           
-           // 添加自运营子菜单
-           if (aeSelfOperatedSites.length > 0) {
-             aeSelfOperatedSites.forEach(site => {
-               const li = document.createElement('li');
-               const a = document.createElement('a');
-               a.href = 'index.html';
-               a.textContent = site.display_name || site.name;
-               a.addEventListener('click', e => {
-                 e.preventDefault();
-                 localStorage.setItem('currentSite', site.id);
-                 localStorage.setItem('currentSiteName', site.display_name || site.name);
-                 window.location.href = 'index.html';
-               });
-               li.appendChild(a);
-               managedMenu.appendChild(li);
-               console.log('添加速卖通菜单项:', site.display_name || site.name);
-             });
-           }
-           
-           // 添加全托管选项
-           const managedLi = document.createElement('li');
-           const managedA = document.createElement('a');
-           managedA.href = 'managed.html';
-           managedA.textContent = '全托管';
-           managedLi.appendChild(managedA);
-           managedMenu.appendChild(managedLi);
-           console.log('添加全托管菜单项');
-         }
+        // 更新速卖通自运营站点菜单
+        const aeSelfOperatedSites = sites.filter(site => site.platform === 'ae_self_operated');
+        console.log('速卖通自运营站点:', aeSelfOperatedSites);
         
-                 // 更新独立站站点菜单
-         const independentSites = sites.filter(site => site.platform === 'independent');
-         console.log('独立站站点:', independentSites);
-         
-         const indepMenu = document.getElementById('indepMenu');
-         if (indepMenu) {
-           console.log('开始渲染独立站菜单...');
-           if (independentSites.length > 0) {
-             independentSites.forEach(site => {
-               const li = document.createElement('li');
-               const a = document.createElement('a');
-               a.href = 'independent-site.html';
-               a.textContent = site.display_name || site.name;
-               a.addEventListener('click', e => {
-                 e.preventDefault();
-                 localStorage.setItem('currentIndepSite', site.id);
-                 localStorage.setItem('currentIndepSiteName', site.display_name || site.name);
-                 window.location.href = 'independent-site.html';
-               });
-               li.appendChild(a);
-               indepMenu.appendChild(li);
-               console.log('添加独立站菜单项:', site.display_name || site.name);
-             });
-           }
-         }
+        if (managedMenu) {
+          console.log('开始渲染速卖通菜单...');
+          
+          // 添加自运营子菜单
+          if (aeSelfOperatedSites.length > 0) {
+            aeSelfOperatedSites.forEach(site => {
+              const li = document.createElement('li');
+              const a = document.createElement('a');
+              a.href = 'index.html';
+              a.textContent = site.display_name || site.name;
+              a.addEventListener('click', e => {
+                e.preventDefault();
+                localStorage.setItem('currentSite', site.id);
+                localStorage.setItem('currentSiteName', site.display_name || site.name);
+                window.location.href = 'index.html';
+              });
+              li.appendChild(a);
+              managedMenu.appendChild(li);
+              console.log('添加速卖通菜单项:', site.display_name || site.name);
+            });
+          }
+          
+          // 添加全托管选项
+          const managedLi = document.createElement('li');
+          const managedA = document.createElement('a');
+          managedA.href = 'managed.html';
+          managedA.textContent = '全托管';
+          managedLi.appendChild(managedA);
+          managedMenu.appendChild(managedLi);
+          console.log('添加全托管菜单项');
+        }
+        
+        // 更新独立站站点菜单
+        const independentSites = sites.filter(site => site.platform === 'independent');
+        console.log('独立站站点:', independentSites);
+        
+        if (indepMenu) {
+          console.log('开始渲染独立站菜单...');
+          if (independentSites.length > 0) {
+            independentSites.forEach(site => {
+              const li = document.createElement('li');
+              const a = document.createElement('a');
+              a.href = 'independent-site.html';
+              a.textContent = site.display_name || site.name;
+              a.addEventListener('click', e => {
+                e.preventDefault();
+                localStorage.setItem('currentIndepSite', site.id);
+                localStorage.setItem('currentIndepSiteName', site.display_name || site.name);
+                window.location.href = 'independent-site.html?site=' + encodeURIComponent(site.name);
+              });
+              li.appendChild(a);
+              indepMenu.appendChild(li);
+              console.log('添加独立站菜单项:', site.display_name || site.name);
+            });
+          }
+        }
+        
+        console.log('站点菜单渲染完成');
+      } else {
+        console.error('API返回错误:', data);
       }
-    } catch (e) {
-      console.error('站点配置API加载失败:', e);
+    } catch (error) {
+      console.error('获取站点配置失败:', error);
     }
     
     applyNavIcons();
   }
 
-  function renderFooter(){
-    const footer=document.createElement('footer');
-    footer.style.textAlign='center';
-    footer.style.fontSize='12px';
-    footer.style.margin='2rem 0';
-    footer.innerHTML='<a href="consent-privacy-notice.html" target="_blank">Consent & Privacy Notice / 同意与隐私声明</a>';
-    document.body.appendChild(footer);
-  }
-
-  window.renderSiteMenus=render;
+  // 全局刷新函数
+  window.refreshSiteMenus = render;
   
-  // 添加全局刷新函数
-  window.refreshSiteMenus = async () => {
-    console.log('刷新站点菜单...');
-    await render();
-  };
+  // 初始渲染
+  await render();
   
-  document.addEventListener('DOMContentLoaded',render);
-  document.addEventListener('DOMContentLoaded',renderFooter);
+  // 监听页面可见性变化，重新渲染菜单
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      render();
+    }
+  });
+  
+  // 定期刷新菜单（每30秒）
+  setInterval(render, 30000);
 })();

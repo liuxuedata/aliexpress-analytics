@@ -48,6 +48,16 @@ function lastWeek() {
 }
 
 module.exports = async (req, res) => {
+  // 设置CORS头
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  // 处理OPTIONS请求
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   try {
     const supabase = getClient();
     const { site, from, to, limit = '20000', only_new, campaign, network, device } = req.query;
@@ -55,6 +65,8 @@ module.exports = async (req, res) => {
     const toDate = parseDate(to, def.to);
     const fromDate = parseDate(from, def.from);
     const onlyNew = String(only_new || '') === '1';
+
+    console.log('独立站查询参数:', { site, from: fromDate, to: toDate, limit, only_new, campaign, network, device });
 
     if (!site) return res.status(400).json({ error: 'missing site param, e.g. ?site=poolsvacuum.com' });
 

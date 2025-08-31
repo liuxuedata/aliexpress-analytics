@@ -198,9 +198,11 @@ export default async function handler(req, res) {
     const form = formidable({
       maxFileSize: 50 * 1024 * 1024, // 50MB
       keepExtensions: true,
-      uploadDir: '/tmp', // 明确指定上传目录
+      uploadDir: process.env.TEMP || '/tmp', // 使用环境变量或默认临时目录
       filename: (name, ext, part, form) => {
-        return `${Date.now()}-${Math.random().toString(36).substring(2)}${ext}`;
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substring(2, 15);
+        return `${timestamp}-${random}${ext}`;
       }
     });
 
