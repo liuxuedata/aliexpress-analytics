@@ -772,24 +772,46 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   const currentSiteEl=document.getElementById('currentSite');
   
   // 从localStorage获取当前站点信息
-  function updateCurrentSiteDisplay(){
+  async function updateCurrentSiteDisplay(){
     const currentSiteId = localStorage.getItem('currentSite');
     const currentSiteName = localStorage.getItem('currentSiteName');
     
+    console.log('更新站点显示 - 当前站点ID:', currentSiteId, '当前站点名称:', currentSiteName);
+    
     if (currentSiteName) {
       currentSiteEl.textContent = currentSiteName;
+      console.log('使用缓存的站点名称:', currentSiteName);
     } else {
       // 如果没有设置，从API获取默认站点
       try {
+        console.log('从API获取站点信息...');
         const response = await fetch('/api/site-configs');
         const data = await response.json();
         if (response.ok && data.data && data.data.length > 0) {
-          const firstSite = data.data.find(site => site.platform === 'ae_self_operated') || data.data[0];
-          currentSiteEl.textContent = firstSite.display_name || firstSite.name;
-          localStorage.setItem('currentSite', firstSite.id);
-          localStorage.setItem('currentSiteName', firstSite.display_name || firstSite.name);
+          // 优先使用当前站点ID对应的站点
+          let targetSite = null;
+          if (currentSiteId) {
+            targetSite = data.data.find(site => site.id === currentSiteId);
+          }
+          
+          // 如果没找到，使用第一个自运营站点
+          if (!targetSite) {
+            targetSite = data.data.find(site => site.platform === 'ae_self_operated') || data.data[0];
+          }
+          
+          if (targetSite) {
+            const displayName = targetSite.display_name || targetSite.name;
+            currentSiteEl.textContent = displayName;
+            localStorage.setItem('currentSite', targetSite.id);
+            localStorage.setItem('currentSiteName', displayName);
+            console.log('设置站点信息:', { id: targetSite.id, name: displayName });
+          } else {
+            currentSiteEl.textContent = '自运营 A站';
+            console.log('未找到站点，使用默认名称');
+          }
         } else {
           currentSiteEl.textContent = '自运营 A站';
+          console.log('API返回空数据，使用默认名称');
         }
       } catch (e) {
         console.error('获取默认站点失败:', e);
@@ -810,6 +832,18 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   
   // 初始化显示
   await updateCurrentSiteDisplay();
+  
+  // 检查当前页面是否是首页，如果是则重定向到全托管页面
+  if (window.location.pathname === '/' || window.location.pathname.endsWith('index.html')) {
+    // 检查是否已经有特定的站点选择
+    const currentSiteId = localStorage.getItem('currentSite');
+    if (!currentSiteId || currentSiteId === 'ae_self_operated_a') {
+      // 如果没有选择站点或选择的是自运营A站，重定向到全托管页面
+      console.log('重定向到全托管页面');
+      window.location.href = 'managed.html';
+      return;
+    }
+  }
   
   // 监听站点菜单刷新消息，同时更新当前站点显示
   window.addEventListener('message', async (event) => {

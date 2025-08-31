@@ -177,7 +177,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
+  
   // 处理OPTIONS请求
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -197,29 +197,50 @@ export default async function handler(req, res) {
 
     const form = formidable({
       maxFileSize: 50 * 1024 * 1024, // 50MB
-      keepExtensions: true
+      keepExtensions: true,
+      uploadDir: '/tmp', // 明确指定上传目录
+      filename: (name, ext, part, form) => {
+        return `${Date.now()}-${Math.random().toString(36).substring(2)}${ext}`;
+      }
     });
 
     const [fields, files] = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
-        if (err) reject(err);
-        else resolve([fields, files]);
+        if (err) {
+          console.error('Formidable解析错误:', err);
+          reject(err);
+        } else {
+          console.log('Formidable解析成功:', { fields, files });
+          resolve([fields, files]);
+        }
       });
     });
 
-         const file = files.file;
-     if (!file) {
-       return res.status(400).json({ error: 'No file uploaded' });
-     }
+    const file = files.file;
+    if (!file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
 
-     console.log('处理文件:', file.originalFilename, '文件路径:', file.filepath);
+    console.log('处理文件:', {
+      originalFilename: file.originalFilename,
+      filepath: file.filepath,
+      size: file.size,
+      mimetype: file.mimetype
+    });
 
-     // 检查文件路径是否存在
-     if (!file.filepath) {
-       return res.status(400).json({ error: 'File path is undefined' });
-     }
+    // 检查文件路径是否存在
+    if (!file.filepath) {
+      console.error('文件路径未定义:', file);
+      return res.status(400).json({ error: 'File path is undefined' });
+    }
 
-     const records = await handleFile(file.filepath, file.originalFilename, currentIndepSiteId);
+    // 检查文件是否实际存在
+    if (!fs.existsSync(file.filepath)) {
+      console.error('文件不存在于路径:', file.filepath);
+      return res.status(400).json({ error: 'File does not exist at specified path' });
+    }
+
+    const records = await handleFile(file.filepath, file.originalFilename, currentIndepSiteId);
     
     if (records.length === 0) {
       return res.status(400).json({ error: 'No valid records found in file' });
