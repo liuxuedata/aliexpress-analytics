@@ -37,7 +37,7 @@
       indepMenu.innerHTML='';
     }
     
-    // 从站点配置API获取所有站点
+    // 从站点配置API获取所有站点（优先使用 site_configs 表）
     try {
       console.log('正在从API获取站点配置...');
       const response = await fetch('/api/site-configs');
@@ -111,12 +111,80 @@
         console.log('站点菜单渲染完成');
       } else {
         console.error('API返回错误:', data);
+        // 如果 site_configs API 失败，尝试使用 sites 表作为备选
+        await renderFallbackSites();
       }
     } catch (error) {
       console.error('获取站点配置失败:', error);
+      // 如果 site_configs API 失败，尝试使用 sites 表作为备选
+      await renderFallbackSites();
     }
     
     applyNavIcons();
+  }
+
+  // 备选方案：使用 sites 表数据
+  async function renderFallbackSites() {
+    console.log('使用备选方案：从 sites 表获取数据...');
+    try {
+      const response = await fetch('/api/sites');
+      const data = await response.json();
+      
+      if (response.ok && data.data) {
+        const sites = data.data;
+        console.log('从 sites 表获取的数据:', sites);
+        
+        // 渲染速卖通菜单
+        const managedMenu = document.getElementById('managedMenu');
+        if (managedMenu) {
+          const aeSelfOperatedSites = sites.filter(site => site.platform === 'ae_self_operated');
+          aeSelfOperatedSites.forEach(site => {
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.href = 'index.html';
+            a.textContent = site.display_name || site.name;
+            a.addEventListener('click', e => {
+              e.preventDefault();
+              localStorage.setItem('currentSite', site.id);
+              localStorage.setItem('currentSiteName', site.display_name || site.name);
+              window.location.href = 'index.html';
+            });
+            li.appendChild(a);
+            managedMenu.appendChild(li);
+          });
+          
+          // 添加全托管选项
+          const managedLi = document.createElement('li');
+          const managedA = document.createElement('a');
+          managedA.href = 'managed.html';
+          managedA.textContent = '全托管';
+          managedLi.appendChild(managedA);
+          managedMenu.appendChild(managedLi);
+        }
+        
+        // 渲染独立站菜单
+        const indepMenu = document.getElementById('indepMenu');
+        if (indepMenu) {
+          const independentSites = sites.filter(site => site.platform === 'independent');
+          independentSites.forEach(site => {
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.href = 'independent-site.html';
+            a.textContent = site.display_name || site.name;
+            a.addEventListener('click', e => {
+              e.preventDefault();
+              localStorage.setItem('currentIndepSite', site.id);
+              localStorage.setItem('currentIndepSiteName', site.display_name || site.name);
+              window.location.href = 'independent-site.html?site=' + encodeURIComponent(site.name);
+            });
+            li.appendChild(a);
+            indepMenu.appendChild(li);
+          });
+        }
+      }
+    } catch (error) {
+      console.error('备选方案也失败了:', error);
+    }
   }
 
   // 全局刷新函数
