@@ -123,35 +123,35 @@ ON CONFLICT (id) DO UPDATE SET
   updated_at = now();
 
 -- 6. 创建动态表生成函数
+DROP FUNCTION IF EXISTS public.generate_dynamic_table(text,text,jsonb);
 CREATE OR REPLACE FUNCTION public.generate_dynamic_table(
-  site_id text,
-  source_type text,
-  table_schema jsonb
+  p_site_id text,
+  p_source_type text,
+  p_table_schema jsonb
 ) RETURNS text
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-  table_name text;
-  column_defs text := '';
-  field_name text;
-  field_type text;
-  field_def text;
+  v_table_name text;
+  v_column_defs text := '';
+  v_field_name text;
+  v_field_type text;
 BEGIN
   -- 生成表名
-  table_name := site_id || '_' || source_type || '_daily';
+  v_table_name := p_site_id || '_' || p_source_type || '_daily';
   
   -- 构建列定义（按字段名排序以确保一致性）
-  FOR field_name, field_type IN 
+  FOR v_field_name, v_field_type IN 
     SELECT key, value::text 
-    FROM jsonb_each(table_schema->'columns')
+    FROM jsonb_each(p_table_schema->'columns')
     ORDER BY key
   LOOP
-    IF column_defs != '' THEN
-      column_defs := column_defs || ', ';
+    IF v_column_defs != '' THEN
+      v_column_defs := v_column_defs || ', ';
     END IF;
     -- 移除数据类型名称周围的引号，确保正确的SQL语法
-    column_defs := column_defs || field_name || ' ' || trim(both '"' from field_type);
+    v_column_defs := v_column_defs || v_field_name || ' ' || trim(both '"' from v_field_type);
   END LOOP;
   
   -- 创建表
@@ -159,16 +159,16 @@ BEGIN
     %s,
     created_at timestamptz default now(),
     updated_at timestamptz default now()
-  )', table_name, column_defs);
+  )', v_table_name, v_column_defs);
   
-  -- 记录到动态表配置
+  -- 记录到动态表配置（使用明确的参数名避免歧义）
   INSERT INTO public.dynamic_tables (id, site_id, table_name, table_schema)
-  VALUES (gen_random_uuid()::text, site_id, table_name, table_schema)
+  VALUES (gen_random_uuid()::text, p_site_id, v_table_name, p_table_schema)
   ON CONFLICT (site_id, table_name) DO UPDATE SET
     table_schema = EXCLUDED.table_schema,
     updated_at = now();
   
-  RETURN table_name;
+  RETURN v_table_name;
 END;
 $$;
 
