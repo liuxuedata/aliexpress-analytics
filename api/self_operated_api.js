@@ -17,11 +17,12 @@ export default async function handler(req, res) {
   let skipped = 0;
 
   for (const record of records) {
-    const { product_id, stat_date } = record;
+    const { product_id, stat_date, site = 'A站' } = record; // 默认站点为A站，保持向后兼容
 
     const { data: exists, error: queryErr } = await supabase
-      .from('self_operated_data')
+      .from('ae_self_operated_daily')
       .select('id')
+      .eq('site', site)
       .eq('product_id', product_id)
       .eq('stat_date', stat_date)
       .maybeSingle();
@@ -32,8 +33,8 @@ export default async function handler(req, res) {
     }
 
     const { error: insertErr } = await supabase
-      .from('self_operated_data')
-      .insert(record);
+      .from('ae_self_operated_daily')
+      .insert({ ...record, site }); // 确保包含站点字段
 
     if (insertErr) {
       console.error('Insert failed:', insertErr);
@@ -44,7 +45,7 @@ export default async function handler(req, res) {
 
   // ✅ 新增：上传完成后直接返回当前数据库的所有记录
   const { data: allData, error: fetchErr } = await supabase
-    .from('self_operated_data')
+    .from('ae_self_operated_daily')
     .select('*')
     .order('stat_date', { ascending: false })
     .order('product_id');

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>站点管理 · 跨境电商数据分析平台</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="assets/login.css">
+  <link rel="stylesheet" href="assets/theme.css?v=20250810b">
+  <style>
+    .site-management {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .site-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .site-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .site-card h3 {
+      margin: 0 0 10px 0;
+      color: #1f2937;
+    }
+    .site-card .platform {
+      color: #6b7280;
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+    .site-card .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    .btn {
+      padding: 8px 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn:hover {
+      background: #f9fafb;
+    }
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+      border-color: #ef4444;
+    }
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+    .add-site-form {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: #374151;
+    }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+  </style>
+</head>
+<body class="fm">
+<div id="loginOverlay" class="login-overlay" style="display:none">
+  <div class="login-container">
+    <div class="login-form-card login-card-enter">
+      <div class="form-header">
+        <div class="form-logo">AI</div>
+        <div class="form-title">跨境电商数据分析平台</div>
+        <div class="form-subtitle">登录账户以继续</div>
+      </div>
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label" for="email">邮箱</label>
+          <input id="email" type="email" class="form-input" required>
+        </div>
+        <div class="form-group password-input-wrapper">
+          <label class="form-label" for="password">密码</label>
+          <input id="password" type="password" class="form-input" required>
+          <span id="password-toggle" class="password-toggle">👁️</span>
+        </div>
+        <button id="loginSubmit" class="login-submit-btn" type="submit">登录</button>
+      </form>
+      <div class="demo-account-tip">
+        <div class="demo-account-header">演示账户</div>
+        <div class="demo-account-info">邮箱：demo@example.com<br>密码：demo123</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<header class="header">
+  <div class="logo-title">跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li><a href="#">速卖通</a>
+        <ul class="dropdown">
+          <li class="submenu"><a href="#">全托管</a>
+            <ul id="managedMenu"></ul>
+          </li>
+          <li><a href="self-operated.html">自运营</a></li>
+        </ul>
+      </li>
+      <li><a href="#">亚马逊</a></li>
+      <li><a href="#">TikTok Shop</a></li>
+      <li><a href="#">Temu</a></li>
+      <li><a href="#">Ozon</a></li>
+      <li><a href="independent-site.html">独立站</a></li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="site-header"><span>站点管理</span></div>
+    <ul class="sub-nav">
+      <li><a href="#" class="active" data-target="sites">站点列表</a></li>
+      <li><a href="#" data-target="add">添加站点</a></li>
+    </ul>
+  </nav>
+
+  <main class="main mx-auto max-w-container px-6">
+    <div class="site-management">
+      <h1>站点管理</h1>
+      
+      <!-- 添加站点表单 -->
+      <div class="add-site-form">
+        <h2>添加新站点</h2>
+        <form id="addSiteForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="siteName">站点名称</label>
+              <input type="text" id="siteName" required placeholder="如：B站">
+            </div>
+            <div class="form-group">
+              <label for="sitePlatform">平台</label>
+              <select id="sitePlatform" required>
+                <option value="">选择平台</option>
+                <option value="ae_self_operated">速卖通自运营</option>
+                <option value="independent">独立站</option>
+                <option value="ae_managed">速卖通全托管</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="displayName">显示名称</label>
+            <input type="text" id="displayName" required placeholder="如：速卖通自运营 B站">
+          </div>
+          <button type="submit" class="btn btn-primary">添加站点</button>
+        </form>
+      </div>
+
+      <!-- 站点列表 -->
+      <div id="sitesList">
+        <h2>现有站点</h2>
+        <div class="site-grid" id="siteGrid">
+          <!-- 站点卡片将通过JavaScript动态生成 -->
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// 登录逻辑
+(function() {
+  const loginOverlay = document.getElementById('loginOverlay');
+  const loginForm = document.getElementById('loginForm');
+  const userArea = document.getElementById('userArea');
+
+  // 检查登录状态
+  function checkAuth() {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      loginOverlay.style.display = 'flex';
+    } else {
+      loginOverlay.style.display = 'none';
+      userArea.innerHTML = `
+        <span>欢迎，用户</span>
+        <button onclick="logout()" class="btn">退出</button>
+      `;
+    }
+  }
+
+  // 登录处理
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    // 演示登录逻辑
+    if (email === 'demo@example.com' && password === 'demo123') {
+      localStorage.setItem('authToken', 'demo-token');
+      checkAuth();
+    } else {
+      alert('登录失败，请检查邮箱和密码');
+    }
+  });
+
+  // 退出登录
+  window.logout = function() {
+    localStorage.removeItem('authToken');
+    checkAuth();
+  };
+
+  // 密码显示切换
+  document.getElementById('password-toggle').addEventListener('click', function() {
+    const passwordInput = document.getElementById('password');
+    passwordInput.type = passwordInput.type === 'password' ? 'text' : 'password';
+  });
+
+  checkAuth();
+})();
+
+// 站点管理逻辑
+(function() {
+  const addSiteForm = document.getElementById('addSiteForm');
+  const siteGrid = document.getElementById('siteGrid');
+
+  // 加载站点列表
+  async function loadSites() {
+    try {
+      const response = await fetch('/api/sites');
+      const result = await response.json();
+      
+      if (result.data) {
+        renderSites(result.data);
+      }
+    } catch (error) {
+      console.error('加载站点失败:', error);
+    }
+  }
+
+  // 渲染站点列表
+  function renderSites(sites) {
+    siteGrid.innerHTML = sites.map(site => `
+      <div class="site-card">
+        <h3>${site.display_name}</h3>
+        <div class="platform">平台: ${getPlatformName(site.platform)}</div>
+        <div class="platform">站点ID: ${site.name}</div>
+        <div class="actions">
+          <button class="btn" onclick="editSite('${site.id}')">编辑</button>
+          <button class="btn btn-danger" onclick="deleteSite('${site.id}')">删除</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // 获取平台名称
+  function getPlatformName(platform) {
+    const names = {
+      'ae_self_operated': '速卖通自运营',
+      'independent': '独立站',
+      'ae_managed': '速卖通全托管'
+    };
+    return names[platform] || platform;
+  }
+
+  // 添加站点
+  addSiteForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = {
+      name: document.getElementById('siteName').value,
+      platform: document.getElementById('sitePlatform').value,
+      display_name: document.getElementById('displayName').value
+    };
+
+    try {
+      const response = await fetch('/api/sites', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        alert('站点添加成功！');
+        addSiteForm.reset();
+        loadSites();
+      } else {
+        alert('添加失败: ' + result.error);
+      }
+    } catch (error) {
+      console.error('添加站点失败:', error);
+      alert('添加站点失败，请重试');
+    }
+  });
+
+  // 编辑站点
+  window.editSite = function(siteId) {
+    // 实现编辑功能
+    alert('编辑功能开发中...');
+  };
+
+  // 删除站点
+  window.deleteSite = function(siteId) {
+    if (confirm('确定要删除这个站点吗？')) {
+      // 实现删除功能
+      alert('删除功能开发中...');
+    }
+  };
+
+  // 页面加载时获取站点列表
+  loadSites();
+})();
+</script>
+</body>
+</html>
