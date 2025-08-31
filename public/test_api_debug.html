@@ -72,6 +72,7 @@
         <h3>1. 测试站点配置API</h3>
         <button onclick="testSiteConfigs()">测试 /api/site-configs</button>
         <button onclick="testSites()">测试 /api/sites</button>
+        <button onclick="testSiteConfigsDebug()">测试 /api/test-site-configs (调试版)</button>
         <div id="siteConfigsResult" class="result"></div>
     </div>
 
@@ -139,6 +140,28 @@
                     resultDiv.className = 'result success';
                 } else {
                     resultDiv.textContent = '❌ Sites API失败:\n' + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = '❌ 请求错误:\n' + error.message;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function testSiteConfigsDebug() {
+            const resultDiv = document.getElementById('siteConfigsResult');
+            resultDiv.textContent = '正在测试站点配置API调试版...';
+            resultDiv.className = 'result loading';
+
+            try {
+                const response = await fetch('/api/test-site-configs');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.textContent = '✅ 站点配置API调试版正常:\n' + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = '❌ 站点配置API调试版失败:\n' + JSON.stringify(data, null, 2);
                     resultDiv.className = 'result error';
                 }
             } catch (error) {
