@@ -3,10 +3,10 @@
 
 -- 1. 检查当前表结构
 SELECT 
-  table_name,
-  column_name,
-  constraint_name,
-  constraint_type
+  tc.table_name,
+  ccu.column_name,
+  tc.constraint_name,
+  tc.constraint_type
 FROM information_schema.table_constraints tc
 JOIN information_schema.constraint_column_usage ccu 
   ON tc.constraint_name = ccu.constraint_name
@@ -37,10 +37,10 @@ END $$;
 
 -- 3. 验证约束添加结果
 SELECT 
-  table_name,
-  column_name,
-  constraint_name,
-  constraint_type
+  tc.table_name,
+  ccu.column_name,
+  tc.constraint_name,
+  tc.constraint_type
 FROM information_schema.table_constraints tc
 JOIN information_schema.constraint_column_usage ccu 
   ON tc.constraint_name = ccu.constraint_name
