@@ -602,19 +602,20 @@ document.getElementById('siteConfigForm').addEventListener('submit', async funct
   };
   
   try {
-    const method = editingSiteId ? 'PUT' : 'POST';
-    const url = editingSiteId ? `/api/site-configs/${encodeURIComponent(editingSiteId)}` : '/api/site-configs';
+    const method = editingSiteId ? 'POST' : 'POST';
+    const url = editingSiteId ? '/api/site-configs/update' : '/api/site-configs';
+    const requestData = editingSiteId ? { siteId: editingSiteId, ...formData } : formData;
     
     showStatus(editingSiteId ? '正在更新站点...' : '正在创建站点...', 'info', true);
     
-    console.log('发送请求:', { method, url, formData });
+    console.log('发送请求:', { method, url, requestData });
     
     const response = await fetch(url, {
       method: method,
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(formData)
+      body: JSON.stringify(requestData)
     });
     
     console.log('响应状态:', response.status);
@@ -670,13 +671,13 @@ async function deleteSite(siteId) {
     showStatus('正在删除站点...', 'info', true);
     
     console.log('删除站点ID:', siteId);
-    // 确保siteId被正确编码
-    const encodedSiteId = encodeURIComponent(siteId);
-    const response = await fetch(`/api/site-configs/${encodedSiteId}`, {
-      method: 'DELETE',
+    
+    const response = await fetch('/api/site-configs/delete', {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json'
-      }
+      },
+      body: JSON.stringify({ siteId })
     });
     
     console.log('删除API响应状态:', response.status);
