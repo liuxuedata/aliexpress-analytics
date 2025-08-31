@@ -141,10 +141,11 @@ BEGIN
   -- 生成表名
   table_name := site_id || '_' || source_type || '_daily';
   
-  -- 构建列定义
+  -- 构建列定义（按字段名排序以确保一致性）
   FOR field_name, field_type IN 
     SELECT key, value::text 
     FROM jsonb_each(table_schema->'columns')
+    ORDER BY key
   LOOP
     IF column_defs != '' THEN
       column_defs := column_defs || ', ';
