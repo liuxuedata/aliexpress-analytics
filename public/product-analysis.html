@@ -346,7 +346,12 @@ function card(title,cur,prev,isPct,avg,share){
         if(!resp.ok || (j.ok!==undefined && !j.ok)) throw new Error(j.error||'查询失败');
         return j.table||j.rows||[];
       }
-      const currentSite = localStorage.getItem('currentSite') || 'A站';
+      let currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+  // 确保使用正确的站点ID格式
+  if (currentSite === 'A站') {
+    currentSite = 'ae_self_operated_a';
+    localStorage.setItem('currentSite', currentSite);
+  }
       const url=`/api/ae_query?start=${start}&end=${end}&granularity=${gran}&site=${encodeURIComponent(currentSite)}`;
       const resp=await fetch(url);
       const txt=await resp.text(); let j; try{ j=JSON.parse(txt);} catch(e){ throw new Error('Query API响应不是JSON：'+txt.slice(0,200)); }

@@ -326,6 +326,12 @@ async function fetchAgg(startISO, endISO, granularity) {
     }
   }
   
+  // 确保使用正确的站点ID格式
+  if (siteId === 'A站') {
+    siteId = 'ae_self_operated_a';
+    localStorage.setItem('currentSite', siteId);
+  }
+  
   console.log('查询数据使用的站点ID:', siteId, '站点名称:', currentSiteName);
   
   const url = `/api/ae_query?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}&granularity=${encodeURIComponent(granularity)}&site=${encodeURIComponent(siteId)}`;

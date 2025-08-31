@@ -291,7 +291,12 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
     function fetchAgg(start,end,gran='day'){
-      const currentSite = localStorage.getItem('currentSite') || 'A站';
+      let currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+  // 确保使用正确的站点ID格式
+  if (currentSite === 'A站') {
+    currentSite = 'ae_self_operated_a';
+    localStorage.setItem('currentSite', currentSite);
+  }
       const url=`/api/ae_query?start=${start}&end=${end}&granularity=${gran}&site=${encodeURIComponent(currentSite)}`;
       return fetch(url).then(r=>r.json()).then(j=>j.rows||[]);
     }
