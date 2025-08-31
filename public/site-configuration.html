@@ -435,8 +435,15 @@ async function loadSites() {
     console.log('站点API响应状态:', response.status);
     console.log('站点API响应头:', response.headers);
     
-    const data = await response.json();
-    console.log('站点API响应数据:', data);
+    let data = null;
+    try {
+      data = await response.json();
+      console.log('站点API响应数据:', data);
+    } catch (e) {
+      console.error('站点API JSON解析失败:', e);
+      showStatus('加载站点失败: API返回非JSON格式数据', 'error');
+      return;
+    }
     
     if (response.ok) {
       currentSites = data.data || [];
@@ -795,23 +802,53 @@ async function testAPI() {
   try {
     showStatus('正在测试API连接...', 'info');
     
+    // 测试健康检查API
+    console.log('测试健康检查API...');
+    const healthResponse = await fetch('/api/health');
+    console.log('健康检查API状态:', healthResponse.status);
+    let healthData = null;
+    try {
+      healthData = await healthResponse.json();
+      console.log('健康检查API结果:', healthData);
+    } catch (e) {
+      console.error('健康检查API JSON解析失败:', e);
+    }
+    
     // 测试基础API
     console.log('测试基础API...');
     const testResponse = await fetch('/api/test');
-    const testData = await testResponse.json();
-    console.log('基础API结果:', testData);
+    console.log('基础API状态:', testResponse.status);
+    let testData = null;
+    try {
+      testData = await testResponse.json();
+      console.log('基础API结果:', testData);
+    } catch (e) {
+      console.error('基础API JSON解析失败:', e);
+    }
     
     // 测试站点配置API
     console.log('测试站点配置API...');
     const sitesResponse = await fetch('/api/site-configs');
-    const sitesData = await sitesResponse.json();
-    console.log('站点配置API结果:', sitesData);
+    console.log('站点配置API状态:', sitesResponse.status);
+    let sitesData = null;
+    try {
+      sitesData = await sitesResponse.json();
+      console.log('站点配置API结果:', sitesData);
+    } catch (e) {
+      console.error('站点配置API JSON解析失败:', e);
+    }
     
     // 测试模板API
     console.log('测试模板API...');
     const templatesResponse = await fetch('/api/data-source-templates');
-    const templatesData = await templatesResponse.json();
-    console.log('模板API结果:', templatesData);
+    console.log('模板API状态:', templatesResponse.status);
+    let templatesData = null;
+    try {
+      templatesData = await templatesResponse.json();
+      console.log('模板API结果:', templatesData);
+    } catch (e) {
+      console.error('模板API JSON解析失败:', e);
+    }
     
     // 测试动态数据摄入API
     console.log('测试动态数据摄入API...');
@@ -819,14 +856,15 @@ async function testAPI() {
     console.log('动态数据摄入API状态:', dynamicResponse.status);
     
     let message = 'API测试完成！\n';
-    message += `基础API: ${testResponse.ok ? '正常' : '失败'}\n`;
-    message += `站点配置API: ${sitesResponse.ok ? '正常' : '失败'}\n`;
-    message += `模板API: ${templatesResponse.ok ? '正常' : '失败'}\n`;
-    message += `动态数据摄入API: ${dynamicResponse.status === 400 ? '正常(需要站点ID)' : '失败'}\n`;
-    message += `站点数量: ${sitesData.data?.length || 0}\n`;
-    message += `模板数量: ${templatesData.data?.length || 0}`;
+    message += `健康检查API: ${healthResponse.ok ? '正常' : '失败'} (${healthResponse.status})\n`;
+    message += `基础API: ${testResponse.ok ? '正常' : '失败'} (${testResponse.status})\n`;
+    message += `站点配置API: ${sitesResponse.ok ? '正常' : '失败'} (${sitesResponse.status})\n`;
+    message += `模板API: ${templatesResponse.ok ? '正常' : '失败'} (${templatesResponse.status})\n`;
+    message += `动态数据摄入API: ${dynamicResponse.status === 400 ? '正常(需要站点ID)' : '失败'} (${dynamicResponse.status})\n`;
+    message += `站点数量: ${sitesData?.data?.length || 0}\n`;
+    message += `模板数量: ${templatesData?.data?.length || 0}`;
     
-    const allAPIsWorking = testResponse.ok && sitesResponse.ok && templatesResponse.ok;
+    const allAPIsWorking = healthResponse.ok && testResponse.ok && sitesResponse.ok && templatesResponse.ok;
     showStatus(message, allAPIsWorking ? 'success' : 'error');
     
   } catch (error) {
