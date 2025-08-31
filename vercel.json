@@ -24,6 +24,14 @@
       "dest": "/api/site-configs/index.js"
     },
     {
+      "src": "^/api/site-configs/delete$",
+      "dest": "/api/site-configs/delete.js"
+    },
+    {
+      "src": "^/api/site-configs/update$",
+      "dest": "/api/site-configs/update.js"
+    },
+    {
       "src": "^/api/site-configs/(.+)$",
       "dest": "/api/site-configs/[id].js"
     },
