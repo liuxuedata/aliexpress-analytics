@@ -1,5 +1,28 @@
 {
   "version": 2,
+  "functions": {
+    "api/health.js": {
+      "maxDuration": 10
+    },
+    "api/test.js": {
+      "maxDuration": 10
+    },
+    "api/site-configs/index.js": {
+      "maxDuration": 30
+    },
+    "api/site-configs/[id].js": {
+      "maxDuration": 30
+    },
+    "api/data-source-templates/index.js": {
+      "maxDuration": 30
+    },
+    "api/dynamic-ingest/[siteId].js": {
+      "maxDuration": 60
+    },
+    "api/dynamic-ingest/[siteId]/generate-test-data.js": {
+      "maxDuration": 60
+    }
+  },
   "builds": [
     {
       "src": "api/**/*.js",
