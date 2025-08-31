@@ -113,6 +113,22 @@ function pushFacebookReportToVercel() {
 5. 设置 RLS 策略和索引
 6. 验证所有结果
 
+### 如果遇到 "there is no unique or exclusion constraint matching the ON CONFLICT specification" 错误
+
+这个错误是由于 `dynamic_tables` 表缺少 `(site_id, table_name)` 的唯一约束导致的。请执行：
+
+```sql
+-- 在 Supabase SQL Editor 中执行
+-- 文件：fix_unique_constraint.sql
+```
+
+这个脚本会：
+1. 检查当前表约束
+2. 添加缺失的唯一约束
+3. 验证约束添加结果
+4. 测试动态表生成函数
+5. 验证最终结果
+
 如果上述脚本仍然有问题，也可以尝试：
 
 ```sql

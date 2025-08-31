@@ -33,7 +33,8 @@ CREATE TABLE IF NOT EXISTS public.dynamic_tables (
   table_name  text not null,
   table_schema jsonb not null,
   created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now()
+  updated_at  timestamptz not null default now(),
+  UNIQUE(site_id, table_name)
 );
 
 -- 2. 删除可能存在的错误表
