@@ -22,8 +22,11 @@ export default async function handler(req, res) {
   }
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
 
-  const { start, end, site = 'A站' } = req.query;
+  const { start, end, site = 'ae_self_operated_a' } = req.query;
   const granularity = (req.query.granularity || 'day').toLowerCase();
+  
+  console.log('AE查询参数:', { start, end, site, granularity });
+  
   if (!start || !end) return res.status(400).json({ error: 'Missing start or end' });
   if (!['day','week','month'].includes(granularity)) return res.status(400).json({ error: 'Invalid granularity' });
 

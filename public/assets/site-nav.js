@@ -23,7 +23,12 @@
   }
 
   async function render(){
+    console.log('开始渲染站点菜单...');
     const managedMenu=document.getElementById('managedMenu');
+    const indepMenu=document.getElementById('indepMenu');
+    
+    console.log('找到的菜单元素:', { managedMenu: !!managedMenu, indepMenu: !!indepMenu });
+    
     if(managedMenu){
       managedMenu.innerHTML='<li><a href="index.html">自运营</a></li><li><a href="managed.html">全托管</a></li>';
     }

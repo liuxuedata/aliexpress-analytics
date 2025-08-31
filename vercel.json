@@ -52,6 +52,10 @@
       "dest": "/api/dynamic-ingest/[siteId].js"
     },
     {
+      "src": "^/api/independent/facebook-ingest$",
+      "dest": "/api/independent/facebook-ingest/index.js"
+    },
+    {
       "src": "^/api/(.*)$",
       "dest": "/api/$1"
     },
