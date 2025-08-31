@@ -27,31 +27,64 @@
     if(managedMenu){
       managedMenu.innerHTML='<li><a href="index.html">自运营</a></li><li><a href="managed.html">全托管</a></li>';
     }
-    const indepMenu=document.getElementById('indepMenu');
-    if(indepMenu){
-      indepMenu.innerHTML='';
-      const currentKey='currentIndepSite';
-      try{
-        const resp=await fetch('/api/independent/sites');
-        const j=await resp.json();
-        const sites=Array.from(new Set((j.sites||[]).filter(Boolean)));
-        sites.forEach(name=>{
-          const li=document.createElement('li');
-          const a=document.createElement('a');
-          a.href='independent-site.html';
-          a.textContent=name;
-          a.addEventListener('click',e=>{
-            e.preventDefault();
-            localStorage.setItem(currentKey,name);
-            window.location.href='independent-site.html';
+    
+    // 从站点配置API获取所有站点
+    try {
+      const response = await fetch('/api/site-configs');
+      const data = await response.json();
+      
+      if (response.ok && data.data) {
+        const sites = data.data;
+        console.log('从API获取的站点数据:', sites);
+        
+        // 更新速卖通自运营站点菜单
+        const aeSelfOperatedSites = sites.filter(site => site.platform === 'ae_self_operated');
+        if (aeSelfOperatedSites.length > 0) {
+          const managedMenu = document.getElementById('managedMenu');
+          if (managedMenu) {
+            managedMenu.innerHTML = '';
+            aeSelfOperatedSites.forEach(site => {
+              const li = document.createElement('li');
+              const a = document.createElement('a');
+              a.href = 'index.html';
+              a.textContent = site.display_name || site.name;
+              a.addEventListener('click', e => {
+                e.preventDefault();
+                localStorage.setItem('currentSite', site.id);
+                localStorage.setItem('currentSiteName', site.display_name || site.name);
+                window.location.href = 'index.html';
+              });
+              li.appendChild(a);
+              managedMenu.appendChild(li);
+            });
+          }
+        }
+        
+        // 更新独立站站点菜单
+        const independentSites = sites.filter(site => site.platform === 'independent');
+        const indepMenu = document.getElementById('indepMenu');
+        if (indepMenu && independentSites.length > 0) {
+          indepMenu.innerHTML = '';
+          independentSites.forEach(site => {
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.href = 'independent-site.html';
+            a.textContent = site.display_name || site.name;
+            a.addEventListener('click', e => {
+              e.preventDefault();
+              localStorage.setItem('currentIndepSite', site.id);
+              localStorage.setItem('currentIndepSiteName', site.display_name || site.name);
+              window.location.href = 'independent-site.html';
+            });
+            li.appendChild(a);
+            indepMenu.appendChild(li);
           });
-          li.appendChild(a);
-          indepMenu.appendChild(li);
-        });
-      }catch(e){
-        console.error('independent site list load failed',e);
+        }
       }
+    } catch (e) {
+      console.error('站点配置API加载失败:', e);
     }
+    
     applyNavIcons();
   }
 
@@ -65,6 +98,13 @@
   }
 
   window.renderSiteMenus=render;
+  
+  // 添加全局刷新函数
+  window.refreshSiteMenus = async () => {
+    console.log('刷新站点菜单...');
+    await render();
+  };
+  
   document.addEventListener('DOMContentLoaded',render);
   document.addEventListener('DOMContentLoaded',renderFooter);
 })();

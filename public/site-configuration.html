@@ -628,6 +628,18 @@ document.getElementById('siteConfigForm').addEventListener('submit', async funct
       console.log('操作成功，开始刷新站点列表...');
       await loadSites(); // 等待加载完成
       console.log('站点列表刷新完成');
+      
+      // 通知其他页面刷新站点菜单
+      if (window.parent && window.parent !== window) {
+        // 如果在iframe中，通知父页面
+        window.parent.postMessage({ type: 'refreshSiteMenus' }, '*');
+      } else {
+        // 如果在主页面，直接调用刷新函数
+        if (window.refreshSiteMenus) {
+          window.refreshSiteMenus();
+        }
+      }
+      
       resetForm();
       editingSiteId = null;
     } else {
@@ -692,6 +704,17 @@ async function deleteSite(siteId) {
       console.log('删除成功，开始刷新站点列表...');
       await loadSites(); // 等待加载完成
       console.log('站点列表刷新完成');
+      
+      // 通知其他页面刷新站点菜单
+      if (window.parent && window.parent !== window) {
+        // 如果在iframe中，通知父页面
+        window.parent.postMessage({ type: 'refreshSiteMenus' }, '*');
+      } else {
+        // 如果在主页面，直接调用刷新函数
+        if (window.refreshSiteMenus) {
+          window.refreshSiteMenus();
+        }
+      }
     } else {
       showStatus('删除失败: ' + (result.error || result.message || '未知错误'), 'error');
     }
@@ -722,7 +745,14 @@ function updateTestSiteOptions() {
 // 测试数据上传
 async function testDataUpload() {
   const siteId = document.getElementById('testSite').value;
-  const fileInput = document.getElementById('testFile');
+  let fileInput = document.getElementById('testFile');
+  
+  // 如果第一次获取失败，等待一下再试
+  if (!fileInput) {
+    console.log('第一次获取fileInput失败，等待100ms后重试...');
+    await new Promise(resolve => setTimeout(resolve, 100));
+    fileInput = document.getElementById('testFile');
+  }
   
   console.log('文件上传检查:', {
     siteId: siteId,

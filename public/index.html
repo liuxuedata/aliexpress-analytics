@@ -735,30 +735,58 @@ $('#metricSel').on('change', fetchAndRenderAll);
 <script src="assets/login.js"></script>
 <script src="assets/site-nav.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', ()=>{
-  const siteListKey='managedSites';
-  const currentSiteKey='currentSite';
-  let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
-  if(!Array.isArray(sites)||!sites.length){sites=['A站','B站','C站'];}
+document.addEventListener('DOMContentLoaded', async ()=>{
   const currentSiteEl=document.getElementById('currentSite');
-  function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));renderSiteMenus();}
-  function updateCurrent(){
-    const name=localStorage.getItem(currentSiteKey)||sites[0];
-    currentSiteEl.textContent='自运营 '+name;
-    localStorage.setItem(currentSiteKey,name);
+  
+  // 从localStorage获取当前站点信息
+  function updateCurrentSiteDisplay(){
+    const currentSiteId = localStorage.getItem('currentSite');
+    const currentSiteName = localStorage.getItem('currentSiteName');
+    
+    if (currentSiteName) {
+      currentSiteEl.textContent = currentSiteName;
+    } else {
+      // 如果没有设置，从API获取默认站点
+      try {
+        const response = await fetch('/api/site-configs');
+        const data = await response.json();
+        if (response.ok && data.data && data.data.length > 0) {
+          const firstSite = data.data.find(site => site.platform === 'ae_self_operated') || data.data[0];
+          currentSiteEl.textContent = firstSite.display_name || firstSite.name;
+          localStorage.setItem('currentSite', firstSite.id);
+          localStorage.setItem('currentSiteName', firstSite.display_name || firstSite.name);
+        } else {
+          currentSiteEl.textContent = '自运营 A站';
+        }
+      } catch (e) {
+        console.error('获取默认站点失败:', e);
+        currentSiteEl.textContent = '自运营 A站';
+      }
+    }
   }
-  currentSiteEl.addEventListener('dblclick',()=>{
-    const cur=localStorage.getItem(currentSiteKey)||sites[0];
-    const idx=sites.indexOf(cur);
-    const n=prompt('修改站点名',cur);
-    if(n){sites[idx]=n;save();localStorage.setItem(currentSiteKey,n);updateCurrent();}
+  
+  // 双击站点名跳转到站点配置页面
+  currentSiteEl.addEventListener('dblclick', ()=>{
+    window.location.href = 'site-configuration.html';
   });
-  document.getElementById('addSite').addEventListener('click',()=>{
-    const n=prompt('新增站点名');
-    if(n){sites.push(n);save();updateCurrent();}
+  
+  // 点击添加站点按钮跳转到站点配置页面
+  document.getElementById('addSite').addEventListener('click', ()=>{
+    window.location.href = 'site-configuration.html';
   });
-  renderSiteMenus();
-  updateCurrent();
+  
+  // 初始化显示
+  await updateCurrentSiteDisplay();
+  
+  // 监听来自站点配置页面的消息
+  window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'refreshSiteMenus') {
+      console.log('收到刷新站点菜单消息');
+      if (window.refreshSiteMenus) {
+        window.refreshSiteMenus();
+      }
+    }
+  });
   const userArea=document.getElementById('userArea');
   function refreshUser(){
     const u=JSON.parse(localStorage.getItem('user')||'null');
