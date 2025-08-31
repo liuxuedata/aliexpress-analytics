@@ -384,7 +384,13 @@ function setupEventListeners() {
   
   fileInput.addEventListener('change', (e) => {
     if (e.target.files.length > 0) {
-      showStatus('文件已选择：' + e.target.files[0].name, 'success');
+      const fileName = e.target.files[0].name;
+      showStatus('文件已选择：' + fileName, 'success');
+      // 显示文件名
+      document.getElementById('fileUpload').innerHTML = `
+        <p>已选择文件：${fileName}</p>
+        <p style="font-size: 12px; color: #6b7280;">点击重新选择文件</p>
+      `;
     }
   });
 }
@@ -531,15 +537,15 @@ document.getElementById('siteConfigForm').addEventListener('submit', async funct
       body: JSON.stringify(formData)
     });
     
+    const result = await response.json();
+    
     if (response.ok) {
-      const result = await response.json();
       showStatus(editingSiteId ? '站点更新成功！' : '站点创建成功！', 'success');
       loadSites();
       resetForm();
       editingSiteId = null;
     } else {
-      const error = await response.json();
-      showStatus((editingSiteId ? '更新' : '创建') + '失败: ' + error.error, 'error');
+      showStatus((editingSiteId ? '更新' : '创建') + '失败: ' + (result.error || result.message || '未知错误'), 'error');
     }
   } catch (error) {
     showStatus((editingSiteId ? '更新' : '创建') + '失败: ' + error.message, 'error');
@@ -582,12 +588,13 @@ async function deleteSite(siteId) {
       method: 'DELETE'
     });
     
+    const result = await response.json();
+    
     if (response.ok) {
       showStatus('站点删除成功！', 'success');
       loadSites();
     } else {
-      const error = await response.json();
-      showStatus('删除失败: ' + error.error, 'error');
+      showStatus('删除失败: ' + (result.error || result.message || '未知错误'), 'error');
     }
   } catch (error) {
     showStatus('删除失败: ' + error.message, 'error');
@@ -638,17 +645,17 @@ async function testDataUpload() {
       body: formData
     });
     
+    const result = await response.json();
+    
     if (response.ok) {
-      const result = await response.json();
       showStatus(`数据上传成功！处理了 ${result.processed} 条记录，插入了 ${result.upserted} 条记录`, 'success');
+      // 清空文件选择
+      fileInput.value = '';
+      document.getElementById('fileUpload').innerHTML = `
+        <p>拖拽文件到此处或点击选择文件</p>
+      `;
     } else {
-      const errorText = await response.text();
-      try {
-        const error = JSON.parse(errorText);
-        showStatus('上传失败: ' + error.error, 'error');
-      } catch (e) {
-        showStatus('上传失败: ' + errorText, 'error');
-      }
+      showStatus('上传失败: ' + (result.error || result.message || '未知错误'), 'error');
     }
   } catch (error) {
     showStatus('上传失败: ' + error.message, 'error');
@@ -656,7 +663,7 @@ async function testDataUpload() {
 }
 
 // 生成测试数据
-function generateTestData() {
+async function generateTestData() {
   const siteId = document.getElementById('testSite').value;
   
   if (!siteId) {
@@ -664,12 +671,23 @@ function generateTestData() {
     return;
   }
   
-  showStatus('正在生成测试数据...', 'info');
-  
-  // 这里可以调用API生成测试数据
-  setTimeout(() => {
-    showStatus('测试数据生成完成！', 'success');
-  }, 2000);
+  try {
+    showStatus('正在生成测试数据...', 'info');
+    
+    const response = await fetch(`/api/dynamic-ingest/${siteId}/generate-test-data`, {
+      method: 'POST'
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      showStatus('测试数据生成完成！', 'success');
+    } else {
+      showStatus('生成测试数据失败: ' + (result.error || result.message || '未知错误'), 'error');
+    }
+  } catch (error) {
+    showStatus('生成测试数据失败: ' + error.message, 'error');
+  }
 }
 
 // 显示状态消息
