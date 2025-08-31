@@ -325,8 +325,8 @@ function card(title,cur,prev,isPct,avg,share){
           return;
         }
         const [rowsAggA,rowsAggB,rowsDayA,rowsDayB]=await Promise.all([
-          fetchAgg(startISO,endISO,'period'),
-          fetchAgg(prevStart,prevEnd,'period'),
+                  fetchAgg(startISO,endISO,'day'),
+        fetchAgg(prevStart,prevEnd,'day'),
           fetchAgg(startISO,endISO,'day'),
           fetchAgg(prevStart,prevEnd,'day')
         ]);

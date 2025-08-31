@@ -241,8 +241,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       localStorage.setItem('selfPeriod', `${startISO} to ${endISO}`);
       const {prevStart,prevEnd}=periodShift(startISO,endISO);
       const [rowsCur,rowsPrev,rowsCurDay,rowsPrevDay]=await Promise.all([
-        fetchAgg(startISO,endISO,'period'),
-        fetchAgg(prevStart,prevEnd,'period'),
+        fetchAgg(startISO,endISO,'day'),
+        fetchAgg(prevStart,prevEnd,'day'),
         fetchAgg(startISO,endISO,'day'),
         fetchAgg(prevStart,prevEnd,'day')
       ]);
@@ -290,7 +290,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       renderLine('payRateChart',{labels,cur:build(curDay,payRate),prev:build(prevDay,payRate)});
     }
 
-    function fetchAgg(start,end,gran='period'){
+    function fetchAgg(start,end,gran='day'){
       const currentSite = localStorage.getItem('currentSite') || 'A站';
       const url=`/api/ae_query?start=${start}&end=${end}&granularity=${gran}&site=${encodeURIComponent(currentSite)}`;
       return fetch(url).then(r=>r.json()).then(j=>j.rows||[]);

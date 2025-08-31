@@ -503,7 +503,7 @@ async function renderTable(rows, granularity) {
     data,
     columns: [
       { title: '商品（ID）' },
-      { title: granularity==='day' ? '日期' : (granularity==='week' ? '周范围' : (granularity==='period' ? '周期' : '月份范围')) },
+      { title: granularity==='day' ? '日期' : (granularity==='week' ? '周范围' : (granularity==='month' ? '月份范围' : '日期')) },
       { title: '访客比(%)' }, { title: '加购比(%)' }, { title: '支付比(%)' },
       { title: '曝光量' }, { title: '访客数' }, { title: '浏览量' },
       { title: '加购人数' },
@@ -540,13 +540,13 @@ async function fetchAndRenderAll() {
     localStorage.setItem('selfPeriod', `${startISO} to ${endISO}`);
     const { prevStart, prevEnd, days }=periodShift(startISO,endISO);
     const [rowsAggA, rowsAggB, rowsDayA, rowsDayB] = await Promise.all([
-      fetchAgg(startISO,endISO,'period'),
-      fetchAgg(prevStart,prevEnd,'period'),
+              fetchAgg(startISO,endISO,'day'),
+        fetchAgg(prevStart,prevEnd,'day'),
       fetchAgg(startISO,endISO,'day'),
       fetchAgg(prevStart,prevEnd,'day')
     ]);
     computeCards(rowsAggA, rowsAggB);
-    await renderTable(rowsAggA,'period');
+            await renderTable(rowsAggA,'day');
     const metricKey=(function(k){ if(k==='exposure_sum')return 'exp'; if(k==='visitors_sum')return 'vis'; if(k==='add_people_sum')return 'add'; if(k==='orders_sum')return 'orders'; if(k==='fav_sum')return 'fav'; })(document.getElementById('metricSel').value);
     drawLineChartDaily(rowsDayA,rowsDayB,days,startISO,prevStart,metricKey);
     drawRatioBar(rowsAggA,rowsAggB);
