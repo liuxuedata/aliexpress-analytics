@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS public.data_source_templates (
   source_type text not null,                    -- 数据源类型
   fields_json jsonb not null,                   -- 字段映射配置
   sample_file text,                             -- 示例文件路径
-  created_at  timestamptz not null default now()
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
 );
 
 -- 3. 创建动态数据表配置表
@@ -33,7 +34,8 @@ CREATE TABLE IF NOT EXISTS public.dynamic_tables (
   site_id     text references site_configs(id) on delete cascade,
   table_name  text not null,                    -- 生成的表名
   table_schema jsonb not null,                  -- 表结构定义
-  created_at  timestamptz not null default now()
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
 );
 
 -- 4. 插入预定义的数据源模板
