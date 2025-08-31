@@ -5,7 +5,7 @@
   <title>站点配置 · 跨境电商数据分析平台</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="assets/login.css">
-     <link rel="stylesheet" href="assets/theme.css?v=20250810d">
+     <link rel="stylesheet" href="assets/theme.css?v=20250810c">
   <style>
     .site-configuration {
       max-width: 1400px;
@@ -414,7 +414,6 @@ function setupEventListeners() {
   });
   
   fileInput.addEventListener('change', (e) => {
-    console.log('文件选择事件触发:', e.target.files);
     if (e.target.files.length > 0) {
       const fileName = e.target.files[0].name;
       showStatus('文件已选择：' + fileName, 'success');
@@ -453,6 +452,7 @@ async function loadSites() {
     
     if (response.ok) {
       currentSites = data.data || [];
+      console.log('设置currentSites:', currentSites);
       renderSiteList();
       updateTestSiteOptions();
       showStatus(`成功加载 ${currentSites.length} 个站点`, 'success');
@@ -495,18 +495,17 @@ function renderSiteList() {
   console.log('渲染站点列表，站点数量:', currentSites.length);
   console.log('站点数据:', currentSites);
   
-  if (!currentSites || currentSites.length === 0) {
+  if (currentSites.length === 0) {
     siteList.innerHTML = '<div class="site-item"><div class="site-info"><p>暂无站点配置</p></div></div>';
     return;
   }
   
   currentSites.forEach(site => {
-    console.log('渲染站点:', site);
     const siteItem = document.createElement('div');
     siteItem.className = 'site-item';
     siteItem.innerHTML = `
       <div class="site-info">
-        <h4>${site.display_name || site.name || '未命名站点'}</h4>
+        <h4>${site.display_name || site.name}</h4>
         <div class="platform">平台：${getPlatformDisplayName(site.platform)}</div>
         <div class="data-source">数据源：${getDataSourceDisplayName(site.data_source)}</div>
       </div>
@@ -728,11 +727,9 @@ async function testDataUpload() {
   console.log('文件上传检查:', {
     siteId: siteId,
     fileInput: fileInput,
-    files: fileInput?.files,
-    filesLength: fileInput?.files?.length,
     fileInputExists: !!fileInput,
-    filesExists: !!(fileInput && fileInput.files),
-    filesLength: fileInput?.files?.length || 0
+    files: fileInput?.files,
+    filesLength: fileInput?.files?.length
   });
   
   if (!siteId) {
@@ -741,7 +738,7 @@ async function testDataUpload() {
   }
   
   if (!fileInput) {
-    showStatus('文件输入元素未找到', 'error');
+    showStatus('文件输入元素未找到，请刷新页面重试', 'error');
     return;
   }
   
