@@ -422,6 +422,11 @@ function setupEventListeners() {
         <p>已选择文件：${fileName}</p>
         <p style="font-size: 12px; color: #6b7280;">点击重新选择文件</p>
       `;
+    } else {
+      // 如果没有选择文件，重置显示
+      document.getElementById('fileUpload').innerHTML = `
+        <p>拖拽文件到此处或点击选择文件</p>
+      `;
     }
   });
 }
@@ -598,9 +603,11 @@ document.getElementById('siteConfigForm').addEventListener('submit', async funct
   
   try {
     const method = editingSiteId ? 'PUT' : 'POST';
-    const url = editingSiteId ? `/api/site-configs/${editingSiteId}` : '/api/site-configs';
+    const url = editingSiteId ? `/api/site-configs/${encodeURIComponent(editingSiteId)}` : '/api/site-configs';
     
     showStatus(editingSiteId ? '正在更新站点...' : '正在创建站点...', 'info', true);
+    
+    console.log('发送请求:', { method, url, formData });
     
     const response = await fetch(url, {
       method: method,
@@ -610,7 +617,9 @@ document.getElementById('siteConfigForm').addEventListener('submit', async funct
       body: JSON.stringify(formData)
     });
     
+    console.log('响应状态:', response.status);
     const result = await response.json();
+    console.log('响应数据:', result);
     
     if (response.ok) {
       showStatus(editingSiteId ? '站点更新成功！' : '站点创建成功！', 'success');
@@ -621,6 +630,7 @@ document.getElementById('siteConfigForm').addEventListener('submit', async funct
       showStatus((editingSiteId ? '更新' : '创建') + '失败: ' + (result.error || result.message || '未知错误'), 'error');
     }
   } catch (error) {
+    console.error('请求错误:', error);
     showStatus((editingSiteId ? '更新' : '创建') + '失败: ' + error.message, 'error');
   }
 });
@@ -660,8 +670,13 @@ async function deleteSite(siteId) {
     showStatus('正在删除站点...', 'info', true);
     
     console.log('删除站点ID:', siteId);
-    const response = await fetch(`/api/site-configs/${siteId}`, {
-      method: 'DELETE'
+    // 确保siteId被正确编码
+    const encodedSiteId = encodeURIComponent(siteId);
+    const response = await fetch(`/api/site-configs/${encodedSiteId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
     
     console.log('删除API响应状态:', response.status);
@@ -721,8 +736,9 @@ async function testDataUpload() {
     
     console.log('上传站点ID:', siteId);
     console.log('上传文件:', fileInput.files[0].name);
+    console.log('文件大小:', fileInput.files[0].size, 'bytes');
     
-    const response = await fetch(`/api/dynamic-ingest/${siteId}`, {
+    const response = await fetch(`/api/dynamic-ingest/${encodeURIComponent(siteId)}`, {
       method: 'POST',
       body: formData
     });
