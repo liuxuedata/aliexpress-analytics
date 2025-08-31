@@ -207,14 +207,19 @@ export default async function handler(req, res) {
       });
     });
 
-    const file = files.file;
-    if (!file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
+         const file = files.file;
+     if (!file) {
+       return res.status(400).json({ error: 'No file uploaded' });
+     }
 
-    console.log('处理文件:', file.originalFilename);
+     console.log('处理文件:', file.originalFilename, '文件路径:', file.filepath);
 
-    const records = await handleFile(file.filepath, file.originalFilename, currentIndepSiteId);
+     // 检查文件路径是否存在
+     if (!file.filepath) {
+       return res.status(400).json({ error: 'File path is undefined' });
+     }
+
+     const records = await handleFile(file.filepath, file.originalFilename, currentIndepSiteId);
     
     if (records.length === 0) {
       return res.status(400).json({ error: 'No valid records found in file' });

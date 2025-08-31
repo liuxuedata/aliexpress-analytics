@@ -27,6 +27,10 @@ export default async function handler(req, res) {
   
   console.log('AE查询参数:', { start, end, site, granularity });
   
+  // 添加数据库查询调试信息
+  console.log('查询数据库表:', TABLE);
+  console.log('查询条件: site =', site, ', start =', start, ', end =', end);
+  
   if (!start || !end) return res.status(400).json({ error: 'Missing start or end' });
   if (!['day','week','month'].includes(granularity)) return res.status(400).json({ error: 'Invalid granularity' });
 
@@ -61,7 +65,11 @@ export default async function handler(req, res) {
         .order('product_id', { ascending: true })
         .order('stat_date', { ascending: true })
         .range(from, to);
-      if (error) return res.status(500).json({ error: error.message });
+      if (error) {
+        console.error('数据库查询错误:', error);
+        return res.status(500).json({ error: error.message });
+      }
+      console.log(`查询结果: 第${Math.floor(from/pageSize)+1}页, 返回${data?.length || 0}条记录`);
       out.push(...(data || []));
       if (!data || data.length < pageSize) break;
       from += pageSize; to += pageSize;

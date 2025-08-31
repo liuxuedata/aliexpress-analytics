@@ -29,8 +29,12 @@
     
     console.log('找到的菜单元素:', { managedMenu: !!managedMenu, indepMenu: !!indepMenu });
     
+    // 先清空菜单
     if(managedMenu){
-      managedMenu.innerHTML='<li><a href="index.html">自运营</a></li><li><a href="managed.html">全托管</a></li>';
+      managedMenu.innerHTML='';
+    }
+    if(indepMenu){
+      indepMenu.innerHTML='';
     }
     
     // 从站点配置API获取所有站点
@@ -42,61 +46,68 @@
         const sites = data.data;
         console.log('从API获取的站点数据:', sites);
         
-        // 更新速卖通自运营站点菜单
-        const aeSelfOperatedSites = sites.filter(site => site.platform === 'ae_self_operated');
-        const managedMenu = document.getElementById('managedMenu');
-        if (managedMenu) {
-          managedMenu.innerHTML = '';
-          
-          // 添加自运营子菜单
-          if (aeSelfOperatedSites.length > 0) {
-            aeSelfOperatedSites.forEach(site => {
-              const li = document.createElement('li');
-              const a = document.createElement('a');
-              a.href = 'index.html';
-              a.textContent = site.display_name || site.name;
-              a.addEventListener('click', e => {
-                e.preventDefault();
-                localStorage.setItem('currentSite', site.id);
-                localStorage.setItem('currentSiteName', site.display_name || site.name);
-                window.location.href = 'index.html';
-              });
-              li.appendChild(a);
-              managedMenu.appendChild(li);
-            });
-          }
-          
-          // 添加全托管选项
-          const managedLi = document.createElement('li');
-          const managedA = document.createElement('a');
-          managedA.href = 'managed.html';
-          managedA.textContent = '全托管';
-          managedLi.appendChild(managedA);
-          managedMenu.appendChild(managedLi);
-        }
+                 // 更新速卖通自运营站点菜单
+         const aeSelfOperatedSites = sites.filter(site => site.platform === 'ae_self_operated');
+         console.log('速卖通自运营站点:', aeSelfOperatedSites);
+         
+         const managedMenu = document.getElementById('managedMenu');
+         if (managedMenu) {
+           console.log('开始渲染速卖通菜单...');
+           
+           // 添加自运营子菜单
+           if (aeSelfOperatedSites.length > 0) {
+             aeSelfOperatedSites.forEach(site => {
+               const li = document.createElement('li');
+               const a = document.createElement('a');
+               a.href = 'index.html';
+               a.textContent = site.display_name || site.name;
+               a.addEventListener('click', e => {
+                 e.preventDefault();
+                 localStorage.setItem('currentSite', site.id);
+                 localStorage.setItem('currentSiteName', site.display_name || site.name);
+                 window.location.href = 'index.html';
+               });
+               li.appendChild(a);
+               managedMenu.appendChild(li);
+               console.log('添加速卖通菜单项:', site.display_name || site.name);
+             });
+           }
+           
+           // 添加全托管选项
+           const managedLi = document.createElement('li');
+           const managedA = document.createElement('a');
+           managedA.href = 'managed.html';
+           managedA.textContent = '全托管';
+           managedLi.appendChild(managedA);
+           managedMenu.appendChild(managedLi);
+           console.log('添加全托管菜单项');
+         }
         
-        // 更新独立站站点菜单
-        const independentSites = sites.filter(site => site.platform === 'independent');
-        const indepMenu = document.getElementById('indepMenu');
-        if (indepMenu) {
-          indepMenu.innerHTML = '';
-          if (independentSites.length > 0) {
-            independentSites.forEach(site => {
-              const li = document.createElement('li');
-              const a = document.createElement('a');
-              a.href = 'independent-site.html';
-              a.textContent = site.display_name || site.name;
-              a.addEventListener('click', e => {
-                e.preventDefault();
-                localStorage.setItem('currentIndepSite', site.id);
-                localStorage.setItem('currentIndepSiteName', site.display_name || site.name);
-                window.location.href = 'independent-site.html';
-              });
-              li.appendChild(a);
-              indepMenu.appendChild(li);
-            });
-          }
-        }
+                 // 更新独立站站点菜单
+         const independentSites = sites.filter(site => site.platform === 'independent');
+         console.log('独立站站点:', independentSites);
+         
+         const indepMenu = document.getElementById('indepMenu');
+         if (indepMenu) {
+           console.log('开始渲染独立站菜单...');
+           if (independentSites.length > 0) {
+             independentSites.forEach(site => {
+               const li = document.createElement('li');
+               const a = document.createElement('a');
+               a.href = 'independent-site.html';
+               a.textContent = site.display_name || site.name;
+               a.addEventListener('click', e => {
+                 e.preventDefault();
+                 localStorage.setItem('currentIndepSite', site.id);
+                 localStorage.setItem('currentIndepSiteName', site.display_name || site.name);
+                 window.location.href = 'independent-site.html';
+               });
+               li.appendChild(a);
+               indepMenu.appendChild(li);
+               console.log('添加独立站菜单项:', site.display_name || site.name);
+             });
+           }
+         }
       }
     } catch (e) {
       console.error('站点配置API加载失败:', e);

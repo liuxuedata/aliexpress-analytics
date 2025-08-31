@@ -812,14 +812,14 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   await updateCurrentSiteDisplay();
   
   // 监听站点菜单刷新消息，同时更新当前站点显示
-  window.addEventListener('message', (event) => {
+  window.addEventListener('message', async (event) => {
     if (event.data && event.data.type === 'refreshSiteMenus') {
       console.log('收到刷新站点菜单消息');
       if (window.refreshSiteMenus) {
-        window.refreshSiteMenus();
+        await window.refreshSiteMenus();
       }
       // 同时更新当前站点显示
-      updateCurrentSiteDisplay();
+      await updateCurrentSiteDisplay();
     }
   });
   
