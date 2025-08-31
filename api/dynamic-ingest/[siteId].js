@@ -86,7 +86,7 @@ export default async function handler(req, res) {
     const { data, error: insertError } = await supabase
       .from(tableName)
       .upsert(dataWithSite, { 
-        onConflict: 'site,campaign_name,row_start_date' // 根据实际主键调整
+        onConflict: 'site,campaign_name,row_start_date,adset_name' // 根据实际主键调整
       });
 
     if (insertError) {

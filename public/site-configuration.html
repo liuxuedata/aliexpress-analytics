@@ -501,6 +501,9 @@ function updateTemplatePreview() {
   }
 }
 
+// 全局变量
+let editingSiteId = null;
+
 // 表单提交
 document.getElementById('siteConfigForm').addEventListener('submit', async function(e) {
   e.preventDefault();
@@ -517,8 +520,11 @@ document.getElementById('siteConfigForm').addEventListener('submit', async funct
   };
   
   try {
-    const response = await fetch('/api/site-configs', {
-      method: 'POST',
+    const method = editingSiteId ? 'PUT' : 'POST';
+    const url = editingSiteId ? `/api/site-configs/${editingSiteId}` : '/api/site-configs';
+    
+    const response = await fetch(url, {
+      method: method,
       headers: {
         'Content-Type': 'application/json'
       },
@@ -527,15 +533,16 @@ document.getElementById('siteConfigForm').addEventListener('submit', async funct
     
     if (response.ok) {
       const result = await response.json();
-      showStatus('站点创建成功！', 'success');
+      showStatus(editingSiteId ? '站点更新成功！' : '站点创建成功！', 'success');
       loadSites();
       resetForm();
+      editingSiteId = null;
     } else {
       const error = await response.json();
-      showStatus('创建失败: ' + error.error, 'error');
+      showStatus((editingSiteId ? '更新' : '创建') + '失败: ' + error.error, 'error');
     }
   } catch (error) {
-    showStatus('创建失败: ' + error.message, 'error');
+    showStatus((editingSiteId ? '更新' : '创建') + '失败: ' + error.message, 'error');
   }
 });
 
@@ -543,6 +550,7 @@ document.getElementById('siteConfigForm').addEventListener('submit', async funct
 function editSite(siteId) {
   const site = currentSites.find(s => s.id === siteId);
   if (site) {
+    editingSiteId = siteId;
     document.getElementById('siteName').value = site.name;
     document.getElementById('sitePlatform').value = site.platform;
     document.getElementById('displayName').value = site.display_name;
@@ -555,6 +563,9 @@ function editSite(siteId) {
     updateDataSourceOptions();
     updateTemplateOptions();
     updateTemplatePreview();
+    
+    // 更改按钮文本
+    document.querySelector('#siteConfigForm button[type="submit"]').textContent = '更新站点';
     
     showStatus('正在编辑站点：' + site.display_name, 'info');
   }
@@ -587,6 +598,8 @@ async function deleteSite(siteId) {
 function resetForm() {
   document.getElementById('siteConfigForm').reset();
   document.getElementById('templatePreview').textContent = '选择数据源类型查看模板配置...';
+  editingSiteId = null;
+  document.querySelector('#siteConfigForm button[type="submit"]').textContent = '创建站点';
 }
 
 // 更新测试站点选项
@@ -620,7 +633,7 @@ async function testDataUpload() {
   try {
     showStatus('正在上传数据...', 'info');
     
-    const response = await fetch(`/api/${siteId}/ingest`, {
+    const response = await fetch(`/api/dynamic-ingest/${siteId}`, {
       method: 'POST',
       body: formData
     });
@@ -629,8 +642,13 @@ async function testDataUpload() {
       const result = await response.json();
       showStatus(`数据上传成功！处理了 ${result.processed} 条记录，插入了 ${result.upserted} 条记录`, 'success');
     } else {
-      const error = await response.json();
-      showStatus('上传失败: ' + error.error, 'error');
+      const errorText = await response.text();
+      try {
+        const error = JSON.parse(errorText);
+        showStatus('上传失败: ' + error.error, 'error');
+      } catch (e) {
+        showStatus('上传失败: ' + errorText, 'error');
+      }
     }
   } catch (error) {
     showStatus('上传失败: ' + error.message, 'error');
