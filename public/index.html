@@ -303,42 +303,42 @@ $('#fileInput').on('change', function(e) {
 
 /* ---------- 查询 / 汇总 ---------- */
 async function fetchAgg(startISO, endISO, granularity) {
-  const currentSiteId = localStorage.getItem('currentSite');
-  const currentSiteName = localStorage.getItem('currentSiteName');
-  
-  // 如果没有站点ID，尝试从API获取默认站点
-  let siteId = currentSiteId;
-  if (!siteId) {
-    try {
-      const response = await fetch('/api/site-configs');
-      const data = await response.json();
-      if (response.ok && data.data && data.data.length > 0) {
-        const firstSite = data.data.find(site => site.platform === 'ae_self_operated') || data.data[0];
-        siteId = firstSite.id;
-        localStorage.setItem('currentSite', firstSite.id);
-        localStorage.setItem('currentSiteName', firstSite.display_name || firstSite.name);
-      } else {
-        siteId = 'ae_self_operated_a'; // 默认站点ID
-      }
-    } catch (e) {
-      console.error('获取默认站点失败:', e);
-      siteId = 'ae_self_operated_a'; // 默认站点ID
-    }
-  }
-  
+  let siteId = localStorage.getItem('currentSite') || 'ae_self_operated_a';
   // 确保使用正确的站点ID格式
   if (siteId === 'A站') {
     siteId = 'ae_self_operated_a';
     localStorage.setItem('currentSite', siteId);
   }
   
-  console.log('查询数据使用的站点ID:', siteId, '站点名称:', currentSiteName);
-  
   const url = `/api/ae_query?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}&granularity=${encodeURIComponent(granularity)}&site=${encodeURIComponent(siteId)}`;
+  
+  // 添加调试日志
+  console.log('=== 主页调试信息 ===');
+  console.log('当前站点:', siteId);
+  console.log('localStorage中的站点:', localStorage.getItem('currentSite'));
+  console.log('请求URL:', url);
+  console.log('请求参数:', { startISO, endISO, granularity, site: siteId });
+  
   const resp = await fetch(url);
-  const txt = await resp.text(); let j; try { j = JSON.parse(txt); } catch(e) { throw new Error('Query API响应不是JSON：' + txt.slice(0,200)); }
-  if (!resp.ok || !j.ok) throw new Error(j.error || '查询失败');
-  return j.rows || [];
+  
+  // 添加响应调试
+  console.log('响应状态:', resp.status);
+  console.log('响应状态文本:', resp.statusText);
+  
+  if (!resp.ok) {
+    const errorText = await resp.text();
+    console.error('API响应错误:', errorText);
+    throw new Error(`HTTP ${resp.status}: ${errorText}`);
+  }
+  
+  const data = await resp.json();
+  console.log('API响应数据:', data);
+  
+  if (!data.ok) {
+    throw new Error(data.error || 'Unknown error');
+  }
+  
+  return data.rows;
 }
 function periodShift(startISO, endISO) {
   const start = new Date(startISO + 'T00:00:00'); const end = new Date(endISO + 'T00:00:00');

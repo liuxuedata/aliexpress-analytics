@@ -323,11 +323,36 @@ async function fetchAgg(startISO, endISO, granularity) {
     currentSite = 'ae_self_operated_a';
     localStorage.setItem('currentSite', currentSite);
   }
+  
   const url = `/api/ae_query?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}&granularity=${encodeURIComponent(granularity)}&site=${encodeURIComponent(currentSite)}`;
+  
+  // 添加调试日志
+  console.log('=== 自运营页面调试信息 ===');
+  console.log('当前站点:', currentSite);
+  console.log('localStorage中的站点:', localStorage.getItem('currentSite'));
+  console.log('请求URL:', url);
+  console.log('请求参数:', { startISO, endISO, granularity, site: currentSite });
+  
   const resp = await fetch(url);
-  const txt = await resp.text(); let j; try { j = JSON.parse(txt); } catch(e) { throw new Error('Query API响应不是JSON：' + txt.slice(0,200)); }
-  if (!resp.ok || !j.ok) throw new Error(j.error || '查询失败');
-  return j.rows || [];
+  
+  // 添加响应调试
+  console.log('响应状态:', resp.status);
+  console.log('响应状态文本:', resp.statusText);
+  
+  if (!resp.ok) {
+    const errorText = await resp.text();
+    console.error('API响应错误:', errorText);
+    throw new Error(`HTTP ${resp.status}: ${errorText}`);
+  }
+  
+  const data = await resp.json();
+  console.log('API响应数据:', data);
+  
+  if (!data.ok) {
+    throw new Error(data.error || 'Unknown error');
+  }
+  
+  return data.rows;
 }
 function periodShift(startISO, endISO) {
   const start = new Date(startISO + 'T00:00:00'); const end = new Date(endISO + 'T00:00:00');
