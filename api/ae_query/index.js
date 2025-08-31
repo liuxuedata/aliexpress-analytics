@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   }
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
 
-  const { start, end } = req.query;
+  const { start, end, site = 'A站' } = req.query;
   const granularity = (req.query.granularity || 'day').toLowerCase();
   if (!start || !end) return res.status(400).json({ error: 'Missing start or end' });
   if (!['day','week','month'].includes(granularity)) return res.status(400).json({ error: 'Invalid granularity' });
@@ -52,6 +52,7 @@ export default async function handler(req, res) {
           search_ctr,
           avg_stay_seconds
         `)
+        .eq('site', site)
         .gte('stat_date', String(start))
         .lte('stat_date', String(end))
         .order('product_id', { ascending: true })

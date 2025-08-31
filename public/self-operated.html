@@ -317,7 +317,8 @@ $('#fileInput').on('change', function(e) {
 
 /* ---------- 查询 / 汇总 ---------- */
 async function fetchAgg(startISO, endISO, granularity) {
-  const url = `/api/ae_query?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}&granularity=${encodeURIComponent(granularity)}`;
+  const currentSite = localStorage.getItem('currentSite') || 'A站';
+  const url = `/api/ae_query?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}&granularity=${encodeURIComponent(granularity)}&site=${encodeURIComponent(currentSite)}`;
   const resp = await fetch(url);
   const txt = await resp.text(); let j; try { j = JSON.parse(txt); } catch(e) { throw new Error('Query API响应不是JSON：' + txt.slice(0,200)); }
   if (!resp.ok || !j.ok) throw new Error(j.error || '查询失败');
@@ -710,8 +711,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     currentSiteEl.textContent = '自运营 ' + selectedSite;
     
     // 重新加载数据
-    if (window.refreshData) {
-      window.refreshData();
+    if (typeof fetchAndRenderAll === 'function') {
+      fetchAndRenderAll();
     }
   });
   
