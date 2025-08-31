@@ -32,6 +32,10 @@
       "dest": "/api/site-configs/update.js"
     },
     {
+      "src": "^/api/site-sync$",
+      "dest": "/api/site-sync/index.js"
+    },
+    {
       "src": "^/api/site-configs/(.+)$",
       "dest": "/api/site-configs/[id].js"
     },

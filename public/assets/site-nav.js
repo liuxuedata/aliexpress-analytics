@@ -39,10 +39,12 @@
         
         // 更新速卖通自运营站点菜单
         const aeSelfOperatedSites = sites.filter(site => site.platform === 'ae_self_operated');
-        if (aeSelfOperatedSites.length > 0) {
-          const managedMenu = document.getElementById('managedMenu');
-          if (managedMenu) {
-            managedMenu.innerHTML = '';
+        const managedMenu = document.getElementById('managedMenu');
+        if (managedMenu) {
+          managedMenu.innerHTML = '';
+          
+          // 添加自运营子菜单
+          if (aeSelfOperatedSites.length > 0) {
             aeSelfOperatedSites.forEach(site => {
               const li = document.createElement('li');
               const a = document.createElement('a');
@@ -58,27 +60,37 @@
               managedMenu.appendChild(li);
             });
           }
+          
+          // 添加全托管选项
+          const managedLi = document.createElement('li');
+          const managedA = document.createElement('a');
+          managedA.href = 'managed.html';
+          managedA.textContent = '全托管';
+          managedLi.appendChild(managedA);
+          managedMenu.appendChild(managedLi);
         }
         
         // 更新独立站站点菜单
         const independentSites = sites.filter(site => site.platform === 'independent');
         const indepMenu = document.getElementById('indepMenu');
-        if (indepMenu && independentSites.length > 0) {
+        if (indepMenu) {
           indepMenu.innerHTML = '';
-          independentSites.forEach(site => {
-            const li = document.createElement('li');
-            const a = document.createElement('a');
-            a.href = 'independent-site.html';
-            a.textContent = site.display_name || site.name;
-            a.addEventListener('click', e => {
-              e.preventDefault();
-              localStorage.setItem('currentIndepSite', site.id);
-              localStorage.setItem('currentIndepSiteName', site.display_name || site.name);
-              window.location.href = 'independent-site.html';
+          if (independentSites.length > 0) {
+            independentSites.forEach(site => {
+              const li = document.createElement('li');
+              const a = document.createElement('a');
+              a.href = 'independent-site.html';
+              a.textContent = site.display_name || site.name;
+              a.addEventListener('click', e => {
+                e.preventDefault();
+                localStorage.setItem('currentIndepSite', site.id);
+                localStorage.setItem('currentIndepSiteName', site.display_name || site.name);
+                window.location.href = 'independent-site.html';
+              });
+              li.appendChild(a);
+              indepMenu.appendChild(li);
             });
-            li.appendChild(a);
-            indepMenu.appendChild(li);
-          });
+          }
         }
       }
     } catch (e) {

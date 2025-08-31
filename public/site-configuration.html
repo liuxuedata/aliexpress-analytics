@@ -624,6 +624,29 @@ document.getElementById('siteConfigForm').addEventListener('submit', async funct
     console.log('响应数据:', result);
     
     if (response.ok) {
+      // 调用站点同步API
+      try {
+        const syncResponse = await fetch('/api/site-sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            siteId: editingSiteId || result.data.id,
+            oldSiteId: editingSiteId, // 如果是更新操作，传递旧ID
+            action: editingSiteId ? 'update' : 'create'
+          })
+        });
+        
+        if (syncResponse.ok) {
+          console.log('站点同步成功');
+        } else {
+          console.warn('站点同步失败，但不影响站点配置');
+        }
+      } catch (syncError) {
+        console.warn('站点同步出错:', syncError);
+      }
+      
       showStatus(editingSiteId ? '站点更新成功！' : '站点创建成功！', 'success');
       console.log('操作成功，开始刷新站点列表...');
       await loadSites(); // 等待加载完成
@@ -638,6 +661,21 @@ document.getElementById('siteConfigForm').addEventListener('submit', async funct
         if (window.refreshSiteMenus) {
           window.refreshSiteMenus();
         }
+      }
+      
+      // 强制刷新所有相关页面的站点菜单
+      try {
+        // 通知所有打开的页面刷新
+        window.postMessage({ type: 'refreshSiteMenus' }, '*');
+        
+        // 延迟刷新，确保数据已更新
+        setTimeout(() => {
+          if (window.refreshSiteMenus) {
+            window.refreshSiteMenus();
+          }
+        }, 1000);
+      } catch (e) {
+        console.log('刷新站点菜单时出错:', e);
       }
       
       resetForm();
@@ -714,6 +752,21 @@ async function deleteSite(siteId) {
         if (window.refreshSiteMenus) {
           window.refreshSiteMenus();
         }
+      }
+      
+      // 强制刷新所有相关页面的站点菜单
+      try {
+        // 通知所有打开的页面刷新
+        window.postMessage({ type: 'refreshSiteMenus' }, '*');
+        
+        // 延迟刷新，确保数据已更新
+        setTimeout(() => {
+          if (window.refreshSiteMenus) {
+            window.refreshSiteMenus();
+          }
+        }, 1000);
+      } catch (e) {
+        console.log('刷新站点菜单时出错:', e);
       }
     } else {
       showStatus('删除失败: ' + (result.error || result.message || '未知错误'), 'error');

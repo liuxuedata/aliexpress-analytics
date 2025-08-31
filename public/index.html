@@ -279,8 +279,17 @@ $('#fileInput').on('change', function(e) {
       }).filter(x => x.product_id && x.stat_date);
       const dmap=new Map(); rows.forEach(r=>dmap.set(r.product_id+'__'+r.stat_date,r)); const deduped=Array.from(dmap.values());
 
-      $('#progress').text(`入库中（${deduped.length} 条）…`);
-      const resp = await fetch('/api/ae_upsert', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ rows: deduped }) });
+      // 获取当前站点ID
+      const currentSiteId = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+      
+      // 为每行数据添加站点信息
+      const rowsWithSite = deduped.map(row => ({
+        ...row,
+        site: currentSiteId
+      }));
+      
+      $('#progress').text(`入库中（${rowsWithSite.length} 条）…`);
+      const resp = await fetch('/api/ae_upsert', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ rows: rowsWithSite }) });
       const txt = await resp.text(); let j; try { j = JSON.parse(txt); } catch(e) { throw new Error('Upsert API响应不是JSON：' + txt.slice(0,200)); }
       if (!resp.ok || !j.ok) throw new Error(j.error || '入库失败');
       $('#progress').text('入库完成 ✔');
@@ -294,8 +303,32 @@ $('#fileInput').on('change', function(e) {
 
 /* ---------- 查询 / 汇总 ---------- */
 async function fetchAgg(startISO, endISO, granularity) {
-  const currentSite = localStorage.getItem('currentSite') || 'A站';
-  const url = `/api/ae_query?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}&granularity=${encodeURIComponent(granularity)}&site=${encodeURIComponent(currentSite)}`;
+  const currentSiteId = localStorage.getItem('currentSite');
+  const currentSiteName = localStorage.getItem('currentSiteName');
+  
+  // 如果没有站点ID，尝试从API获取默认站点
+  let siteId = currentSiteId;
+  if (!siteId) {
+    try {
+      const response = await fetch('/api/site-configs');
+      const data = await response.json();
+      if (response.ok && data.data && data.data.length > 0) {
+        const firstSite = data.data.find(site => site.platform === 'ae_self_operated') || data.data[0];
+        siteId = firstSite.id;
+        localStorage.setItem('currentSite', firstSite.id);
+        localStorage.setItem('currentSiteName', firstSite.display_name || firstSite.name);
+      } else {
+        siteId = 'ae_self_operated_a'; // 默认站点ID
+      }
+    } catch (e) {
+      console.error('获取默认站点失败:', e);
+      siteId = 'ae_self_operated_a'; // 默认站点ID
+    }
+  }
+  
+  console.log('查询数据使用的站点ID:', siteId, '站点名称:', currentSiteName);
+  
+  const url = `/api/ae_query?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}&granularity=${encodeURIComponent(granularity)}&site=${encodeURIComponent(siteId)}`;
   const resp = await fetch(url);
   const txt = await resp.text(); let j; try { j = JSON.parse(txt); } catch(e) { throw new Error('Query API响应不是JSON：' + txt.slice(0,200)); }
   if (!resp.ok || !j.ok) throw new Error(j.error || '查询失败');
