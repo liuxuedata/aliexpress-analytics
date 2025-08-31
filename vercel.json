@@ -12,6 +12,34 @@
   ],
   "routes": [
     {
+      "src": "^/api/health$",
+      "dest": "/api/health.js"
+    },
+    {
+      "src": "^/api/test$",
+      "dest": "/api/test.js"
+    },
+    {
+      "src": "^/api/site-configs$",
+      "dest": "/api/site-configs/index.js"
+    },
+    {
+      "src": "^/api/site-configs/(.+)$",
+      "dest": "/api/site-configs/[id].js"
+    },
+    {
+      "src": "^/api/data-source-templates$",
+      "dest": "/api/data-source-templates/index.js"
+    },
+    {
+      "src": "^/api/dynamic-ingest/(.+)/generate-test-data$",
+      "dest": "/api/dynamic-ingest/[siteId]/generate-test-data.js"
+    },
+    {
+      "src": "^/api/dynamic-ingest/(.+)$",
+      "dest": "/api/dynamic-ingest/[siteId].js"
+    },
+    {
       "src": "^/api/(.*)$",
       "dest": "/api/$1"
     },
