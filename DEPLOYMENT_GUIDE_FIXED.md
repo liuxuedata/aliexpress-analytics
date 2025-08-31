@@ -96,6 +96,23 @@ function pushFacebookReportToVercel() {
 3. 重新生成 Facebook Ads 数据表
 4. 验证表创建结果
 
+### 如果遇到 "relation dynamic_tables does not exist" 或 "column reference site_id is ambiguous" 错误
+
+这个错误是由于表不存在或列引用不明确导致的。请执行：
+
+```sql
+-- 在 Supabase SQL Editor 中执行
+-- 文件：fix_complete_framework.sql
+```
+
+这个脚本会：
+1. 创建所有必要的基础表结构
+2. 重新创建修复版本的 `generate_dynamic_table` 函数（使用明确的参数名）
+3. 插入所有预定义的模板和站点配置
+4. 重新生成 Facebook Ads 数据表
+5. 设置 RLS 策略和索引
+6. 验证所有结果
+
 如果上述脚本仍然有问题，也可以尝试：
 
 ```sql
