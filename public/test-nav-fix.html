@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>导航修复测试</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="assets/theme.css?v=20250810b">
+  <script src="assets/site-nav.js"></script>
+</head>
+<body>
+<header class="header">
+  <div class="logo-title">跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li><a href="#">速卖通</a>
+        <ul class="dropdown" id="managedMenu"></ul>
+      </li>
+      <li><a href="#">亚马逊</a></li>
+      <li><a href="#">TikTok Shop</a></li>
+      <li><a href="#">Temu</a></li>
+      <li><a href="#">Ozon</a></li>
+      <li><a href="#">独立站</a>
+        <ul class="dropdown" id="indepMenu"></ul>
+      </li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="site-header">
+      <span id="currentSite">测试站点</span>
+    </div>
+    <ul class="sub-nav">
+      <li><a href="#" class="active">详细数据</a></li>
+      <li><a href="#">运营分析</a></li>
+      <li><a href="#">产品分析</a></li>
+    </ul>
+  </nav>
+
+  <main class="main">
+    <div class="content">
+      <h1>导航修复测试页面</h1>
+      <p>这个页面用于测试全局导航栏是否正确显示站点信息。</p>
+      <div id="debug-info"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const debugInfo = document.getElementById('debug-info');
+  
+  // 显示调试信息
+  setTimeout(() => {
+    const managedMenu = document.getElementById('managedMenu');
+    const indepMenu = document.getElementById('indepMenu');
+    
+    debugInfo.innerHTML = `
+      <h3>调试信息：</h3>
+      <p>速卖通菜单项数量: ${managedMenu ? managedMenu.children.length : 0}</p>
+      <p>独立站菜单项数量: ${indepMenu ? indepMenu.children.length : 0}</p>
+      <p>当前站点: ${localStorage.getItem('currentSite') || '未设置'}</p>
+      <p>当前站点名称: ${localStorage.getItem('currentSiteName') || '未设置'}</p>
+    `;
+  }, 2000);
+});
+</script>
+</body>
+</html>
