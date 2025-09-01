@@ -324,14 +324,15 @@ async function fetchAgg(startISO, endISO, granularity) {
     localStorage.setItem('currentSite', currentSite);
   }
   
-  const url = `/api/ae_query?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}&granularity=${encodeURIComponent(granularity)}&site=${encodeURIComponent(currentSite)}`;
+  // 添加 aggregate=product 参数来实现产品级别的聚合
+  const url = `/api/ae_query?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}&granularity=${encodeURIComponent(granularity)}&site=${encodeURIComponent(currentSite)}&aggregate=product`;
   
   // 添加调试日志
   console.log('=== 自运营页面调试信息 ===');
   console.log('当前站点:', currentSite);
   console.log('localStorage中的站点:', localStorage.getItem('currentSite'));
   console.log('请求URL:', url);
-  console.log('请求参数:', { startISO, endISO, granularity, site: currentSite });
+  console.log('请求参数:', { startISO, endISO, granularity, site: currentSite, aggregate: 'product' });
   
   try {
     const resp = await fetch(url);
@@ -450,22 +451,38 @@ async function renderTable(rows, granularity) {
   if (window.dataTable) window.dataTable.destroy(); $('#report').empty();
   const data = rows.map(r => {
     const link = r.product_id ? `<a href="https://aliexpress.com/item/${r.product_id}.html" target="_blank">${r.product_id}</a>` : '';
-    const conv1 = r.exposure>0 ? ((r.visitors/r.exposure)*100).toFixed(2) : '0.00';
-    const conv2 = r.visitors>0 ? ((r.add_people/r.visitors)*100).toFixed(2) : '0.00';
-    const conv3 = r.add_people>0 ? ((r.pay_buyers/r.add_people)*100).toFixed(2) : '0.00';
+    
+    // 优先使用 API 返回的比率字段，如果没有则计算
+    const conv1 = r.visitor_ratio ? (r.visitor_ratio * 100).toFixed(2) : (r.exposure>0 ? ((r.visitors/r.exposure)*100).toFixed(2) : '0.00');
+    const conv2 = r.add_to_cart_ratio ? (r.add_to_cart_ratio * 100).toFixed(2) : (r.visitors>0 ? ((r.add_people/r.visitors)*100).toFixed(2) : '0.00');
+    const conv3 = r.payment_ratio ? (r.payment_ratio * 100).toFixed(2) : (r.add_people>0 ? ((r.pay_buyers/r.add_people)*100).toFixed(2) : '0.00');
+    
     const ctr = formatCtr(r.search_ctr);
     const stay = (r.avg_stay_seconds==null || r.avg_stay_seconds===undefined) ? '' : Math.round(r.avg_stay_seconds);
-    return [link, r.bucket_label || r.bucket, conv1 + '%', conv2 + '%', conv3 + '%', r.exposure, r.visitors, r.views, r.add_people, r.order_items, r.pay_items, r.pay_buyers, ctr, stay];
+    
+    // 对于产品聚合，bucket 字段包含周期范围，如 "2025-08-17~2025-08-31"
+    let periodDisplay = r.bucket || r.bucket_label || '';
+    
+    // 如果是按日粒度且显示的是单个日期，则显示为周期范围
+    if (granularity === 'day' && periodDisplay && !periodDisplay.includes('~')) {
+      const dateFilter = document.getElementById('dateFilter');
+      if (dateFilter && dateFilter.value && dateFilter.value.includes(' to ')) {
+        const [start, end] = dateFilter.value.split(' to ');
+        periodDisplay = `${start}~${end}`;
+      }
+    }
+    
+    return [link, periodDisplay, conv1 + '%', conv2 + '%', conv3 + '%', r.exposure, r.visitors, r.views, r.add_people, r.order_items, r.pay_items, r.pay_buyers, ctr, stay];
   });
   window.dataTable = $('#report').DataTable({
     data,
     columns: [
       { title: '商品（ID）' },
-      { title: granularity==='day' ? '日期' : (granularity==='week' ? '周范围' : '月份范围') },
+      { title: '周期' }, // 统一显示为"周期"
       { title: '访客比(%)' }, { title: '加购比(%)' }, { title: '支付比(%)' },
       { title: '曝光量' }, { title: '访客数' }, { title: '浏览量' },
       { title: '加购人数' },
-      // 去掉“加购件数、支付订单数”，新增三列：
+      // 去掉"加购件数、支付订单数"，新增三列：
       { title: '下单商品件数' },
       { title: '支付件数' },
       { title: '支付买家数' },
