@@ -40,7 +40,14 @@
     // 从站点配置API获取所有站点（优先使用 site_configs 表）
     try {
       console.log('正在从API获取站点配置...');
-      const response = await fetch('/api/site-configs');
+      const response = await fetch('/api/site-configs', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // 添加超时设置
+        signal: AbortSignal.timeout(10000) // 10秒超时
+      });
       console.log('站点配置API响应状态:', response.status);
       
       if (!response.ok) {
@@ -134,7 +141,13 @@
   async function renderFallbackSites() {
     console.log('使用备选方案：从 sites 表获取数据...');
     try {
-      const response = await fetch('/api/sites');
+      const response = await fetch('/api/sites', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: AbortSignal.timeout(10000) // 10秒超时
+      });
       console.log('Sites API响应状态:', response.status);
       
       if (!response.ok) {
@@ -199,10 +212,77 @@
         console.log('备选方案渲染完成');
       } else {
         console.error('Sites API返回的数据格式不正确:', data);
+        // 如果所有API都失败，使用默认数据
+        renderDefaultSites();
       }
     } catch (error) {
       console.error('备选方案也失败了:', error.message);
+      // 如果所有API都失败，使用默认数据
+      renderDefaultSites();
     }
+  }
+
+  // 最后的备选方案：使用默认站点数据
+  function renderDefaultSites() {
+    console.log('使用默认站点数据...');
+    
+    const managedMenu = document.getElementById('managedMenu');
+    if (managedMenu) {
+      // 添加默认的速卖通自运营站点
+      const defaultSites = [
+        { id: 'ae_self_operated_a', name: '自运营robot站', display_name: '自运营robot站' },
+        { id: 'ae_self_operated_poolslab_store', name: 'poolslab_store', display_name: 'Poolslab运动娱乐' }
+      ];
+      
+      defaultSites.forEach(site => {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = 'index.html';
+        a.textContent = site.display_name;
+        a.addEventListener('click', e => {
+          e.preventDefault();
+          localStorage.setItem('currentSite', site.id);
+          localStorage.setItem('currentSiteName', site.display_name);
+          window.location.href = 'index.html';
+        });
+        li.appendChild(a);
+        managedMenu.appendChild(li);
+      });
+      
+      // 添加全托管选项
+      const managedLi = document.createElement('li');
+      const managedA = document.createElement('a');
+      managedA.href = 'managed.html';
+      managedA.textContent = '全托管';
+      managedLi.appendChild(managedA);
+      managedMenu.appendChild(managedLi);
+    }
+    
+    const indepMenu = document.getElementById('indepMenu');
+    if (indepMenu) {
+      // 添加默认的独立站站点
+      const defaultIndepSites = [
+        { id: 'independent_poolsvacuum', name: 'poolsvacuum', display_name: '独立站poolsvacuum' },
+        { id: 'independent_icyberite', name: 'icyberite', display_name: '独立站icyberite.com' }
+      ];
+      
+      defaultIndepSites.forEach(site => {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = 'independent-site.html';
+        a.textContent = site.display_name;
+        a.addEventListener('click', e => {
+          e.preventDefault();
+          localStorage.setItem('currentIndepSite', site.id);
+          localStorage.setItem('currentIndepSiteName', site.display_name);
+          window.location.href = 'independent-site.html?site=' + encodeURIComponent(site.name);
+        });
+        li.appendChild(a);
+        indepMenu.appendChild(li);
+      });
+    }
+    
+    console.log('默认站点数据渲染完成');
   }
 
   // 全局刷新函数
