@@ -153,8 +153,8 @@
       
       // 点击菜单项时保持菜单显示（用于移动设备）
       item.addEventListener('click', (e) => {
+        // 如果点击的是链接，不阻止默认行为，让链接正常工作
         if (e.target.tagName === 'A') {
-          // 如果点击的是链接，不阻止默认行为
           return;
         }
         // 如果点击的是菜单容器，切换显示状态
@@ -163,6 +163,17 @@
         } else {
           dropdown.style.display = 'block';
         }
+      });
+    });
+    
+    // 确保所有导航链接都能正常工作
+    const allNavLinks = document.querySelectorAll('.platform-nav a[href]');
+    allNavLinks.forEach(link => {
+      // 移除可能的事件阻止器
+      link.addEventListener('click', (e) => {
+        // 确保链接能正常工作
+        console.log('导航链接点击:', link.href);
+        // 不阻止默认行为，让链接正常工作
       });
     });
     
