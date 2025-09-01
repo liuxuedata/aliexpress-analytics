@@ -198,12 +198,33 @@ function card(title,cur,prev,isPct,avg,share){
 
   function setupFM(){
     const ctrl=document.getElementById('ctrl');
-    ctrl.innerHTML='<label>粒度</label><label><input type="radio" name="gran" value="week"> 周</label><label><input type="radio" name="gran" value="month"> 月</label><select id="periodSelect" class="sel"></select>';
+    ctrl.innerHTML='<div class="date-controls"><span>时间粒度：</span><button class="granularity-btn active" data-granularity="week">按周</button><button class="granularity-btn" data-granularity="month">按月</button><span style="margin-left: 20px;">周期：</span><select id="periodSelect" class="sel" style="margin-left: 8px;"></select></div>';
+    
+    // 添加粒度按钮事件
+    document.querySelectorAll('.granularity-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.granularity-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        const granularity = e.target.dataset.granularity;
+        localStorage.setItem('fmGranularity', granularity);
+        loadPeriods();
+      });
+    });
+    
     const state={ granularity: localStorage.getItem('fmGranularity')||'week', periods: [] };
-    document.querySelector(`input[name="gran"][value="${state.granularity}"]`).checked=true;
-    document.querySelectorAll('input[name="gran"]').forEach(r=>r.addEventListener('change',e=>{state.granularity=e.target.value;localStorage.setItem('fmGranularity',state.granularity);loadPeriods();}));
+    // 设置默认选中的粒度按钮
+    const activeBtn = document.querySelector(`[data-granularity="${state.granularity}"]`);
+    if (activeBtn) {
+      document.querySelectorAll('.granularity-btn').forEach(b => b.classList.remove('active'));
+      activeBtn.classList.add('active');
+    }
+    
     document.getElementById('periodSelect').addEventListener('change',loadData);
     function loadPeriods(){
+      // 从当前激活的按钮获取粒度
+      const activeBtn = document.querySelector('.granularity-btn.active');
+      const granularity = activeBtn ? activeBtn.dataset.granularity : 'week';
+      state.granularity = granularity;
       fetch('/api/periods').then(r=>r.json()).then(j=>{
         const list=(state.granularity==='week'?j.weeks:j.months)||[];
         state.periods=list.slice();
@@ -285,7 +306,10 @@ function card(title,cur,prev,isPct,avg,share){
           card('总曝光量',cur.exp,prev.exp,false,null,shareExp),
           card('总访客数',cur.uv,prev.uv,false,null,shareUv),
           card('总加购人数',cur.add,prev.add,false,null,shareAdd),
-          card('总支付买家数',cur.pay,prev.pay,false,null,sharePay)
+          card('总支付买家数',cur.pay,prev.pay,false,null,sharePay),
+          card('曝光商品数',cur.exp > 0 ? 1 : 0, prev.exp > 0 ? 1 : 0, false),
+          card('加购商品数',cur.add > 0 ? 1 : 0, prev.add > 0 ? 1 : 0, false),
+          card('支付商品数',cur.pay > 0 ? 1 : 0, prev.pay > 0 ? 1 : 0, false)
         ].join('');
         const dates=[...rowsA,...rowsB].filter(x=>String(x.product_id)===String(pid)).map(x=>x.period_start||x.period_end||'').filter(Boolean).sort();
         document.getElementById('listingDate').textContent=dates.length?`上架日期：${dates[0]}`:'';
@@ -491,7 +515,10 @@ const def=`${start} to ${end}`; input.value=def; localStorage.setItem(key,def);
           card('总曝光量',cur.exp,prev.exp,false,null,shareExp),
           card(uvTotalLabel,cur.uv,prev.uv,false,null,shareUv),
           card(addTotalLabel,cur.add,prev.add,false,null,shareAdd),
-          card('总支付买家数',cur.pay,prev.pay,false,null,sharePay)
+          card('总支付买家数',cur.pay,prev.pay,false,null,sharePay),
+          card('曝光商品数',cur.exp > 0 ? 1 : 0, prev.exp > 0 ? 1 : 0, false),
+          card('加购商品数',cur.add > 0 ? 1 : 0, prev.add > 0 ? 1 : 0, false),
+          card('支付商品数',cur.pay > 0 ? 1 : 0, prev.pay > 0 ? 1 : 0, false)
         ].join('');
         line(pid);
         const dates=[...rowsDayA,...rowsDayB].filter(r=>String(getId(r))===String(pid)).map(r=>mode==='indep'?r.day:r.bucket).sort();

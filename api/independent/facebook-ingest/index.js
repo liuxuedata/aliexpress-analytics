@@ -84,10 +84,21 @@ async function handleFile(filePath, filename, siteId) {
   // Find header row (contains Facebook Ads specific columns)
   let headerIdx = rows.findIndex(r => (r||[]).some(c => {
     const cell = String(c||'').trim().toLowerCase();
-    return cell === 'campaign name' || cell === 'adset name' || cell === 'date' || 
-           cell === 'campaign_name' || cell === 'adset_name' || 
-           cell === 'campaign' || cell === 'adset' ||
-           cell.includes('campaign') || cell.includes('adset') || cell.includes('date');
+    // 支持标准Facebook Ads格式
+    if (cell === 'campaign name' || cell === 'adset name' || cell === 'date' || 
+        cell === 'campaign_name' || cell === 'adset_name' || 
+        cell === 'campaign' || cell === 'adset' ||
+        cell.includes('campaign') || cell.includes('adset') || cell.includes('date')) {
+      return true;
+    }
+    // 支持icyberite特定格式
+    if (cell === 'campaign' || cell === 'ad set' || cell === 'adset' || 
+        cell === 'date' || cell === 'day' || cell === 'start date' ||
+        cell === 'impressions' || cell === 'clicks' || cell === 'spend' ||
+        cell === 'cost' || cell === 'ctr' || cell === 'cpc' || cell === 'cpm') {
+      return true;
+    }
+    return false;
   }));
   
   if (headerIdx === -1) {
@@ -95,9 +106,11 @@ async function handleFile(filePath, filename, siteId) {
     // 尝试更宽松的匹配
     headerIdx = rows.findIndex(r => (r||[]).some(c => {
       const cell = String(c||'').trim().toLowerCase();
-      return cell.includes('campaign') || cell.includes('adset') || cell.includes('date') ||
+      return cell.includes('campaign') || cell.includes('ad') || cell.includes('date') ||
              cell.includes('impression') || cell.includes('click') || cell.includes('cost') ||
-             cell.includes('conversion') || cell.includes('spend');
+             cell.includes('conversion') || cell.includes('spend') || cell.includes('reach') ||
+             cell.includes('frequency') || cell.includes('cpm') || cell.includes('ctr') ||
+             cell.includes('cpc') || cell.includes('value');
     }));
   }
   
@@ -122,19 +135,19 @@ async function handleFile(filePath, filename, siteId) {
     return -1;
   };
 
-  // Facebook Ads specific column mappings
-  const campaignCol = col('campaign name', 'campaign');
-  const adsetCol = col('adset name', 'adset');
-  const dateCol = col('date', 'day', 'start date');
-  const impressionsCol = col('impressions', 'imp');
-  const clicksCol = col('clicks', 'link clicks');
-  const spendCol = col('spend', 'amount spent', 'cost');
-  const cpmCol = col('cpm', 'cost per 1,000 impressions');
-  const cpcCol = col('cpc', 'cost per link click');
-  const ctrCol = col('ctr', 'link click-through rate');
+  // Facebook Ads specific column mappings - 支持多种格式
+  const campaignCol = col('campaign name', 'campaign', 'campaign_name');
+  const adsetCol = col('adset name', 'adset', 'ad set', 'adset_name', 'ad_set_name');
+  const dateCol = col('date', 'day', 'start date', 'startdate');
+  const impressionsCol = col('impressions', 'imp', 'impression');
+  const clicksCol = col('clicks', 'link clicks', 'click', 'all clicks');
+  const spendCol = col('spend', 'amount spent', 'cost', 'amountspent');
+  const cpmCol = col('cpm', 'cost per 1,000 impressions', 'costper1000impressions');
+  const cpcCol = col('cpc', 'cost per link click', 'costperlinkclick');
+  const ctrCol = col('ctr', 'link click-through rate', 'clickthroughrate', 'click through rate');
   const reachCol = col('reach');
   const frequencyCol = col('frequency');
-  const landingUrlCol = col('landing page', 'website url', 'url');
+  const landingUrlCol = col('landing page', 'website url', 'url', 'landingpage', 'websiteurl');
 
   if (campaignCol === -1 || dateCol === -1) {
     throw new Error('Required columns not found. Need at least "Campaign name" and "Date".');
