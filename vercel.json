@@ -48,6 +48,10 @@
       "dest": "/api/test-site-configs.js"
     },
     {
+      "src": "/api/test-data-isolation",
+      "dest": "/api/test-data-isolation.js"
+    },
+    {
       "src": "/api/health",
       "dest": "/api/health.js"
     },

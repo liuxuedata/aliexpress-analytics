@@ -210,65 +210,65 @@
           <div class="kpi-grid">
             <div class="kpi-card">
               <h4>曝光量</h4>
-              <div class="kpi-value">146,987</div>
+              <div class="kpi-value" id="expValue">-</div>
               <div class="kpi-comparison">
                 <span class="comparison-label">上一周期：</span>
-                <span class="comparison-value">60,432</span>
-                <span class="trend up">↑ 143%</span>
+                <span class="comparison-value" id="expPrev">-</span>
+                <span class="trend" id="expTrend">-</span>
               </div>
             </div>
             <div class="kpi-card">
               <h4>访客数</h4>
-              <div class="kpi-value">10,666</div>
+              <div class="kpi-value" id="uvValue">10,666</div>
               <div class="kpi-comparison">
                 <span class="comparison-label">上一周期：</span>
-                <span class="comparison-value">5,694</span>
-                <span class="trend up">↑ 87%</span>
+                <span class="comparison-value" id="uvPrev">5,694</span>
+                <span class="trend up" id="uvTrend">↑ 87%</span>
               </div>
             </div>
             <div class="kpi-card">
               <h4>加购次数</h4>
-              <div class="kpi-value">350</div>
+              <div class="kpi-value" id="cartValue">350</div>
               <div class="kpi-comparison">
                 <span class="comparison-label">上一周期：</span>
-                <span class="comparison-value">179</span>
-                <span class="trend up">↑ 96%</span>
+                <span class="comparison-value" id="cartPrev">179</span>
+                <span class="trend up" id="cartTrend">↑ 96%</span>
               </div>
             </div>
             <div class="kpi-card">
               <h4>支付订单数</h4>
-              <div class="kpi-value">49</div>
+              <div class="kpi-value" id="payValue">49</div>
               <div class="kpi-comparison">
                 <span class="comparison-label">上一周期：</span>
-                <span class="comparison-value">7</span>
-                <span class="trend up">↑ 600%</span>
+                <span class="comparison-value" id="payPrev">7</span>
+                <span class="trend up" id="payTrend">↑ 600%</span>
               </div>
             </div>
             <div class="kpi-card">
               <h4>曝光商品数</h4>
-              <div class="kpi-value">70</div>
+              <div class="kpi-value" id="expProdValue">70</div>
               <div class="kpi-comparison">
                 <span class="comparison-label">上一周期：</span>
-                <span class="comparison-value">44</span>
-                <span class="trend up">↑ 59%</span>
+                <span class="comparison-value" id="expProdPrev">44</span>
+                <span class="trend up" id="expProdTrend">↑ 59%</span>
               </div>
             </div>
             <div class="kpi-card">
               <h4>加购商品数</h4>
-              <div class="kpi-value">36</div>
+              <div class="kpi-value" id="cartProdValue">36</div>
               <div class="kpi-comparison">
                 <span class="comparison-label">上一周期：</span>
-                <span class="comparison-value">26</span>
-                <span class="trend up">↑ 38%</span>
+                <span class="comparison-value" id="cartProdPrev">26</span>
+                <span class="trend up" id="cartProdTrend">↑ 38%</span>
               </div>
             </div>
             <div class="kpi-card">
               <h4>支付商品数</h4>
-              <div class="kpi-value">9</div>
+              <div class="kpi-value" id="payProdValue">9</div>
               <div class="kpi-comparison">
                 <span class="comparison-label">上一周期：</span>
-                <span class="comparison-value">4</span>
-                <span class="trend up">↑ 125%</span>
+                <span class="comparison-value" id="payProdPrev">4</span>
+                <span class="trend up" id="payProdTrend">↑ 125%</span>
               </div>
             </div>
             <div class="kpi-card">
@@ -541,6 +541,55 @@ document.addEventListener('DOMContentLoaded',()=>{
       renderBar('expProdChart',{cur:prodExp(rowsCur),prev:prodExp(rowsPrev)});
       renderBar('cartProdChart',{cur:prodAdd(rowsCur),prev:prodAdd(rowsPrev)});
       renderBar('payProdChart',{cur:prodPay(rowsCur),prev:prodPay(rowsPrev)});
+
+      // 更新KPI卡片
+      const curExp = sum(rowsCur,'exposure');
+      const prevExp = sum(rowsPrev,'exposure');
+      const curUv = sum(rowsCur,'visitors');
+      const prevUv = sum(rowsPrev,'visitors');
+      const curCart = sumAdd(rowsCur);
+      const prevCart = sumAdd(rowsPrev);
+      const curPay = sumPay(rowsCur);
+      const prevPay = sumPay(rowsPrev);
+      const curExpProd = prodExp(rowsCur);
+      const prevExpProd = prodExp(rowsPrev);
+      const curCartProd = prodAdd(rowsCur);
+      const prevCartProd = prodAdd(rowsPrev);
+      const curPayProd = prodPay(rowsCur);
+      const prevPayProd = prodPay(rowsPrev);
+
+      // 更新KPI值
+      document.getElementById('expValue').textContent = curExp.toLocaleString();
+      document.getElementById('expPrev').textContent = prevExp.toLocaleString();
+      document.getElementById('uvValue').textContent = curUv.toLocaleString();
+      document.getElementById('uvPrev').textContent = prevUv.toLocaleString();
+      document.getElementById('cartValue').textContent = curCart.toLocaleString();
+      document.getElementById('cartPrev').textContent = prevCart.toLocaleString();
+      document.getElementById('payValue').textContent = curPay.toLocaleString();
+      document.getElementById('payPrev').textContent = prevPay.toLocaleString();
+      document.getElementById('expProdValue').textContent = curExpProd.toLocaleString();
+      document.getElementById('expProdPrev').textContent = prevExpProd.toLocaleString();
+      document.getElementById('cartProdValue').textContent = curCartProd.toLocaleString();
+      document.getElementById('cartProdPrev').textContent = prevCartProd.toLocaleString();
+      document.getElementById('payProdValue').textContent = curPayProd.toLocaleString();
+      document.getElementById('payProdPrev').textContent = prevPayProd.toLocaleString();
+
+      // 更新趋势
+      const updateTrend = (cur, prev, elementId) => {
+        const diff = cur - prev;
+        const percent = prev > 0 ? (diff / prev * 100) : 0;
+        const trendEl = document.getElementById(elementId);
+        trendEl.textContent = `${diff >= 0 ? '↑' : '↓'} ${Math.abs(percent).toFixed(0)}%`;
+        trendEl.className = `trend ${diff >= 0 ? 'up' : 'down'}`;
+      };
+
+      updateTrend(curExp, prevExp, 'expTrend');
+      updateTrend(curUv, prevUv, 'uvTrend');
+      updateTrend(curCart, prevCart, 'cartTrend');
+      updateTrend(curPay, prevPay, 'payTrend');
+      updateTrend(curExpProd, prevExpProd, 'expProdTrend');
+      updateTrend(curCartProd, prevCartProd, 'cartProdTrend');
+      updateTrend(curPayProd, prevPayProd, 'payProdTrend');
 
       const dailyAgg=rows=>{
         const map=new Map();

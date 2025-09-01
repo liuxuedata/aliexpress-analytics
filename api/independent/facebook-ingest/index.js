@@ -82,13 +82,18 @@ async function handleFile(filePath, filename, siteId) {
   }
 
   // Find header row (contains Facebook Ads specific columns)
+  console.log('开始查找表头行，总行数:', rows.length);
+  console.log('前3行数据:', rows.slice(0, 3));
+  
   let headerIdx = rows.findIndex(r => (r||[]).some(c => {
     const cell = String(c||'').trim().toLowerCase();
+    console.log('检查单元格:', cell);
     // 支持标准Facebook Ads格式
     if (cell === 'campaign name' || cell === 'adset name' || cell === 'date' || 
         cell === 'campaign_name' || cell === 'adset_name' || 
         cell === 'campaign' || cell === 'adset' ||
         cell.includes('campaign') || cell.includes('adset') || cell.includes('date')) {
+      console.log('找到标准Facebook Ads列:', cell);
       return true;
     }
     // 支持icyberite特定格式 - 根据图三的字段名
@@ -100,6 +105,7 @@ async function handleFile(filePath, filename, siteId) {
         cell === 'reach' || cell === 'frequency' || cell === 'landing page' ||
         cell === 'website url' || cell === 'url' || cell === 'conversions' ||
         cell === 'conversion value' || cell === 'purchases' || cell === 'add to cart') {
+      console.log('找到icyberite列:', cell);
       return true;
     }
     return false;
