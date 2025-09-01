@@ -413,32 +413,52 @@ document.addEventListener('DOMContentLoaded',()=>{
   loadProdTotal();
 
   function renderBar(id,m){
-    const chart=echarts.init(document.getElementById(id));
-    chart.setOption({
-      tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
-      xAxis:{type:'category',data:['本周期','上一周期']},
-      yAxis:{type:'value'},
-      series:[{
-        type:'bar',
-        data:[{value:m.cur,itemStyle:{color:'#3b82f6'}},{value:m.prev,itemStyle:{color:'#94a3b8'}}],
-        label:{show:true,position:'top'}
-      }]
-    });
-    window.addEventListener('resize',()=>chart.resize());
+    const element = document.getElementById(id);
+    if (!element) {
+      console.warn(`图表容器元素 ${id} 不存在，跳过渲染`);
+      return;
+    }
+    
+    try {
+      const chart=echarts.init(element);
+      chart.setOption({
+        tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+        xAxis:{type:'category',data:['本周期','上一周期']},
+        yAxis:{type:'value'},
+        series:[{
+          type:'bar',
+          data:[{value:m.cur,itemStyle:{color:'#3b82f6'}},{value:m.prev,itemStyle:{color:'#94a3b8'}}],
+          label:{show:true,position:'top'}
+        }]
+      });
+      window.addEventListener('resize',()=>chart.resize());
+    } catch (error) {
+      console.error(`渲染图表 ${id} 时出错:`, error);
+    }
   }
 
   function renderLine(id,series){
-    const chart=echarts.init(document.getElementById(id));
-    chart.setOption({
-      tooltip:{trigger:'axis',formatter:p=>p.map(x=>`${x.seriesName}: ${x.data.toFixed(2)}%`).join('<br>')},
-      xAxis:{type:'category',data:series.labels},
-      yAxis:{type:'value',axisLabel:{formatter:'{value}%'}},
-      series:[
-        {name:'本周期',type:'line',smooth:true,data:series.cur},
-        {name:'上一周期',type:'line',smooth:true,data:series.prev}
-      ]
-    });
-    window.addEventListener('resize',()=>chart.resize());
+    const element = document.getElementById(id);
+    if (!element) {
+      console.warn(`图表容器元素 ${id} 不存在，跳过渲染`);
+      return;
+    }
+    
+    try {
+      const chart=echarts.init(element);
+      chart.setOption({
+        tooltip:{trigger:'axis',formatter:p=>p.map(x=>`${x.seriesName}: ${x.data.toFixed(2)}%`).join('<br>')},
+        xAxis:{type:'category',data:series.labels},
+        yAxis:{type:'value',axisLabel:{formatter:'{value}%'}},
+        series:[
+          {name:'本周期',type:'line',smooth:true,data:series.cur},
+          {name:'上一周期',type:'line',smooth:true,data:series.prev}
+        ]
+      });
+      window.addEventListener('resize',()=>chart.resize());
+    } catch (error) {
+      console.error(`渲染图表 ${id} 时出错:`, error);
+    }
   }
 
   function setupFM(){
@@ -563,14 +583,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       updateTrend(curCartProd, prevCartProd, 'cartProdTrend');
       updateTrend(curPayProd, prevPayProd, 'payProdTrend');
       
-      // 更新图表
-      renderBar('expChart',{cur:curExp,prev:prevExp});
-      renderBar('uvChart',{cur:curUv,prev:prevUv});
-      renderBar('cartChart',{cur:curCart,prev:prevCart});
-      renderBar('payChart',{cur:curPay,prev:prevPay});
-      renderBar('expProdChart',{cur:curExpProd,prev:prevExpProd});
-      renderBar('cartProdChart',{cur:curCartProd,prev:prevCartProd});
-      renderBar('payProdChart',{cur:curPayProd,prev:prevPayProd});
+      // 注意：图表容器已被移除，只更新KPI卡片
+      console.log('图表容器已移除，跳过图表渲染');
     }
 
     loadPeriods();
@@ -652,16 +666,11 @@ document.addEventListener('DOMContentLoaded',()=>{
       const pickPay=r=>Number(r.pay_orders)||Number(r.pay_buyers)||Number(r.pay_items)||0;
       const sumAdd=rows=>rows.reduce((s,r)=>s+pickAdd(r),0);
       const sumPay=rows=>rows.reduce((s,r)=>s+pickPay(r),0);
-      renderBar('expChart',{cur:sum(rowsCur,'exposure'),prev:sum(rowsPrev,'exposure')});
-      renderBar('uvChart',{cur:sum(rowsCur,'visitors'),prev:sum(rowsPrev,'visitors')});
-      renderBar('cartChart',{cur:sumAdd(rowsCur),prev:sumAdd(rowsPrev)});
-      renderBar('payChart',{cur:sumPay(rowsCur),prev:sumPay(rowsPrev)});
+      // 注意：图表容器已被移除，只更新KPI卡片
+      console.log('图表容器已移除，跳过图表渲染');
       const prodExp=(rows)=>{const set=new Set();rows.forEach(r=>{if(Number(r.exposure||0)>0)set.add(r.product_id);});return set.size;};
       const prodAdd=(rows)=>{const set=new Set();rows.forEach(r=>{if(pickAdd(r)>0)set.add(r.product_id);});return set.size;};
       const prodPay=(rows)=>{const set=new Set();rows.forEach(r=>{if(pickPay(r)>0)set.add(r.product_id);});return set.size;};
-      renderBar('expProdChart',{cur:prodExp(rowsCur),prev:prodExp(rowsPrev)});
-      renderBar('cartProdChart',{cur:prodAdd(rowsCur),prev:prodAdd(rowsPrev)});
-      renderBar('payProdChart',{cur:prodPay(rowsCur),prev:prodPay(rowsPrev)});
 
       // 更新KPI卡片
       const curExp = sum(rowsCur,'exposure');

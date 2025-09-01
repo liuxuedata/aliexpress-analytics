@@ -135,13 +135,33 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(!Array.isArray(sites)||!sites.length){sites=mode==='self'?['A站','B站','C站']:['主站'];}
   function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));renderSiteMenus();}
   function updateCurrent(){
-    const name=localStorage.getItem(currentSiteKey)||sites[0];
-    if(mode==='self'){
-      currentSiteEl.textContent='自运营 '+name;
-    }else{
-      currentSiteEl.textContent=sites.length>1?'全托管 '+name:'全托管';
+    const currentSiteId = localStorage.getItem('currentSite');
+    const currentSiteName = localStorage.getItem('currentSiteName');
+    
+    // 如果有currentSiteName，直接使用它
+    if (currentSiteName) {
+      currentSiteEl.textContent = currentSiteName;
+    } else if (currentSiteId) {
+      // 如果有currentSiteId但没有名称，根据ID判断
+      if (currentSiteId.startsWith('ae_self_operated')) {
+        currentSiteEl.textContent = '自运营';
+      } else {
+        currentSiteEl.textContent = '全托管';
+      }
+    } else {
+      // 如果都没有，使用默认逻辑
+      const name = localStorage.getItem(currentSiteKey) || sites[0];
+      if (mode === 'self') {
+        currentSiteEl.textContent = '自运营 ' + name;
+      } else {
+        currentSiteEl.textContent = sites.length > 1 ? '全托管 ' + name : '全托管';
+      }
     }
-    localStorage.setItem(currentSiteKey,name);
+    
+    // 保存当前站点名称到localStorage
+    if (currentSiteName) {
+      localStorage.setItem(currentSiteKey, currentSiteName);
+    }
   }
   currentSiteEl.addEventListener('dblclick',()=>{
     const cur=localStorage.getItem(currentSiteKey)||sites[0];
@@ -383,13 +403,13 @@ const def=`${start} to ${end}`; input.value=def; localStorage.setItem(key,def);
       let currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
       
       // 确保使用正确的站点ID格式
-      if (currentSite === 'A站') {
+      if (currentSite === 'A站' || currentSite === '自运营robot站') {
         currentSite = 'ae_self_operated_a';
         localStorage.setItem('currentSite', currentSite);
       }
       
       // 如果当前站点是Poolslab，使用正确的站点ID
-      if (currentSite === 'Poolslab运动娱乐') {
+      if (currentSite === 'Poolslab运动娱乐' || currentSite === 'poolslab') {
         currentSite = 'ae_self_operated_poolslab';
       }
       
