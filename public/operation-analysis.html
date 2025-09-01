@@ -41,11 +41,12 @@
     
     .kpi-card h4 {
       margin: 0 0 12px 0;
-      font-size: 14px;
-      font-weight: 500;
-      opacity: 0.9;
+      font-size: 15px;
+      font-weight: 600;
+      opacity: 1;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      color: rgba(255, 255, 255, 0.95);
     }
     
     .kpi-value {
@@ -56,18 +57,21 @@
     }
     
     .kpi-comparison {
-      font-size: 12px;
-      opacity: 0.9;
+      font-size: 13px;
+      opacity: 1;
+      color: rgba(255, 255, 255, 0.95);
     }
     
     .comparison-label {
       display: block;
       margin-bottom: 4px;
+      font-weight: 500;
     }
     
     .comparison-value {
-      font-weight: 600;
+      font-weight: 700;
       margin-right: 8px;
+      color: rgba(255, 255, 255, 0.98);
     }
     
     .trend {
@@ -347,9 +351,18 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
   }
 
-  if(mode==='self'){
+  // 检测当前页面类型：如果有mode=self参数或者从自运营页面访问，使用自运营模式
+  const isFromSelfOperated = document.referrer.includes('self-operated.html') || 
+                            document.referrer.includes('index.html') ||
+                            localStorage.getItem('currentSite')?.startsWith('ae_self_operated');
+  
+  console.log('运营分析页面模式检测:', { mode, isFromSelfOperated, referrer: document.referrer });
+  
+  if(mode==='self' || isFromSelfOperated){
+    console.log('使用自运营模式');
     setupSelf();
   }else{
+    console.log('使用全托管模式'); 
     setupFM();
   }
 

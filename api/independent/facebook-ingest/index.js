@@ -221,31 +221,40 @@ export default async function handler(req, res) {
       });
     });
 
-    const file = files.file;
+    // 处理formidable v3的文件结构
+    let file = files.file;
+    if (Array.isArray(file)) {
+      file = file[0]; // 取第一个文件
+    }
+    
     if (!file) {
+      console.error('没有找到上传的文件:', files);
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
+    // formidable v3可能使用filepath而不是filepath
+    const filePath = file.filepath || file.path;
+    
     console.log('处理文件:', {
-      originalFilename: file.originalFilename,
-      filepath: file.filepath,
+      originalFilename: file.originalFilename || file.name,
+      filepath: filePath,
       size: file.size,
-      mimetype: file.mimetype
+      mimetype: file.mimetype || file.type
     });
 
     // 检查文件路径是否存在
-    if (!file.filepath) {
+    if (!filePath) {
       console.error('文件路径未定义:', file);
       return res.status(400).json({ error: 'File path is undefined' });
     }
 
     // 检查文件是否实际存在
-    if (!fs.existsSync(file.filepath)) {
-      console.error('文件不存在于路径:', file.filepath);
+    if (!fs.existsSync(filePath)) {
+      console.error('文件不存在于路径:', filePath);
       return res.status(400).json({ error: 'File does not exist at specified path' });
     }
 
-    const records = await handleFile(file.filepath, file.originalFilename, currentIndepSiteId);
+    const records = await handleFile(filePath, file.originalFilename || file.name, currentIndepSiteId);
     
     if (records.length === 0) {
       return res.status(400).json({ error: 'No valid records found in file' });
@@ -300,7 +309,7 @@ export default async function handler(req, res) {
 
     // 清理临时文件
     try {
-      fs.unlinkSync(file.filepath);
+      fs.unlinkSync(filePath);
     } catch (e) {
       console.warn('清理临时文件失败:', e.message);
     }
