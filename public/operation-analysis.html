@@ -466,7 +466,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     ctrl.innerHTML='<input id="dateFilter" class="date-filter" placeholder="选择日期范围">';
     const input=document.getElementById('dateFilter');
     flatpickr(input,{mode:'range',dateFormat:'Y-m-d',onClose:ds=>{if(ds.length===2)loadData();}});
-    const stored=localStorage.getItem('selfPeriod');
+    const currentSiteId = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+    const periodKey = `selfPeriod_${currentSiteId}`;
+    const stored=localStorage.getItem(periodKey);
     if(stored && stored.includes(' to ')){
       input.value=stored;
     }else{
@@ -474,13 +476,13 @@ document.addEventListener('DOMContentLoaded',()=>{
       // 如果今天是2024年或更早，使用2025-07-01作为开始日期
 const start = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime()-30*86400000).toISOString().slice(0,10);
       const def=`${start} to ${end}`;
-      input.value=def; localStorage.setItem('selfPeriod',def);
+      input.value=def; localStorage.setItem(periodKey,def);
     }
     loadData();
 
     async function loadData(){
       const val=input.value; if(!val.includes(' to '))return; const [startISO,endISO]=val.split(' to ');
-      localStorage.setItem('selfPeriod', `${startISO} to ${endISO}`);
+      localStorage.setItem(periodKey, `${startISO} to ${endISO}`);
       const {prevStart,prevEnd}=periodShift(startISO,endISO);
       const [rowsCur,rowsPrev,rowsCurDay,rowsPrevDay]=await Promise.all([
         fetchAgg(startISO,endISO,'day'),

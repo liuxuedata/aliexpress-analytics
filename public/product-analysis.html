@@ -123,6 +123,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(detailLink)detailLink.href='ozon-detail.html';
     if(analysisLink)analysisLink.href='ozon-analysis.html';
   }else{
+    if(detailLink)detailLink.href='managed.html';
     if(analysisLink)analysisLink.href='operation-analysis.html';
   }
 
@@ -305,7 +306,8 @@ function card(title,cur,prev,isPct,avg,share){
     const ctrl=document.getElementById('ctrl');
     ctrl.innerHTML='<input id="dateRange" class="date-filter" placeholder="选择日期范围">';
     const input=document.getElementById('dateRange');
-    const key=mode==='indep'?`indepPeriod_${siteParam}`:'selfPeriod';
+    const currentSiteId = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+    const key=mode==='indep'?`indepPeriod_${siteParam}`:`selfPeriod_${currentSiteId}`;
     const fp=flatpickr(input,{mode:'range',dateFormat:'Y-m-d',onClose:ds=>{if(ds.length===2)loadData();}});
     const stored=localStorage.getItem(key);
     if(stored && stored.includes(' to ')) input.value=stored; else {

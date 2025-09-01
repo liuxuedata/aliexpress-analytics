@@ -612,7 +612,9 @@ const fp=flatpickr('#dateFilter',{ mode:'range', dateFormat:'Y-m-d', onClose:(ds
 $('#metricSel').on('change', fetchAndRenderAll);
 
 (async function initDefault(){
-  const stored = localStorage.getItem('selfPeriod');
+  const currentSiteId = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+  const selfPeriodKey = `selfPeriod_${currentSiteId}`;
+  const stored = localStorage.getItem(selfPeriodKey);
   if (stored && stored.includes(' to ')) {
     $('#dateFilter').val(stored);
   } else {
@@ -622,7 +624,7 @@ $('#metricSel').on('change', fetchAndRenderAll);
     const startDate = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime()-30*86400000).toISOString().slice(0,10);
     const def=`${startDate} to ${end}`;
     $('#dateFilter').val(def);
-    localStorage.setItem('selfPeriod', def);
+    localStorage.setItem(selfPeriodKey, def);
   }
   await fetchAndRenderAll();
 })();
