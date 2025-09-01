@@ -171,6 +171,45 @@
     
     applyNavIcons();
     updateCurrentSiteDisplay(); // 更新当前站点显示
+    
+    // 添加下拉菜单的JavaScript事件处理，确保菜单显示稳定性
+    setupDropdownMenus();
+  }
+  
+  // 设置下拉菜单的JavaScript事件处理
+  function setupDropdownMenus() {
+    const platformNavItems = document.querySelectorAll('.platform-nav > li');
+    
+    platformNavItems.forEach(item => {
+      const dropdown = item.querySelector('.dropdown');
+      if (!dropdown) return;
+      
+      // 鼠标进入显示菜单
+      item.addEventListener('mouseenter', () => {
+        dropdown.style.display = 'block';
+      });
+      
+      // 鼠标离开隐藏菜单
+      item.addEventListener('mouseleave', () => {
+        dropdown.style.display = 'none';
+      });
+      
+      // 点击菜单项时保持菜单显示（用于移动设备）
+      item.addEventListener('click', (e) => {
+        if (e.target.tagName === 'A' && dropdown) {
+          // 如果点击的是链接，不阻止默认行为
+          return;
+        }
+        // 如果点击的是菜单容器，切换显示状态
+        if (dropdown.style.display === 'block') {
+          dropdown.style.display = 'none';
+        } else {
+          dropdown.style.display = 'block';
+        }
+      });
+    });
+    
+    console.log('下拉菜单事件处理已设置');
   }
 
   // 备选方案：使用 sites 表数据
