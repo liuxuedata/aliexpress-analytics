@@ -16,6 +16,10 @@
       "dest": "/api/site-configs/index.js"
     },
     {
+      "src": "/api/site-configs-db",
+      "dest": "/api/site-configs-db.js"
+    },
+    {
       "src": "/api/site-configs/delete",
       "dest": "/api/site-configs/delete.js"
     },

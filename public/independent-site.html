@@ -324,17 +324,25 @@
   function updateSiteDisplay() {
     const currentSiteEl = document.getElementById('currentSite');
     if (currentSiteEl) {
-      if (currentIndepSiteName) {
-        currentSiteEl.textContent = currentIndepSiteName;
-      } else if (currentIndepSiteId) {
+      // 重新获取最新的localStorage值
+      const latestSiteId = localStorage.getItem('currentIndepSite');
+      const latestSiteName = localStorage.getItem('currentIndepSiteName');
+      
+      if (latestSiteName) {
+        currentSiteEl.textContent = latestSiteName;
+        console.log('独立站页面更新站点名称:', latestSiteName);
+      } else if (latestSiteId) {
         // 根据站点ID显示名称
         const siteNameMap = {
           'independent_icyberite': 'icyberite.com',
           'independent_poolsvacuum': 'poolsvacuum.com'
         };
-        currentSiteEl.textContent = siteNameMap[currentIndepSiteId] || '独立站';
+        const displayName = siteNameMap[latestSiteId] || '独立站';
+        currentSiteEl.textContent = displayName;
+        console.log('独立站页面更新站点名称:', displayName);
       } else {
         currentSiteEl.textContent = '独立站';
+        console.log('独立站页面使用默认名称: 独立站');
       }
     }
   }

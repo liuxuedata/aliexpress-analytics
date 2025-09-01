@@ -76,16 +76,23 @@
       indepMenu.innerHTML='';
     }
     
+    // 检查缓存
+    if (siteDataCache && Date.now() - lastCacheTime < CACHE_DURATION) {
+      console.log('使用缓存的站点数据');
+      renderSitesFromData(siteDataCache);
+      return;
+    }
+    
     // 从站点配置API获取所有站点（优先使用 site_configs 表）
     try {
-      console.log('正在从API获取站点配置...');
-      const response = await fetch('/api/site-configs', {
+      console.log('正在从快速API获取站点配置...');
+      const response = await fetch('/api/site-configs-db', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
         // 添加超时设置
-        signal: AbortSignal.timeout(10000) // 10秒超时
+        signal: AbortSignal.timeout(3000) // 减少到3秒超时
       });
       console.log('站点配置API响应状态:', response.status);
       
@@ -96,13 +103,46 @@
       const data = await response.json();
       console.log('站点配置API响应数据:', data);
       
-      if (data && data.data && Array.isArray(data.data)) {
-        const sites = data.data;
-        console.log('从API获取的站点数据:', sites);
-        
-        // 更新速卖通自运营站点菜单
-        const aeSelfOperatedSites = sites.filter(site => site.platform === 'ae_self_operated');
-        console.log('速卖通自运营站点:', aeSelfOperatedSites);
+             if (data && data.data && Array.isArray(data.data)) {
+         const sites = data.data;
+         console.log('从API获取的站点数据:', sites);
+         
+         // 更新缓存
+         siteDataCache = sites;
+         lastCacheTime = Date.now();
+         
+         // 渲染站点数据
+         renderSitesFromData(sites);
+         
+         console.log('站点菜单渲染完成');
+       } else {
+         console.warn('站点配置API返回的数据格式不正确:', data);
+         // 如果数据格式不正确，尝试使用 sites 表作为备选
+         await renderFallbackSites();
+       }
+     } catch (error) {
+       console.error('获取站点配置失败:', error.message);
+       // 如果 site_configs API 失败，尝试使用 sites 表作为备选
+       await renderFallbackSites();
+     }
+     
+     applyNavIcons();
+     updateCurrentSiteDisplay(); // 更新当前站点显示
+     
+     // 添加下拉菜单的JavaScript事件处理，确保菜单显示稳定性
+     setupDropdownMenus();
+     
+     // 渲染完成，重置标志
+     isRendering = false;
+   }
+   
+   // 从数据渲染站点菜单
+   function renderSitesFromData(sites) {
+     console.log('开始渲染站点数据:', sites);
+     
+     // 更新速卖通自运营站点菜单
+     const aeSelfOperatedSites = sites.filter(site => site.platform === 'ae_self_operated');
+     console.log('速卖通自运营站点:', aeSelfOperatedSites);
         
         if (managedMenu) {
           console.log('开始渲染速卖通菜单...');
@@ -396,6 +436,9 @@
   
   // 防止重复初始化的标志
   let isInitialized = false;
+  let siteDataCache = null;
+  let lastCacheTime = 0;
+  const CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存
   
   // 初始化函数
   function initialize() {
@@ -405,20 +448,31 @@
     }
     
     console.log('开始初始化站点菜单...');
-    render();
+    
+    // 立即使用默认数据渲染，避免等待API
+    renderDefaultSites();
     applyNavIcons();
     updateCurrentSiteDisplay();
     isInitialized = true;
     
-    // 监听页面可见性变化，重新渲染菜单
+    // 异步加载API数据，不阻塞页面渲染
+    setTimeout(() => {
+      render();
+    }, 100);
+    
+    // 监听页面可见性变化，但不频繁重新渲染
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
+      if (!document.hidden && Date.now() - lastCacheTime > CACHE_DURATION) {
         render();
       }
     });
     
-    // 定期刷新菜单（每30秒）
-    setInterval(render, 30000);
+    // 减少定期刷新频率（每5分钟）
+    setInterval(() => {
+      if (Date.now() - lastCacheTime > CACHE_DURATION) {
+        render();
+      }
+    }, 5 * 60 * 1000);
   }
   
   // 初始化

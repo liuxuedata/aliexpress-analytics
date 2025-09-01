@@ -910,10 +910,28 @@ document.addEventListener('DOMContentLoaded',()=>{
       const url=`/api/ae_query?start=${start}&end=${end}&granularity=${gran}&site=${encodeURIComponent(currentSite)}`;
       console.log('fetchAgg请求URL:', url);
       
-      return fetch(url).then(r=>r.json()).then(j=>{
-        console.log('fetchAgg响应:', { rows: j.rows?.length || 0, site: currentSite });
-        return j.rows||[];
-      });
+      return fetch(url)
+        .then(r => {
+          console.log('fetchAgg HTTP响应状态:', r.status, r.statusText);
+          if (!r.ok) {
+            throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+          }
+          return r.json();
+        })
+        .then(j => {
+          console.log('fetchAgg完整响应:', j);
+          console.log('fetchAgg响应数据:', { 
+            rows: j.rows?.length || 0, 
+            site: currentSite,
+            hasData: !!j.rows && j.rows.length > 0,
+            sampleData: j.rows ? j.rows.slice(0, 2) : []
+          });
+          return j.rows || [];
+        })
+        .catch(error => {
+          console.error('fetchAgg请求失败:', error);
+          return [];
+        });
     }
     function periodShift(startISO,endISO){
       const start=new Date(startISO+'T00:00:00'); const end=new Date(endISO+'T00:00:00');
