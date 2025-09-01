@@ -288,8 +288,12 @@
   // 全局刷新函数
   window.refreshSiteMenus = render;
   
-  // 初始渲染
-  await render();
+  // 初始渲染 - 等待DOM加载完成
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', render);
+  } else {
+    render();
+  }
   
   // 监听页面可见性变化，重新渲染菜单
   document.addEventListener('visibilitychange', () => {

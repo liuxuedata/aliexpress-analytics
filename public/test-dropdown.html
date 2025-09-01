@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>下拉菜单测试</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="assets/theme.css?v=20250810b">
+  <script src="assets/site-nav.js"></script>
+</head>
+<body>
+<header class="header">
+  <div class="logo-title">跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li><a href="#">速卖通</a>
+        <ul class="dropdown" id="managedMenu">
+          <li><a href="managed.html">全托管</a></li>
+          <li><a href="self-operated.html">自运营robot站</a></li>
+          <li><a href="self-operated.html">Poolslab运动娱乐</a></li>
+        </ul>
+      </li>
+      <li><a href="#">亚马逊</a></li>
+      <li><a href="#">TikTok Shop</a></li>
+      <li><a href="#">Temu</a></li>
+      <li><a href="#">Ozon</a></li>
+      <li><a href="#">独立站</a>
+        <ul class="dropdown" id="indepMenu">
+          <li><a href="independent-site.html">独立站poolsvacuum</a></li>
+          <li><a href="independent-site.html">独立站icyberite.com</a></li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="site-header">
+      <span id="currentSite">测试站点</span>
+    </div>
+    <ul class="sub-nav">
+      <li><a href="#" class="active">详细数据</a></li>
+      <li><a href="#">运营分析</a></li>
+      <li><a href="#">产品分析</a></li>
+    </ul>
+  </nav>
+
+  <main class="main">
+    <div class="content">
+      <h1>下拉菜单测试页面</h1>
+      <p>这个页面用于测试全局导航栏的下拉菜单是否正常工作。</p>
+      <div id="debug-info"></div>
+      
+      <h2>测试说明：</h2>
+      <ul>
+        <li>将鼠标悬停在"速卖通"上，应该显示下拉菜单</li>
+        <li>将鼠标悬停在"独立站"上，应该显示下拉菜单</li>
+        <li>菜单项应该能正常点击</li>
+      </ul>
+      
+      <h2>调试信息：</h2>
+      <div id="menu-debug"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const debugInfo = document.getElementById('debug-info');
+  const menuDebug = document.getElementById('menu-debug');
+  
+  // 显示调试信息
+  setTimeout(() => {
+    const managedMenu = document.getElementById('managedMenu');
+    const indepMenu = document.getElementById('indepMenu');
+    
+    debugInfo.innerHTML = `
+      <h3>菜单元素状态：</h3>
+      <p>速卖通菜单元素: ${managedMenu ? '找到' : '未找到'}</p>
+      <p>独立站菜单元素: ${indepMenu ? '找到' : '未找到'}</p>
+      <p>速卖通菜单项数量: ${managedMenu ? managedMenu.children.length : 0}</p>
+      <p>独立站菜单项数量: ${indepMenu ? indepMenu.children.length : 0}</p>
+    `;
+    
+    menuDebug.innerHTML = `
+      <h3>菜单内容：</h3>
+      <p><strong>速卖通菜单HTML:</strong></p>
+      <pre>${managedMenu ? managedMenu.outerHTML : 'null'}</pre>
+      <p><strong>独立站菜单HTML:</strong></p>
+      <pre>${indepMenu ? indepMenu.outerHTML : 'null'}</pre>
+    `;
+  }, 2000);
+  
+  // 测试下拉菜单的显示
+  const platformNav = document.querySelector('.platform-nav');
+  platformNav.addEventListener('mouseenter', function(e) {
+    if (e.target.tagName === 'A') {
+      console.log('鼠标进入导航项:', e.target.textContent);
+    }
+  });
+  
+  platformNav.addEventListener('mouseleave', function(e) {
+    console.log('鼠标离开导航区域');
+  });
+});
+</script>
+</body>
+</html>
