@@ -423,8 +423,21 @@ document.addEventListener('DOMContentLoaded',()=>{
                             localStorage.getItem('currentSite')?.startsWith('ae_self_operated');
   
   // 获取当前站点ID和名称
-  const currentSiteId = localStorage.getItem('currentSite');
+  let currentSiteId = localStorage.getItem('currentSite');
   const currentSiteName = localStorage.getItem('currentSiteName');
+  
+  // 如果没有设置currentSite，根据模式设置默认值
+  if (!currentSiteId) {
+    if (mode === 'self') {
+      currentSiteId = 'ae_self_operated_a';
+      localStorage.setItem('currentSite', currentSiteId);
+      console.log('设置默认自运营站点:', currentSiteId);
+    } else {
+      currentSiteId = 'managed_stats';
+      localStorage.setItem('currentSite', currentSiteId);
+      console.log('设置默认全托管站点:', currentSiteId);
+    }
+  }
   
   console.log('运营分析页面模式检测:', { 
     mode, 
