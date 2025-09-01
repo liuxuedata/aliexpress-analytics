@@ -483,7 +483,7 @@ document.addEventListener('DOMContentLoaded',()=>{
      try {
        const chart=echarts.init(element);
        chart.setOption({
-         backgroundColor: 'transparent',
+                   backgroundColor: 'rgba(255,255,255,0.02)',
          tooltip:{
            trigger:'axis',
            axisPointer:{type:'shadow'},
@@ -503,27 +503,27 @@ document.addEventListener('DOMContentLoaded',()=>{
                    xAxis:{
             type:'category',
             data:['本周期','上一周期'],
-            axisLine: { lineStyle: { color: 'rgba(255,255,255,0.2)' } },
-            axisLabel: { color: 'rgba(255,255,255,0.9)', fontSize: 12 }
+            axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
+            axisLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 12 }
           },
           yAxis:{
             type:'value',
-            axisLine: { lineStyle: { color: 'rgba(255,255,255,0.2)' } },
-            axisLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 10 },
-            splitLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } }
+            axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
+            axisLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 10 },
+            splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } }
           },
          series:[{
            type:'bar',
            barWidth: '60%',
                        data:[
-              {value:m.cur,itemStyle:{color:'#93c5fd',borderRadius:[4,4,0,0]}},
-              {value:m.prev,itemStyle:{color:'#d1d5db',borderRadius:[4,4,0,0]}}
+              {value:m.cur,itemStyle:{color:'#60a5fa',borderRadius:[4,4,0,0]}},
+              {value:m.prev,itemStyle:{color:'#9ca3af',borderRadius:[4,4,0,0]}}
             ],
                        label:{
               show:true,
               position:'top',
-              color: 'rgba(255,255,255,0.95)',
-              fontSize: 12,
+              color: 'rgba(255,255,255,1)',
+              fontSize: 13,
               fontWeight: 'bold',
               formatter: function(params) {
                 return params.value.toLocaleString();
