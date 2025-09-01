@@ -97,18 +97,6 @@
        position: relative;
        height: 180px;
      }
-     .kpi-total {
-       position: absolute;
-       top: 15px;
-       right: 15px;
-       font-size: 18px;
-       font-weight: 700;
-       color: #111827;
-       background: rgba(59, 130, 246, 0.1);
-       padding: 6px 12px;
-       border-radius: 6px;
-       z-index: 10;
-     }
     
     /* 数据加载状态样式 */
     .loading-status {
@@ -274,49 +262,42 @@
               <h4>曝光量</h4>
                              <div class="kpi-chart-container">
                  <div id="expChart" style="width:100%;height:160px;"></div>
-                 <div class="kpi-total" id="expTotal">-</div>
                </div>
             </div>
             <div class="kpi-card">
               <h4>访客数</h4>
                              <div class="kpi-chart-container">
                  <div id="uvChart" style="width:100%;height:160px;"></div>
-                 <div class="kpi-total" id="uvTotal">-</div>
                </div>
             </div>
             <div class="kpi-card">
               <h4>加购次数</h4>
                              <div class="kpi-chart-container">
                  <div id="cartChart" style="width:100%;height:160px;"></div>
-                 <div class="kpi-total" id="cartTotal">-</div>
                </div>
             </div>
             <div class="kpi-card">
               <h4>支付订单数</h4>
                              <div class="kpi-chart-container">
                  <div id="payChart" style="width:100%;height:160px;"></div>
-                 <div class="kpi-total" id="payTotal">-</div>
                </div>
             </div>
             <div class="kpi-card">
               <h4>曝光商品数</h4>
                              <div class="kpi-chart-container">
                  <div id="expProdChart" style="width:100%;height:160px;"></div>
-                 <div class="kpi-total" id="expProdTotal">-</div>
                </div>
             </div>
             <div class="kpi-card">
               <h4>加购商品数</h4>
                              <div class="kpi-chart-container">
                  <div id="cartProdChart" style="width:100%;height:160px;"></div>
-                 <div class="kpi-total" id="cartProdTotal">-</div>
                </div>
             </div>
             <div class="kpi-card">
               <h4>支付商品数</h4>
                              <div class="kpi-chart-container">
                  <div id="payProdChart" style="width:100%;height:160px;"></div>
-                 <div class="kpi-total" id="payProdTotal">-</div>
                </div>
             </div>
             <div class="kpi-card">
@@ -679,12 +660,6 @@ document.addEventListener('DOMContentLoaded',()=>{
         console.error('全托管数据加载失败:', error);
         showErrorStatus('数据加载失败，请重试');
         
-        // 即使出错也要清空显示
-        ['expTotal', 'uvTotal', 'cartTotal', 'payTotal', 'expProdTotal', 'cartProdTotal', 'payProdTotal'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.textContent = '0';
-        });
-        
         // 清空图表并显示"暂无数据"
         ['expChart', 'uvChart', 'cartChart', 'payChart', 'expProdChart', 'cartProdChart', 'payProdChart'].forEach(id => {
           const element = document.getElementById(id);
@@ -708,12 +683,6 @@ document.addEventListener('DOMContentLoaded',()=>{
       // 检查是否有数据
       if (rowsA.length === 0 && rowsB.length === 0) {
         console.log('全托管当前站点没有数据，显示空状态');
-        
-        // 清空所有KPI总数显示
-        ['expTotal', 'uvTotal', 'cartTotal', 'payTotal', 'expProdTotal', 'cartProdTotal', 'payProdTotal'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.textContent = '0';
-        });
         
         // 清空图表并显示"暂无数据"
         ['expChart', 'uvChart', 'cartChart', 'payChart', 'expProdChart', 'cartProdChart', 'payProdChart'].forEach(id => {
@@ -874,12 +843,6 @@ document.addEventListener('DOMContentLoaded',()=>{
         console.error('数据加载失败:', error);
         showErrorStatus('数据加载失败，请重试');
         
-        // 即使出错也要清空显示
-        ['expTotal', 'uvTotal', 'cartTotal', 'payTotal', 'expProdTotal', 'cartProdTotal', 'payProdTotal'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.textContent = '0';
-        });
-        
         // 清空图表并显示"暂无数据"
         ['expChart', 'uvChart', 'cartChart', 'payChart', 'expProdChart', 'cartProdChart', 'payProdChart'].forEach(id => {
           const element = document.getElementById(id);
@@ -924,12 +887,6 @@ document.addEventListener('DOMContentLoaded',()=>{
       // 检查是否有数据
       if (rowsCur.length === 0 && rowsPrev.length === 0) {
         console.log('当前站点没有数据，显示空状态');
-        
-        // 清空所有KPI总数显示
-        ['expTotal', 'uvTotal', 'cartTotal', 'payTotal', 'expProdTotal', 'cartProdTotal', 'payProdTotal'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.textContent = '0';
-        });
         
         // 清空图表并显示"暂无数据"
         ['expChart', 'uvChart', 'cartChart', 'payChart', 'expProdChart', 'cartProdChart', 'payProdChart'].forEach(id => {
