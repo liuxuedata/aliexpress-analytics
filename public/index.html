@@ -542,7 +542,18 @@ async function renderTable(rows, granularity) {
     const ctr = formatCtr(r.search_ctr);
     const stay = (r.avg_stay_seconds==null || r.avg_stay_seconds===undefined) ? '' : Math.round(r.avg_stay_seconds);
     const detailLink = '<a href="product-analysis.html?mode=self&pid='+ (r.product_id||'') +'" target="_blank">详情</a>';
-    return [link, r.bucket_label || r.bucket, conv1 + '%', conv2 + '%', conv3 + '%', r.exposure, r.visitors, r.views, r.add_people, r.order_items, r.pay_items, r.pay_buyers, ctr, stay, detailLink];
+    
+    // 在聚合模式下，显示周期范围而不是具体日期
+    let periodDisplay = r.bucket_label || r.bucket;
+    if (granularity === 'day' && periodDisplay && periodDisplay.length === 10) {
+      // 如果是按日粒度且显示的是具体日期，说明没有聚合，需要显示周期范围
+      const dateFilter = document.getElementById('dateFilter');
+      if (dateFilter && dateFilter.value && dateFilter.value.includes(' to ')) {
+        periodDisplay = dateFilter.value.replace(' to ', '~');
+      }
+    }
+    
+    return [link, periodDisplay, conv1 + '%', conv2 + '%', conv3 + '%', r.exposure, r.visitors, r.views, r.add_people, r.order_items, r.pay_items, r.pay_buyers, ctr, stay, detailLink];
   });
   window.dataTable = $('#report').DataTable({
     data,
