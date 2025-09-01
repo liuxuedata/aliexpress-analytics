@@ -25,14 +25,15 @@
       margin-bottom: 20px;
     }
     
-    .kpi-card {
-      background: linear-gradient(135deg, #4c51bf 0%, #553c9a 100%);
-      border-radius: 12px;
-      padding: 20px;
-      color: white;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
+         .kpi-card {
+       background: linear-gradient(135deg, #1e40af 0%, #3730a3 100%);
+       border-radius: 12px;
+       padding: 24px;
+       color: white;
+       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+       transition: transform 0.2s ease, box-shadow 0.2s ease;
+       border: 1px solid rgba(255, 255, 255, 0.1);
+     }
     
     .kpi-card:hover {
       transform: translateY(-2px);
@@ -91,22 +92,23 @@
       color: #ef4444;
     }
     
-    /* 新增：KPI图表容器样式 */
-    .kpi-chart-container {
-      position: relative;
-      height: 140px;
-    }
-    .kpi-total {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      font-size: 16px;
-      font-weight: 700;
-      color: white;
-      background: rgba(0, 0, 0, 0.3);
-      padding: 4px 8px;
-      border-radius: 4px;
-    }
+         /* 新增：KPI图表容器样式 */
+     .kpi-chart-container {
+       position: relative;
+       height: 180px;
+     }
+     .kpi-total {
+       position: absolute;
+       top: 15px;
+       right: 15px;
+       font-size: 18px;
+       font-weight: 700;
+       color: white;
+       background: rgba(0, 0, 0, 0.4);
+       padding: 6px 12px;
+       border-radius: 6px;
+       z-index: 10;
+     }
     
     /* 数据加载状态样式 */
     .loading-status {
@@ -270,52 +272,52 @@
           <div class="kpi-grid">
             <div class="kpi-card">
               <h4>曝光量</h4>
-              <div class="kpi-chart-container">
-                <div id="expChart" style="width:100%;height:120px;"></div>
-                <div class="kpi-total" id="expTotal">-</div>
-              </div>
+                             <div class="kpi-chart-container">
+                 <div id="expChart" style="width:100%;height:160px;"></div>
+                 <div class="kpi-total" id="expTotal">-</div>
+               </div>
             </div>
             <div class="kpi-card">
               <h4>访客数</h4>
-              <div class="kpi-chart-container">
-                <div id="uvChart" style="width:100%;height:120px;"></div>
-                <div class="kpi-total" id="uvTotal">-</div>
-              </div>
+                             <div class="kpi-chart-container">
+                 <div id="uvChart" style="width:100%;height:160px;"></div>
+                 <div class="kpi-total" id="uvTotal">-</div>
+               </div>
             </div>
             <div class="kpi-card">
               <h4>加购次数</h4>
-              <div class="kpi-chart-container">
-                <div id="cartChart" style="width:100%;height:120px;"></div>
-                <div class="kpi-total" id="cartTotal">-</div>
-              </div>
+                             <div class="kpi-chart-container">
+                 <div id="cartChart" style="width:100%;height:160px;"></div>
+                 <div class="kpi-total" id="cartTotal">-</div>
+               </div>
             </div>
             <div class="kpi-card">
               <h4>支付订单数</h4>
-              <div class="kpi-chart-container">
-                <div id="payChart" style="width:100%;height:120px;"></div>
-                <div class="kpi-total" id="payTotal">-</div>
-              </div>
+                             <div class="kpi-chart-container">
+                 <div id="payChart" style="width:100%;height:160px;"></div>
+                 <div class="kpi-total" id="payTotal">-</div>
+               </div>
             </div>
             <div class="kpi-card">
               <h4>曝光商品数</h4>
-              <div class="kpi-chart-container">
-                <div id="expProdChart" style="width:100%;height:120px;"></div>
-                <div class="kpi-total" id="expProdTotal">-</div>
-              </div>
+                             <div class="kpi-chart-container">
+                 <div id="expProdChart" style="width:100%;height:160px;"></div>
+                 <div class="kpi-total" id="expProdTotal">-</div>
+               </div>
             </div>
             <div class="kpi-card">
               <h4>加购商品数</h4>
-              <div class="kpi-chart-container">
-                <div id="cartProdChart" style="width:100%;height:120px;"></div>
-                <div class="kpi-total" id="cartProdTotal">-</div>
-              </div>
+                             <div class="kpi-chart-container">
+                 <div id="cartProdChart" style="width:100%;height:160px;"></div>
+                 <div class="kpi-total" id="cartProdTotal">-</div>
+               </div>
             </div>
             <div class="kpi-card">
               <h4>支付商品数</h4>
-              <div class="kpi-chart-container">
-                <div id="payProdChart" style="width:100%;height:120px;"></div>
-                <div class="kpi-total" id="payProdTotal">-</div>
-              </div>
+                             <div class="kpi-chart-container">
+                 <div id="payProdChart" style="width:100%;height:160px;"></div>
+                 <div class="kpi-total" id="payProdTotal">-</div>
+               </div>
             </div>
             <div class="kpi-card">
               <h4>产品总数</h4>
@@ -471,42 +473,75 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   loadProdTotal();
 
-  function renderBar(id,m){
-    const element = document.getElementById(id);
-    if (!element) {
-      console.warn(`图表容器元素 ${id} 不存在，跳过渲染`);
-      return;
-    }
-    
-    try {
-      const chart=echarts.init(element);
-      chart.setOption({
-        tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
-        xAxis:{type:'category',data:['本周期','上一周期']},
-        yAxis:{type:'value'},
-        series:[{
-          type:'bar',
-          data:[{value:m.cur,itemStyle:{color:'#3b82f6'}},{value:m.prev,itemStyle:{color:'#94a3b8'}}],
-          label:{
-            show:true,
-            position:'top',
-            formatter: function(params) {
-              return params.value.toLocaleString();
-            }
-          }
-        }]
-      });
-      window.addEventListener('resize',()=>chart.resize());
-      
-      // 更新总数显示
-      const totalElement = document.getElementById(id.replace('Chart', 'Total'));
-      if (totalElement) {
-        totalElement.textContent = m.cur.toLocaleString();
-      }
-    } catch (error) {
-      console.error(`渲染图表 ${id} 时出错:`, error);
-    }
-  }
+     function renderBar(id,m){
+     const element = document.getElementById(id);
+     if (!element) {
+       console.warn(`图表容器元素 ${id} 不存在，跳过渲染`);
+       return;
+     }
+     
+     try {
+       const chart=echarts.init(element);
+       chart.setOption({
+         backgroundColor: 'transparent',
+         tooltip:{
+           trigger:'axis',
+           axisPointer:{type:'shadow'},
+           backgroundColor: 'rgba(0,0,0,0.8)',
+           borderColor: 'rgba(255,255,255,0.2)',
+           textStyle: { color: '#fff' },
+           formatter: function(params) {
+             return `${params[0].name}<br/>${params[0].seriesName}: ${params[0].value.toLocaleString()}`;
+           }
+         },
+         grid: {
+           left: '10%',
+           right: '10%',
+           top: '15%',
+           bottom: '15%'
+         },
+         xAxis:{
+           type:'category',
+           data:['本周期','上一周期'],
+           axisLine: { lineStyle: { color: 'rgba(255,255,255,0.3)' } },
+           axisLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 12 }
+         },
+         yAxis:{
+           type:'value',
+           axisLine: { lineStyle: { color: 'rgba(255,255,255,0.3)' } },
+           axisLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 10 },
+           splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }
+         },
+         series:[{
+           type:'bar',
+           barWidth: '60%',
+           data:[
+             {value:m.cur,itemStyle:{color:'#60a5fa',borderRadius:[4,4,0,0]}},
+             {value:m.prev,itemStyle:{color:'#9ca3af',borderRadius:[4,4,0,0]}}
+           ],
+           label:{
+             show:true,
+             position:'top',
+             color: 'rgba(255,255,255,0.9)',
+             fontSize: 12,
+             fontWeight: 'bold',
+             formatter: function(params) {
+               return params.value.toLocaleString();
+             }
+           }
+         }]
+       });
+       window.addEventListener('resize',()=>chart.resize());
+       
+       // 更新总数显示
+       const totalElement = document.getElementById(id.replace('Chart', 'Total'));
+       if (totalElement) {
+         totalElement.textContent = m.cur.toLocaleString();
+       }
+     } catch (error) {
+       console.error(`渲染图表 ${id} 时出错:`, error);
+     }
+   }
 
   function renderLine(id,series){
     const element = document.getElementById(id);
