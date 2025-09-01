@@ -25,15 +25,15 @@
       margin-bottom: 20px;
     }
     
-         .kpi-card {
-       background: linear-gradient(135deg, #1e40af 0%, #3730a3 100%);
-       border-radius: 12px;
-       padding: 24px;
-       color: white;
-       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-       transition: transform 0.2s ease, box-shadow 0.2s ease;
-       border: 1px solid rgba(255, 255, 255, 0.1);
-     }
+                   .kpi-card {
+        background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+        border-radius: 12px;
+        padding: 24px;
+        color: white;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+      }
     
     .kpi-card:hover {
       transform: translateY(-2px);
@@ -500,35 +500,35 @@ document.addEventListener('DOMContentLoaded',()=>{
            top: '15%',
            bottom: '15%'
          },
-         xAxis:{
-           type:'category',
-           data:['本周期','上一周期'],
-           axisLine: { lineStyle: { color: 'rgba(255,255,255,0.3)' } },
-           axisLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 12 }
-         },
-         yAxis:{
-           type:'value',
-           axisLine: { lineStyle: { color: 'rgba(255,255,255,0.3)' } },
-           axisLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 10 },
-           splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }
-         },
+                   xAxis:{
+            type:'category',
+            data:['本周期','上一周期'],
+            axisLine: { lineStyle: { color: 'rgba(255,255,255,0.2)' } },
+            axisLabel: { color: 'rgba(255,255,255,0.9)', fontSize: 12 }
+          },
+          yAxis:{
+            type:'value',
+            axisLine: { lineStyle: { color: 'rgba(255,255,255,0.2)' } },
+            axisLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 10 },
+            splitLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } }
+          },
          series:[{
            type:'bar',
            barWidth: '60%',
-           data:[
-             {value:m.cur,itemStyle:{color:'#60a5fa',borderRadius:[4,4,0,0]}},
-             {value:m.prev,itemStyle:{color:'#9ca3af',borderRadius:[4,4,0,0]}}
-           ],
-           label:{
-             show:true,
-             position:'top',
-             color: 'rgba(255,255,255,0.9)',
-             fontSize: 12,
-             fontWeight: 'bold',
-             formatter: function(params) {
-               return params.value.toLocaleString();
-             }
-           }
+                       data:[
+              {value:m.cur,itemStyle:{color:'#93c5fd',borderRadius:[4,4,0,0]}},
+              {value:m.prev,itemStyle:{color:'#d1d5db',borderRadius:[4,4,0,0]}}
+            ],
+                       label:{
+              show:true,
+              position:'top',
+              color: 'rgba(255,255,255,0.95)',
+              fontSize: 12,
+              fontWeight: 'bold',
+              formatter: function(params) {
+                return params.value.toLocaleString();
+              }
+            }
          }]
        });
        window.addEventListener('resize',()=>chart.resize());
