@@ -513,7 +513,7 @@
   }
 
   async function fetchNew(periodISO){
-    const qs = new URLSearchParams({ platform:'managed' });
+    const qs = new URLSearchParams({ platform:'managed', site:'managed_stats' });
     if (periodISO){ qs.set('from', periodISO); qs.set('to', periodISO); }
     const r = await fetch('/api/new-products?'+qs.toString());
     const j = await r.json();

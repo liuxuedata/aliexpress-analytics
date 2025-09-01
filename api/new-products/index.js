@@ -67,7 +67,7 @@ module.exports = async (req, res) => {
       .lte(firstSeenCol, to);
     
     // 如果指定了站点，添加站点过滤
-    if (site && platform === 'self') {
+    if (site && (platform === 'self' || platform === 'managed')) {
       query = query.eq('site', site);
     }
     

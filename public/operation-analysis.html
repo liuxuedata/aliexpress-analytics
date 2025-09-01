@@ -477,13 +477,17 @@ document.addEventListener('DOMContentLoaded',()=>{
       }
     } else if (currentSiteId && currentSiteId.startsWith('indep_')) {
       platform = 'indep';
+    } else if (currentSiteId === 'managed_stats' || currentSiteId === 'ae_managed') {
+      // 全托管平台
+      platform = 'managed';
+      site = 'managed_stats'; // 全托管使用 managed_stats 作为站点标识
     }
     
     const today=new Date().toISOString().slice(0,10);
     const qs=new URLSearchParams({platform,from:'2000-01-01',to:today,limit:'5000'});
     
-    // 如果是自运营平台且有站点信息，添加站点参数
-    if (platform === 'self' && site) {
+    // 如果是自运营或全托管平台且有站点信息，添加站点参数
+    if ((platform === 'self' || platform === 'managed') && site) {
       qs.set('site', site);
     }
     
