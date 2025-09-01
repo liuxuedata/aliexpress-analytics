@@ -625,6 +625,10 @@ document.addEventListener('DOMContentLoaded',()=>{
       
       console.log('全托管loadData开始加载数据:', { period, prev, granularity: state.granularity });
       
+      // 初始化变量
+      let rowsA = [];
+      let rowsB = [];
+      
       try {
         const [ra,rb]=await Promise.all([
           fetch('/api/stats?'+qsA.toString()),
@@ -632,7 +636,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         ]);
         const ja=await ra.json();
         const jb=rb?await rb.json():{rows:[]};
-        const rowsA=ja.rows||[]; const rowsB=jb.rows||[];
+        rowsA=ja.rows||[]; rowsB=jb.rows||[];
         
         // 显示成功状态
         showSuccessStatus('数据加载完成');
