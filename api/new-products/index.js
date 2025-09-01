@@ -71,10 +71,46 @@ module.exports = async (req, res) => {
       query = query.eq('site', site);
     }
     
-    const { data, error } = await query
+    let { data, error } = await query
       .order(firstSeenCol, { ascending: true })
       .limit(limit);
-    if (error) throw error;
+    
+    // 如果视图不存在，尝试创建视图或使用直接查询
+    if (error && error.message && error.message.includes('relation') && error.message.includes('does not exist')) {
+      console.log(`View ${view} does not exist, attempting to create it or use direct query`);
+      
+      if (platform === 'managed') {
+        // 对于全托管平台，直接查询 managed_stats 表
+        const { data: directData, error: directError } = await supabase
+          .from('managed_stats')
+          .select('product_id, period_end')
+          .gte('period_end', from)
+          .lte('period_end', to)
+          .order('period_end', { ascending: true })
+          .limit(limit);
+        
+        if (directError) throw directError;
+        
+        // 手动计算首次出现日期
+        const productFirstSeen = new Map();
+        (directData || []).forEach(row => {
+          const existing = productFirstSeen.get(row.product_id);
+          if (!existing || row.period_end < existing) {
+            productFirstSeen.set(row.product_id, row.period_end);
+          }
+        });
+        
+        data = Array.from(productFirstSeen.entries()).map(([product_id, first_seen]) => ({
+          product_id,
+          first_seen
+        }));
+        error = null;
+      } else {
+        throw error; // 对于其他平台，仍然抛出错误
+      }
+    } else if (error) {
+      throw error;
+    }
 
     const items = (data||[]).map(r => {
       const first = r[firstSeenCol];

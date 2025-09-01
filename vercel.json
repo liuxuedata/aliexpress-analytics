@@ -53,6 +53,10 @@
       "dest": "/api/test-data-isolation.js"
     },
     {
+      "src": "/api/create-views",
+      "dest": "/api/create-views/index.js"
+    },
+    {
       "src": "/api/health",
       "dest": "/api/health.js"
     },
