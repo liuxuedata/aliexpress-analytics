@@ -120,6 +120,13 @@
           const managedA = document.createElement('a');
           managedA.href = 'managed.html';
           managedA.textContent = '全托管';
+          managedA.addEventListener('click', e => {
+            e.preventDefault();
+            // 清除自运营相关的localStorage
+            localStorage.removeItem('currentSite');
+            localStorage.removeItem('currentSiteName');
+            window.location.href = 'managed.html';
+          });
           managedLi.appendChild(managedA);
           managedMenu.appendChild(managedLi);
           console.log('添加全托管菜单项');
@@ -214,6 +221,13 @@
           const managedA = document.createElement('a');
           managedA.href = 'managed.html';
           managedA.textContent = '全托管';
+          managedA.addEventListener('click', e => {
+            e.preventDefault();
+            // 清除自运营相关的localStorage
+            localStorage.removeItem('currentSite');
+            localStorage.removeItem('currentSiteName');
+            window.location.href = 'managed.html';
+          });
           managedLi.appendChild(managedA);
           managedMenu.appendChild(managedLi);
         }
@@ -260,7 +274,7 @@
       // 添加默认的速卖通自运营站点
       const defaultSites = [
         { id: 'ae_self_operated_a', name: '自运营robot站', display_name: '自运营robot站' },
-        { id: 'ae_self_operated_poolslab_store', name: 'poolslab_store', display_name: 'Poolslab运动娱乐' }
+        { id: 'ae_self_operated_poolslab', name: 'poolslab', display_name: 'Poolslab运动娱乐' }
       ];
       
       defaultSites.forEach(site => {
@@ -278,13 +292,20 @@
         managedMenu.appendChild(li);
       });
       
-      // 添加全托管选项
-      const managedLi = document.createElement('li');
-      const managedA = document.createElement('a');
-      managedA.href = 'managed.html';
-      managedA.textContent = '全托管';
-      managedLi.appendChild(managedA);
-      managedMenu.appendChild(managedLi);
+                // 添加全托管选项
+          const managedLi = document.createElement('li');
+          const managedA = document.createElement('a');
+          managedA.href = 'managed.html';
+          managedA.textContent = '全托管';
+          managedA.addEventListener('click', e => {
+            e.preventDefault();
+            // 清除自运营相关的localStorage
+            localStorage.removeItem('currentSite');
+            localStorage.removeItem('currentSiteName');
+            window.location.href = 'managed.html';
+          });
+          managedLi.appendChild(managedA);
+          managedMenu.appendChild(managedLi);
     }
     
     const indepMenu = document.getElementById('indepMenu');
