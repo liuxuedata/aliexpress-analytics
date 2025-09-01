@@ -84,9 +84,30 @@ async function handleFile(filePath, filename, siteId) {
   // Find header row (contains Facebook Ads specific columns)
   let headerIdx = rows.findIndex(r => (r||[]).some(c => {
     const cell = String(c||'').trim().toLowerCase();
-    return cell === 'campaign name' || cell === 'adset name' || cell === 'date';
+    return cell === 'campaign name' || cell === 'adset name' || cell === 'date' || 
+           cell === 'campaign_name' || cell === 'adset_name' || 
+           cell === 'campaign' || cell === 'adset' ||
+           cell.includes('campaign') || cell.includes('adset') || cell.includes('date');
   }));
-  if (headerIdx === -1) throw new Error('Header row not found. Make sure the sheet has Facebook Ads columns like "Campaign name", "Adset name", "Date".');
+  
+  if (headerIdx === -1) {
+    console.log('尝试查找Facebook Ads列，前5行数据:', rows.slice(0, 5));
+    // 尝试更宽松的匹配
+    headerIdx = rows.findIndex(r => (r||[]).some(c => {
+      const cell = String(c||'').trim().toLowerCase();
+      return cell.includes('campaign') || cell.includes('adset') || cell.includes('date') ||
+             cell.includes('impression') || cell.includes('click') || cell.includes('cost') ||
+             cell.includes('conversion') || cell.includes('spend');
+    }));
+  }
+  
+  if (headerIdx === -1) {
+    console.error('未找到Facebook Ads列，请确保文件包含以下列之一：Campaign name, Adset name, Date');
+    console.log('文件前10行数据:', rows.slice(0, 10));
+    throw new Error('Header row not found. Make sure the sheet has Facebook Ads columns like "Campaign name", "Adset name", "Date".');
+  }
+  
+  console.log('找到表头行:', headerIdx, '表头内容:', rows[headerIdx]);
   const header = rows[headerIdx];
   const dataRows = rows.slice(headerIdx + 1);
 

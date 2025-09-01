@@ -26,11 +26,11 @@
     }
     
     .kpi-card {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #4c51bf 0%, #553c9a 100%);
       border-radius: 12px;
       padding: 20px;
       color: white;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     
@@ -468,7 +468,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   function setupSelf(){
     const ctrl=document.getElementById('ctrl');
-    ctrl.innerHTML='<input id="dateFilter" class="date-filter" placeholder="选择日期范围">';
+    ctrl.innerHTML='<div class="date-controls"><span>时间粒度：</span><button class="granularity-btn active" data-granularity="day">按日</button><span style="margin-left: 20px;">日期：</span><input id="dateFilter" class="date-filter" placeholder="选择日期范围" style="margin-left: 8px;"></div>';
     const input=document.getElementById('dateFilter');
     flatpickr(input,{mode:'range',dateFormat:'Y-m-d',onClose:ds=>{if(ds.length===2)loadData();}});
     const currentSiteId = localStorage.getItem('currentSite') || 'ae_self_operated_a';
