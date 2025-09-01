@@ -249,6 +249,11 @@
   }
 
   function aggregateTable(data, showDevice, showNetwork, showCampaign){
+    // 安全处理空数据
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      return [];
+    }
+    
     const map = {};
     data.forEach(r=>{
       const keyParts=[r.day, r.landing_path];
@@ -283,10 +288,50 @@
       m.cost_per_conv = m.conversions>0 ? m.cost/m.conversions : 0;
       m.all_conv_rate = m.clicks>0 ? m.all_conv/m.clicks : 0;
       return m;
-    }).sort((a,b)=> b.day.localeCompare(a.day));
+    }).sort((a,b)=> {
+      // 安全排序，处理undefined值
+      const dayA = a.day || '';
+      const dayB = b.day || '';
+      return dayB.localeCompare(dayA);
+    });
   }
 
   function buildTable(){
+    // 安全处理空数据
+    if (!rawTable || !Array.isArray(rawTable) || rawTable.length === 0) {
+      if(dt) dt.destroy();
+      dt = $('#report').DataTable({
+        destroy:true,
+        pageLength:20,
+        data: [],
+        scrollX:true,
+        fixedHeader:true,
+        autoWidth:false,
+        columns:[
+          { data:'product', render:(v,t,r)=>{
+              const name = v || r.landing_path || '';
+              return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
+            }},
+          { data:'device', render: v => v || '' },
+          { data:'network', render: v => v || '' },
+          { data:'campaign', render: v => v || '' },
+          { data:'period', render: v => v || '' },
+          { data:'clicks', render: v => v ?? 0 },
+          { data:'impr', render: v => v ?? 0 },
+          { data:'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
+          { data:'avg_cpc', render: v => v ?? 0 },
+          { data:'cost', render: v => v ?? 0 },
+          { data:'conversions', render: v => v ?? 0 },
+          { data:'cost_per_conv', render: v => v ?? 0 },
+          { data:'all_conv', render: v => v ?? 0 },
+          { data:'conv_value', render: v => v ?? 0 },
+          { data:'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
+          { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
+        ]
+      });
+      return;
+    }
+    
     let data = rawTable;
     const net = networkSel.value;
     const camp = campaignSel.value;
@@ -442,6 +487,13 @@
   toInput.value = getParam('to') || toDef;
 
   function populateFilters(){
+    // 安全处理空数据
+    if (!rawTable || !Array.isArray(rawTable) || rawTable.length === 0) {
+      networkSel.innerHTML = '<option value="">全部</option>';
+      campaignSel.innerHTML = '<option value="">全部</option>';
+      return;
+    }
+    
     const nets = Array.from(new Set(rawTable.map(r=>r.network).filter(Boolean))).sort();
     networkSel.innerHTML = '<option value="">全部</option>' + nets.map(n=>`<option value="${n}">${n}</option>`).join('');
     const camps = Array.from(new Set(rawTable.map(r=>r.campaign).filter(Boolean))).sort();
