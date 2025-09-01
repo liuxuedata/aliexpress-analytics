@@ -355,8 +355,38 @@
     }
   }
   
+  // 获取当前站点名称用于API调用
+  function getCurrentSiteForAPI() {
+    const currentIndepSiteId = localStorage.getItem('currentIndepSite');
+    const currentIndepSiteName = localStorage.getItem('currentIndepSiteName');
+    
+    // 如果有站点名称，使用站点名称（这是数据库中的site字段值）
+    if (currentIndepSiteName) {
+      return currentIndepSiteName;
+    }
+    
+    // 如果有站点ID，根据ID映射到站点名称
+    if (currentIndepSiteId) {
+      const siteNameMap = {
+        'independent_icyberite': 'icyberite.com',
+        'independent_poolsvacuum': 'poolsvacuum.com'
+      };
+      return siteNameMap[currentIndepSiteId] || 'poolsvacuum.com';
+    }
+    
+    // 从URL参数获取
+    const urlParams = new URLSearchParams(window.location.search);
+    const siteParam = urlParams.get('site');
+    if (siteParam) {
+      return siteParam;
+    }
+    
+    // 默认值
+    return 'poolsvacuum.com';
+  }
+  
   // 默认站点取 url 参数、当前选中的站点或从示例取
-  siteInput.value = getParam('site') || currentIndepSiteName || 'poolsvacuum.com';
+  siteInput.value = getParam('site') || getCurrentSiteForAPI();
   
   // 初始化站点名称显示
   updateSiteDisplay();
@@ -365,6 +395,8 @@
   window.addEventListener('storage', (e) => {
     if (e.key === 'currentIndepSite' || e.key === 'currentIndepSiteName') {
       updateSiteDisplay();
+      // 同时更新输入框的值
+      siteInput.value = getCurrentSiteForAPI();
     }
   });
   
@@ -374,6 +406,7 @@
     const newSiteName = localStorage.getItem('currentIndepSiteName');
     if (newSiteId !== currentIndepSiteId || newSiteName !== currentIndepSiteName) {
       updateSiteDisplay();
+      siteInput.value = getCurrentSiteForAPI();
     }
   }, 1000);
   const today = new Date();
@@ -402,16 +435,10 @@
       const from = fromInput.value;
       const to = toInput.value;
       
-      // 获取当前选中的独立站站点ID
-      const currentIndepSiteId = localStorage.getItem('currentIndepSite');
+      // 使用新的站点参数获取逻辑
+      const siteParam = getCurrentSiteForAPI();
       
-      // 如果当前选中的站点名称与输入框中的站点名称匹配，使用站点ID
-      // 否则使用站点名称（向后兼容）
-      const siteParam = (currentIndepSiteId && siteName === localStorage.getItem('currentIndepSiteName')) 
-        ? currentIndepSiteId 
-        : siteName;
-      
-      console.log('独立站查询参数:', { siteName, currentIndepSiteId, siteParam });
+      console.log('独立站查询参数:', { siteName, siteParam, from, to });
       
       const url = `/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${from}&to=${to}`;
       const res = await fetch(url);
@@ -471,9 +498,11 @@
     const fd = new FormData();
     fd.append('file', file);
     
-    // 获取当前选中的独立站站点ID
+    // 获取当前站点信息
     const currentIndepSiteId = localStorage.getItem('currentIndepSite');
+    const currentSiteName = getCurrentSiteForAPI();
     console.log('文件上传 - 当前独立站站点ID:', currentIndepSiteId);
+    console.log('文件上传 - 当前站点名称:', currentSiteName);
     console.log('文件信息:', { name: file.name, size: file.size, type: file.type });
     
     try {
@@ -495,6 +524,8 @@
       if (currentIndepSiteId) {
         headers['X-Site-ID'] = currentIndepSiteId;
       }
+      // 添加站点名称头，用于数据导入
+      headers['X-Site-Name'] = currentSiteName;
       
       const resp = await fetch(apiUrl, { 
         method: 'POST', 
