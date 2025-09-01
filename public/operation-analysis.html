@@ -127,6 +127,11 @@
       border-color: #fecaca;
       color: #dc2626;
     }
+    .loading-status.success {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      color: #166534;
+    }
     .loading-spinner {
       width: 20px;
       height: 20px;
@@ -643,6 +648,55 @@ document.addEventListener('DOMContentLoaded',()=>{
     loadPeriods();
   }
 
+  // 数据加载状态管理
+  function showLoadingStatus(message = '数据加载中...') {
+    const loadingStatus = document.getElementById('loadingStatus');
+    const loadingText = document.getElementById('loadingText');
+    if (loadingStatus && loadingText) {
+      loadingText.textContent = message;
+      loadingStatus.style.display = 'flex';
+    }
+  }
+  
+  function hideLoadingStatus() {
+    const loadingStatus = document.getElementById('loadingStatus');
+    if (loadingStatus) {
+      loadingStatus.style.display = 'none';
+    }
+  }
+  
+  function showErrorStatus(message = '数据加载失败') {
+    const loadingStatus = document.getElementById('loadingStatus');
+    const loadingText = document.getElementById('loadingText');
+    if (loadingStatus && loadingText) {
+      loadingText.textContent = message;
+      loadingStatus.style.display = 'flex';
+      loadingStatus.classList.add('error');
+      
+      // 3秒后自动隐藏错误状态
+      setTimeout(() => {
+        hideLoadingStatus();
+        loadingStatus.classList.remove('error');
+      }, 3000);
+    }
+  }
+  
+  function showSuccessStatus(message = '数据加载完成') {
+    const loadingStatus = document.getElementById('loadingStatus');
+    const loadingText = document.getElementById('loadingText');
+    if (loadingStatus && loadingText) {
+      loadingText.textContent = message;
+      loadingStatus.style.display = 'flex';
+      loadingStatus.classList.add('success');
+      
+      // 2秒后自动隐藏成功状态
+      setTimeout(() => {
+        hideLoadingStatus();
+        loadingStatus.classList.remove('success');
+      }, 2000);
+    }
+  }
+
   function setupSelf(){
     const ctrl=document.getElementById('ctrl');
     ctrl.innerHTML='<div class="date-controls"><span>时间粒度：</span><button class="granularity-btn active" data-granularity="day">按日</button><span style="margin-left: 20px;">日期：</span><input id="dateFilter" class="date-filter" placeholder="选择日期范围" style="margin-left: 8px;"></div>';
@@ -680,8 +734,8 @@ document.addEventListener('DOMContentLoaded',()=>{
           fetchAgg(prevStart,prevEnd,'day')
         ]);
         
-        // 隐藏加载状态
-        hideLoadingStatus();
+        // 显示成功状态
+        showSuccessStatus('数据加载完成');
         
       } catch (error) {
         console.error('数据加载失败:', error);
@@ -733,14 +787,6 @@ document.addEventListener('DOMContentLoaded',()=>{
       const sumAdd=rows=>rows.reduce((s,r)=>s+pickAdd(r),0);
       const sumPay=rows=>rows.reduce((s,r)=>s+pickPay(r),0);
       
-      // 渲染柱状图对比
-      renderBar('expChart',{cur:curExp,prev:prevExp});
-      renderBar('uvChart',{cur:curUv,prev:prevUv});
-      renderBar('cartChart',{cur:curCart,prev:prevCart});
-      renderBar('payChart',{cur:curPay,prev:prevPay});
-      renderBar('expProdChart',{cur:curExpProd,prev:prevExpProd});
-      renderBar('cartProdChart',{cur:curCartProd,prev:prevCartProd});
-      renderBar('payProdChart',{cur:curPayProd,prev:prevPayProd});
       const prodExp=(rows)=>{const set=new Set();rows.forEach(r=>{if(Number(r.exposure||0)>0)set.add(r.product_id);});return set.size;};
       const prodAdd=(rows)=>{const set=new Set();rows.forEach(r=>{if(pickAdd(r)>0)set.add(r.product_id);});return set.size;};
       const prodPay=(rows)=>{const set=new Set();rows.forEach(r=>{if(pickPay(r)>0)set.add(r.product_id);});return set.size;};
@@ -760,6 +806,15 @@ document.addEventListener('DOMContentLoaded',()=>{
       const prevCartProd = prodAdd(rowsPrev);
       const curPayProd = prodPay(rowsCur);
       const prevPayProd = prodPay(rowsPrev);
+      
+      // 渲染柱状图对比
+      renderBar('expChart',{cur:curExp,prev:prevExp});
+      renderBar('uvChart',{cur:curUv,prev:prevUv});
+      renderBar('cartChart',{cur:curCart,prev:prevCart});
+      renderBar('payChart',{cur:curPay,prev:prevPay});
+      renderBar('expProdChart',{cur:curExpProd,prev:prevExpProd});
+      renderBar('cartProdChart',{cur:curCartProd,prev:prevCartProd});
+      renderBar('payProdChart',{cur:curPayProd,prev:prevPayProd});
 
       // 更新KPI值
       document.getElementById('expValue').textContent = curExp.toLocaleString();

@@ -50,8 +50,19 @@
     }
   }
 
+  // 防止重复渲染的标志
+  let isRendering = false;
+  
   async function render(){
+    // 防止重复渲染
+    if (isRendering) {
+      console.log('正在渲染中，跳过重复调用');
+      return;
+    }
+    
+    isRendering = true;
     console.log('开始渲染站点菜单...');
+    
     const managedMenu=document.getElementById('managedMenu');
     const indepMenu=document.getElementById('indepMenu');
     
@@ -174,6 +185,9 @@
     
     // 添加下拉菜单的JavaScript事件处理，确保菜单显示稳定性
     setupDropdownMenus();
+    
+    // 渲染完成，重置标志
+    isRendering = false;
   }
   
   // 设置下拉菜单的JavaScript事件处理
