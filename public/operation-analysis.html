@@ -323,13 +323,33 @@ document.addEventListener('DOMContentLoaded',()=>{
   const currentSiteEl=document.getElementById('currentSite');
   function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));renderSiteMenus();}
   function updateCurrent(){
-    const name=localStorage.getItem(currentSiteKey)||sites[0];
-    if(mode==='self'){
-      currentSiteEl.textContent='自运营 '+name;
-    }else{
-      currentSiteEl.textContent=sites.length>1?'全托管 '+name:'全托管';
+    const currentSiteId = localStorage.getItem('currentSite');
+    const currentSiteName = localStorage.getItem('currentSiteName');
+    
+    // 如果有currentSiteName，直接使用它
+    if (currentSiteName) {
+      currentSiteEl.textContent = currentSiteName;
+    } else if (currentSiteId) {
+      // 如果有currentSiteId但没有名称，根据ID判断
+      if (currentSiteId.startsWith('ae_self_operated')) {
+        currentSiteEl.textContent = '自运营';
+      } else {
+        currentSiteEl.textContent = '全托管';
+      }
+    } else {
+      // 如果都没有，使用默认逻辑
+      const name = localStorage.getItem(currentSiteKey) || sites[0];
+      if (mode === 'self') {
+        currentSiteEl.textContent = '自运营 ' + name;
+      } else {
+        currentSiteEl.textContent = sites.length > 1 ? '全托管 ' + name : '全托管';
+      }
     }
-    localStorage.setItem(currentSiteKey,name);
+    
+    // 保存当前站点名称到localStorage
+    if (currentSiteName) {
+      localStorage.setItem(currentSiteKey, currentSiteName);
+    }
   }
   currentSiteEl.addEventListener('dblclick',()=>{
     const cur=localStorage.getItem(currentSiteKey)||sites[0];
@@ -473,6 +493,9 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(period)qsA.set('period_end',period);
       const qsB=new URLSearchParams({granularity:state.granularity});
       if(prev)qsB.set('period_end',prev);
+      
+      console.log('全托管loadData开始加载数据:', { period, prev, granularity: state.granularity });
+      
       const [ra,rb]=await Promise.all([
         fetch('/api/stats?'+qsA.toString()),
         prev?fetch('/api/stats?'+qsB.toString()):Promise.resolve(null)
@@ -480,18 +503,74 @@ document.addEventListener('DOMContentLoaded',()=>{
       const ja=await ra.json();
       const jb=rb?await rb.json():{rows:[]};
       const rowsA=ja.rows||[]; const rowsB=jb.rows||[];
+      
+      console.log('全托管loadData获取到数据:', { rowsA: rowsA.length, rowsB: rowsB.length });
+      
       function sumExp(rows){return rows.reduce((s,r)=>s+Number(r.search_exposure||r.exposure||r.pv||0),0);}
       const sum= (rows,key)=>rows.reduce((s,r)=>s+Number(r[key]||0),0);
-      renderBar('expChart',{cur:sumExp(rowsA),prev:sumExp(rowsB)});
-      renderBar('uvChart',{cur:sum(rowsA,'uv'),prev:sum(rowsB,'uv')});
-      renderBar('cartChart',{cur:sum(rowsA,'add_to_cart_users'),prev:sum(rowsB,'add_to_cart_users')});
-      renderBar('payChart',{cur:sum(rowsA,'pay_buyers'),prev:sum(rowsB,'pay_buyers')});
+      
+      // 计算数据
+      const curExp = sumExp(rowsA);
+      const prevExp = sumExp(rowsB);
+      const curUv = sum(rowsA,'uv');
+      const prevUv = sum(rowsB,'uv');
+      const curCart = sum(rowsA,'add_to_cart_users');
+      const prevCart = sum(rowsB,'add_to_cart_users');
+      const curPay = sum(rowsA,'pay_buyers');
+      const prevPay = sum(rowsB,'pay_buyers');
+      
       const prodExp=rows=>{const set=new Set();rows.forEach(r=>{if(Number(r.search_exposure||r.exposure||r.pv||0)>0)set.add(r.product_id);});return set.size;};
       const prodAdd=rows=>{const set=new Set();rows.forEach(r=>{if(Number(r.add_to_cart_users||0)>0)set.add(r.product_id);});return set.size;};
       const prodPay=rows=>{const set=new Set();rows.forEach(r=>{if(Number(r.pay_buyers||0)>0)set.add(r.product_id);});return set.size;};
-      renderBar('expProdChart',{cur:prodExp(rowsA),prev:prodExp(rowsB)});
-      renderBar('cartProdChart',{cur:prodAdd(rowsA),prev:prodAdd(rowsB)});
-      renderBar('payProdChart',{cur:prodPay(rowsA),prev:prodPay(rowsB)});
+      
+      const curExpProd = prodExp(rowsA);
+      const prevExpProd = prodExp(rowsB);
+      const curCartProd = prodAdd(rowsA);
+      const prevCartProd = prodAdd(rowsB);
+      const curPayProd = prodPay(rowsA);
+      const prevPayProd = prodPay(rowsB);
+      
+      // 更新KPI卡片
+      document.getElementById('expValue').textContent = curExp.toLocaleString();
+      document.getElementById('expPrev').textContent = prevExp.toLocaleString();
+      document.getElementById('uvValue').textContent = curUv.toLocaleString();
+      document.getElementById('uvPrev').textContent = prevUv.toLocaleString();
+      document.getElementById('cartValue').textContent = curCart.toLocaleString();
+      document.getElementById('cartPrev').textContent = prevCart.toLocaleString();
+      document.getElementById('payValue').textContent = curPay.toLocaleString();
+      document.getElementById('payPrev').textContent = prevPay.toLocaleString();
+      document.getElementById('expProdValue').textContent = curExpProd.toLocaleString();
+      document.getElementById('expProdPrev').textContent = prevExpProd.toLocaleString();
+      document.getElementById('cartProdValue').textContent = curCartProd.toLocaleString();
+      document.getElementById('cartProdPrev').textContent = prevCartProd.toLocaleString();
+      document.getElementById('payProdValue').textContent = curPayProd.toLocaleString();
+      document.getElementById('payProdPrev').textContent = prevPayProd.toLocaleString();
+      
+      // 更新趋势
+      const updateTrend = (cur, prev, elementId) => {
+        const diff = cur - prev;
+        const percent = prev > 0 ? (diff / prev * 100) : 0;
+        const trendEl = document.getElementById(elementId);
+        trendEl.textContent = `${diff >= 0 ? '↑' : '↓'} ${Math.abs(percent).toFixed(0)}%`;
+        trendEl.className = `trend ${diff >= 0 ? 'up' : 'down'}`;
+      };
+      
+      updateTrend(curExp, prevExp, 'expTrend');
+      updateTrend(curUv, prevUv, 'uvTrend');
+      updateTrend(curCart, prevCart, 'cartTrend');
+      updateTrend(curPay, prevPay, 'payTrend');
+      updateTrend(curExpProd, prevExpProd, 'expProdTrend');
+      updateTrend(curCartProd, prevCartProd, 'cartProdTrend');
+      updateTrend(curPayProd, prevPayProd, 'payProdTrend');
+      
+      // 更新图表
+      renderBar('expChart',{cur:curExp,prev:prevExp});
+      renderBar('uvChart',{cur:curUv,prev:prevUv});
+      renderBar('cartChart',{cur:curCart,prev:prevCart});
+      renderBar('payChart',{cur:curPay,prev:prevPay});
+      renderBar('expProdChart',{cur:curExpProd,prev:prevExpProd});
+      renderBar('cartProdChart',{cur:curCartProd,prev:prevCartProd});
+      renderBar('payProdChart',{cur:curPayProd,prev:prevPayProd});
     }
 
     loadPeriods();
@@ -679,13 +758,13 @@ document.addEventListener('DOMContentLoaded',()=>{
       let currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
       
       // 确保使用正确的站点ID格式
-      if (currentSite === 'A站') {
+      if (currentSite === 'A站' || currentSite === '自运营robot站') {
         currentSite = 'ae_self_operated_a';
         localStorage.setItem('currentSite', currentSite);
       }
       
       // 如果当前站点是Poolslab，使用正确的站点ID
-      if (currentSite === 'Poolslab运动娱乐') {
+      if (currentSite === 'Poolslab运动娱乐' || currentSite === 'poolslab') {
         currentSite = 'ae_self_operated_poolslab';
       }
       
