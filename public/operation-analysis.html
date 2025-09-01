@@ -620,17 +620,80 @@ document.addEventListener('DOMContentLoaded',()=>{
       const qsB=new URLSearchParams({granularity:state.granularity});
       if(prev)qsB.set('period_end',prev);
       
+      // 显示加载状态
+      showLoadingStatus('数据加载中...');
+      
       console.log('全托管loadData开始加载数据:', { period, prev, granularity: state.granularity });
       
-      const [ra,rb]=await Promise.all([
-        fetch('/api/stats?'+qsA.toString()),
-        prev?fetch('/api/stats?'+qsB.toString()):Promise.resolve(null)
-      ]);
-      const ja=await ra.json();
-      const jb=rb?await rb.json():{rows:[]};
-      const rowsA=ja.rows||[]; const rowsB=jb.rows||[];
+      try {
+        const [ra,rb]=await Promise.all([
+          fetch('/api/stats?'+qsA.toString()),
+          prev?fetch('/api/stats?'+qsB.toString()):Promise.resolve(null)
+        ]);
+        const ja=await ra.json();
+        const jb=rb?await rb.json():{rows:[]};
+        const rowsA=ja.rows||[]; const rowsB=jb.rows||[];
+        
+        // 显示成功状态
+        showSuccessStatus('数据加载完成');
+        
+      } catch (error) {
+        console.error('全托管数据加载失败:', error);
+        showErrorStatus('数据加载失败，请重试');
+        
+        // 即使出错也要清空显示
+        ['expTotal', 'uvTotal', 'cartTotal', 'payTotal', 'expProdTotal', 'cartProdTotal', 'payProdTotal'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = '0';
+        });
+        
+        // 清空图表并显示"暂无数据"
+        ['expChart', 'uvChart', 'cartChart', 'payChart', 'expProdChart', 'cartProdChart', 'payProdChart'].forEach(id => {
+          const element = document.getElementById(id);
+          if (element) {
+            try {
+              const chart = echarts.init(element);
+              chart.clear();
+              chart.setOption({
+                title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999' } }
+              });
+            } catch (error) {
+              console.error(`清空图表 ${id} 时出错:`, error);
+            }
+          }
+        });
+        return;
+      }
       
       console.log('全托管loadData获取到数据:', { rowsA: rowsA.length, rowsB: rowsB.length });
+      
+      // 检查是否有数据
+      if (rowsA.length === 0 && rowsB.length === 0) {
+        console.log('全托管当前站点没有数据，显示空状态');
+        
+        // 清空所有KPI总数显示
+        ['expTotal', 'uvTotal', 'cartTotal', 'payTotal', 'expProdTotal', 'cartProdTotal', 'payProdTotal'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = '0';
+        });
+        
+        // 清空图表并显示"暂无数据"
+        ['expChart', 'uvChart', 'cartChart', 'payChart', 'expProdChart', 'cartProdChart', 'payProdChart'].forEach(id => {
+          const element = document.getElementById(id);
+          if (element) {
+            try {
+              const chart = echarts.init(element);
+              chart.clear();
+              chart.setOption({
+                title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999' } }
+              });
+            } catch (error) {
+              console.error(`清空图表 ${id} 时出错:`, error);
+            }
+          }
+        });
+        return;
+      }
       
       function sumExp(rows){return rows.reduce((s,r)=>s+Number(r.search_exposure||r.exposure||r.pv||0),0);}
       const sum= (rows,key)=>rows.reduce((s,r)=>s+Number(r[key]||0),0);
@@ -656,41 +719,19 @@ document.addEventListener('DOMContentLoaded',()=>{
       const curPayProd = prodPay(rowsA);
       const prevPayProd = prodPay(rowsB);
       
-      // 更新KPI卡片
-      document.getElementById('expValue').textContent = curExp.toLocaleString();
-      document.getElementById('expPrev').textContent = prevExp.toLocaleString();
-      document.getElementById('uvValue').textContent = curUv.toLocaleString();
-      document.getElementById('uvPrev').textContent = prevUv.toLocaleString();
-      document.getElementById('cartValue').textContent = curCart.toLocaleString();
-      document.getElementById('cartPrev').textContent = prevCart.toLocaleString();
-      document.getElementById('payValue').textContent = curPay.toLocaleString();
-      document.getElementById('payPrev').textContent = prevPay.toLocaleString();
-      document.getElementById('expProdValue').textContent = curExpProd.toLocaleString();
-      document.getElementById('expProdPrev').textContent = prevExpProd.toLocaleString();
-      document.getElementById('cartProdValue').textContent = curCartProd.toLocaleString();
-      document.getElementById('cartProdPrev').textContent = prevCartProd.toLocaleString();
-      document.getElementById('payProdValue').textContent = curPayProd.toLocaleString();
-      document.getElementById('payProdPrev').textContent = prevPayProd.toLocaleString();
+      // 渲染柱状图对比（这些会自动更新总数显示）
+      renderBar('expChart',{cur:curExp,prev:prevExp});
+      renderBar('uvChart',{cur:curUv,prev:prevUv});
+      renderBar('cartChart',{cur:curCart,prev:prevCart});
+      renderBar('payChart',{cur:curPay,prev:prevPay});
+      renderBar('expProdChart',{cur:curExpProd,prev:prevExpProd});
+      renderBar('cartProdChart',{cur:curCartProd,prev:prevCartProd});
+      renderBar('payProdChart',{cur:curPayProd,prev:prevPayProd});
       
-      // 更新趋势
-      const updateTrend = (cur, prev, elementId) => {
-        const diff = cur - prev;
-        const percent = prev > 0 ? (diff / prev * 100) : 0;
-        const trendEl = document.getElementById(elementId);
-        trendEl.textContent = `${diff >= 0 ? '↑' : '↓'} ${Math.abs(percent).toFixed(0)}%`;
-        trendEl.className = `trend ${diff >= 0 ? 'up' : 'down'}`;
-      };
-      
-      updateTrend(curExp, prevExp, 'expTrend');
-      updateTrend(curUv, prevUv, 'uvTrend');
-      updateTrend(curCart, prevCart, 'cartTrend');
-      updateTrend(curPay, prevPay, 'payTrend');
-      updateTrend(curExpProd, prevExpProd, 'expProdTrend');
-      updateTrend(curCartProd, prevCartProd, 'cartProdTrend');
-      updateTrend(curPayProd, prevPayProd, 'payProdTrend');
-      
-      // 注意：图表容器已被移除，只更新KPI卡片
-      console.log('图表容器已移除，跳过图表渲染');
+      console.log('全托管KPI数据计算结果:', {
+        curExp, prevExp, curUv, prevUv, curCart, prevCart, curPay, prevPay,
+        curExpProd, prevExpProd, curCartProd, prevCartProd, curPayProd, prevPayProd
+      });
     }
 
     loadPeriods();
