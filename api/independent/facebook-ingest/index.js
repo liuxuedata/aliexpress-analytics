@@ -173,28 +173,31 @@ async function handleFile(filePath, filename, siteId) {
 }
 
 export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   // 设置CORS头
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
-  // 处理OPTIONS请求
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Site-ID');
+
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
     const supabase = getClient();
     
-    // 获取当前选中的独立站站点ID
-    const currentIndepSiteId = req.headers['x-site-id'] || 'independent_poolsvacuum';
+    // 从请求头获取站点ID
+    const currentIndepSiteId = req.headers['x-site-id'];
+    console.log('接收到的站点ID:', currentIndepSiteId);
     
-    console.log('Facebook Ads数据上传 - 站点ID:', currentIndepSiteId);
+    if (!currentIndepSiteId) {
+      return res.status(400).json({ error: 'Site ID is required' });
+    }
 
+    // 配置formidable
     const form = formidable({
       maxFileSize: 50 * 1024 * 1024, // 50MB
       keepExtensions: true,
