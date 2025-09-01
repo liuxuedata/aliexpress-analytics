@@ -739,8 +739,14 @@ document.addEventListener('DOMContentLoaded',()=>{
       
       console.log('loadData开始加载数据:', { startISO, endISO, prevStart, prevEnd });
       
+      // 初始化变量
+      let rowsCur = [];
+      let rowsPrev = [];
+      let rowsCurDay = [];
+      let rowsPrevDay = [];
+      
       try {
-        const [rowsCur,rowsPrev,rowsCurDay,rowsPrevDay]=await Promise.all([
+        [rowsCur,rowsPrev,rowsCurDay,rowsPrevDay]=await Promise.all([
           fetchAgg(startISO,endISO,'day'),
           fetchAgg(prevStart,prevEnd,'day'),
           fetchAgg(startISO,endISO,'day'),
@@ -753,6 +759,44 @@ document.addEventListener('DOMContentLoaded',()=>{
       } catch (error) {
         console.error('数据加载失败:', error);
         showErrorStatus('数据加载失败，请重试');
+        
+        // 即使出错也要清空显示
+        ['expTotal', 'uvTotal', 'cartTotal', 'payTotal', 'expProdTotal', 'cartProdTotal', 'payProdTotal'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = '0';
+        });
+        
+        // 清空图表并显示"暂无数据"
+        ['expChart', 'uvChart', 'cartChart', 'payChart', 'expProdChart', 'cartProdChart', 'payProdChart'].forEach(id => {
+          const element = document.getElementById(id);
+          if (element) {
+            try {
+              const chart = echarts.init(element);
+              chart.clear();
+              chart.setOption({
+                title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999' } }
+              });
+            } catch (error) {
+              console.error(`清空图表 ${id} 时出错:`, error);
+            }
+          }
+        });
+        
+        // 清空趋势图表
+        ['uvRateChart', 'cartRateChart', 'payRateChart'].forEach(id => {
+          const element = document.getElementById(id);
+          if (element) {
+            try {
+              const chart = echarts.init(element);
+              chart.clear();
+              chart.setOption({
+                title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999' } }
+              });
+            } catch (error) {
+              console.error(`清空趋势图表 ${id} 时出错:`, error);
+            }
+          }
+        });
         return;
       }
       
