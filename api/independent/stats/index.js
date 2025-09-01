@@ -60,13 +60,14 @@ module.exports = async (req, res) => {
 
   try {
     const supabase = getClient();
-    const { site, from, to, limit = '20000', only_new, campaign, network, device } = req.query;
+    const { site, from, to, limit = '20000', only_new, campaign, network, device, aggregate } = req.query;
     const def = lastWeek();
     const toDate = parseDate(to, def.to);
     const fromDate = parseDate(from, def.from);
     const onlyNew = String(only_new || '') === '1';
+    const isProductAggregate = String(aggregate || '') === 'product';
 
-    console.log('独立站查询参数:', { site, from: fromDate, to: toDate, limit, only_new, campaign, network, device });
+    console.log('独立站查询参数:', { site, from: fromDate, to: toDate, limit, only_new, campaign, network, device, aggregate });
 
     if (!site) return res.status(400).json({ error: 'missing site param, e.g. ?site=poolsvacuum.com' });
 
@@ -125,6 +126,51 @@ module.exports = async (req, res) => {
 
     if (onlyNew) {
       table = table.filter(r => r.is_new);
+    }
+
+    // 如果请求产品聚合，按产品聚合数据
+    if (isProductAggregate) {
+      const productMap = {};
+      table.forEach(r => {
+        const key = r.landing_path;
+        if (!productMap[key]) {
+          productMap[key] = {
+            landing_path: r.landing_path,
+            landing_url: r.landing_url,
+            product: r.product,
+            device: r.device,
+            network: r.network,
+            campaign: r.campaign,
+            period: `${fromDate}~${toDate}`, // 显示周期范围
+            clicks: 0,
+            impr: 0,
+            cost: 0,
+            conversions: 0,
+            all_conv: 0,
+            conv_value: 0,
+            is_new: r.is_new,
+            first_seen_date: r.first_seen_date
+          };
+        }
+        // 累加数值字段
+        productMap[key].clicks += r.clicks;
+        productMap[key].impr += r.impr;
+        productMap[key].cost += r.cost;
+        productMap[key].conversions += r.conversions;
+        productMap[key].all_conv += r.all_conv;
+        productMap[key].conv_value += r.conv_value;
+      });
+
+      // 计算聚合后的比率
+      table = Object.values(productMap).map(r => ({
+        ...r,
+        // 重新计算比率：先算总数再相除
+        ctr: r.impr > 0 ? r.clicks / r.impr : 0,
+        avg_cpc: r.clicks > 0 ? r.cost / r.clicks : 0,
+        cost_per_conv: r.conversions > 0 ? r.cost / r.conversions : 0,
+        all_conv_rate: r.clicks > 0 ? r.all_conv / r.clicks : 0,
+        conv_rate: r.clicks > 0 ? r.conversions / r.clicks : 0
+      }));
     }
 
     // daily summary series

@@ -11,6 +11,25 @@
     #columnToggleWrapper{ position:relative; display:inline-block; }
     #columnMenu{ display:none; position:absolute; top:100%; right:0; background:#fff; border:1px solid #ccc; padding:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); }
     #columnMenu label{ display:block; margin:4px 0; white-space:nowrap; }
+    
+    /* 问号图标样式 */
+    .help-icon {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      background: #3b82f6;
+      color: white;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 16px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: help;
+      margin-left: 4px;
+    }
+    .help-icon:hover {
+      background: #2563eb;
+    }
   </style>
   <!-- DataTables & ECharts CDN -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
@@ -143,10 +162,10 @@
             <table id="report" class="display nowrap" style="width:100%">
               <thead>
                 <tr>
-                  <th>产品</th><th>设备</th><th>网络</th><th>Campaign</th><th>日期</th>
-                  <th>点击</th><th>曝光</th><th>CTR</th><th>Avg CPC</th><th>Cost</th>
+                  <th>产品</th><th>设备</th><th>网络</th><th>Campaign</th><th>周期</th>
+                  <th>点击</th><th>曝光</th><th>CTR <span class="help-icon" title="CTR = 总点击 / 总曝光">?</span></th><th>Avg CPC</th><th>Cost</th>
                   <th>转化</th><th>Cost/Conv</th><th>All conv</th><th>Conv value</th>
-                  <th>All conv rate</th><th>Conv rate</th>
+                  <th>All conv rate <span class="help-icon" title="All conv rate = All conv / 总点击">?</span></th><th>Conv rate <span class="help-icon" title="Conv rate = 转化 / 总点击">?</span></th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -293,7 +312,7 @@
         { data:'device', render: v => v || '' },
         { data:'network', render: v => v || '' },
         { data:'campaign', render: v => v || '' },
-        { data:'day', render: v => v || '' },
+        { data:'period', render: v => v || '' }, // 显示周期范围
         { data:'clicks', render: v => v ?? 0 },
         { data:'impr', render: v => v ?? 0 },
         { data:'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
@@ -440,7 +459,8 @@
       
       console.log('独立站查询参数:', { siteName, siteParam, from, to });
       
-      const url = `/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${from}&to=${to}`;
+      // 添加 aggregate=product 参数来实现产品级别的聚合
+      const url = `/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${from}&to=${to}&aggregate=product`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
