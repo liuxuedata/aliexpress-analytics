@@ -26,6 +26,14 @@
   // 更新当前站点显示
   function updateCurrentSiteDisplay() {
     const currentSiteEl = document.getElementById('currentSite');
+    const currentManagedSiteEl = document.getElementById('currentManagedSite');
+    
+    // 如果存在 currentManagedSite 元素，说明是全托管页面，不更新
+    if (currentManagedSiteEl) {
+      console.log('全托管页面，跳过站点名更新');
+      return;
+    }
+    
     if (currentSiteEl) {
       const currentSiteId = localStorage.getItem('currentSite');
       const currentSiteName = localStorage.getItem('currentSiteName');
