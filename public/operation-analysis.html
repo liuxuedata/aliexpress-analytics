@@ -219,61 +219,61 @@
             </div>
             <div class="kpi-card">
               <h4>访客数</h4>
-              <div class="kpi-value" id="uvValue">10,666</div>
+              <div class="kpi-value" id="uvValue">-</div>
               <div class="kpi-comparison">
                 <span class="comparison-label">上一周期：</span>
-                <span class="comparison-value" id="uvPrev">5,694</span>
-                <span class="trend up" id="uvTrend">↑ 87%</span>
+                <span class="comparison-value" id="uvPrev">-</span>
+                <span class="trend" id="uvTrend">-</span>
               </div>
             </div>
             <div class="kpi-card">
               <h4>加购次数</h4>
-              <div class="kpi-value" id="cartValue">350</div>
+              <div class="kpi-value" id="cartValue">-</div>
               <div class="kpi-comparison">
                 <span class="comparison-label">上一周期：</span>
-                <span class="comparison-value" id="cartPrev">179</span>
-                <span class="trend up" id="cartTrend">↑ 96%</span>
+                <span class="comparison-value" id="cartPrev">-</span>
+                <span class="trend" id="cartTrend">-</span>
               </div>
             </div>
             <div class="kpi-card">
               <h4>支付订单数</h4>
-              <div class="kpi-value" id="payValue">49</div>
+              <div class="kpi-value" id="payValue">-</div>
               <div class="kpi-comparison">
                 <span class="comparison-label">上一周期：</span>
-                <span class="comparison-value" id="payPrev">7</span>
-                <span class="trend up" id="payTrend">↑ 600%</span>
+                <span class="comparison-value" id="payPrev">-</span>
+                <span class="trend" id="payTrend">-</span>
               </div>
             </div>
             <div class="kpi-card">
               <h4>曝光商品数</h4>
-              <div class="kpi-value" id="expProdValue">70</div>
+              <div class="kpi-value" id="expProdValue">-</div>
               <div class="kpi-comparison">
                 <span class="comparison-label">上一周期：</span>
-                <span class="comparison-value" id="expProdPrev">44</span>
-                <span class="trend up" id="expProdTrend">↑ 59%</span>
+                <span class="comparison-value" id="expProdPrev">-</span>
+                <span class="trend" id="expProdTrend">-</span>
               </div>
             </div>
             <div class="kpi-card">
               <h4>加购商品数</h4>
-              <div class="kpi-value" id="cartProdValue">36</div>
+              <div class="kpi-value" id="cartProdValue">-</div>
               <div class="kpi-comparison">
                 <span class="comparison-label">上一周期：</span>
-                <span class="comparison-value" id="cartProdPrev">26</span>
-                <span class="trend up" id="cartProdTrend">↑ 38%</span>
+                <span class="comparison-value" id="cartProdPrev">-</span>
+                <span class="trend" id="cartProdTrend">-</span>
               </div>
             </div>
             <div class="kpi-card">
               <h4>支付商品数</h4>
-              <div class="kpi-value" id="payProdValue">9</div>
+              <div class="kpi-value" id="payProdValue">-</div>
               <div class="kpi-comparison">
                 <span class="comparison-label">上一周期：</span>
-                <span class="comparison-value" id="payProdPrev">4</span>
-                <span class="trend up" id="payProdTrend">↑ 125%</span>
+                <span class="comparison-value" id="payProdPrev">-</span>
+                <span class="trend" id="payProdTrend">-</span>
               </div>
             </div>
             <div class="kpi-card">
               <h4>产品总数</h4>
-              <div class="kpi-value">75</div>
+              <div class="kpi-value" id="prodTotal">-</div>
               <div class="kpi-comparison">
                 <span class="comparison-label">当前状态</span>
                 <span class="comparison-value">-</span>
@@ -520,12 +520,54 @@ document.addEventListener('DOMContentLoaded',()=>{
       const val=input.value; if(!val.includes(' to '))return; const [startISO,endISO]=val.split(' to ');
       localStorage.setItem(periodKey, `${startISO} to ${endISO}`);
       const {prevStart,prevEnd}=periodShift(startISO,endISO);
+      
+      console.log('loadData开始加载数据:', { startISO, endISO, prevStart, prevEnd });
+      
       const [rowsCur,rowsPrev,rowsCurDay,rowsPrevDay]=await Promise.all([
         fetchAgg(startISO,endISO,'day'),
         fetchAgg(prevStart,prevEnd,'day'),
         fetchAgg(startISO,endISO,'day'),
         fetchAgg(prevStart,prevEnd,'day')
       ]);
+      
+      console.log('loadData获取到数据:', { 
+        rowsCur: rowsCur.length, 
+        rowsPrev: rowsPrev.length,
+        rowsCurDay: rowsCurDay.length,
+        rowsPrevDay: rowsPrevDay.length
+      });
+      
+      // 检查是否有数据
+      if (rowsCur.length === 0 && rowsPrev.length === 0) {
+        console.log('当前站点没有数据，显示空状态');
+        // 清空所有KPI卡片
+        ['expValue', 'uvValue', 'cartValue', 'payValue', 'expProdValue', 'cartProdValue', 'payProdValue', 'prodTotal'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = '0';
+        });
+        ['expPrev', 'uvPrev', 'cartPrev', 'payPrev', 'expProdPrev', 'cartProdPrev', 'payProdPrev'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = '0';
+        });
+        ['expTrend', 'uvTrend', 'cartTrend', 'payTrend', 'expProdTrend', 'cartProdTrend', 'payProdTrend'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.textContent = '-';
+            el.className = 'trend';
+          }
+        });
+        
+        // 清空趋势图表
+        ['uvRateChart', 'cartRateChart', 'payRateChart'].forEach(id => {
+          const chart = echarts.init(document.getElementById(id));
+          chart.clear();
+          chart.setOption({
+            title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999' } }
+          });
+        });
+        return;
+      }
+      
       const sum=(rows,key)=>rows.reduce((s,r)=>s+Number(r[key]||0),0);
       const pickAdd=r=>Number(r.add_count)||Number(r.add_people)||0;
       const pickPay=r=>Number(r.pay_orders)||Number(r.pay_buyers)||Number(r.pay_items)||0;
@@ -609,14 +651,28 @@ document.addEventListener('DOMContentLoaded',()=>{
       };
       const curDay=dailyAgg(rowsCurDay);
       const prevDay=dailyAgg(rowsPrevDay);
-      const labels=curDay.map(r=>r.date.slice(5));
-      const build=(arr,fn)=>labels.map((_,i)=>arr[i]?fn(arr[i]):0);
-      const uvRate=r=>r.exposure>0?(r.visitors/r.exposure*100):0;
-      const cartRate=r=>{const a=pickAdd(r);return r.visitors>0?(a/r.visitors*100):0;};
-      const payRate=r=>{const p=pickPay(r);return r.visitors>0?(p/r.visitors*100):0;};
-      renderLine('uvRateChart',{labels,cur:build(curDay,uvRate),prev:build(prevDay,uvRate)});
-      renderLine('cartRateChart',{labels,cur:build(curDay,cartRate),prev:build(prevDay,cartRate)});
-      renderLine('payRateChart',{labels,cur:build(curDay,payRate),prev:build(prevDay,payRate)});
+      
+      console.log('趋势图表数据:', { curDay: curDay.length, prevDay: prevDay.length });
+      
+      if (curDay.length > 0) {
+        const labels=curDay.map(r=>r.date.slice(5));
+        const build=(arr,fn)=>labels.map((_,i)=>arr[i]?fn(arr[i]):0);
+        const uvRate=r=>r.exposure>0?(r.visitors/r.exposure*100):0;
+        const cartRate=r=>{const a=pickAdd(r);return r.visitors>0?(a/r.visitors*100):0;};
+        const payRate=r=>{const p=pickPay(r);return r.visitors>0?(p/r.visitors*100):0;};
+        renderLine('uvRateChart',{labels,cur:build(curDay,uvRate),prev:build(prevDay,uvRate)});
+        renderLine('cartRateChart',{labels,cur:build(curDay,cartRate),prev:build(prevDay,cartRate)});
+        renderLine('payRateChart',{labels,cur:build(curDay,payRate),prev:build(prevDay,payRate)});
+      } else {
+        // 如果没有数据，显示空状态
+        ['uvRateChart', 'cartRateChart', 'payRateChart'].forEach(id => {
+          const chart = echarts.init(document.getElementById(id));
+          chart.clear();
+          chart.setOption({
+            title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999' } }
+          });
+        });
+      }
     }
 
     function fetchAgg(start,end,gran='day'){

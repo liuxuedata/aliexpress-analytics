@@ -129,23 +129,6 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     const currentSiteEl=document.getElementById('currentSite');
   const addBtn=document.getElementById('addSite');
-  if(mode==='indep'){
-    if(addBtn) addBtn.style.display='none';
-    renderSiteMenus();
-    fetch('/api/independent/sites').then(r=>r.json()).then(j=>{
-      const sites=j.sites||[];
-      const paramSite=params.get('site');
-      const stored=localStorage.getItem('currentIndepSite');
-      let site=sites[0]||'';
-      if(paramSite && sites.includes(paramSite)) site=paramSite;
-      else if(stored && sites.includes(stored)) site=stored;
-      localStorage.setItem('currentIndepSite',site);
-      currentSiteEl.textContent=site;
-      document.title='产品分析 · '+site;
-      setupSelf('indep', site);
-    });
-    return;
-  }
   const siteListKey='managedSites';
   const currentSiteKey='currentSite';
   let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
@@ -172,10 +155,32 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
   renderSiteMenus();
   updateCurrent();
-  if(mode==='self')
+  
+  // 检测当前页面类型：如果有mode=self参数或者从自运营页面访问，使用自运营模式
+  const isFromSelfOperated = document.referrer.includes('self-operated.html') || 
+                            document.referrer.includes('index.html') ||
+                            localStorage.getItem('currentSite')?.startsWith('ae_self_operated');
+  
+  // 获取当前站点ID和名称
+  const currentSiteId = localStorage.getItem('currentSite');
+  const currentSiteName = localStorage.getItem('currentSiteName');
+  
+  console.log('产品分析页面模式检测:', { 
+    mode, 
+    isFromSelfOperated, 
+    referrer: document.referrer,
+    currentSiteId,
+    currentSiteName
+  });
+  
+  // 根据当前站点ID判断使用哪种模式
+  if(mode==='self' || isFromSelfOperated || (currentSiteId && currentSiteId.startsWith('ae_self_operated'))){
+    console.log('使用自运营模式，站点:', currentSiteId);
     setupSelf('self');
-  else
+  }else{
+    console.log('使用全托管模式，站点:', currentSiteId); 
     setupFM();
+  }
 function card(title,cur,prev,isPct,avg,share){
     const diff=(cur-prev)||0;
     const arrow=diff>=0?'↑':'↓';
