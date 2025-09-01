@@ -91,6 +91,55 @@
       color: #ef4444;
     }
     
+    /* 新增：KPI图表容器样式 */
+    .kpi-chart-container {
+      position: relative;
+      height: 140px;
+    }
+    .kpi-total {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      color: white;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    
+    /* 数据加载状态样式 */
+    .loading-status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 16px;
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      color: #374151;
+    }
+    .loading-status.error {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #dc2626;
+    }
+    .loading-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #e5e7eb;
+      border-top: 2px solid #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
     /* 图表区域样式 */
     .charts-section {
       margin-top: 40px;
@@ -202,6 +251,12 @@
   <main class="main">
     <div class="content">
       <section class="content-pad">
+        <!-- 数据加载状态提示 -->
+        <div id="loadingStatus" class="loading-status" style="display:none;">
+          <div class="loading-spinner"></div>
+          <span id="loadingText">数据加载中...</span>
+        </div>
+        
         <div id="ctrl" class="controls" style="margin-bottom:20px;"></div>
         
         <!-- 顶部KPI卡片 - 本周期 vs 上一周期对比 -->
@@ -210,65 +265,51 @@
           <div class="kpi-grid">
             <div class="kpi-card">
               <h4>曝光量</h4>
-              <div class="kpi-value" id="expValue">-</div>
-              <div class="kpi-comparison">
-                <span class="comparison-label">上一周期：</span>
-                <span class="comparison-value" id="expPrev">-</span>
-                <span class="trend" id="expTrend">-</span>
+              <div class="kpi-chart-container">
+                <div id="expChart" style="width:100%;height:120px;"></div>
+                <div class="kpi-total" id="expTotal">-</div>
               </div>
             </div>
             <div class="kpi-card">
               <h4>访客数</h4>
-              <div class="kpi-value" id="uvValue">-</div>
-              <div class="kpi-comparison">
-                <span class="comparison-label">上一周期：</span>
-                <span class="comparison-value" id="uvPrev">-</span>
-                <span class="trend" id="uvTrend">-</span>
+              <div class="kpi-chart-container">
+                <div id="uvChart" style="width:100%;height:120px;"></div>
+                <div class="kpi-total" id="uvTotal">-</div>
               </div>
             </div>
             <div class="kpi-card">
               <h4>加购次数</h4>
-              <div class="kpi-value" id="cartValue">-</div>
-              <div class="kpi-comparison">
-                <span class="comparison-label">上一周期：</span>
-                <span class="comparison-value" id="cartPrev">-</span>
-                <span class="trend" id="cartTrend">-</span>
+              <div class="kpi-chart-container">
+                <div id="cartChart" style="width:100%;height:120px;"></div>
+                <div class="kpi-total" id="cartTotal">-</div>
               </div>
             </div>
             <div class="kpi-card">
               <h4>支付订单数</h4>
-              <div class="kpi-value" id="payValue">-</div>
-              <div class="kpi-comparison">
-                <span class="comparison-label">上一周期：</span>
-                <span class="comparison-value" id="payPrev">-</span>
-                <span class="trend" id="payTrend">-</span>
+              <div class="kpi-chart-container">
+                <div id="payChart" style="width:100%;height:120px;"></div>
+                <div class="kpi-total" id="payTotal">-</div>
               </div>
             </div>
             <div class="kpi-card">
               <h4>曝光商品数</h4>
-              <div class="kpi-value" id="expProdValue">-</div>
-              <div class="kpi-comparison">
-                <span class="comparison-label">上一周期：</span>
-                <span class="comparison-value" id="expProdPrev">-</span>
-                <span class="trend" id="expProdTrend">-</span>
+              <div class="kpi-chart-container">
+                <div id="expProdChart" style="width:100%;height:120px;"></div>
+                <div class="kpi-total" id="expProdTotal">-</div>
               </div>
             </div>
             <div class="kpi-card">
               <h4>加购商品数</h4>
-              <div class="kpi-value" id="cartProdValue">-</div>
-              <div class="kpi-comparison">
-                <span class="comparison-label">上一周期：</span>
-                <span class="comparison-value" id="cartProdPrev">-</span>
-                <span class="trend" id="cartProdTrend">-</span>
+              <div class="kpi-chart-container">
+                <div id="cartProdChart" style="width:100%;height:120px;"></div>
+                <div class="kpi-total" id="cartProdTotal">-</div>
               </div>
             </div>
             <div class="kpi-card">
               <h4>支付商品数</h4>
-              <div class="kpi-value" id="payProdValue">-</div>
-              <div class="kpi-comparison">
-                <span class="comparison-label">上一周期：</span>
-                <span class="comparison-value" id="payProdPrev">-</span>
-                <span class="trend" id="payProdTrend">-</span>
+              <div class="kpi-chart-container">
+                <div id="payProdChart" style="width:100%;height:120px;"></div>
+                <div class="kpi-total" id="payProdTotal">-</div>
               </div>
             </div>
             <div class="kpi-card">
@@ -428,10 +469,22 @@ document.addEventListener('DOMContentLoaded',()=>{
         series:[{
           type:'bar',
           data:[{value:m.cur,itemStyle:{color:'#3b82f6'}},{value:m.prev,itemStyle:{color:'#94a3b8'}}],
-          label:{show:true,position:'top'}
+          label:{
+            show:true,
+            position:'top',
+            formatter: function(params) {
+              return params.value.toLocaleString();
+            }
+          }
         }]
       });
       window.addEventListener('resize',()=>chart.resize());
+      
+      // 更新总数显示
+      const totalElement = document.getElementById(id.replace('Chart', 'Total'));
+      if (totalElement) {
+        totalElement.textContent = m.cur.toLocaleString();
+      }
     } catch (error) {
       console.error(`渲染图表 ${id} 时出错:`, error);
     }
@@ -614,14 +667,27 @@ document.addEventListener('DOMContentLoaded',()=>{
       localStorage.setItem(periodKey, `${startISO} to ${endISO}`);
       const {prevStart,prevEnd}=periodShift(startISO,endISO);
       
+      // 显示加载状态
+      showLoadingStatus('数据加载中...');
+      
       console.log('loadData开始加载数据:', { startISO, endISO, prevStart, prevEnd });
       
-      const [rowsCur,rowsPrev,rowsCurDay,rowsPrevDay]=await Promise.all([
-        fetchAgg(startISO,endISO,'day'),
-        fetchAgg(prevStart,prevEnd,'day'),
-        fetchAgg(startISO,endISO,'day'),
-        fetchAgg(prevStart,prevEnd,'day')
-      ]);
+      try {
+        const [rowsCur,rowsPrev,rowsCurDay,rowsPrevDay]=await Promise.all([
+          fetchAgg(startISO,endISO,'day'),
+          fetchAgg(prevStart,prevEnd,'day'),
+          fetchAgg(startISO,endISO,'day'),
+          fetchAgg(prevStart,prevEnd,'day')
+        ]);
+        
+        // 隐藏加载状态
+        hideLoadingStatus();
+        
+      } catch (error) {
+        console.error('数据加载失败:', error);
+        showErrorStatus('数据加载失败，请重试');
+        return;
+      }
       
       console.log('loadData获取到数据:', { 
         rowsCur: rowsCur.length, 
@@ -666,8 +732,15 @@ document.addEventListener('DOMContentLoaded',()=>{
       const pickPay=r=>Number(r.pay_orders)||Number(r.pay_buyers)||Number(r.pay_items)||0;
       const sumAdd=rows=>rows.reduce((s,r)=>s+pickAdd(r),0);
       const sumPay=rows=>rows.reduce((s,r)=>s+pickPay(r),0);
-      // 注意：图表容器已被移除，只更新KPI卡片
-      console.log('图表容器已移除，跳过图表渲染');
+      
+      // 渲染柱状图对比
+      renderBar('expChart',{cur:curExp,prev:prevExp});
+      renderBar('uvChart',{cur:curUv,prev:prevUv});
+      renderBar('cartChart',{cur:curCart,prev:prevCart});
+      renderBar('payChart',{cur:curPay,prev:prevPay});
+      renderBar('expProdChart',{cur:curExpProd,prev:prevExpProd});
+      renderBar('cartProdChart',{cur:curCartProd,prev:prevCartProd});
+      renderBar('payProdChart',{cur:curPayProd,prev:prevPayProd});
       const prodExp=(rows)=>{const set=new Set();rows.forEach(r=>{if(Number(r.exposure||0)>0)set.add(r.product_id);});return set.size;};
       const prodAdd=(rows)=>{const set=new Set();rows.forEach(r=>{if(pickAdd(r)>0)set.add(r.product_id);});return set.size;};
       const prodPay=(rows)=>{const set=new Set();rows.forEach(r=>{if(pickPay(r)>0)set.add(r.product_id);});return set.size;};

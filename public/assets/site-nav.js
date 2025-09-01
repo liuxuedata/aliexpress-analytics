@@ -380,18 +380,33 @@
   // 添加renderSiteMenus函数作为render的别名，以兼容现有代码
   window.renderSiteMenus = render;
   
-  // 初始化
-  render();
-  applyNavIcons();
-  updateCurrentSiteDisplay();
+  // 防止重复初始化的标志
+  let isInitialized = false;
   
-  // 监听页面可见性变化，重新渲染菜单
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-      render();
+  // 初始化函数
+  function initialize() {
+    if (isInitialized) {
+      console.log('已经初始化过，跳过重复初始化');
+      return;
     }
-  });
+    
+    console.log('开始初始化站点菜单...');
+    render();
+    applyNavIcons();
+    updateCurrentSiteDisplay();
+    isInitialized = true;
+    
+    // 监听页面可见性变化，重新渲染菜单
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        render();
+      }
+    });
+    
+    // 定期刷新菜单（每30秒）
+    setInterval(render, 30000);
+  }
   
-  // 定期刷新菜单（每30秒）
-  setInterval(render, 30000);
+  // 初始化
+  initialize();
 })();
