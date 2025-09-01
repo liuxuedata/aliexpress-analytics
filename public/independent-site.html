@@ -35,10 +35,12 @@
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css">
   <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="assets/site-nav.js"></script>
 </head>
 <body class="fm">
@@ -112,9 +114,8 @@
         <div class="controls">
           <label>站点：</label>
           <input type="text" id="site" value="" placeholder="如：poolsvacuum.com">
-          <label>起止：</label>
-          <input type="date" id="from">
-          <input type="date" id="to">
+          <span>日期：</span>
+          <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
           <label>网络：</label>
           <select id="networkSel"><option value="">全部</option></select>
           <label>Campaign：</label>
@@ -412,8 +413,8 @@
           currentSiteEl.textContent = siteParam;
           console.log('独立站页面从URL参数获取站点名称:', siteParam);
         } else {
-          currentSiteEl.textContent = '独立站';
-          console.log('独立站页面使用默认名称: 独立站');
+          currentSiteEl.textContent = 'poolsvacuum.com';
+          console.log('独立站页面使用默认名称: poolsvacuum.com');
         }
       }
     }
@@ -473,18 +474,42 @@
       siteInput.value = getCurrentSiteForAPI();
     }
   }, 1000);
-  const today = new Date();
-  const dow = today.getDay();
-  const mondayThisWeek = new Date(today);
-  mondayThisWeek.setDate(today.getDate() - ((dow + 6) % 7));
-  const mondayLastWeek = new Date(mondayThisWeek);
-  mondayLastWeek.setDate(mondayThisWeek.getDate() - 7);
-  const sundayLastWeek = new Date(mondayLastWeek);
-  sundayLastWeek.setDate(mondayLastWeek.getDate() + 6);
-  const fromDef = mondayLastWeek.toISOString().slice(0,10);
-  const toDef = sundayLastWeek.toISOString().slice(0,10);
-  fromInput.value = getParam('from') || fromDef;
-  toInput.value = getParam('to') || toDef;
+  
+  // 初始化统一的时间控件
+  const fp = flatpickr('#dateFilter', { 
+    mode: 'range', 
+    dateFormat: 'Y-m-d', 
+    onClose: (ds) => { 
+      if (ds.length === 2) load(); 
+    } 
+  });
+  
+  // 设置默认日期范围
+  const currentIndepSiteId = localStorage.getItem('currentIndepSite') || 'independent_poolsvacuum';
+  const indepPeriodKey = `indepPeriod_${currentIndepSiteId}`;
+  const stored = localStorage.getItem(indepPeriodKey);
+  if (stored && stored.includes(' to ')) {
+    $('#dateFilter').val(stored);
+  } else {
+    const today = new Date();
+    const end = today.toISOString().slice(0,10);
+    const start = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime()-30*86400000).toISOString().slice(0,10);
+    const def = `${start} to ${end}`;
+    $('#dateFilter').val(def);
+    localStorage.setItem(indepPeriodKey, def);
+  }
+
+  function parseDateRange() {
+    const input = document.getElementById('dateFilter');
+    if (input && input.value && input.value.includes(' to ')) {
+      const [s, e] = input.value.split(' to ');
+      return { from: s, to: e };
+    }
+    const today = new Date();
+    const to = today.toISOString().slice(0,10);
+    const from = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime()-30*86400000).toISOString().slice(0,10);
+    return { from, to };
+  }
 
   function populateFilters(){
     // 安全处理空数据
@@ -503,8 +528,11 @@
   async function load() {
     try {
       const siteName = siteInput.value.trim();
-      const from = fromInput.value;
-      const to = toInput.value;
+      
+      // 解析日期范围
+      const dateRange = parseDateRange();
+      const from = dateRange.from;
+      const to = dateRange.to;
       
       // 使用新的站点参数获取逻辑
       const siteParam = getCurrentSiteForAPI();
@@ -552,7 +580,16 @@
     }
   }
 
-  document.getElementById('refreshBtn').addEventListener('click', load);
+  document.getElementById('refreshBtn').addEventListener('click', () => {
+    // 保存当前日期范围到localStorage
+    const currentIndepSiteId = localStorage.getItem('currentIndepSite') || 'independent_poolsvacuum';
+    const indepPeriodKey = `indepPeriod_${currentIndepSiteId}`;
+    const dateFilter = document.getElementById('dateFilter');
+    if (dateFilter && dateFilter.value) {
+      localStorage.setItem(indepPeriodKey, dateFilter.value);
+    }
+    load();
+  });
   // 上传逻辑
   const fileInput = document.getElementById('fileInput');
   const uploadBtn = document.getElementById('uploadBtn');
