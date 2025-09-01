@@ -341,8 +341,16 @@
         currentSiteEl.textContent = displayName;
         console.log('独立站页面更新站点名称:', displayName);
       } else {
-        currentSiteEl.textContent = '独立站';
-        console.log('独立站页面使用默认名称: 独立站');
+        // 从URL参数获取站点名称
+        const urlParams = new URLSearchParams(window.location.search);
+        const siteParam = urlParams.get('site');
+        if (siteParam) {
+          currentSiteEl.textContent = siteParam;
+          console.log('独立站页面从URL参数获取站点名称:', siteParam);
+        } else {
+          currentSiteEl.textContent = '独立站';
+          console.log('独立站页面使用默认名称: 独立站');
+        }
       }
     }
   }
