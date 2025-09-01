@@ -98,18 +98,17 @@
   <nav class="header-center">
     <ul class="platform-nav">
       <li><a href="#">速卖通</a>
-        <ul class="dropdown">
-          <li class="submenu"><a href="#">全托管</a>
-            <ul id="managedMenu"></ul>
-          </li>
-          <li><a href="self-operated.html">自运营</a></li>
+        <ul class="dropdown" id="managedMenu">
+          <li><a href="managed.html">全托管</a></li>
         </ul>
       </li>
       <li><a href="#">亚马逊</a></li>
       <li><a href="#">TikTok Shop</a></li>
       <li><a href="#">Temu</a></li>
       <li><a href="#">Ozon</a></li>
-      <li><a href="independent-site.html">独立站</a></li>
+      <li><a href="#">独立站</a>
+        <ul class="dropdown" id="indepMenu"></ul>
+      </li>
     </ul>
   </nav>
   <div id="userArea" class="user-section"></div>
@@ -325,6 +324,12 @@ async function fetchAgg(startISO, endISO, granularity) {
     localStorage.setItem('currentSite', currentSite);
   }
   
+  // 确保站点ID格式正确
+  if (!currentSite.startsWith('ae_self_operated_')) {
+    currentSite = 'ae_self_operated_a';
+    localStorage.setItem('currentSite', currentSite);
+  }
+  
   const url = `/api/ae_query?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}&granularity=${encodeURIComponent(granularity)}&site=${encodeURIComponent(currentSite)}`;
   
   // 添加调试日志
@@ -334,26 +339,31 @@ async function fetchAgg(startISO, endISO, granularity) {
   console.log('请求URL:', url);
   console.log('请求参数:', { startISO, endISO, granularity, site: currentSite });
   
-  const resp = await fetch(url);
-  
-  // 添加响应调试
-  console.log('响应状态:', resp.status);
-  console.log('响应状态文本:', resp.statusText);
-  
-  if (!resp.ok) {
-    const errorText = await resp.text();
-    console.error('API响应错误:', errorText);
-    throw new Error(`HTTP ${resp.status}: ${errorText}`);
+  try {
+    const resp = await fetch(url);
+    
+    // 添加响应调试
+    console.log('响应状态:', resp.status);
+    console.log('响应状态文本:', resp.statusText);
+    
+    if (!resp.ok) {
+      const errorText = await resp.text();
+      console.error('API响应错误:', errorText);
+      throw new Error(`HTTP ${resp.status}: ${errorText}`);
+    }
+    
+    const data = await resp.json();
+    console.log('API响应数据:', data);
+    
+    if (!data.ok) {
+      throw new Error(data.error || 'Unknown error');
+    }
+    
+    return data.rows;
+  } catch (error) {
+    console.error('fetchAgg 错误:', error);
+    throw error;
   }
-  
-  const data = await resp.json();
-  console.log('API响应数据:', data);
-  
-  if (!data.ok) {
-    throw new Error(data.error || 'Unknown error');
-  }
-  
-  return data.rows;
 }
 function periodShift(startISO, endISO) {
   const start = new Date(startISO + 'T00:00:00'); const end = new Date(endISO + 'T00:00:00');
