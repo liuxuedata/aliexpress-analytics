@@ -8,6 +8,7 @@
   };
 
   function applyNavIcons(){
+    // 只处理侧边栏的图标，不处理站点选择器
     document.querySelectorAll('.sidebar .site-title').forEach(title=>{
       if(!title.querySelector('svg')){
         title.insertAdjacentHTML('afterbegin',icons.site);
@@ -20,6 +21,25 @@
       else if(/运营/.test(txt)) a.insertAdjacentHTML('afterbegin',icons.operation);
       else if(/产品/.test(txt)) a.insertAdjacentHTML('afterbegin',icons.product);
     });
+  }
+
+  // 更新当前站点显示
+  function updateCurrentSiteDisplay() {
+    const currentSiteEl = document.getElementById('currentSite');
+    if (currentSiteEl) {
+      const currentSiteId = localStorage.getItem('currentSite');
+      const currentSiteName = localStorage.getItem('currentSiteName');
+      
+      if (currentSiteId && currentSiteName) {
+        // 显示站点名称而不是ID
+        currentSiteEl.textContent = currentSiteName;
+        console.log('更新站点显示:', currentSiteName);
+      } else if (currentSiteId) {
+        // 如果没有站点名称，显示默认名称
+        currentSiteEl.textContent = '自运营';
+        console.log('使用默认站点显示');
+      }
+    }
   }
 
   async function render(){
@@ -135,6 +155,7 @@
     }
     
     applyNavIcons();
+    updateCurrentSiteDisplay(); // 更新当前站点显示
   }
 
   // 备选方案：使用 sites 表数据
