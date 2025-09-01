@@ -73,13 +73,13 @@
             aeSelfOperatedSites.forEach(site => {
               const li = document.createElement('li');
               const a = document.createElement('a');
-              a.href = 'index.html';
+              a.href = 'self-operated.html';
               a.textContent = site.display_name || site.name;
               a.addEventListener('click', e => {
                 e.preventDefault();
                 localStorage.setItem('currentSite', site.id);
                 localStorage.setItem('currentSiteName', site.display_name || site.name);
-                window.location.href = 'index.html';
+                window.location.href = 'self-operated.html';
               });
               li.appendChild(a);
               managedMenu.appendChild(li);
