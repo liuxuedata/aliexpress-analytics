@@ -306,7 +306,7 @@ async function fetchAgg(startISO, endISO, granularity) {
     localStorage.setItem('currentSite', siteId);
   }
   
-  const url = `/api/ae_query?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}&granularity=${encodeURIComponent(granularity)}&site=${encodeURIComponent(siteId)}`;
+  const url = `/api/ae_query?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}&granularity=${encodeURIComponent(granularity)}&site=${encodeURIComponent(siteId)}&aggregate=product`;
   
   // 添加调试日志
   console.log('=== 主页调试信息 ===');
@@ -533,9 +533,12 @@ async function renderTable(rows, granularity) {
   if (window.dataTable) window.dataTable.destroy(); $('#report').empty();
   const data = rows.map(r => {
     const link = r.product_id ? `<a data-pid="${r.product_id}" data-link="https://aliexpress.com/item/${r.product_id}.html" href="https://aliexpress.com/item/${r.product_id}.html" target="_blank">${r.product_id}</a>` : '';
-    const conv1 = r.exposure>0 ? ((r.visitors/r.exposure)*100).toFixed(2) : '0.00';
-    const conv2 = r.visitors>0 ? ((r.add_people/r.visitors)*100).toFixed(2) : '0.00';
-    const conv3 = r.add_people>0 ? ((r.pay_buyers/r.add_people)*100).toFixed(2) : '0.00';
+    
+    // 使用API返回的聚合比率，如果没有则使用原来的计算方式
+    const conv1 = r.visitor_ratio !== null ? r.visitor_ratio.toFixed(2) : (r.exposure>0 ? ((r.visitors/r.exposure)*100).toFixed(2) : '0.00');
+    const conv2 = r.add_to_cart_ratio !== null ? r.add_to_cart_ratio.toFixed(2) : (r.visitors>0 ? ((r.add_count/r.visitors)*100).toFixed(2) : '0.00');
+    const conv3 = r.payment_ratio !== null ? r.payment_ratio.toFixed(2) : (r.add_count>0 ? ((r.pay_items/r.add_count)*100).toFixed(2) : '0.00');
+    
     const ctr = formatCtr(r.search_ctr);
     const stay = (r.avg_stay_seconds==null || r.avg_stay_seconds===undefined) ? '' : Math.round(r.avg_stay_seconds);
     const detailLink = '<a href="product-analysis.html?mode=self&pid='+ (r.product_id||'') +'" target="_blank">详情</a>';
@@ -545,7 +548,7 @@ async function renderTable(rows, granularity) {
     data,
     columns: [
       { title: '商品（ID）' },
-      { title: granularity==='day' ? '日期' : (granularity==='week' ? '周范围' : (granularity==='month' ? '月份范围' : '日期')) },
+      { title: '周期' },
       { title: '访客比(%)' }, { title: '加购比(%)' }, { title: '支付比(%)' },
       { title: '曝光量' }, { title: '访客数' }, { title: '浏览量' },
       { title: '加购人数' },
@@ -653,7 +656,11 @@ $('#metricSel').on('change', fetchAndRenderAll);
       site = currentSiteId.replace('ae_self_operated_', '');
     }
     
-    const qs = new URLSearchParams({ platform:'self' });
+    // 使用新的产品聚合模式
+    const qs = new URLSearchParams({ 
+      platform: 'self',
+      aggregate: 'product'  // 新增：使用产品聚合模式
+    });
     if (fromISO) qs.set('from', fromISO);
     if (toISO) qs.set('to', toISO);
     if (site) qs.set('site', site);

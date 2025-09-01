@@ -26,13 +26,13 @@
     }
     
                    .kpi-card {
-        background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+        background: #ffffff;
         border-radius: 12px;
         padding: 24px;
-        color: white;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+        color: #111827;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         transition: transform 0.2s ease, box-shadow 0.2s ease;
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        border: 1px solid #e5e7eb;
       }
     
     .kpi-card:hover {
@@ -47,20 +47,20 @@
       opacity: 1;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      color: rgba(255, 255, 255, 0.95);
+      color: #374151;
     }
     
     .kpi-value {
       font-size: 28px;
       font-weight: 700;
       margin-bottom: 12px;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      color: #111827;
     }
     
     .kpi-comparison {
       font-size: 13px;
       opacity: 1;
-      color: rgba(255, 255, 255, 0.95);
+      color: #6b7280;
     }
     
     .comparison-label {
@@ -72,7 +72,7 @@
     .comparison-value {
       font-weight: 700;
       margin-right: 8px;
-      color: rgba(255, 255, 255, 0.98);
+      color: #111827;
     }
     
     .trend {
@@ -103,8 +103,8 @@
        right: 15px;
        font-size: 18px;
        font-weight: 700;
-       color: white;
-       background: rgba(0, 0, 0, 0.4);
+       color: #111827;
+       background: rgba(59, 130, 246, 0.1);
        padding: 6px 12px;
        border-radius: 6px;
        z-index: 10;
@@ -513,12 +513,12 @@ document.addEventListener('DOMContentLoaded',()=>{
      try {
        const chart=echarts.init(element);
        chart.setOption({
-                   backgroundColor: 'rgba(255,255,255,0.02)',
+         backgroundColor: 'transparent',
          tooltip:{
            trigger:'axis',
            axisPointer:{type:'shadow'},
-           backgroundColor: 'rgba(0,0,0,0.8)',
-           borderColor: 'rgba(255,255,255,0.2)',
+           backgroundColor: 'rgba(0,0,0,0.9)',
+           borderColor: 'rgba(0,0,0,0.2)',
            textStyle: { color: '#fff' },
            formatter: function(params) {
              return `${params[0].name}<br/>${params[0].seriesName}: ${params[0].value.toLocaleString()}`;
@@ -530,35 +530,35 @@ document.addEventListener('DOMContentLoaded',()=>{
            top: '15%',
            bottom: '15%'
          },
-                   xAxis:{
-            type:'category',
-            data:['本周期','上一周期'],
-            axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
-            axisLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 12 }
-          },
-          yAxis:{
-            type:'value',
-            axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
-            axisLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 10 },
-            splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } }
-          },
+         xAxis:{
+           type:'category',
+           data:['本周期','上一周期'],
+           axisLine: { lineStyle: { color: '#d1d5db' } },
+           axisLabel: { color: '#374151', fontSize: 12 }
+         },
+         yAxis:{
+           type:'value',
+           axisLine: { lineStyle: { color: '#d1d5db' } },
+           axisLabel: { color: '#6b7280', fontSize: 10 },
+           splitLine: { lineStyle: { color: '#f3f4f6' } }
+         },
          series:[{
            type:'bar',
            barWidth: '60%',
-                       data:[
-              {value:m.cur,itemStyle:{color:'#60a5fa',borderRadius:[4,4,0,0]}},
-              {value:m.prev,itemStyle:{color:'#9ca3af',borderRadius:[4,4,0,0]}}
-            ],
-                       label:{
-              show:true,
-              position:'top',
-              color: 'rgba(255,255,255,1)',
-              fontSize: 13,
-              fontWeight: 'bold',
-              formatter: function(params) {
-                return params.value.toLocaleString();
-              }
-            }
+           data:[
+             {value:m.cur,itemStyle:{color:'#1e40af',borderRadius:[4,4,0,0]}},
+             {value:m.prev,itemStyle:{color:'#6b7280',borderRadius:[4,4,0,0]}}
+           ],
+           label:{
+             show:true,
+             position:'top',
+             color: '#111827',
+             fontSize: 13,
+             fontWeight: 'bold',
+             formatter: function(params) {
+               return params.value.toLocaleString();
+             }
+           }
          }]
        });
        window.addEventListener('resize',()=>chart.resize());

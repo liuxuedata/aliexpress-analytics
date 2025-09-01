@@ -32,17 +32,18 @@ export default async function handler(req, res) {
   }
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
 
-  const { start, end, site = 'ae_self_operated_a' } = req.query;
+  const { start, end, site = 'ae_self_operated_a', aggregate = 'time' } = req.query;
   const granularity = (req.query.granularity || 'day').toLowerCase();
   
-  console.log('AE查询参数:', { start, end, site, granularity });
+  console.log('AE查询参数:', { start, end, site, granularity, aggregate });
   
   // 添加数据库查询调试信息
   console.log('查询数据库表:', TABLE);
-  console.log('查询条件: site =', site, ', start =', start, ', end =', end);
+  console.log('查询条件: site =', site, ', start =', start, ', end =', end, ', aggregate =', aggregate);
   
   if (!start || !end) return res.status(400).json({ error: 'Missing start or end' });
   if (!['day','week','month'].includes(granularity)) return res.status(400).json({ error: 'Invalid granularity' });
+  if (!['time', 'product'].includes(aggregate)) return res.status(400).json({ error: 'Invalid aggregate mode' });
 
   try {
     // Paged fetch from Supabase
@@ -100,15 +101,23 @@ export default async function handler(req, res) {
       return dateISO;
     }
 
-    // Aggregate per product_id + bucket
+    // Aggregate based on mode
     const map = new Map();
     for (const r of out) {
-      const b = bucketKey(r.stat_date, granularity);
-      const key = r.product_id + '__' + b;
+      let key;
+      if (aggregate === 'product') {
+        // Aggregate by product_id only for entire period
+        key = r.product_id;
+      } else {
+        // Original time-based aggregation
+        const b = bucketKey(r.stat_date, granularity);
+        key = r.product_id + '__' + b;
+      }
+      
       if (!map.has(key)) {
         map.set(key, {
           product_id: r.product_id,
-          bucket: b,
+          bucket: aggregate === 'product' ? `${start}~${end}` : bucketKey(r.stat_date, granularity),
           min_date: r.stat_date,
           max_date: r.stat_date,
           exposure: 0,
@@ -161,12 +170,26 @@ export default async function handler(req, res) {
     const agg = Array.from(map.values()).map(x => {
       const search_ctr = x._ctr_den > 0 ? (x._ctr_num / x._ctr_den) : null;
       const avg_stay_seconds = x._stay_den > 0 ? (x._stay_num / x._stay_den) : null;
+      
+      // Calculate ratios for product aggregation mode
+      let visitor_ratio = null, add_to_cart_ratio = null, payment_ratio = null;
+      if (aggregate === 'product') {
+        // 访客比 = 总访客数 / 总曝光数
+        visitor_ratio = x.exposure > 0 ? (x.visitors / x.exposure) * 100 : null;
+        // 加购比 = 总加购数 / 总访客数
+        add_to_cart_ratio = x.visitors > 0 ? (x.add_count / x.visitors) * 100 : null;
+        // 支付比 = 总支付数 / 总加购数
+        payment_ratio = x.add_count > 0 ? (x.pay_items / x.add_count) * 100 : null;
+      }
+      
       return {
         product_id: x.product_id,
         bucket: x.bucket,
-        bucket_label: (granularity === 'day')
-          ? x.bucket
-          : (x.min_date === x.max_date ? x.min_date : `${x.min_date}~${x.max_date}`),
+        bucket_label: aggregate === 'product' 
+          ? x.bucket 
+          : ((granularity === 'day')
+            ? x.bucket
+            : (x.min_date === x.max_date ? x.min_date : `${x.min_date}~${x.max_date}`)),
         exposure: x.exposure,
         visitors: x.visitors,
         views: x.views,
@@ -179,7 +202,11 @@ export default async function handler(req, res) {
         fav_count: x.fav_count,
         order_items: x.order_items,
         search_ctr,
-        avg_stay_seconds
+        avg_stay_seconds,
+        // New ratio fields for product aggregation
+        visitor_ratio,
+        add_to_cart_ratio,
+        payment_ratio
       };
     });
 
