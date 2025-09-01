@@ -356,13 +356,24 @@ document.addEventListener('DOMContentLoaded',()=>{
                             document.referrer.includes('index.html') ||
                             localStorage.getItem('currentSite')?.startsWith('ae_self_operated');
   
-  console.log('运营分析页面模式检测:', { mode, isFromSelfOperated, referrer: document.referrer });
+  // 获取当前站点ID和名称
+  const currentSiteId = localStorage.getItem('currentSite');
+  const currentSiteName = localStorage.getItem('currentSiteName');
   
-  if(mode==='self' || isFromSelfOperated){
-    console.log('使用自运营模式');
+  console.log('运营分析页面模式检测:', { 
+    mode, 
+    isFromSelfOperated, 
+    referrer: document.referrer,
+    currentSiteId,
+    currentSiteName
+  });
+  
+  // 根据当前站点ID判断使用哪种模式
+  if(mode==='self' || isFromSelfOperated || (currentSiteId && currentSiteId.startsWith('ae_self_operated'))){
+    console.log('使用自运营模式，站点:', currentSiteId);
     setupSelf();
   }else{
-    console.log('使用全托管模式'); 
+    console.log('使用全托管模式，站点:', currentSiteId); 
     setupFM();
   }
 
@@ -561,13 +572,27 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     function fetchAgg(start,end,gran='day'){
       let currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
-  // 确保使用正确的站点ID格式
-  if (currentSite === 'A站') {
-    currentSite = 'ae_self_operated_a';
-    localStorage.setItem('currentSite', currentSite);
-  }
+      
+      // 确保使用正确的站点ID格式
+      if (currentSite === 'A站') {
+        currentSite = 'ae_self_operated_a';
+        localStorage.setItem('currentSite', currentSite);
+      }
+      
+      // 如果当前站点是Poolslab，使用正确的站点ID
+      if (currentSite === 'Poolslab运动娱乐') {
+        currentSite = 'ae_self_operated_poolslab';
+      }
+      
+      console.log('fetchAgg调用参数:', { start, end, gran, currentSite });
+      
       const url=`/api/ae_query?start=${start}&end=${end}&granularity=${gran}&site=${encodeURIComponent(currentSite)}`;
-      return fetch(url).then(r=>r.json()).then(j=>j.rows||[]);
+      console.log('fetchAgg请求URL:', url);
+      
+      return fetch(url).then(r=>r.json()).then(j=>{
+        console.log('fetchAgg响应:', { rows: j.rows?.length || 0, site: currentSite });
+        return j.rows||[];
+      });
     }
     function periodShift(startISO,endISO){
       const start=new Date(startISO+'T00:00:00'); const end=new Date(endISO+'T00:00:00');

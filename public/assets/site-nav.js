@@ -317,12 +317,13 @@
   // 全局刷新函数
   window.refreshSiteMenus = render;
   
-  // 初始渲染 - 等待DOM加载完成
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', render);
-  } else {
-    render();
-  }
+  // 添加renderSiteMenus函数作为render的别名，以兼容现有代码
+  window.renderSiteMenus = render;
+  
+  // 初始化
+  render();
+  applyNavIcons();
+  updateCurrentSiteDisplay();
   
   // 监听页面可见性变化，重新渲染菜单
   document.addEventListener('visibilitychange', () => {
