@@ -91,11 +91,15 @@ async function handleFile(filePath, filename, siteId) {
         cell.includes('campaign') || cell.includes('adset') || cell.includes('date')) {
       return true;
     }
-    // 支持icyberite特定格式
+    // 支持icyberite特定格式 - 根据图三的字段名
     if (cell === 'campaign' || cell === 'ad set' || cell === 'adset' || 
         cell === 'date' || cell === 'day' || cell === 'start date' ||
         cell === 'impressions' || cell === 'clicks' || cell === 'spend' ||
-        cell === 'cost' || cell === 'ctr' || cell === 'cpc' || cell === 'cpm') {
+        cell === 'cost' || cell === 'ctr' || cell === 'cpc' || cell === 'cpm' ||
+        // icyberite特有字段
+        cell === 'reach' || cell === 'frequency' || cell === 'landing page' ||
+        cell === 'website url' || cell === 'url' || cell === 'conversions' ||
+        cell === 'conversion value' || cell === 'purchases' || cell === 'add to cart') {
       return true;
     }
     return false;
@@ -110,7 +114,8 @@ async function handleFile(filePath, filename, siteId) {
              cell.includes('impression') || cell.includes('click') || cell.includes('cost') ||
              cell.includes('conversion') || cell.includes('spend') || cell.includes('reach') ||
              cell.includes('frequency') || cell.includes('cpm') || cell.includes('ctr') ||
-             cell.includes('cpc') || cell.includes('value');
+             cell.includes('cpc') || cell.includes('value') || cell.includes('purchase') ||
+             cell.includes('landing') || cell.includes('website') || cell.includes('url');
     }));
   }
   
@@ -148,6 +153,11 @@ async function handleFile(filePath, filename, siteId) {
   const reachCol = col('reach');
   const frequencyCol = col('frequency');
   const landingUrlCol = col('landing page', 'website url', 'url', 'landingpage', 'websiteurl');
+  // icyberite特有字段
+  const conversionsCol = col('conversions', 'conversion', 'conversion_value');
+  const conversionValueCol = col('conversion value', 'conversionvalue', 'value', 'conversion_value', 'conversion_value_usd');
+  const purchasesCol = col('purchases', 'purchase', 'purchase_value');
+  const addToCartCol = col('add to cart', 'addtocart', 'add to cart conversions');
 
   if (campaignCol === -1 || dateCol === -1) {
     throw new Error('Required columns not found. Need at least "Campaign name" and "Date".');
@@ -170,7 +180,7 @@ async function handleFile(filePath, filename, siteId) {
     const record = {
       site: siteId,
       day: dayStr,
-      campaign_name: campaign, // 修复字段名
+      campaign_name: campaign,
       adset_name: adset,
       landing_url: landingUrl,
       impressions: coerceNum(row[impressionsCol]),
@@ -187,13 +197,14 @@ async function handleFile(filePath, filename, siteId) {
       ic_web: 0, // 需要根据实际数据调整
       ic_meta: 0, // 需要根据实际数据调整
       ic_total: coerceNum(row[clicksCol]),
-      atc_web: 0, // 需要根据实际数据调整
+      atc_web: conversionsCol !== -1 ? coerceNum(row[conversionsCol]) : 0, // 使用conversions字段
       atc_meta: 0, // 需要根据实际数据调整
-      atc_total: 0, // 需要根据实际数据调整
-      purchase_web: 0, // 需要根据实际数据调整
+      atc_total: conversionsCol !== -1 ? coerceNum(row[conversionsCol]) : 0, // 使用conversions字段
+      purchase_web: purchasesCol !== -1 ? coerceNum(row[purchasesCol]) : 0, // 使用purchases字段
       purchase_meta: 0, // 需要根据实际数据调整
       cpa_purchase_web: 0, // 需要根据实际数据调整
       link_ctr: coerceNum(row[ctrCol]),
+      conversion_value: conversionValueCol !== -1 ? coerceNum(row[conversionValueCol]) : 0, // 新增转化价值字段
       row_start_date: dayStr,
       row_end_date: dayStr,
       created_at: new Date().toISOString(),
