@@ -641,9 +641,25 @@ $('#metricSel').on('change', fetchAndRenderAll);
     try { return window.dataTable || jQuery('#report').DataTable(); } catch(e){ return null; }
   }
   async function fetchRange(fromISO, toISO){
+    const currentSiteId = localStorage.getItem('currentSite');
+    let site = '';
+    
+    // 从currentSiteId中提取站点名称
+    if (currentSiteId === 'ae_self_operated_a') {
+      site = 'A站';
+    } else if (currentSiteId === 'ae_self_operated_poolslab') {
+      site = 'Poolslab运动娱乐';
+    } else if (currentSiteId && currentSiteId.startsWith('ae_self_operated_')) {
+      site = currentSiteId.replace('ae_self_operated_', '');
+    }
+    
     const qs = new URLSearchParams({ platform:'self' });
     if (fromISO) qs.set('from', fromISO);
     if (toISO) qs.set('to', toISO);
+    if (site) qs.set('site', site);
+    
+    console.log('数据明细页面fetchRange调用参数:', { fromISO, toISO, currentSiteId, site, qs: qs.toString() });
+    
     const r = await fetch('/api/new-products?'+qs.toString());
     const j = await r.json();
     if (!j.ok) throw new Error(j.msg||'fetch error');

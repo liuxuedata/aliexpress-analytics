@@ -29,6 +29,7 @@ module.exports = async (req, res) => {
   try {
     const platform = String(req.query.platform||"").trim();
     if (!platform) throw new Error("Missing platform");
+    const site = String(req.query.site||"").trim(); // 新增：站点参数
     const view = viewOf(platform);
     const statsTable = statsTableOf(platform);
 
@@ -58,12 +59,19 @@ module.exports = async (req, res) => {
 
     const idCol = platform === 'indep' ? 'landing_path' : 'product_id';
     const firstSeenCol = platform === 'indep' ? 'first_seen_date' : 'first_seen';
-    const selectCols = platform === 'indep' ? `site,${idCol},${firstSeenCol}` : `${idCol},${firstSeenCol}`;
-    const { data, error } = await supabase
+    const selectCols = platform === 'indep' ? `site,${idCol},${firstSeenCol}` : `site,${idCol},${firstSeenCol}`;
+    let query = supabase
       .from(view)
       .select(selectCols)
       .gte(firstSeenCol, from)
-      .lte(firstSeenCol, to)
+      .lte(firstSeenCol, to);
+    
+    // 如果指定了站点，添加站点过滤
+    if (site && platform === 'self') {
+      query = query.eq('site', site);
+    }
+    
+    const { data, error } = await query
       .order(firstSeenCol, { ascending: true })
       .limit(limit);
     if (error) throw error;

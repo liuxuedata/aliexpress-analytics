@@ -459,15 +459,45 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 
   async function loadProdTotal(){
-    const platform=mode==='self'?'self':'managed';
+    const currentSiteId = localStorage.getItem('currentSite');
+    let platform = 'managed';
+    let site = '';
+    
+    // 根据当前站点ID确定平台和站点
+    if (currentSiteId && currentSiteId.startsWith('ae_self_operated')) {
+      platform = 'self';
+      // 从currentSiteId中提取站点名称
+      if (currentSiteId === 'ae_self_operated_a') {
+        site = 'A站';
+      } else if (currentSiteId === 'ae_self_operated_poolslab') {
+        site = 'Poolslab运动娱乐';
+      } else {
+        // 如果currentSiteId包含其他站点信息，提取站点名称
+        site = currentSiteId.replace('ae_self_operated_', '');
+      }
+    } else if (currentSiteId && currentSiteId.startsWith('indep_')) {
+      platform = 'indep';
+    }
+    
     const today=new Date().toISOString().slice(0,10);
     const qs=new URLSearchParams({platform,from:'2000-01-01',to:today,limit:'5000'});
+    
+    // 如果是自运营平台且有站点信息，添加站点参数
+    if (platform === 'self' && site) {
+      qs.set('site', site);
+    }
+    
+    console.log('loadProdTotal调用参数:', { platform, currentSiteId, site, qs: qs.toString() });
+    
     try{
       const r=await fetch('/api/new-products?'+qs.toString());
       const j=await r.json();
-      document.getElementById('prodTotal').textContent=j.new_count||0;
+      
+      const newCount = j.new_count || 0;
+      document.getElementById('prodTotal').textContent=newCount;
+      console.log('loadProdTotal结果:', { platform, currentSiteId, site, newCount, items: j.items?.length || 0 });
     }catch(e){
-      console.error(e);
+      console.error('loadProdTotal错误:', e);
       document.getElementById('prodTotal').textContent='0';
     }
   }
