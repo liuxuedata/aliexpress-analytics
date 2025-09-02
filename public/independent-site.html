@@ -30,6 +30,44 @@
     .help-icon:hover {
       background: #2563eb;
     }
+    
+    /* 加载状态样式 */
+    .loading-state {
+      text-align: center;
+      padding: 40px 20px;
+      background: #f8fafc;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    
+    .loading-bar {
+      width: 100%;
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    
+    .loading-progress {
+      width: 30%;
+      height: 100%;
+      background: #3b82f6;
+      border-radius: 4px;
+      animation: loading-animation 2s ease-in-out infinite;
+    }
+    
+    @keyframes loading-animation {
+      0% { transform: translateX(-100%); }
+      50% { transform: translateX(0); }
+      100% { transform: translateX(100%); }
+    }
+    
+    .loading-text {
+      color: #6b7280;
+      font-size: 14px;
+      margin: 0;
+    }
   </style>
   <!-- DataTables & ECharts CDN -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
@@ -139,11 +177,33 @@
       <div class="grid">
         <div class="panel">
           <h3>Daily 趋势（点击 / 曝光 / 转化价值）</h3>
-          <div id="lineChart" style="width:100%;height:360px;"></div>
+          
+          <!-- 加载状态 -->
+          <div id="analysisLoading" class="loading-state" style="display: none;">
+            <div class="loading-bar">
+              <div class="loading-progress"></div>
+            </div>
+            <p class="loading-text">努力加载中,请等待片刻。。。</p>
+          </div>
+          
+          <!-- 图表内容 -->
+          <div id="analysisContent">
+            <div id="lineChart" style="width:100%;height:360px;"></div>
+          </div>
         </div>
         <div class="panel">
           <h3>Top Landing Pages（按转化数）</h3>
-          <div class="table-section">
+          
+          <!-- 加载状态 -->
+          <div id="topTableLoading" class="loading-state" style="display: none;">
+            <div class="loading-bar">
+              <div class="loading-progress"></div>
+            </div>
+            <p class="loading-text">努力加载中,请等待片刻。。。</p>
+          </div>
+          
+          <!-- 表格内容 -->
+          <div id="topTableContent" class="table-section">
             <div class="table-wrapper">
               <table id="topTable" class="display nowrap"><thead>
                 <tr><th>产品</th><th>点击</th><th>曝光</th><th>CTR</th><th>转化</th><th>花费</th><th>转化价值</th><th>CPA</th><th>ROAS</th></tr>
@@ -158,7 +218,17 @@
     <section id="detail" class="content-pad">
       <div class="panel">
         <h3>Landing Pages 明细</h3>
-        <div class="table-section">
+        
+        <!-- 加载状态 -->
+        <div id="detailLoading" class="loading-state" style="display: none;">
+          <div class="loading-bar">
+            <div class="loading-progress"></div>
+          </div>
+          <p class="loading-text">努力加载中,请等待片刻。。。</p>
+        </div>
+        
+        <!-- 数据表格 -->
+        <div id="detailContent" class="table-section">
           <div class="table-wrapper">
             <table id="report" class="display nowrap" style="width:100%">
               <thead>
@@ -178,8 +248,21 @@
 
     <!-- 产品分析（占位） -->
     <section id="product" class="content-pad" style="display:none;">
-      <div class="panel"><h3>产品分析</h3>
-        <div class="small">（后续可按路径映射到商品，增加售价、毛利、库存、类目等维度的分析）</div>
+      <div class="panel">
+        <h3>产品分析</h3>
+        
+        <!-- 加载状态 -->
+        <div id="productLoading" class="loading-state" style="display: none;">
+          <div class="loading-bar">
+            <div class="loading-progress"></div>
+          </div>
+          <p class="loading-text">努力加载中,请等待片刻。。。</p>
+        </div>
+        
+        <!-- 内容 -->
+        <div id="productContent">
+          <div class="small">（后续可按路径映射到商品，增加售价、毛利、库存、类目等维度的分析）</div>
+        </div>
       </div>
     </section>
     </div>
@@ -527,6 +610,9 @@
 
   async function load() {
     try {
+      // 显示加载状态
+      showLoadingState('detail');
+      
       const siteName = siteInput.value.trim();
       
       // 解析日期范围
@@ -574,9 +660,14 @@
         shorten(r.product || r.path), r.clicks, r.impr, (r.ctr*100).toFixed(2)+'%', r.conversions, r.cost, r.conv_value, r.cpa.toFixed(2), r.roas.toFixed(2)
       ]);
       $('#topTable').DataTable({ destroy:true, paging:false, searching:false, info:false, data: topRows, scrollX:true, autoWidth:false });
+      
+      // 隐藏加载状态
+      hideLoadingState('detail');
     } catch(e) {
       console.error(e);
       alert(e.message || '加载失败');
+      // 隐藏加载状态
+      hideLoadingState('detail');
     }
   }
 
@@ -664,6 +755,23 @@
       setTimeout(() => { statusEl.textContent = ''; }, 3000);
     }
   });
+  
+  // 加载状态管理函数
+  function showLoadingState(section) {
+    const loadingEl = document.getElementById(section + 'Loading');
+    const contentEl = document.getElementById(section + 'Content');
+    
+    if (loadingEl) loadingEl.style.display = 'block';
+    if (contentEl) contentEl.style.display = 'none';
+  }
+  
+  function hideLoadingState(section) {
+    const loadingEl = document.getElementById(section + 'Loading');
+    const contentEl = document.getElementById(section + 'Content');
+    
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (contentEl) contentEl.style.display = 'block';
+  }
   
   // 确保所有函数定义完成后再调用load
   setTimeout(() => {
