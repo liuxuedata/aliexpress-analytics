@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+        .error {
+            border-color: #dc3545;
+            background: #f8d7da;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>多站点扩展功能 API 测试</h1>
+    
+    <div class="test-section">
+        <h2>1. 测试站点管理 API</h2>
+        <button class="test-button" onclick="testGetSites()">获取所有站点</button>
+        <button class="test-button" onclick="testGetSitesByPlatform()">获取速卖通自运营站点</button>
+        <div id="sitesResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. 测试添加新站点</h2>
+        <div class="form-group">
+            <label for="siteName">站点名称:</label>
+            <input type="text" id="siteName" placeholder="如：B站" value="B站">
+        </div>
+        <div class="form-group">
+            <label for="sitePlatform">平台:</label>
+            <select id="sitePlatform">
+                <option value="ae_self_operated">速卖通自运营</option>
+                <option value="independent">独立站</option>
+                <option value="ae_managed">速卖通全托管</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="displayName">显示名称:</label>
+            <input type="text" id="displayName" placeholder="如：速卖通自运营 B站" value="速卖通自运营 B站">
+        </div>
+        <button class="test-button" onclick="testAddSite()">添加新站点</button>
+        <div id="addSiteResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 测试速卖通自运营统计 API</h2>
+        <div class="form-group">
+            <label for="statsSite">选择站点:</label>
+            <select id="statsSite">
+                <option value="A站">A站</option>
+                <option value="B站">B站</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="statsFromDate">开始日期:</label>
+            <input type="date" id="statsFromDate" value="2024-01-01">
+        </div>
+        <div class="form-group">
+            <label for="statsToDate">结束日期:</label>
+            <input type="date" id="statsToDate" value="2024-12-31">
+        </div>
+        <button class="test-button" onclick="testStatsAPI()">获取统计数据</button>
+        <div id="statsResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. 测试数据库连接</h2>
+        <button class="test-button" onclick="testDatabaseConnection()">测试数据库连接</button>
+        <div id="dbResult" class="result"></div>
+    </div>
+
+    <script>
+        // 配置 Supabase
+        const SUPABASE_URL = 'https://your-project-ref.supabase.co';
+        const SUPABASE_ANON_KEY = 'your-anon-key';
+
+        // 测试获取所有站点
+        async function testGetSites() {
+            const resultDiv = document.getElementById('sitesResult');
+            resultDiv.textContent = '正在获取站点数据...';
+            resultDiv.className = 'result';
+
+            try {
+                const response = await fetch('/api/sites', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.textContent = '✅ 获取站点成功:\n' + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = '❌ 获取站点失败:\n' + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = '❌ 请求错误:\n' + error.message;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // 测试获取特定平台站点
+        async function testGetSitesByPlatform() {
+            const resultDiv = document.getElementById('sitesResult');
+            resultDiv.textContent = '正在获取速卖通自运营站点...';
+            resultDiv.className = 'result';
+
+            try {
+                const response = await fetch('/api/sites?platform=ae_self_operated', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.textContent = '✅ 获取速卖通自运营站点成功:\n' + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = '❌ 获取站点失败:\n' + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = '❌ 请求错误:\n' + error.message;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // 测试添加新站点
+        async function testAddSite() {
+            const resultDiv = document.getElementById('addSiteResult');
+            const siteName = document.getElementById('siteName').value;
+            const platform = document.getElementById('sitePlatform').value;
+            const displayName = document.getElementById('displayName').value;
+
+            if (!siteName || !platform || !displayName) {
+                resultDiv.textContent = '❌ 请填写所有必填字段';
+                resultDiv.className = 'result error';
+                return;
+            }
+
+            resultDiv.textContent = '正在添加新站点...';
+            resultDiv.className = 'result';
+
+            try {
+                const response = await fetch('/api/sites', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: siteName,
+                        platform: platform,
+                        display_name: displayName
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.textContent = '✅ 添加站点成功:\n' + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = '❌ 添加站点失败:\n' + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = '❌ 请求错误:\n' + error.message;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // 测试统计 API
+        async function testStatsAPI() {
+            const resultDiv = document.getElementById('statsResult');
+            const site = document.getElementById('statsSite').value;
+            const fromDate = document.getElementById('statsFromDate').value;
+            const toDate = document.getElementById('statsToDate').value;
+
+            resultDiv.textContent = '正在获取统计数据...';
+            resultDiv.className = 'result';
+
+            try {
+                const response = await fetch(`/api/ae_self_operated/stats?site=${encodeURIComponent(site)}&from_date=${fromDate}&to_date=${toDate}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.textContent = '✅ 获取统计数据成功:\n' + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = '❌ 获取统计数据失败:\n' + JSON.stringify(data, null, 2);
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = '❌ 请求错误:\n' + error.message;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // 测试数据库连接
+        async function testDatabaseConnection() {
+            const resultDiv = document.getElementById('dbResult');
+            resultDiv.textContent = '正在测试数据库连接...';
+            resultDiv.className = 'result';
+
+            try {
+                // 测试直接访问 Supabase
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/sites?select=count`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+
+                if (response.ok) {
+                    resultDiv.textContent = '✅ 数据库连接成功';
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = '❌ 数据库连接失败: ' + response.status;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = '❌ 数据库连接错误:\n' + error.message;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // 页面加载时自动测试数据库连接
+        window.onload = function() {
+            testDatabaseConnection();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+多站点功能 - 需要上传到 GitHub 的文件清单
+===============================================
+
+📁 数据库迁移文件：
+- migration_smart_add_site_field.sql
+- simple_fix_sites.sql  
+- fix_sites_table.sql
+- supabase_schema_new.sql
+- MIGRATION_GUIDE.md
+
+📁 API 接口文件：
+- api/sites/index.js (新增)
+- api/ae_self_operated/stats/index.js (新增)
+- api/ae_query/index.js (已修改)
+- api/self_operated_api.js (已修改)
+
+📁 前端页面文件：
+- public/site-management.html (新增)
+- public/self-operated.html (已修改)
+- public/test-multi-site.html (新增)
+- public/test-fix.html (新增)
+- public/test_api.html (新增)
+
+📁 文档文件：
+- GITHUB_UPLOAD_GUIDE.md (本指南)
+- FILES_TO_UPLOAD.txt (本文件)
+- README_NEW_KPI_EMBEDDED.md
+
+🚀 快速上传步骤：
+1. 在 GitHub 创建新分支：multi-site-feature
+2. 使用 "Upload files" 功能批量上传
+3. 提交信息：feat: 添加多站点扩展功能
+4. 部署到 Vercel 测试
+5. 执行数据库迁移脚本
+
+⚠️ 重要提醒：
+- 先备份数据库
+- 在测试环境验证
+- 确保 API 正常工作

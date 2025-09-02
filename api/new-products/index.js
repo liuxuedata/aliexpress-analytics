@@ -29,6 +29,7 @@ module.exports = async (req, res) => {
   try {
     const platform = String(req.query.platform||"").trim();
     if (!platform) throw new Error("Missing platform");
+    const site = String(req.query.site||"").trim(); // 新增：站点参数
     const view = viewOf(platform);
     const statsTable = statsTableOf(platform);
 
@@ -58,15 +59,58 @@ module.exports = async (req, res) => {
 
     const idCol = platform === 'indep' ? 'landing_path' : 'product_id';
     const firstSeenCol = platform === 'indep' ? 'first_seen_date' : 'first_seen';
-    const selectCols = platform === 'indep' ? `site,${idCol},${firstSeenCol}` : `${idCol},${firstSeenCol}`;
-    const { data, error } = await supabase
+    const selectCols = platform === 'indep' ? `site,${idCol},${firstSeenCol}` : `site,${idCol},${firstSeenCol}`;
+    let query = supabase
       .from(view)
       .select(selectCols)
       .gte(firstSeenCol, from)
-      .lte(firstSeenCol, to)
+      .lte(firstSeenCol, to);
+    
+    // 如果指定了站点，添加站点过滤
+    if (site && (platform === 'self' || platform === 'managed')) {
+      query = query.eq('site', site);
+    }
+    
+    let { data, error } = await query
       .order(firstSeenCol, { ascending: true })
       .limit(limit);
-    if (error) throw error;
+    
+    // 如果视图不存在，尝试创建视图或使用直接查询
+    if (error && error.message && error.message.includes('relation') && error.message.includes('does not exist')) {
+      console.log(`View ${view} does not exist, attempting to create it or use direct query`);
+      
+      if (platform === 'managed') {
+        // 对于全托管平台，直接查询 managed_stats 表
+        const { data: directData, error: directError } = await supabase
+          .from('managed_stats')
+          .select('product_id, period_end')
+          .gte('period_end', from)
+          .lte('period_end', to)
+          .order('period_end', { ascending: true })
+          .limit(limit);
+        
+        if (directError) throw directError;
+        
+        // 手动计算首次出现日期
+        const productFirstSeen = new Map();
+        (directData || []).forEach(row => {
+          const existing = productFirstSeen.get(row.product_id);
+          if (!existing || row.period_end < existing) {
+            productFirstSeen.set(row.product_id, row.period_end);
+          }
+        });
+        
+        data = Array.from(productFirstSeen.entries()).map(([product_id, first_seen]) => ({
+          product_id,
+          first_seen
+        }));
+        error = null;
+      } else {
+        throw error; // 对于其他平台，仍然抛出错误
+      }
+    } else if (error) {
+      throw error;
+    }
 
     const items = (data||[]).map(r => {
       const first = r[firstSeenCol];

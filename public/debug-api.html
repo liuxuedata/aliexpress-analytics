@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 调试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .error {
+            color: red;
+            background-color: #ffe6e6;
+            border-color: #ff9999;
+        }
+        .success {
+            color: green;
+            background-color: #e6ffe6;
+            border-color: #99ff99;
+        }
+        .test-case {
+            background: #f8f9fa;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <h1>API 调试页面</h1>
+    
+    <div class="container">
+        <h2>手动测试 API</h2>
+        <div class="form-group">
+            <label for="startDate">开始日期:</label>
+            <input type="date" id="startDate" value="2024-01-01">
+        </div>
+        <div class="form-group">
+            <label for="endDate">结束日期:</label>
+            <input type="date" id="endDate" value="2024-01-31">
+        </div>
+        <div class="form-group">
+            <label for="granularity">粒度:</label>
+            <select id="granularity">
+                <option value="day">日</option>
+                <option value="week">周</option>
+                <option value="month">月</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="site">站点:</label>
+            <input type="text" id="site" value="A站" placeholder="站点名称">
+        </div>
+        <button onclick="testAPI()">测试 API</button>
+        <button onclick="testAllCases()">测试所有情况</button>
+        <div id="result" class="result"></div>
+    </div>
+
+    <div class="container">
+        <h2>快速测试用例</h2>
+        <div class="test-case">
+            <strong>测试用例 1:</strong> 基本查询
+            <button onclick="runTest('2024-01-01', '2024-01-31', 'day', 'A站')">运行</button>
+        </div>
+        <div class="test-case">
+            <strong>测试用例 2:</strong> 周粒度
+            <button onclick="runTest('2024-01-01', '2024-01-31', 'week', 'A站')">运行</button>
+        </div>
+        <div class="test-case">
+            <strong>测试用例 3:</strong> 月粒度
+            <button onclick="runTest('2024-01-01', '2024-01-31', 'month', 'A站')">运行</button>
+        </div>
+        <div class="test-case">
+            <strong>测试用例 4:</strong> 无效粒度 (应该报错)
+            <button onclick="runTest('2024-01-01', '2024-01-31', 'invalid', 'A站')">运行</button>
+        </div>
+        <div class="test-case">
+            <strong>测试用例 5:</strong> 缺少参数 (应该报错)
+            <button onclick="runTest('', '2024-01-31', 'day', 'A站')">运行</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>环境信息</h2>
+        <div id="envInfo" class="result"></div>
+    </div>
+
+    <script>
+        function displayResult(data, isError = false) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result ' + (isError ? 'error' : 'success');
+            resultDiv.textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function testAPI() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const granularity = document.getElementById('granularity').value;
+            const site = document.getElementById('site').value;
+
+            if (!startDate || !endDate) {
+                displayResult({ error: '请填写开始和结束日期' }, true);
+                return;
+            }
+
+            const url = `/api/ae_query?start=${encodeURIComponent(startDate)}&end=${encodeURIComponent(endDate)}&granularity=${encodeURIComponent(granularity)}&site=${encodeURIComponent(site)}`;
+            
+            try {
+                console.log('请求 URL:', url);
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    displayResult({
+                        error: `HTTP ${response.status}: ${response.statusText}`,
+                        data: data
+                    }, true);
+                } else {
+                    displayResult({
+                        success: true,
+                        url: url,
+                        response: data
+                    });
+                }
+            } catch (error) {
+                displayResult({
+                    error: '网络错误',
+                    message: error.message,
+                    url: url
+                }, true);
+            }
+        }
+
+        async function runTest(start, end, granularity, site) {
+            document.getElementById('startDate').value = start;
+            document.getElementById('endDate').value = end;
+            document.getElementById('granularity').value = granularity;
+            document.getElementById('site').value = site;
+            await testAPI();
+        }
+
+        async function testAllCases() {
+            const testCases = [
+                { start: '2024-01-01', end: '2024-01-31', granularity: 'day', site: 'A站' },
+                { start: '2024-01-01', end: '2024-01-31', granularity: 'week', site: 'A站' },
+                { start: '2024-01-01', end: '2024-01-31', granularity: 'month', site: 'A站' },
+                { start: '2024-01-01', end: '2024-01-31', granularity: 'invalid', site: 'A站' },
+                { start: '', end: '2024-01-31', granularity: 'day', site: 'A站' }
+            ];
+
+            const results = [];
+            
+            for (const testCase of testCases) {
+                const url = `/api/ae_query?start=${encodeURIComponent(testCase.start)}&end=${encodeURIComponent(testCase.end)}&granularity=${encodeURIComponent(testCase.granularity)}&site=${encodeURIComponent(testCase.site)}`;
+                
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    results.push({
+                        testCase,
+                        url,
+                        status: response.status,
+                        success: response.ok,
+                        data: data
+                    });
+                } catch (error) {
+                    results.push({
+                        testCase,
+                        url,
+                        status: 'ERROR',
+                        success: false,
+                        error: error.message
+                    });
+                }
+            }
+
+            displayResult({
+                message: '所有测试用例结果',
+                results: results
+            });
+        }
+
+        // 显示环境信息
+        function showEnvInfo() {
+            const envInfo = {
+                userAgent: navigator.userAgent,
+                url: window.location.href,
+                timestamp: new Date().toISOString(),
+                localStorage: {
+                    currentSite: localStorage.getItem('currentSite')
+                }
+            };
+            
+            document.getElementById('envInfo').textContent = JSON.stringify(envInfo, null, 2);
+        }
+
+        // 页面加载时显示环境信息
+        showEnvInfo();
+    </script>
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修复测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+        .error {
+            border-color: #dc3545;
+            background: #f8d7da;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>API 修复测试</h1>
+    
+    <div class="test-section">
+        <h2>测试 ae_query API</h2>
+        <div class="form-group">
+            <label for="testSite">站点:</label>
+            <select id="testSite">
+                <option value="A站">A站</option>
+                <option value="B站">B站</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="testGranularity">粒度:</label>
+            <select id="testGranularity">
+                <option value="day">按日</option>
+                <option value="week">按周</option>
+                <option value="month">按月</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="testStartDate">开始日期:</label>
+            <input type="date" id="testStartDate" value="2024-01-01">
+        </div>
+        <div class="form-group">
+            <label for="testEndDate">结束日期:</label>
+            <input type="date" id="testEndDate" value="2024-01-07">
+        </div>
+        <button class="test-button" onclick="testAeQuery()">测试 ae_query API</button>
+        <div id="aeQueryResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>测试站点切换</h2>
+        <button class="test-button" onclick="testSiteSwitch()">测试站点切换</button>
+        <div id="siteSwitchResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>导航到修复后的页面</h2>
+        <button class="test-button" onclick="window.open('/self-operated.html', '_blank')">打开自运营页面</button>
+        <p>请在自运营页面中测试站点切换功能</p>
+    </div>
+
+    <script>
+        // 测试 ae_query API
+        async function testAeQuery() {
+            const resultDiv = document.getElementById('aeQueryResult');
+            const site = document.getElementById('testSite').value;
+            const granularity = document.getElementById('testGranularity').value;
+            const startDate = document.getElementById('testStartDate').value;
+            const endDate = document.getElementById('testEndDate').value;
+
+            resultDiv.textContent = '正在测试 ae_query API...';
+            resultDiv.className = 'result';
+
+            try {
+                const url = `/api/ae_query?start=${startDate}&end=${endDate}&granularity=${granularity}&site=${encodeURIComponent(site)}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (response.ok && data.ok) {
+                    resultDiv.textContent = `✅ ae_query API 测试成功:\n站点: ${site}\n粒度: ${granularity}\n日期范围: ${startDate} 到 ${endDate}\n返回记录数: ${data.rows ? data.rows.length : 0}`;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = `❌ ae_query API 测试失败:\n${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ 请求错误:\n${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // 测试站点切换
+        function testSiteSwitch() {
+            const resultDiv = document.getElementById('siteSwitchResult');
+            
+            // 模拟站点切换
+            const testSites = ['A站', 'B站', 'C站'];
+            let results = [];
+            
+            testSites.forEach(site => {
+                localStorage.setItem('currentSite', site);
+                const stored = localStorage.getItem('currentSite');
+                results.push(`${site}: ${stored === site ? '✅' : '❌'}`);
+            });
+            
+            resultDiv.textContent = `站点切换测试结果:\n${results.join('\n')}`;
+            resultDiv.className = 'result success';
+        }
+
+        // 页面加载时自动测试
+        window.onload = function() {
+            testSiteSwitch();
+        };
+    </script>
+</body>
+</html>

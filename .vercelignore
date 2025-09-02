@@ -1,0 +1,25 @@
+# 排除不必要的文件
+node_modules/
+.git/
+.gitignore
+README.md
+*.log
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 排除测试文件
+test-api-structure.js
+simple-deploy-check.js
+vercel-deploy-check.js
+deploy-trigger.md
+
+# 排除SQL文件
+*.sql
+
+# 排除Excel文件
+*.xlsx
+*.xls
+*.csv

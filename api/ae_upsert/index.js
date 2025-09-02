@@ -164,7 +164,7 @@ export default async function handler(req, res) {
     let upserted = 0;
     for (let i = 0; i < rows.length; i += CHUNK) {
       const chunk = rows.slice(i, i + CHUNK);
-      const { error } = await supabase.from(TABLE).upsert(chunk, { onConflict: 'product_id,stat_date' });
+              const { error } = await supabase.from(TABLE).upsert(chunk, { onConflict: 'site,product_id,stat_date' });
       if (error) {
         // 把错误返回成 JSON，避免前端提示 “不是 JSON ”
         return res.status(500).json({ error: error.message, chunk_from: i, chunk_to: i + CHUNK });

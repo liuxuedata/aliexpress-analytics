@@ -123,41 +123,45 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(detailLink)detailLink.href='ozon-detail.html';
     if(analysisLink)analysisLink.href='ozon-analysis.html';
   }else{
+    if(detailLink)detailLink.href='managed.html';
     if(analysisLink)analysisLink.href='operation-analysis.html';
   }
 
     const currentSiteEl=document.getElementById('currentSite');
   const addBtn=document.getElementById('addSite');
-  if(mode==='indep'){
-    if(addBtn) addBtn.style.display='none';
-    renderSiteMenus();
-    fetch('/api/independent/sites').then(r=>r.json()).then(j=>{
-      const sites=j.sites||[];
-      const paramSite=params.get('site');
-      const stored=localStorage.getItem('currentIndepSite');
-      let site=sites[0]||'';
-      if(paramSite && sites.includes(paramSite)) site=paramSite;
-      else if(stored && sites.includes(stored)) site=stored;
-      localStorage.setItem('currentIndepSite',site);
-      currentSiteEl.textContent=site;
-      document.title='产品分析 · '+site;
-      setupSelf('indep', site);
-    });
-    return;
-  }
   const siteListKey='managedSites';
   const currentSiteKey='currentSite';
   let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
   if(!Array.isArray(sites)||!sites.length){sites=mode==='self'?['A站','B站','C站']:['主站'];}
   function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));renderSiteMenus();}
   function updateCurrent(){
-    const name=localStorage.getItem(currentSiteKey)||sites[0];
-    if(mode==='self'){
-      currentSiteEl.textContent='自运营 '+name;
-    }else{
-      currentSiteEl.textContent=sites.length>1?'全托管 '+name:'全托管';
+    const currentSiteId = localStorage.getItem('currentSite');
+    const currentSiteName = localStorage.getItem('currentSiteName');
+    
+    // 如果有currentSiteName，直接使用它
+    if (currentSiteName) {
+      currentSiteEl.textContent = currentSiteName;
+    } else if (currentSiteId) {
+      // 如果有currentSiteId但没有名称，根据ID判断
+      if (currentSiteId.startsWith('ae_self_operated')) {
+        currentSiteEl.textContent = '自运营';
+      } else {
+        currentSiteEl.textContent = '全托管';
+      }
+    } else {
+      // 如果都没有，使用默认逻辑
+      const name = localStorage.getItem(currentSiteKey) || sites[0];
+      if (mode === 'self') {
+        currentSiteEl.textContent = '自运营 ' + name;
+      } else {
+        currentSiteEl.textContent = sites.length > 1 ? '全托管 ' + name : '全托管';
+      }
     }
-    localStorage.setItem(currentSiteKey,name);
+    
+    // 保存当前站点名称到localStorage
+    if (currentSiteName) {
+      localStorage.setItem(currentSiteKey, currentSiteName);
+    }
   }
   currentSiteEl.addEventListener('dblclick',()=>{
     const cur=localStorage.getItem(currentSiteKey)||sites[0];
@@ -171,10 +175,32 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
   renderSiteMenus();
   updateCurrent();
-  if(mode==='self')
+  
+  // 检测当前页面类型：如果有mode=self参数或者从自运营页面访问，使用自运营模式
+  const isFromSelfOperated = document.referrer.includes('self-operated.html') || 
+                            document.referrer.includes('index.html') ||
+                            localStorage.getItem('currentSite')?.startsWith('ae_self_operated');
+  
+  // 获取当前站点ID和名称
+  const currentSiteId = localStorage.getItem('currentSite');
+  const currentSiteName = localStorage.getItem('currentSiteName');
+  
+  console.log('产品分析页面模式检测:', { 
+    mode, 
+    isFromSelfOperated, 
+    referrer: document.referrer,
+    currentSiteId,
+    currentSiteName
+  });
+  
+  // 根据当前站点ID判断使用哪种模式
+  if(mode==='self' || isFromSelfOperated || (currentSiteId && currentSiteId.startsWith('ae_self_operated'))){
+    console.log('使用自运营模式，站点:', currentSiteId);
     setupSelf('self');
-  else
+  }else{
+    console.log('使用全托管模式，站点:', currentSiteId); 
     setupFM();
+  }
 function card(title,cur,prev,isPct,avg,share){
     const diff=(cur-prev)||0;
     const arrow=diff>=0?'↑':'↓';
@@ -197,12 +223,33 @@ function card(title,cur,prev,isPct,avg,share){
 
   function setupFM(){
     const ctrl=document.getElementById('ctrl');
-    ctrl.innerHTML='<label>粒度</label><label><input type="radio" name="gran" value="week"> 周</label><label><input type="radio" name="gran" value="month"> 月</label><select id="periodSelect" class="sel"></select>';
+    ctrl.innerHTML='<div class="date-controls"><span>时间粒度：</span><button class="granularity-btn active" data-granularity="week">按周</button><button class="granularity-btn" data-granularity="month">按月</button><span style="margin-left: 20px;">周期：</span><select id="periodSelect" class="sel" style="margin-left: 8px;"></select></div>';
+    
+    // 添加粒度按钮事件
+    document.querySelectorAll('.granularity-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.granularity-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        const granularity = e.target.dataset.granularity;
+        localStorage.setItem('fmGranularity', granularity);
+        loadPeriods();
+      });
+    });
+    
     const state={ granularity: localStorage.getItem('fmGranularity')||'week', periods: [] };
-    document.querySelector(`input[name="gran"][value="${state.granularity}"]`).checked=true;
-    document.querySelectorAll('input[name="gran"]').forEach(r=>r.addEventListener('change',e=>{state.granularity=e.target.value;localStorage.setItem('fmGranularity',state.granularity);loadPeriods();}));
+    // 设置默认选中的粒度按钮
+    const activeBtn = document.querySelector(`[data-granularity="${state.granularity}"]`);
+    if (activeBtn) {
+      document.querySelectorAll('.granularity-btn').forEach(b => b.classList.remove('active'));
+      activeBtn.classList.add('active');
+    }
+    
     document.getElementById('periodSelect').addEventListener('change',loadData);
     function loadPeriods(){
+      // 从当前激活的按钮获取粒度
+      const activeBtn = document.querySelector('.granularity-btn.active');
+      const granularity = activeBtn ? activeBtn.dataset.granularity : 'week';
+      state.granularity = granularity;
       fetch('/api/periods').then(r=>r.json()).then(j=>{
         const list=(state.granularity==='week'?j.weeks:j.months)||[];
         state.periods=list.slice();
@@ -284,7 +331,10 @@ function card(title,cur,prev,isPct,avg,share){
           card('总曝光量',cur.exp,prev.exp,false,null,shareExp),
           card('总访客数',cur.uv,prev.uv,false,null,shareUv),
           card('总加购人数',cur.add,prev.add,false,null,shareAdd),
-          card('总支付买家数',cur.pay,prev.pay,false,null,sharePay)
+          card('总支付买家数',cur.pay,prev.pay,false,null,sharePay),
+          card('曝光商品数',cur.exp > 0 ? 1 : 0, prev.exp > 0 ? 1 : 0, false),
+          card('加购商品数',cur.add > 0 ? 1 : 0, prev.add > 0 ? 1 : 0, false),
+          card('支付商品数',cur.pay > 0 ? 1 : 0, prev.pay > 0 ? 1 : 0, false)
         ].join('');
         const dates=[...rowsA,...rowsB].filter(x=>String(x.product_id)===String(pid)).map(x=>x.period_start||x.period_end||'').filter(Boolean).sort();
         document.getElementById('listingDate').textContent=dates.length?`上架日期：${dates[0]}`:'';
@@ -305,11 +355,15 @@ function card(title,cur,prev,isPct,avg,share){
     const ctrl=document.getElementById('ctrl');
     ctrl.innerHTML='<input id="dateRange" class="date-filter" placeholder="选择日期范围">';
     const input=document.getElementById('dateRange');
-    const key=mode==='indep'?`indepPeriod_${siteParam}`:'selfPeriod';
+    const currentSiteId = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+    const key=mode==='indep'?`indepPeriod_${siteParam}`:`selfPeriod_${currentSiteId}`;
     const fp=flatpickr(input,{mode:'range',dateFormat:'Y-m-d',onClose:ds=>{if(ds.length===2)loadData();}});
     const stored=localStorage.getItem(key);
     if(stored && stored.includes(' to ')) input.value=stored; else {
-      const today=new Date(); const end=today.toISOString().slice(0,10); const start=new Date(today.getTime()-6*86400000).toISOString().slice(0,10); const def=`${start} to ${end}`; input.value=def; localStorage.setItem(key,def);
+      const today=new Date(); const end=today.toISOString().slice(0,10); 
+// 如果今天是2024年或更早，使用2025-07-01作为开始日期
+const start = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime()-30*86400000).toISOString().slice(0,10); 
+const def=`${start} to ${end}`; input.value=def; localStorage.setItem(key,def);
     }
     async function loadData(){
       const val=input.value; if(!val.includes(' to '))return; const [startISO,endISO]=val.split(' to '); localStorage.setItem(key,`${startISO} to ${endISO}`);
@@ -325,8 +379,8 @@ function card(title,cur,prev,isPct,avg,share){
           return;
         }
         const [rowsAggA,rowsAggB,rowsDayA,rowsDayB]=await Promise.all([
-          fetchAgg(startISO,endISO,'period'),
-          fetchAgg(prevStart,prevEnd,'period'),
+                  fetchAgg(startISO,endISO,'day'),
+        fetchAgg(prevStart,prevEnd,'day'),
           fetchAgg(startISO,endISO,'day'),
           fetchAgg(prevStart,prevEnd,'day')
         ]);
@@ -346,10 +400,29 @@ function card(title,cur,prev,isPct,avg,share){
         if(!resp.ok || (j.ok!==undefined && !j.ok)) throw new Error(j.error||'查询失败');
         return j.table||j.rows||[];
       }
-      const url=`/api/ae_query?start=${start}&end=${end}&granularity=${gran}`;
+      let currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+      
+      // 确保使用正确的站点ID格式
+      if (currentSite === 'A站' || currentSite === '自运营robot站') {
+        currentSite = 'ae_self_operated_a';
+        localStorage.setItem('currentSite', currentSite);
+      }
+      
+      // 如果当前站点是Poolslab，使用正确的站点ID
+      if (currentSite === 'Poolslab运动娱乐' || currentSite === 'poolslab') {
+        currentSite = 'ae_self_operated_poolslab';
+      }
+      
+      console.log('产品分析fetchAgg调用参数:', { start, end, gran, currentSite });
+      
+      const url=`/api/ae_query?start=${start}&end=${end}&granularity=${gran}&site=${encodeURIComponent(currentSite)}`;
+      console.log('产品分析fetchAgg请求URL:', url);
+      
       const resp=await fetch(url);
       const txt=await resp.text(); let j; try{ j=JSON.parse(txt);} catch(e){ throw new Error('Query API响应不是JSON：'+txt.slice(0,200)); }
       if(!resp.ok || (j.ok!==undefined && !j.ok)) throw new Error(j.error||'查询失败');
+      
+      console.log('产品分析fetchAgg响应:', { rows: j.rows?.length || 0, site: currentSite });
       return j.rows||[];
     }
     function periodShift(startISO,endISO){
@@ -480,7 +553,10 @@ function card(title,cur,prev,isPct,avg,share){
           card('总曝光量',cur.exp,prev.exp,false,null,shareExp),
           card(uvTotalLabel,cur.uv,prev.uv,false,null,shareUv),
           card(addTotalLabel,cur.add,prev.add,false,null,shareAdd),
-          card('总支付买家数',cur.pay,prev.pay,false,null,sharePay)
+          card('总支付买家数',cur.pay,prev.pay,false,null,sharePay),
+          card('曝光商品数',cur.exp > 0 ? 1 : 0, prev.exp > 0 ? 1 : 0, false),
+          card('加购商品数',cur.add > 0 ? 1 : 0, prev.add > 0 ? 1 : 0, false),
+          card('支付商品数',cur.pay > 0 ? 1 : 0, prev.pay > 0 ? 1 : 0, false)
         ].join('');
         line(pid);
         const dates=[...rowsDayA,...rowsDayB].filter(r=>String(getId(r))===String(pid)).map(r=>mode==='indep'?r.day:r.bucket).sort();

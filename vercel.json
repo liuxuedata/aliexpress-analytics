@@ -12,26 +12,79 @@
   ],
   "routes": [
     {
-      "src": "^/api/(.*)$",
+      "src": "/api/site-configs",
+      "dest": "/api/site-configs/index.js"
+    },
+
+    {
+      "src": "/api/site-configs/delete",
+      "dest": "/api/site-configs/delete.js"
+    },
+    {
+      "src": "/api/site-configs/update",
+      "dest": "/api/site-configs/update.js"
+    },
+    {
+      "src": "/api/site-sync",
+      "dest": "/api/site-sync/index.js"
+    },
+    {
+      "src": "/api/data-source-templates",
+      "dest": "/api/data-source-templates/index.js"
+    },
+    {
+      "src": "/api/dynamic-ingest/(.*)",
+      "dest": "/api/dynamic-ingest/[siteId].js"
+    },
+    {
+      "src": "/api/dynamic-ingest/(.*)/generate-test-data",
+      "dest": "/api/dynamic-ingest/[siteId]/generate-test-data.js"
+    },
+    {
+      "src": "/api/test",
+      "dest": "/api/test.js"
+    },
+    {
+      "src": "/api/test-site-configs",
+      "dest": "/api/test-site-configs.js"
+    },
+    {
+      "src": "/api/test-data-isolation",
+      "dest": "/api/test-data-isolation.js"
+    },
+    {
+      "src": "/api/create-views",
+      "dest": "/api/create-views/index.js"
+    },
+    {
+      "src": "/api/health",
+      "dest": "/api/health.js"
+    },
+    {
+      "src": "/api/sites",
+      "dest": "/api/sites/index.js"
+    },
+    {
+      "src": "/api/independent/facebook-ingest",
+      "dest": "/api/independent/facebook-ingest/index.js"
+    },
+    {
+      "src": "/api/(.*)",
       "dest": "/api/$1"
     },
     {
-      "src": "^/$",
+      "src": "/",
       "dest": "/public/index.html"
     },
     {
-      "src": "^(?!/api/)(.*)$",
+      "src": "/(.*)",
       "dest": "/public/$1"
     }
   ],
   "crons": [
     {
-      "path": "/api/ozon/sync?days=1",
-      "schedule": "0 19 * * *"
-    },
-    {
-      "path": "/api/amazon/cron-daily",
-      "schedule": "0 0 * * *"
+      "path": "/api/ozon/ingest",
+      "schedule": "0 2 * * *"
     }
   ]
 }

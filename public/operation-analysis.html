@@ -10,7 +10,204 @@
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
-  <style>.kpi-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:12px}</style>
+  <style>
+    .kpi-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:12px}
+    
+    /* KPI对比卡片样式 */
+    .kpi-comparison-section {
+      margin-bottom: 30px;
+    }
+    
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+                   .kpi-card {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 24px;
+        color: #111827;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border: 1px solid #e5e7eb;
+      }
+    
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    .kpi-card h4 {
+      margin: 0 0 12px 0;
+      font-size: 15px;
+      font-weight: 600;
+      opacity: 1;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #374151;
+    }
+    
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #111827;
+    }
+    
+    .kpi-comparison {
+      font-size: 13px;
+      opacity: 1;
+      color: #6b7280;
+    }
+    
+    .comparison-label {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+    
+    .comparison-value {
+      font-weight: 700;
+      margin-right: 8px;
+      color: #111827;
+    }
+    
+    .trend {
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+    }
+    
+    .trend.up {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+    }
+    
+    .trend.down {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+    
+         /* 新增：KPI图表容器样式 */
+     .kpi-chart-container {
+       position: relative;
+       height: 180px;
+     }
+    
+    /* 数据加载状态样式 */
+    .loading-status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 16px;
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      color: #374151;
+    }
+    .loading-status.error {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #dc2626;
+    }
+    .loading-status.success {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      color: #166534;
+    }
+    .loading-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #e5e7eb;
+      border-top: 2px solid #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* 图表区域样式 */
+    .charts-section {
+      margin-top: 40px;
+    }
+    
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 24px;
+    }
+    
+    .chart-panel {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e5e7eb;
+    }
+    
+    .chart-panel h4 {
+      margin: 0 0 16px 0;
+      color: #1f2937;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    /* 时间粒度按钮样式 */
+    .date-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    
+    .granularity-btn {
+      padding: 6px 16px;
+      border: 1px solid #d1d5db;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+    
+    .granularity-btn:hover {
+      background: #f9fafb;
+      border-color: #9ca3af;
+    }
+    
+    .granularity-btn.active {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+    
+    .date-filter {
+      padding: 6px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      min-width: 200px;
+    }
+    
+    .date-filter:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+  </style>
 </head>
 <body>
 <header class="header">
@@ -49,19 +246,88 @@
   <main class="main">
     <div class="content">
       <section class="content-pad">
-        <div id="ctrl" class="controls" style="margin-bottom:12px;"></div>
-        <div class="kpi-row"><div class="stat-card"><h4>产品总数</h4><p id="prodTotal">--</p></div></div>
-        <div class="grid grid-2">
-          <div class="panel"><h3>曝光量</h3><div id="expChart" style="width:100%;height:260px;"></div></div>
-          <div class="panel"><h3>访客数</h3><div id="uvChart" style="width:100%;height:260px;"></div></div>
-          <div class="panel"><h3>加购次数</h3><div id="cartChart" style="width:100%;height:260px;"></div></div>
-          <div class="panel"><h3>支付订单数</h3><div id="payChart" style="width:100%;height:260px;"></div></div>
-          <div class="panel"><h3>曝光商品数</h3><div id="expProdChart" style="width:100%;height:260px;"></div></div>
-          <div class="panel"><h3>加购商品数</h3><div id="cartProdChart" style="width:100%;height:260px;"></div></div>
-          <div class="panel"><h3>支付商品数</h3><div id="payProdChart" style="width:100%;height:260px;"></div></div>
-          <div class="panel"><h3>访客比</h3><div id="uvRateChart" style="width:100%;height:260px;"></div></div>
-          <div class="panel"><h3>加购比</h3><div id="cartRateChart" style="width:100%;height:260px;"></div></div>
-          <div class="panel"><h3>支付比</h3><div id="payRateChart" style="width:100%;height:260px;"></div></div>
+        <!-- 数据加载状态提示 -->
+        <div id="loadingStatus" class="loading-status" style="display:none;">
+          <div class="loading-spinner"></div>
+          <span id="loadingText">数据加载中...</span>
+        </div>
+        
+        <div id="ctrl" class="controls" style="margin-bottom:20px;"></div>
+        
+        <!-- 顶部KPI卡片 - 本周期 vs 上一周期对比 -->
+        <div class="kpi-comparison-section">
+          <h3 style="margin-bottom: 16px; color: #1f2937; font-size: 18px;">本周期 vs 上一周期对比</h3>
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <h4>曝光量</h4>
+                             <div class="kpi-chart-container">
+                 <div id="expChart" style="width:100%;height:160px;"></div>
+               </div>
+            </div>
+            <div class="kpi-card">
+              <h4>访客数</h4>
+                             <div class="kpi-chart-container">
+                 <div id="uvChart" style="width:100%;height:160px;"></div>
+               </div>
+            </div>
+            <div class="kpi-card">
+              <h4>加购次数</h4>
+                             <div class="kpi-chart-container">
+                 <div id="cartChart" style="width:100%;height:160px;"></div>
+               </div>
+            </div>
+            <div class="kpi-card">
+              <h4>支付订单数</h4>
+                             <div class="kpi-chart-container">
+                 <div id="payChart" style="width:100%;height:160px;"></div>
+               </div>
+            </div>
+            <div class="kpi-card">
+              <h4>曝光商品数</h4>
+                             <div class="kpi-chart-container">
+                 <div id="expProdChart" style="width:100%;height:160px;"></div>
+               </div>
+            </div>
+            <div class="kpi-card">
+              <h4>加购商品数</h4>
+                             <div class="kpi-chart-container">
+                 <div id="cartProdChart" style="width:100%;height:160px;"></div>
+               </div>
+            </div>
+            <div class="kpi-card">
+              <h4>支付商品数</h4>
+                             <div class="kpi-chart-container">
+                 <div id="payProdChart" style="width:100%;height:160px;"></div>
+               </div>
+            </div>
+            <div class="kpi-card">
+              <h4>产品总数</h4>
+              <div class="kpi-value" id="prodTotal">-</div>
+              <div class="kpi-comparison">
+                <span class="comparison-label">当前状态</span>
+                <span class="comparison-value">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 图表区域 -->
+        <div class="charts-section">
+          <h3 style="margin: 30px 0 20px 0; color: #1f2937; font-size: 18px;">趋势分析</h3>
+          <div class="charts-grid">
+            <div class="chart-panel">
+              <h4>访客比趋势</h4>
+              <div id="uvRateChart" style="width:100%;height:300px;"></div>
+            </div>
+            <div class="chart-panel">
+              <h4>加购比趋势</h4>
+              <div id="cartRateChart" style="width:100%;height:300px;"></div>
+            </div>
+            <div class="chart-panel">
+              <h4>支付比趋势</h4>
+              <div id="payRateChart" style="width:100%;height:300px;"></div>
+            </div>
+          </div>
         </div>
       </section>
     </div>
@@ -86,13 +352,33 @@ document.addEventListener('DOMContentLoaded',()=>{
   const currentSiteEl=document.getElementById('currentSite');
   function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));renderSiteMenus();}
   function updateCurrent(){
-    const name=localStorage.getItem(currentSiteKey)||sites[0];
-    if(mode==='self'){
-      currentSiteEl.textContent='自运营 '+name;
-    }else{
-      currentSiteEl.textContent=sites.length>1?'全托管 '+name:'全托管';
+    const currentSiteId = localStorage.getItem('currentSite');
+    const currentSiteName = localStorage.getItem('currentSiteName');
+    
+    // 如果有currentSiteName，直接使用它
+    if (currentSiteName) {
+      currentSiteEl.textContent = currentSiteName;
+    } else if (currentSiteId) {
+      // 如果有currentSiteId但没有名称，根据ID判断
+      if (currentSiteId.startsWith('ae_self_operated')) {
+        currentSiteEl.textContent = '自运营';
+      } else {
+        currentSiteEl.textContent = '全托管';
+      }
+    } else {
+      // 如果都没有，使用默认逻辑
+      const name = localStorage.getItem(currentSiteKey) || sites[0];
+      if (mode === 'self') {
+        currentSiteEl.textContent = '自运营 ' + name;
+      } else {
+        currentSiteEl.textContent = sites.length > 1 ? '全托管 ' + name : '全托管';
+      }
     }
-    localStorage.setItem(currentSiteKey,name);
+    
+    // 保存当前站点名称到localStorage
+    if (currentSiteName) {
+      localStorage.setItem(currentSiteKey, currentSiteName);
+    }
   }
   currentSiteEl.addEventListener('dblclick',()=>{
     const cur=localStorage.getItem(currentSiteKey)||sites[0];
@@ -114,67 +400,219 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
   }
 
-  if(mode==='self'){
+  // 检测当前页面类型：如果有mode=self参数或者从自运营页面访问，使用自运营模式
+  const isFromSelfOperated = document.referrer.includes('self-operated.html') || 
+                            document.referrer.includes('index.html') ||
+                            localStorage.getItem('currentSite')?.startsWith('ae_self_operated');
+  
+  // 获取当前站点ID和名称
+  let currentSiteId = localStorage.getItem('currentSite');
+  const currentSiteName = localStorage.getItem('currentSiteName');
+  
+  // 如果没有设置currentSite，根据模式设置默认值
+  if (!currentSiteId) {
+    if (mode === 'self') {
+      currentSiteId = 'ae_self_operated_a';
+      localStorage.setItem('currentSite', currentSiteId);
+      console.log('设置默认自运营站点:', currentSiteId);
+    } else {
+      currentSiteId = 'managed_stats';
+      localStorage.setItem('currentSite', currentSiteId);
+      console.log('设置默认全托管站点:', currentSiteId);
+    }
+  }
+  
+  console.log('运营分析页面模式检测:', { 
+    mode, 
+    isFromSelfOperated, 
+    referrer: document.referrer,
+    currentSiteId,
+    currentSiteName
+  });
+  
+  // 根据当前站点ID判断使用哪种模式
+  if(mode==='self' || isFromSelfOperated || (currentSiteId && currentSiteId.startsWith('ae_self_operated'))){
+    console.log('使用自运营模式，站点:', currentSiteId);
     setupSelf();
   }else{
+    console.log('使用全托管模式，站点:', currentSiteId); 
     setupFM();
   }
 
   async function loadProdTotal(){
-    const platform=mode==='self'?'self':'managed';
+    const currentSiteId = localStorage.getItem('currentSite');
+    let platform = 'managed';
+    let site = '';
+    
+    // 根据当前站点ID确定平台和站点
+    if (currentSiteId && currentSiteId.startsWith('ae_self_operated')) {
+      platform = 'self';
+      // 从currentSiteId中提取站点名称
+      if (currentSiteId === 'ae_self_operated_a') {
+        site = 'A站';
+      } else if (currentSiteId === 'ae_self_operated_poolslab') {
+        site = 'Poolslab运动娱乐';
+      } else {
+        // 如果currentSiteId包含其他站点信息，提取站点名称
+        site = currentSiteId.replace('ae_self_operated_', '');
+      }
+    } else if (currentSiteId && currentSiteId.startsWith('indep_')) {
+      platform = 'indep';
+    } else if (currentSiteId === 'managed_stats' || currentSiteId === 'ae_managed') {
+      // 全托管平台
+      platform = 'managed';
+      site = 'managed_stats'; // 全托管使用 managed_stats 作为站点标识
+    }
+    
     const today=new Date().toISOString().slice(0,10);
     const qs=new URLSearchParams({platform,from:'2000-01-01',to:today,limit:'5000'});
+    
+    // 如果是自运营或全托管平台且有站点信息，添加站点参数
+    if ((platform === 'self' || platform === 'managed') && site) {
+      qs.set('site', site);
+    }
+    
+    console.log('loadProdTotal调用参数:', { platform, currentSiteId, site, qs: qs.toString() });
+    
     try{
       const r=await fetch('/api/new-products?'+qs.toString());
       const j=await r.json();
-      document.getElementById('prodTotal').textContent=j.new_count||0;
+      
+      const newCount = j.new_count || 0;
+      document.getElementById('prodTotal').textContent=newCount;
+      console.log('loadProdTotal结果:', { platform, currentSiteId, site, newCount, items: j.items?.length || 0 });
     }catch(e){
-      console.error(e);
+      console.error('loadProdTotal错误:', e);
       document.getElementById('prodTotal').textContent='0';
     }
   }
   loadProdTotal();
 
-  function renderBar(id,m){
-    const chart=echarts.init(document.getElementById(id));
-    chart.setOption({
-      tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
-      xAxis:{type:'category',data:['本周期','上一周期']},
-      yAxis:{type:'value'},
-      series:[{
-        type:'bar',
-        data:[{value:m.cur,itemStyle:{color:'#3b82f6'}},{value:m.prev,itemStyle:{color:'#94a3b8'}}],
-        label:{show:true,position:'top'}
-      }]
-    });
-    window.addEventListener('resize',()=>chart.resize());
-  }
+     function renderBar(id,m){
+     const element = document.getElementById(id);
+     if (!element) {
+       console.warn(`图表容器元素 ${id} 不存在，跳过渲染`);
+       return;
+     }
+     
+     try {
+       const chart=echarts.init(element);
+       chart.setOption({
+         backgroundColor: 'transparent',
+         tooltip:{
+           trigger:'axis',
+           axisPointer:{type:'shadow'},
+           backgroundColor: 'rgba(0,0,0,0.9)',
+           borderColor: 'rgba(0,0,0,0.2)',
+           textStyle: { color: '#fff' },
+           formatter: function(params) {
+             return `${params[0].name}<br/>${params[0].seriesName}: ${params[0].value.toLocaleString()}`;
+           }
+         },
+         grid: {
+           left: '10%',
+           right: '10%',
+           top: '15%',
+           bottom: '15%'
+         },
+         xAxis:{
+           type:'category',
+           data:['本周期','上一周期'],
+           axisLine: { lineStyle: { color: '#d1d5db' } },
+           axisLabel: { color: '#374151', fontSize: 12 }
+         },
+         yAxis:{
+           type:'value',
+           axisLine: { lineStyle: { color: '#d1d5db' } },
+           axisLabel: { color: '#6b7280', fontSize: 10 },
+           splitLine: { lineStyle: { color: '#f3f4f6' } }
+         },
+         series:[{
+           type:'bar',
+           barWidth: '60%',
+           data:[
+             {value:m.cur,itemStyle:{color:'#1e40af',borderRadius:[4,4,0,0]}},
+             {value:m.prev,itemStyle:{color:'#6b7280',borderRadius:[4,4,0,0]}}
+           ],
+           label:{
+             show:true,
+             position:'top',
+             color: '#111827',
+             fontSize: 13,
+             fontWeight: 'bold',
+             formatter: function(params) {
+               return params.value.toLocaleString();
+             }
+           }
+         }]
+       });
+       window.addEventListener('resize',()=>chart.resize());
+       
+       // 更新总数显示
+       const totalElement = document.getElementById(id.replace('Chart', 'Total'));
+       if (totalElement) {
+         totalElement.textContent = m.cur.toLocaleString();
+       }
+     } catch (error) {
+       console.error(`渲染图表 ${id} 时出错:`, error);
+     }
+   }
 
   function renderLine(id,series){
-    const chart=echarts.init(document.getElementById(id));
-    chart.setOption({
-      tooltip:{trigger:'axis',formatter:p=>p.map(x=>`${x.seriesName}: ${x.data.toFixed(2)}%`).join('<br>')},
-      xAxis:{type:'category',data:series.labels},
-      yAxis:{type:'value',axisLabel:{formatter:'{value}%'}},
-      series:[
-        {name:'本周期',type:'line',smooth:true,data:series.cur},
-        {name:'上一周期',type:'line',smooth:true,data:series.prev}
-      ]
-    });
-    window.addEventListener('resize',()=>chart.resize());
+    const element = document.getElementById(id);
+    if (!element) {
+      console.warn(`图表容器元素 ${id} 不存在，跳过渲染`);
+      return;
+    }
+    
+    try {
+      const chart=echarts.init(element);
+      chart.setOption({
+        tooltip:{trigger:'axis',formatter:p=>p.map(x=>`${x.seriesName}: ${x.data.toFixed(2)}%`).join('<br>')},
+        xAxis:{type:'category',data:series.labels},
+        yAxis:{type:'value',axisLabel:{formatter:'{value}%'}},
+        series:[
+          {name:'本周期',type:'line',smooth:true,data:series.cur},
+          {name:'上一周期',type:'line',smooth:true,data:series.prev}
+        ]
+      });
+      window.addEventListener('resize',()=>chart.resize());
+    } catch (error) {
+      console.error(`渲染图表 ${id} 时出错:`, error);
+    }
   }
 
   function setupFM(){
     const ctrl=document.getElementById('ctrl');
-    ctrl.innerHTML='<label>粒度</label><label><input type="radio" name="gran" value="week"> 周</label><label><input type="radio" name="gran" value="month"> 月</label><select id="periodSelect" class="sel"></select>';
+    ctrl.innerHTML='<div class="date-controls"><span>时间粒度：</span><button class="granularity-btn active" data-granularity="week">按周</button><button class="granularity-btn" data-granularity="month">按月</button><span style="margin-left: 20px;">周期：</span><select id="periodSelect" class="sel" style="margin-left: 8px;"></select></div>';
+    
+    // 添加粒度按钮事件
+    document.querySelectorAll('.granularity-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.granularity-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        const granularity = e.target.dataset.granularity;
+        localStorage.setItem('fmGranularity', granularity);
+        loadPeriods();
+      });
+    });
+    
     const state={ granularity: localStorage.getItem('fmGranularity')||'week', periods: [] };
-    document.querySelector(`input[name="gran"][value="${state.granularity}"]`).checked=true;
-    document.querySelectorAll('input[name="gran"]').forEach(r=>r.addEventListener('change',e=>{
-      state.granularity=e.target.value; localStorage.setItem('fmGranularity',state.granularity); loadPeriods();
-    }));
+    // 设置默认选中的粒度按钮
+    const activeBtn = document.querySelector(`[data-granularity="${state.granularity}"]`);
+    if (activeBtn) {
+      document.querySelectorAll('.granularity-btn').forEach(b => b.classList.remove('active'));
+      activeBtn.classList.add('active');
+    }
+    
     document.getElementById('periodSelect').addEventListener('change',loadData);
 
     async function loadPeriods(){
+      // 从当前激活的按钮获取粒度
+      const activeBtn = document.querySelector('.granularity-btn.active');
+      const granularity = activeBtn ? activeBtn.dataset.granularity : 'week';
+      state.granularity = granularity;
+      
       const r=await fetch('/api/periods'); const j=await r.json();
       const list=(state.granularity==='week'?j.weeks:j.months)||[];
       state.periods=list.slice();
@@ -196,71 +634,334 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(period)qsA.set('period_end',period);
       const qsB=new URLSearchParams({granularity:state.granularity});
       if(prev)qsB.set('period_end',prev);
-      const [ra,rb]=await Promise.all([
-        fetch('/api/stats?'+qsA.toString()),
-        prev?fetch('/api/stats?'+qsB.toString()):Promise.resolve(null)
-      ]);
-      const ja=await ra.json();
-      const jb=rb?await rb.json():{rows:[]};
-      const rowsA=ja.rows||[]; const rowsB=jb.rows||[];
+      
+      // 显示加载状态
+      showLoadingStatus('数据加载中...');
+      
+      console.log('全托管loadData开始加载数据:', { period, prev, granularity: state.granularity });
+      
+      // 初始化变量
+      let rowsA = [];
+      let rowsB = [];
+      
+      try {
+        const [ra,rb]=await Promise.all([
+          fetch('/api/stats?'+qsA.toString()),
+          prev?fetch('/api/stats?'+qsB.toString()):Promise.resolve(null)
+        ]);
+        const ja=await ra.json();
+        const jb=rb?await rb.json():{rows:[]};
+        rowsA=ja.rows||[]; rowsB=jb.rows||[];
+        
+        // 显示成功状态
+        showSuccessStatus('数据加载完成');
+        
+      } catch (error) {
+        console.error('全托管数据加载失败:', error);
+        showErrorStatus('数据加载失败，请重试');
+        
+        // 清空图表并显示"暂无数据"
+        ['expChart', 'uvChart', 'cartChart', 'payChart', 'expProdChart', 'cartProdChart', 'payProdChart'].forEach(id => {
+          const element = document.getElementById(id);
+          if (element) {
+            try {
+              const chart = echarts.init(element);
+              chart.clear();
+              chart.setOption({
+                title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999' } }
+              });
+            } catch (error) {
+              console.error(`清空图表 ${id} 时出错:`, error);
+            }
+          }
+        });
+        return;
+      }
+      
+      console.log('全托管loadData获取到数据:', { rowsA: rowsA.length, rowsB: rowsB.length });
+      
+      // 检查是否有数据
+      if (rowsA.length === 0 && rowsB.length === 0) {
+        console.log('全托管当前站点没有数据，显示空状态');
+        
+        // 清空图表并显示"暂无数据"
+        ['expChart', 'uvChart', 'cartChart', 'payChart', 'expProdChart', 'cartProdChart', 'payProdChart'].forEach(id => {
+          const element = document.getElementById(id);
+          if (element) {
+            try {
+              const chart = echarts.init(element);
+              chart.clear();
+              chart.setOption({
+                title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999' } }
+              });
+            } catch (error) {
+              console.error(`清空图表 ${id} 时出错:`, error);
+            }
+          }
+        });
+        return;
+      }
+      
       function sumExp(rows){return rows.reduce((s,r)=>s+Number(r.search_exposure||r.exposure||r.pv||0),0);}
       const sum= (rows,key)=>rows.reduce((s,r)=>s+Number(r[key]||0),0);
-      renderBar('expChart',{cur:sumExp(rowsA),prev:sumExp(rowsB)});
-      renderBar('uvChart',{cur:sum(rowsA,'uv'),prev:sum(rowsB,'uv')});
-      renderBar('cartChart',{cur:sum(rowsA,'add_to_cart_users'),prev:sum(rowsB,'add_to_cart_users')});
-      renderBar('payChart',{cur:sum(rowsA,'pay_buyers'),prev:sum(rowsB,'pay_buyers')});
+      
+      // 计算数据
+      const curExp = sumExp(rowsA);
+      const prevExp = sumExp(rowsB);
+      const curUv = sum(rowsA,'uv');
+      const prevUv = sum(rowsB,'uv');
+      const curCart = sum(rowsA,'add_to_cart_users');
+      const prevCart = sum(rowsB,'add_to_cart_users');
+      const curPay = sum(rowsA,'pay_buyers');
+      const prevPay = sum(rowsB,'pay_buyers');
+      
       const prodExp=rows=>{const set=new Set();rows.forEach(r=>{if(Number(r.search_exposure||r.exposure||r.pv||0)>0)set.add(r.product_id);});return set.size;};
       const prodAdd=rows=>{const set=new Set();rows.forEach(r=>{if(Number(r.add_to_cart_users||0)>0)set.add(r.product_id);});return set.size;};
       const prodPay=rows=>{const set=new Set();rows.forEach(r=>{if(Number(r.pay_buyers||0)>0)set.add(r.product_id);});return set.size;};
-      renderBar('expProdChart',{cur:prodExp(rowsA),prev:prodExp(rowsB)});
-      renderBar('cartProdChart',{cur:prodAdd(rowsA),prev:prodAdd(rowsB)});
-      renderBar('payProdChart',{cur:prodPay(rowsA),prev:prodPay(rowsB)});
+      
+      const curExpProd = prodExp(rowsA);
+      const prevExpProd = prodExp(rowsB);
+      const curCartProd = prodAdd(rowsA);
+      const prevCartProd = prodAdd(rowsB);
+      const curPayProd = prodPay(rowsA);
+      const prevPayProd = prodPay(rowsB);
+      
+      // 渲染柱状图对比（这些会自动更新总数显示）
+      renderBar('expChart',{cur:curExp,prev:prevExp});
+      renderBar('uvChart',{cur:curUv,prev:prevUv});
+      renderBar('cartChart',{cur:curCart,prev:prevCart});
+      renderBar('payChart',{cur:curPay,prev:prevPay});
+      renderBar('expProdChart',{cur:curExpProd,prev:prevExpProd});
+      renderBar('cartProdChart',{cur:curCartProd,prev:prevCartProd});
+      renderBar('payProdChart',{cur:curPayProd,prev:prevPayProd});
+      
+      console.log('全托管KPI数据计算结果:', {
+        curExp, prevExp, curUv, prevUv, curCart, prevCart, curPay, prevPay,
+        curExpProd, prevExpProd, curCartProd, prevCartProd, curPayProd, prevPayProd
+      });
     }
 
     loadPeriods();
   }
 
+  // 数据加载状态管理
+  function showLoadingStatus(message = '数据加载中...') {
+    const loadingStatus = document.getElementById('loadingStatus');
+    const loadingText = document.getElementById('loadingText');
+    if (loadingStatus && loadingText) {
+      loadingText.textContent = message;
+      loadingStatus.style.display = 'flex';
+    }
+  }
+  
+  function hideLoadingStatus() {
+    const loadingStatus = document.getElementById('loadingStatus');
+    if (loadingStatus) {
+      loadingStatus.style.display = 'none';
+    }
+  }
+  
+  function showErrorStatus(message = '数据加载失败') {
+    const loadingStatus = document.getElementById('loadingStatus');
+    const loadingText = document.getElementById('loadingText');
+    if (loadingStatus && loadingText) {
+      loadingText.textContent = message;
+      loadingStatus.style.display = 'flex';
+      loadingStatus.classList.add('error');
+      
+      // 3秒后自动隐藏错误状态
+      setTimeout(() => {
+        hideLoadingStatus();
+        loadingStatus.classList.remove('error');
+      }, 3000);
+    }
+  }
+  
+  function showSuccessStatus(message = '数据加载完成') {
+    const loadingStatus = document.getElementById('loadingStatus');
+    const loadingText = document.getElementById('loadingText');
+    if (loadingStatus && loadingText) {
+      loadingText.textContent = message;
+      loadingStatus.style.display = 'flex';
+      loadingStatus.classList.add('success');
+      
+      // 2秒后自动隐藏成功状态
+      setTimeout(() => {
+        hideLoadingStatus();
+        loadingStatus.classList.remove('success');
+      }, 2000);
+    }
+  }
+
   function setupSelf(){
     const ctrl=document.getElementById('ctrl');
-    ctrl.innerHTML='<input id="dateFilter" class="date-filter" placeholder="选择日期范围">';
+    ctrl.innerHTML='<div class="date-controls"><span>时间粒度：</span><button class="granularity-btn active" data-granularity="day">按日</button><span style="margin-left: 20px;">日期：</span><input id="dateFilter" class="date-filter" placeholder="选择日期范围" style="margin-left: 8px;"></div>';
     const input=document.getElementById('dateFilter');
     flatpickr(input,{mode:'range',dateFormat:'Y-m-d',onClose:ds=>{if(ds.length===2)loadData();}});
-    const stored=localStorage.getItem('selfPeriod');
+    const currentSiteId = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+    const periodKey = `selfPeriod_${currentSiteId}`;
+    const stored=localStorage.getItem(periodKey);
     if(stored && stored.includes(' to ')){
       input.value=stored;
     }else{
       const today=new Date(); const end=today.toISOString().slice(0,10);
-      const start=new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
+      // 如果今天是2024年或更早，使用2025-07-01作为开始日期
+      const start = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime()-30*86400000).toISOString().slice(0,10);
       const def=`${start} to ${end}`;
-      input.value=def; localStorage.setItem('selfPeriod',def);
+      input.value=def; localStorage.setItem(periodKey,def);
     }
     loadData();
 
     async function loadData(){
       const val=input.value; if(!val.includes(' to '))return; const [startISO,endISO]=val.split(' to ');
-      localStorage.setItem('selfPeriod', `${startISO} to ${endISO}`);
+      localStorage.setItem(periodKey, `${startISO} to ${endISO}`);
       const {prevStart,prevEnd}=periodShift(startISO,endISO);
-      const [rowsCur,rowsPrev,rowsCurDay,rowsPrevDay]=await Promise.all([
-        fetchAgg(startISO,endISO,'period'),
-        fetchAgg(prevStart,prevEnd,'period'),
-        fetchAgg(startISO,endISO,'day'),
-        fetchAgg(prevStart,prevEnd,'day')
-      ]);
+      
+      // 显示加载状态
+      showLoadingStatus('数据加载中...');
+      
+      console.log('loadData开始加载数据:', { startISO, endISO, prevStart, prevEnd });
+      
+      // 初始化变量
+      let rowsCur = [];
+      let rowsPrev = [];
+      let rowsCurDay = [];
+      let rowsPrevDay = [];
+      
+      try {
+        [rowsCur,rowsPrev,rowsCurDay,rowsPrevDay]=await Promise.all([
+          fetchAgg(startISO,endISO,'day'),
+          fetchAgg(prevStart,prevEnd,'day'),
+          fetchAgg(startISO,endISO,'day'),
+          fetchAgg(prevStart,prevEnd,'day')
+        ]);
+        
+        // 显示成功状态
+        showSuccessStatus('数据加载完成');
+        
+      } catch (error) {
+        console.error('数据加载失败:', error);
+        showErrorStatus('数据加载失败，请重试');
+        
+        // 清空图表并显示"暂无数据"
+        ['expChart', 'uvChart', 'cartChart', 'payChart', 'expProdChart', 'cartProdChart', 'payProdChart'].forEach(id => {
+          const element = document.getElementById(id);
+          if (element) {
+            try {
+              const chart = echarts.init(element);
+              chart.clear();
+              chart.setOption({
+                title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999' } }
+              });
+            } catch (error) {
+              console.error(`清空图表 ${id} 时出错:`, error);
+            }
+          }
+        });
+        
+        // 清空趋势图表
+        ['uvRateChart', 'cartRateChart', 'payRateChart'].forEach(id => {
+          const element = document.getElementById(id);
+          if (element) {
+            try {
+              const chart = echarts.init(element);
+              chart.clear();
+              chart.setOption({
+                title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999' } }
+              });
+            } catch (error) {
+              console.error(`清空趋势图表 ${id} 时出错:`, error);
+            }
+          }
+        });
+        return;
+      }
+      
+      console.log('loadData获取到数据:', { 
+        rowsCur: rowsCur.length, 
+        rowsPrev: rowsPrev.length,
+        rowsCurDay: rowsCurDay.length,
+        rowsPrevDay: rowsPrevDay.length
+      });
+      
+      // 检查是否有数据
+      if (rowsCur.length === 0 && rowsPrev.length === 0) {
+        console.log('当前站点没有数据，显示空状态');
+        
+        // 清空图表并显示"暂无数据"
+        ['expChart', 'uvChart', 'cartChart', 'payChart', 'expProdChart', 'cartProdChart', 'payProdChart'].forEach(id => {
+          const element = document.getElementById(id);
+          if (element) {
+            try {
+              const chart = echarts.init(element);
+              chart.clear();
+              chart.setOption({
+                title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999' } }
+              });
+            } catch (error) {
+              console.error(`清空图表 ${id} 时出错:`, error);
+            }
+          }
+        });
+        
+        // 清空趋势图表
+        ['uvRateChart', 'cartRateChart', 'payRateChart'].forEach(id => {
+          const element = document.getElementById(id);
+          if (element) {
+            try {
+              const chart = echarts.init(element);
+              chart.clear();
+              chart.setOption({
+                title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999' } }
+              });
+            } catch (error) {
+              console.error(`清空趋势图表 ${id} 时出错:`, error);
+            }
+          }
+        });
+        return;
+      }
+      
       const sum=(rows,key)=>rows.reduce((s,r)=>s+Number(r[key]||0),0);
       const pickAdd=r=>Number(r.add_count)||Number(r.add_people)||0;
       const pickPay=r=>Number(r.pay_orders)||Number(r.pay_buyers)||Number(r.pay_items)||0;
       const sumAdd=rows=>rows.reduce((s,r)=>s+pickAdd(r),0);
       const sumPay=rows=>rows.reduce((s,r)=>s+pickPay(r),0);
-      renderBar('expChart',{cur:sum(rowsCur,'exposure'),prev:sum(rowsPrev,'exposure')});
-      renderBar('uvChart',{cur:sum(rowsCur,'visitors'),prev:sum(rowsPrev,'visitors')});
-      renderBar('cartChart',{cur:sumAdd(rowsCur),prev:sumAdd(rowsPrev)});
-      renderBar('payChart',{cur:sumPay(rowsCur),prev:sumPay(rowsPrev)});
+      
       const prodExp=(rows)=>{const set=new Set();rows.forEach(r=>{if(Number(r.exposure||0)>0)set.add(r.product_id);});return set.size;};
       const prodAdd=(rows)=>{const set=new Set();rows.forEach(r=>{if(pickAdd(r)>0)set.add(r.product_id);});return set.size;};
       const prodPay=(rows)=>{const set=new Set();rows.forEach(r=>{if(pickPay(r)>0)set.add(r.product_id);});return set.size;};
-      renderBar('expProdChart',{cur:prodExp(rowsCur),prev:prodExp(rowsPrev)});
-      renderBar('cartProdChart',{cur:prodAdd(rowsCur),prev:prodAdd(rowsPrev)});
-      renderBar('payProdChart',{cur:prodPay(rowsCur),prev:prodPay(rowsPrev)});
+
+      // 更新KPI卡片
+      const curExp = sum(rowsCur,'exposure');
+      const prevExp = sum(rowsPrev,'exposure');
+      const curUv = sum(rowsCur,'visitors');
+      const prevUv = sum(rowsPrev,'visitors');
+      const curCart = sumAdd(rowsCur);
+      const prevCart = sumAdd(rowsPrev);
+      const curPay = sumPay(rowsCur);
+      const prevPay = sumPay(rowsPrev);
+      const curExpProd = prodExp(rowsCur);
+      const prevExpProd = prodExp(rowsPrev);
+      const curCartProd = prodAdd(rowsCur);
+      const prevCartProd = prodAdd(rowsPrev);
+      const curPayProd = prodPay(rowsCur);
+      const prevPayProd = prodPay(rowsPrev);
+      
+      // 渲染柱状图对比
+      renderBar('expChart',{cur:curExp,prev:prevExp});
+      renderBar('uvChart',{cur:curUv,prev:prevUv});
+      renderBar('cartChart',{cur:curCart,prev:prevCart});
+      renderBar('payChart',{cur:curPay,prev:prevPay});
+      renderBar('expProdChart',{cur:curExpProd,prev:prevExpProd});
+      renderBar('cartProdChart',{cur:curCartProd,prev:prevCartProd});
+      renderBar('payProdChart',{cur:curPayProd,prev:prevPayProd});
+
+      // 更新KPI总数显示（这些会在renderBar函数中自动更新）
+      console.log('KPI数据计算结果:', {
+        curExp, prevExp, curUv, prevUv, curCart, prevCart, curPay, prevPay,
+        curExpProd, prevExpProd, curCartProd, prevCartProd, curPayProd, prevPayProd
+      });
 
       const dailyAgg=rows=>{
         const map=new Map();
@@ -280,19 +981,71 @@ document.addEventListener('DOMContentLoaded',()=>{
       };
       const curDay=dailyAgg(rowsCurDay);
       const prevDay=dailyAgg(rowsPrevDay);
-      const labels=curDay.map(r=>r.date.slice(5));
-      const build=(arr,fn)=>labels.map((_,i)=>arr[i]?fn(arr[i]):0);
-      const uvRate=r=>r.exposure>0?(r.visitors/r.exposure*100):0;
-      const cartRate=r=>{const a=pickAdd(r);return r.visitors>0?(a/r.visitors*100):0;};
-      const payRate=r=>{const p=pickPay(r);return r.visitors>0?(p/r.visitors*100):0;};
-      renderLine('uvRateChart',{labels,cur:build(curDay,uvRate),prev:build(prevDay,uvRate)});
-      renderLine('cartRateChart',{labels,cur:build(curDay,cartRate),prev:build(prevDay,cartRate)});
-      renderLine('payRateChart',{labels,cur:build(curDay,payRate),prev:build(prevDay,payRate)});
+      
+      console.log('趋势图表数据:', { curDay: curDay.length, prevDay: prevDay.length });
+      
+      if (curDay.length > 0) {
+        const labels=curDay.map(r=>r.date.slice(5));
+        const build=(arr,fn)=>labels.map((_,i)=>arr[i]?fn(arr[i]):0);
+        const uvRate=r=>r.exposure>0?(r.visitors/r.exposure*100):0;
+        const cartRate=r=>{const a=pickAdd(r);return r.visitors>0?(a/r.visitors*100):0;};
+        const payRate=r=>{const p=pickPay(r);return r.visitors>0?(p/r.visitors*100):0;};
+        renderLine('uvRateChart',{labels,cur:build(curDay,uvRate),prev:build(prevDay,uvRate)});
+        renderLine('cartRateChart',{labels,cur:build(curDay,cartRate),prev:build(prevDay,cartRate)});
+        renderLine('payRateChart',{labels,cur:build(curDay,payRate),prev:build(prevDay,payRate)});
+      } else {
+        // 如果没有数据，显示空状态
+        ['uvRateChart', 'cartRateChart', 'payRateChart'].forEach(id => {
+          const chart = echarts.init(document.getElementById(id));
+          chart.clear();
+          chart.setOption({
+            title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999' } }
+          });
+        });
+      }
     }
 
-    function fetchAgg(start,end,gran='period'){
-      const url=`/api/ae_query?start=${start}&end=${end}&granularity=${gran}`;
-      return fetch(url).then(r=>r.json()).then(j=>j.rows||[]);
+    function fetchAgg(start,end,gran='day'){
+      let currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+      
+      // 确保使用正确的站点ID格式
+      if (currentSite === 'A站' || currentSite === '自运营robot站') {
+        currentSite = 'ae_self_operated_a';
+        localStorage.setItem('currentSite', currentSite);
+      }
+      
+      // 如果当前站点是Poolslab，使用正确的站点ID
+      if (currentSite === 'Poolslab运动娱乐' || currentSite === 'poolslab') {
+        currentSite = 'ae_self_operated_poolslab';
+      }
+      
+      console.log('fetchAgg调用参数:', { start, end, gran, currentSite });
+      
+      const url=`/api/ae_query?start=${start}&end=${end}&granularity=${gran}&site=${encodeURIComponent(currentSite)}`;
+      console.log('fetchAgg请求URL:', url);
+      
+      return fetch(url)
+        .then(r => {
+          console.log('fetchAgg HTTP响应状态:', r.status, r.statusText);
+          if (!r.ok) {
+            throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+          }
+          return r.json();
+        })
+        .then(j => {
+          console.log('fetchAgg完整响应:', j);
+          console.log('fetchAgg响应数据:', { 
+            rows: j.rows?.length || 0, 
+            site: currentSite,
+            hasData: !!j.rows && j.rows.length > 0,
+            sampleData: j.rows ? j.rows.slice(0, 2) : []
+          });
+          return j.rows || [];
+        })
+        .catch(error => {
+          console.error('fetchAgg请求失败:', error);
+          return [];
+        });
     }
     function periodShift(startISO,endISO){
       const start=new Date(startISO+'T00:00:00'); const end=new Date(endISO+'T00:00:00');

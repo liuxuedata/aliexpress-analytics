@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>站点配置 · 跨境电商数据分析平台</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="assets/login.css">
+     <link rel="stylesheet" href="assets/theme.css?v=20250810c">
+  <style>
+    .site-configuration {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .config-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-top: 20px;
+    }
+    .config-section {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 25px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .config-section h3 {
+      margin: 0 0 20px 0;
+      color: #1f2937;
+      border-bottom: 2px solid #3b82f6;
+      padding-bottom: 10px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #374151;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    .btn {
+      padding: 12px 24px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .btn:hover {
+      background: #f9fafb;
+    }
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+    .btn-success {
+      background: #10b981;
+      color: white;
+      border-color: #10b981;
+    }
+    .btn-success:hover {
+      background: #059669;
+    }
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+      border-color: #ef4444;
+    }
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+    .site-list {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+    }
+    .site-item {
+      padding: 15px;
+      border-bottom: 1px solid #f3f4f6;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .site-item:last-child {
+      border-bottom: none;
+    }
+    .site-info h4 {
+      margin: 0 0 5px 0;
+      color: #1f2937;
+    }
+    .site-info .platform {
+      color: #6b7280;
+      font-size: 12px;
+    }
+    .site-info .data-source {
+      color: #059669;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .template-preview {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 15px;
+      margin-top: 15px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .status-message {
+      padding: 10px;
+      border-radius: 6px;
+      margin: 10px 0;
+      font-weight: 500;
+    }
+    .status-success {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+    .status-error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+    .status-info {
+      background: #dbeafe;
+      color: #1e40af;
+      border: 1px solid #93c5fd;
+    }
+    .file-upload {
+      border: 2px dashed #d1d5db;
+      border-radius: 6px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .file-upload:hover {
+      border-color: #3b82f6;
+    }
+    .file-upload.dragover {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+         .hidden {
+       display: none;
+     }
+     .progress-bar {
+       width: 100%;
+       height: 4px;
+       background-color: #e5e7eb;
+       border-radius: 2px;
+       overflow: hidden;
+       margin: 10px 0;
+     }
+     .progress-fill {
+       height: 100%;
+       background-color: #3b82f6;
+       width: 0%;
+       transition: width 0.3s ease;
+       animation: progress-animation 2s infinite;
+     }
+     @keyframes progress-animation {
+       0% { width: 0%; }
+       50% { width: 70%; }
+       100% { width: 100%; }
+     }
+     .status-message {
+       padding: 10px;
+       border-radius: 6px;
+       margin: 10px 0;
+       font-weight: 500;
+       position: relative;
+     }
+     .status-message.with-progress {
+       padding-bottom: 20px;
+     }
+  </style>
+</head>
+<body class="fm">
+<div id="loginOverlay" class="login-overlay" style="display:none">
+  <div class="login-container">
+    <h2>登录</h2>
+    <form id="loginForm">
+      <div class="form-group">
+        <input type="text" id="username" placeholder="用户名" required>
+      </div>
+      <div class="form-group">
+        <input type="password" id="password" placeholder="密码" required>
+      </div>
+      <button type="submit" class="btn btn-primary">登录</button>
+    </form>
+  </div>
+</div>
+
+<div class="site-configuration">
+  <h1>站点配置管理</h1>
+  <p>配置和管理多站点数据源，支持自动生成数据表和API接口</p>
+
+  <div class="config-grid">
+    <!-- 左侧：站点配置 -->
+    <div class="config-section">
+      <h3>📊 站点配置</h3>
+      
+      <form id="siteConfigForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="siteName">站点名称 *</label>
+            <input type="text" id="siteName" required placeholder="如：icyberite.com">
+          </div>
+          <div class="form-group">
+            <label for="sitePlatform">平台类型 *</label>
+            <select id="sitePlatform" required>
+              <option value="">选择平台</option>
+              <option value="ae_self_operated">速卖通自运营</option>
+              <option value="ae_managed">速卖通全托管</option>
+              <option value="independent">独立站</option>
+              <option value="amazon">亚马逊</option>
+              <option value="ebay">eBay</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="displayName">显示名称 *</label>
+            <input type="text" id="displayName" required placeholder="如：独立站 icyberite.com">
+          </div>
+          <div class="form-group">
+            <label for="domain">域名</label>
+            <input type="text" id="domain" placeholder="如：icyberite.com">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="dataSource">数据源类型 *</label>
+          <select id="dataSource" required>
+            <option value="">选择数据源</option>
+            <option value="ae_api">速卖通API</option>
+            <option value="google_ads">Google Ads</option>
+            <option value="facebook_ads">Facebook Ads</option>
+            <option value="tiktok_ads">TikTok Ads</option>
+            <option value="custom">自定义</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="templateId">数据模板</label>
+          <select id="templateId">
+            <option value="">自动选择</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="configJson">配置信息 (JSON)</label>
+          <textarea id="configJson" rows="4" placeholder='{"api_key": "xxx", "custom_field": "value"}'></textarea>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">创建站点</button>
+        <button type="button" class="btn" onclick="resetForm()">重置</button>
+      </form>
+    </div>
+
+    <!-- 右侧：站点列表和模板预览 -->
+    <div class="config-section">
+      <h3>🏢 现有站点</h3>
+      
+      <div class="site-list" id="siteList">
+        <div class="site-item">
+          <div class="site-info">
+            <h4>速卖通自运营 A站</h4>
+            <div class="platform">平台：速卖通自运营</div>
+            <div class="data-source">数据源：速卖通API</div>
+          </div>
+          <div>
+            <button class="btn btn-success" onclick="editSite('ae_self_operated_a')">编辑</button>
+            <button class="btn btn-danger" onclick="deleteSite('ae_self_operated_a')">删除</button>
+          </div>
+        </div>
+        <div class="site-item">
+          <div class="site-info">
+            <h4>独立站 poolsvacuum.com</h4>
+            <div class="platform">平台：独立站</div>
+            <div class="data-source">数据源：Google Ads</div>
+          </div>
+          <div>
+            <button class="btn btn-success" onclick="editSite('independent_poolsvacuum')">编辑</button>
+            <button class="btn btn-danger" onclick="deleteSite('independent_poolsvacuum')">删除</button>
+          </div>
+        </div>
+        <div class="site-item">
+          <div class="site-info">
+            <h4>独立站 icyberite.com</h4>
+            <div class="platform">平台：独立站</div>
+            <div class="data-source">数据源：Facebook Ads</div>
+          </div>
+          <div>
+            <button class="btn btn-success" onclick="editSite('independent_icyberite')">编辑</button>
+            <button class="btn btn-danger" onclick="deleteSite('independent_icyberite')">删除</button>
+          </div>
+        </div>
+      </div>
+      
+      <h3 style="margin-top: 30px;">📋 数据模板预览</h3>
+      <div class="template-preview" id="templatePreview">
+        选择数据源类型查看模板配置...
+      </div>
+    </div>
+  </div>
+
+  <!-- 数据上传测试区域 -->
+  <div class="config-section" style="margin-top: 30px;">
+    <h3>📤 数据上传测试</h3>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label for="testSite">选择站点</label>
+        <select id="testSite">
+          <option value="">选择要测试的站点</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="testFile">上传数据文件</label>
+        <div class="file-upload" id="fileUpload">
+          <p>拖拽文件到此处或点击选择文件</p>
+          <input type="file" id="testFile" accept=".xlsx,.csv" style="display: none;">
+        </div>
+      </div>
+    </div>
+    
+         <button class="btn btn-primary" onclick="testDataUpload()">测试数据上传</button>
+     <button class="btn" onclick="generateTestData()">生成测试数据</button>
+     <button class="btn" onclick="testAPI()">测试API连接</button>
+  </div>
+
+  <!-- 状态消息 -->
+  <div id="statusMessage"></div>
+</div>
+
+<script>
+// 全局变量
+let currentSites = [];
+let currentTemplates = [];
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', function() {
+  loadSites();
+  loadTemplates();
+  setupEventListeners();
+});
+
+// 设置事件监听器
+function setupEventListeners() {
+  // 平台类型变化时更新数据源选项
+  document.getElementById('sitePlatform').addEventListener('change', function() {
+    updateDataSourceOptions();
+  });
+  
+  // 数据源变化时更新模板选项
+  document.getElementById('dataSource').addEventListener('change', function() {
+    updateTemplateOptions();
+    updateTemplatePreview();
+  });
+  
+  // 文件上传
+  const fileUpload = document.getElementById('fileUpload');
+  const fileInput = document.getElementById('testFile');
+  
+  fileUpload.addEventListener('click', () => fileInput.click());
+  fileUpload.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    fileUpload.classList.add('dragover');
+  });
+  fileUpload.addEventListener('dragleave', () => {
+    fileUpload.classList.remove('dragover');
+  });
+  fileUpload.addEventListener('drop', (e) => {
+    e.preventDefault();
+    fileUpload.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      fileInput.files = files;
+      showStatus('文件已选择：' + files[0].name, 'success');
+    }
+  });
+  
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      const fileName = e.target.files[0].name;
+      showStatus('文件已选择：' + fileName, 'success');
+      // 显示文件名
+      document.getElementById('fileUpload').innerHTML = `
+        <p>已选择文件：${fileName}</p>
+        <p style="font-size: 12px; color: #6b7280;">点击重新选择文件</p>
+      `;
+    } else {
+      // 如果没有选择文件，重置显示
+      document.getElementById('fileUpload').innerHTML = `
+        <p>拖拽文件到此处或点击选择文件</p>
+      `;
+    }
+  });
+}
+
+// 加载站点列表
+async function loadSites() {
+  try {
+    showStatus('正在加载站点列表...', 'info');
+    const response = await fetch('/api/site-configs');
+    
+    console.log('站点API响应状态:', response.status);
+    console.log('站点API响应头:', response.headers);
+    
+    let data = null;
+    try {
+      data = await response.json();
+      console.log('站点API响应数据:', data);
+    } catch (e) {
+      console.error('站点API JSON解析失败:', e);
+      showStatus('加载站点失败: API返回非JSON格式数据', 'error');
+      return;
+    }
+    
+    if (response.ok) {
+      currentSites = data.data || [];
+      console.log('设置currentSites:', currentSites);
+      renderSiteList();
+      updateTestSiteOptions();
+      showStatus(`成功加载 ${currentSites.length} 个站点`, 'success');
+    } else {
+      showStatus('加载站点失败: ' + (data.error || data.message || '未知错误'), 'error');
+    }
+  } catch (error) {
+    console.error('加载站点失败:', error);
+    showStatus('加载站点失败: ' + error.message, 'error');
+  }
+}
+
+// 加载模板列表
+async function loadTemplates() {
+  try {
+    console.log('开始加载模板列表...');
+    const response = await fetch('/api/data-source-templates');
+    
+    console.log('模板API响应状态:', response.status);
+    const data = await response.json();
+    console.log('模板API响应数据:', data);
+    
+    if (response.ok) {
+      currentTemplates = data.data || [];
+      console.log('加载的模板数量:', currentTemplates.length);
+      console.log('模板数据:', currentTemplates);
+    } else {
+      console.error('模板加载失败:', data.error || data.message);
+    }
+  } catch (error) {
+    console.error('加载模板失败:', error);
+  }
+}
+
+// 渲染站点列表
+function renderSiteList() {
+  const siteList = document.getElementById('siteList');
+  siteList.innerHTML = '';
+  
+  console.log('渲染站点列表，站点数量:', currentSites.length);
+  console.log('站点数据:', currentSites);
+  
+  if (currentSites.length === 0) {
+    siteList.innerHTML = '<div class="site-item"><div class="site-info"><p>暂无站点配置</p></div></div>';
+    return;
+  }
+  
+  currentSites.forEach(site => {
+    const siteItem = document.createElement('div');
+    siteItem.className = 'site-item';
+    siteItem.innerHTML = `
+      <div class="site-info">
+        <h4>${site.display_name || site.name}</h4>
+        <div class="platform">平台：${getPlatformDisplayName(site.platform)}</div>
+        <div class="data-source">数据源：${getDataSourceDisplayName(site.data_source)}</div>
+      </div>
+      <div>
+        <button class="btn btn-success" onclick="editSite('${site.id}')">编辑</button>
+        <button class="btn btn-danger" onclick="deleteSite('${site.id}')">删除</button>
+      </div>
+    `;
+    siteList.appendChild(siteItem);
+  });
+}
+
+// 更新数据源选项
+function updateDataSourceOptions() {
+  const platform = document.getElementById('sitePlatform').value;
+  const dataSource = document.getElementById('dataSource');
+  
+  // 清空现有选项
+  dataSource.innerHTML = '<option value="">选择数据源</option>';
+  
+  if (platform === 'ae_self_operated' || platform === 'ae_managed') {
+    dataSource.innerHTML += '<option value="ae_api">速卖通API</option>';
+  } else if (platform === 'independent') {
+    dataSource.innerHTML += `
+      <option value="google_ads">Google Ads</option>
+      <option value="facebook_ads">Facebook Ads</option>
+      <option value="tiktok_ads">TikTok Ads</option>
+      <option value="custom">自定义</option>
+    `;
+  }
+}
+
+// 更新模板选项
+function updateTemplateOptions() {
+  const dataSource = document.getElementById('dataSource').value;
+  const templateId = document.getElementById('templateId');
+  
+  // 清空现有选项
+  templateId.innerHTML = '<option value="">自动选择</option>';
+  
+  if (dataSource) {
+    const templates = currentTemplates.filter(t => t.source_type === dataSource);
+    templates.forEach(template => {
+      templateId.innerHTML += `<option value="${template.id}">${template.name}</option>`;
+    });
+  }
+}
+
+// 更新模板预览
+function updateTemplatePreview() {
+  const dataSource = document.getElementById('dataSource').value;
+  const templatePreview = document.getElementById('templatePreview');
+  
+  console.log('更新模板预览，数据源:', dataSource);
+  console.log('当前模板列表:', currentTemplates);
+  
+  if (!dataSource) {
+    templatePreview.textContent = '选择数据源类型查看模板配置...';
+    return;
+  }
+  
+  const template = currentTemplates.find(t => t.source_type === dataSource);
+  console.log('找到的模板:', template);
+  
+  if (template) {
+    templatePreview.innerHTML = `
+      <strong>模板：${template.name}</strong><br>
+      <strong>字段映射：</strong><br>
+      ${Object.entries(template.fields_json.mappings || {}).map(([key, value]) => 
+        `  ${key} → ${value}`
+      ).join('<br>')}
+    `;
+  } else {
+    templatePreview.textContent = `未找到匹配的模板配置 (数据源: ${dataSource})`;
+    console.log('未找到模板，可用的数据源类型:', currentTemplates.map(t => t.source_type));
+  }
+}
+
+// 全局变量
+let editingSiteId = null;
+
+// 表单提交
+document.getElementById('siteConfigForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  
+  const formData = {
+    name: document.getElementById('siteName').value,
+    platform: document.getElementById('sitePlatform').value,
+    display_name: document.getElementById('displayName').value,
+    domain: document.getElementById('domain').value || null,
+    data_source: document.getElementById('dataSource').value,
+    template_id: document.getElementById('templateId').value || null,
+    config_json: document.getElementById('configJson').value ? 
+      JSON.parse(document.getElementById('configJson').value) : null
+  };
+  
+  try {
+    const method = editingSiteId ? 'POST' : 'POST';
+    const url = editingSiteId ? '/api/site-configs/update' : '/api/site-configs';
+    const requestData = editingSiteId ? { siteId: editingSiteId, ...formData } : formData;
+    
+    showStatus(editingSiteId ? '正在更新站点...' : '正在创建站点...', 'info', true);
+    
+    console.log('发送请求:', { method, url, requestData });
+    
+    const response = await fetch(url, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestData)
+    });
+    
+    console.log('响应状态:', response.status);
+    const result = await response.json();
+    console.log('响应数据:', result);
+    
+    if (response.ok) {
+      // 调用站点同步API
+      try {
+        const syncResponse = await fetch('/api/site-sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            siteId: editingSiteId || result.data.id,
+            oldSiteId: editingSiteId, // 如果是更新操作，传递旧ID
+            action: editingSiteId ? 'update' : 'create',
+            oldSiteName: editingSiteId ? currentSites.find(s => s.id === editingSiteId)?.name : null
+          })
+        });
+        
+        if (syncResponse.ok) {
+          console.log('站点同步成功');
+        } else {
+          console.warn('站点同步失败，但不影响站点配置');
+        }
+      } catch (syncError) {
+        console.warn('站点同步出错:', syncError);
+      }
+      
+      showStatus(editingSiteId ? '站点更新成功！' : '站点创建成功！', 'success');
+      console.log('操作成功，开始刷新站点列表...');
+      await loadSites(); // 等待加载完成
+      console.log('站点列表刷新完成');
+      
+      // 通知其他页面刷新站点菜单
+      if (window.parent && window.parent !== window) {
+        // 如果在iframe中，通知父页面
+        window.parent.postMessage({ type: 'refreshSiteMenus' }, '*');
+      } else {
+        // 如果在主页面，直接调用刷新函数
+        if (window.refreshSiteMenus) {
+          window.refreshSiteMenus();
+        }
+      }
+      
+      // 强制刷新所有相关页面的站点菜单
+      try {
+        // 通知所有打开的页面刷新
+        window.postMessage({ type: 'refreshSiteMenus' }, '*');
+        
+        // 延迟刷新，确保数据已更新
+        setTimeout(() => {
+          if (window.refreshSiteMenus) {
+            window.refreshSiteMenus();
+          }
+        }, 1000);
+      } catch (e) {
+        console.log('刷新站点菜单时出错:', e);
+      }
+      
+      resetForm();
+      editingSiteId = null;
+    } else {
+      showStatus((editingSiteId ? '更新' : '创建') + '失败: ' + (result.error || result.message || '未知错误'), 'error');
+    }
+  } catch (error) {
+    console.error('请求错误:', error);
+    showStatus((editingSiteId ? '更新' : '创建') + '失败: ' + error.message, 'error');
+  }
+});
+
+// 编辑站点
+function editSite(siteId) {
+  const site = currentSites.find(s => s.id === siteId);
+  if (site) {
+    editingSiteId = siteId;
+    document.getElementById('siteName').value = site.name;
+    document.getElementById('sitePlatform').value = site.platform;
+    document.getElementById('displayName').value = site.display_name;
+    document.getElementById('domain').value = site.domain || '';
+    document.getElementById('dataSource').value = site.data_source;
+    document.getElementById('templateId').value = site.template_id || '';
+    document.getElementById('configJson').value = site.config_json ? 
+      JSON.stringify(site.config_json, null, 2) : '';
+    
+    updateDataSourceOptions();
+    updateTemplateOptions();
+    updateTemplatePreview();
+    
+    // 更改按钮文本
+    document.querySelector('#siteConfigForm button[type="submit"]').textContent = '更新站点';
+    
+    showStatus('正在编辑站点：' + site.display_name, 'info');
+  }
+}
+
+// 删除站点
+async function deleteSite(siteId) {
+  if (!confirm('确定要删除这个站点吗？此操作不可恢复。')) {
+    return;
+  }
+  
+  try {
+    showStatus('正在删除站点...', 'info', true);
+    
+    console.log('删除站点ID:', siteId);
+    
+    const response = await fetch('/api/site-configs/delete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ siteId })
+    });
+    
+    console.log('删除API响应状态:', response.status);
+    const result = await response.json();
+    console.log('删除API响应数据:', result);
+    
+    if (response.ok) {
+      showStatus('站点删除成功！', 'success');
+      console.log('删除成功，开始刷新站点列表...');
+      await loadSites(); // 等待加载完成
+      console.log('站点列表刷新完成');
+      
+      // 通知其他页面刷新站点菜单
+      if (window.parent && window.parent !== window) {
+        // 如果在iframe中，通知父页面
+        window.parent.postMessage({ type: 'refreshSiteMenus' }, '*');
+      } else {
+        // 如果在主页面，直接调用刷新函数
+        if (window.refreshSiteMenus) {
+          window.refreshSiteMenus();
+        }
+      }
+      
+      // 强制刷新所有相关页面的站点菜单
+      try {
+        // 通知所有打开的页面刷新
+        window.postMessage({ type: 'refreshSiteMenus' }, '*');
+        
+        // 延迟刷新，确保数据已更新
+        setTimeout(() => {
+          if (window.refreshSiteMenus) {
+            window.refreshSiteMenus();
+          }
+        }, 1000);
+      } catch (e) {
+        console.log('刷新站点菜单时出错:', e);
+      }
+    } else {
+      showStatus('删除失败: ' + (result.error || result.message || '未知错误'), 'error');
+    }
+  } catch (error) {
+    console.error('删除站点错误:', error);
+    showStatus('删除失败: ' + error.message, 'error');
+  }
+}
+
+// 重置表单
+function resetForm() {
+  document.getElementById('siteConfigForm').reset();
+  document.getElementById('templatePreview').textContent = '选择数据源类型查看模板配置...';
+  editingSiteId = null;
+  document.querySelector('#siteConfigForm button[type="submit"]').textContent = '创建站点';
+}
+
+// 更新测试站点选项
+function updateTestSiteOptions() {
+  const testSite = document.getElementById('testSite');
+  testSite.innerHTML = '<option value="">选择要测试的站点</option>';
+  
+  currentSites.forEach(site => {
+    testSite.innerHTML += `<option value="${site.id}">${site.display_name}</option>`;
+  });
+}
+
+// 测试数据上传
+async function testDataUpload() {
+  const siteId = document.getElementById('testSite').value;
+  let fileInput = document.getElementById('testFile');
+  
+  // 如果第一次获取失败，等待一下再试
+  if (!fileInput) {
+    console.log('第一次获取fileInput失败，等待100ms后重试...');
+    await new Promise(resolve => setTimeout(resolve, 100));
+    fileInput = document.getElementById('testFile');
+  }
+  
+  console.log('文件上传检查:', {
+    siteId: siteId,
+    fileInput: fileInput,
+    fileInputExists: !!fileInput,
+    files: fileInput?.files,
+    filesLength: fileInput?.files?.length
+  });
+  
+  if (!siteId) {
+    showStatus('请选择要测试的站点', 'error');
+    return;
+  }
+  
+  if (!fileInput) {
+    showStatus('文件输入元素未找到，请刷新页面重试', 'error');
+    return;
+  }
+  
+  if (!fileInput.files || fileInput.files.length === 0) {
+    showStatus('请选择要上传的文件', 'error');
+    return;
+  }
+  
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+  
+  try {
+    showStatus('正在上传数据，请稍候...', 'info', true);
+    
+    console.log('上传站点ID:', siteId);
+    console.log('上传文件:', fileInput.files[0].name);
+    console.log('文件大小:', fileInput.files[0].size, 'bytes');
+    
+    const response = await fetch(`/api/dynamic-ingest/${encodeURIComponent(siteId)}`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    console.log('上传API响应状态:', response.status);
+    const result = await response.json();
+    console.log('上传API响应数据:', result);
+    
+    if (response.ok) {
+      const message = `数据上传成功！处理了 ${result.processed} 条记录，插入了 ${result.upserted} 条记录`;
+      showStatus(message, 'success');
+      
+      // 清空文件选择
+      fileInput.value = '';
+      document.getElementById('fileUpload').innerHTML = `
+        <p>拖拽文件到此处或点击选择文件</p>
+      `;
+      
+      // 显示详细结果
+      setTimeout(() => {
+        showStatus(`上传详情：处理 ${result.processed} 条，插入 ${result.upserted} 条，表名：${result.table}`, 'info');
+      }, 3000);
+    } else {
+      showStatus('上传失败: ' + (result.error || result.message || '未知错误'), 'error');
+    }
+  } catch (error) {
+    console.error('上传数据错误:', error);
+    showStatus('上传失败: ' + error.message, 'error');
+  }
+}
+
+// 生成测试数据
+async function generateTestData() {
+  const siteId = document.getElementById('testSite').value;
+  
+  if (!siteId) {
+    showStatus('请选择要测试的站点', 'error');
+    return;
+  }
+  
+  try {
+    showStatus('正在生成测试数据...', 'info');
+    
+    const response = await fetch(`/api/dynamic-ingest/${siteId}/generate-test-data`, {
+      method: 'POST'
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      showStatus('测试数据生成完成！', 'success');
+    } else {
+      showStatus('生成测试数据失败: ' + (result.error || result.message || '未知错误'), 'error');
+    }
+  } catch (error) {
+    showStatus('生成测试数据失败: ' + error.message, 'error');
+  }
+}
+
+// 显示状态消息
+function showStatus(message, type = 'info', showProgress = false) {
+  const statusDiv = document.getElementById('statusMessage');
+  const progressHtml = showProgress ? '<div class="progress-bar"><div class="progress-fill"></div></div>' : '';
+  const progressClass = showProgress ? ' with-progress' : '';
+  
+  statusDiv.innerHTML = `<div class="status-message status-${type}${progressClass}">${message}${progressHtml}</div>`;
+  
+  // 如果是进度消息，延长显示时间
+  const timeout = showProgress ? 10000 : 5000;
+  setTimeout(() => {
+    statusDiv.innerHTML = '';
+  }, timeout);
+}
+
+// 测试API连接
+async function testAPI() {
+  try {
+    showStatus('正在测试API连接...', 'info');
+    
+    // 测试健康检查API
+    console.log('测试健康检查API...');
+    const healthResponse = await fetch('/api/health');
+    console.log('健康检查API状态:', healthResponse.status);
+    let healthData = null;
+    try {
+      healthData = await healthResponse.json();
+      console.log('健康检查API结果:', healthData);
+    } catch (e) {
+      console.error('健康检查API JSON解析失败:', e);
+    }
+    
+    // 测试基础API
+    console.log('测试基础API...');
+    const testResponse = await fetch('/api/test');
+    console.log('基础API状态:', testResponse.status);
+    let testData = null;
+    try {
+      testData = await testResponse.json();
+      console.log('基础API结果:', testData);
+    } catch (e) {
+      console.error('基础API JSON解析失败:', e);
+    }
+    
+    // 测试站点配置API
+    console.log('测试站点配置API...');
+    const sitesResponse = await fetch('/api/site-configs');
+    console.log('站点配置API状态:', sitesResponse.status);
+    let sitesData = null;
+    try {
+      sitesData = await sitesResponse.json();
+      console.log('站点配置API结果:', sitesData);
+    } catch (e) {
+      console.error('站点配置API JSON解析失败:', e);
+    }
+    
+    // 测试模板API
+    console.log('测试模板API...');
+    const templatesResponse = await fetch('/api/data-source-templates');
+    console.log('模板API状态:', templatesResponse.status);
+    let templatesData = null;
+    try {
+      templatesData = await templatesResponse.json();
+      console.log('模板API结果:', templatesData);
+    } catch (e) {
+      console.error('模板API JSON解析失败:', e);
+    }
+    
+    // 测试动态数据摄入API
+    console.log('测试动态数据摄入API...');
+    const dynamicResponse = await fetch('/api/dynamic-ingest/test', { method: 'POST' });
+    console.log('动态数据摄入API状态:', dynamicResponse.status);
+    
+    let message = 'API测试完成！\n';
+    message += `健康检查API: ${healthResponse.ok ? '正常' : '失败'} (${healthResponse.status})\n`;
+    message += `基础API: ${testResponse.ok ? '正常' : '失败'} (${testResponse.status})\n`;
+    message += `站点配置API: ${sitesResponse.ok ? '正常' : '失败'} (${sitesResponse.status})\n`;
+    message += `模板API: ${templatesResponse.ok ? '正常' : '失败'} (${templatesResponse.status})\n`;
+    message += `动态数据摄入API: ${dynamicResponse.status === 400 ? '正常(需要站点ID)' : '失败'} (${dynamicResponse.status})\n`;
+    message += `站点数量: ${sitesData?.data?.length || 0}\n`;
+    message += `模板数量: ${templatesData?.data?.length || 0}`;
+    
+    const allAPIsWorking = healthResponse.ok && testResponse.ok && sitesResponse.ok && templatesResponse.ok;
+    showStatus(message, allAPIsWorking ? 'success' : 'error');
+    
+  } catch (error) {
+    console.error('API测试错误:', error);
+    showStatus('API测试失败: ' + error.message, 'error');
+  }
+}
+
+// 工具函数
+function getPlatformDisplayName(platform) {
+  const names = {
+    'ae_self_operated': '速卖通自运营',
+    'ae_managed': '速卖通全托管',
+    'independent': '独立站',
+    'amazon': '亚马逊',
+    'ebay': 'eBay'
+  };
+  return names[platform] || platform;
+}
+
+function getDataSourceDisplayName(dataSource) {
+  const names = {
+    'ae_api': '速卖通API',
+    'google_ads': 'Google Ads',
+    'facebook_ads': 'Facebook Ads',
+    'tiktok_ads': 'TikTok Ads',
+    'custom': '自定义'
+  };
+  return names[dataSource] || dataSource;
+}
+</script>
+</body>
+</html>
