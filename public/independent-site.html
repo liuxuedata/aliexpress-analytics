@@ -13,6 +13,27 @@
     #columnMenu{ display:none; position:absolute; top:100%; right:0; background:#fff; border:1px solid #ccc; padding:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); }
     #columnMenu label{ display:block; margin:4px 0; white-space:nowrap; }
     
+    /* 确保表格列对齐 */
+    #report th, #report td {
+      text-align: center;
+      vertical-align: middle;
+      padding: 8px 4px;
+    }
+    
+    #report th:first-child, #report td:first-child {
+      text-align: left;
+    }
+    
+    /* 数字列右对齐 */
+    #report td:nth-child(n+5):nth-child(-n+15) {
+      text-align: right;
+    }
+    
+    /* 百分比列居中 */
+    #report td:nth-child(7), #report td:nth-child(14), #report td:nth-child(15) {
+      text-align: center;
+    }
+    
     /* 问号图标样式 */
     .help-icon {
       display: inline-block;
@@ -414,12 +435,12 @@
     const cards = [
       { 
         title: '平均点击率', 
-        value: ((k.avg_ctr || 0) * 100).toFixed(2) + '%', 
+        value: (k.avg_ctr || 0).toFixed(2) + '%', 
         type: 'info'
       },
       { 
         title: '平均转化率', 
-        value: ((k.avg_conv_rate || 0) * 100).toFixed(2) + '%', 
+        value: (k.avg_conv_rate || 0).toFixed(2) + '%', 
         type: 'success'
       },
       { 
@@ -527,7 +548,7 @@
           { data:'impr', render: v => v ?? 0 },
           { data:'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
           { data:'avg_cpc', render: v => (v ?? 0).toFixed(2) },
-          { data:'cost', render: v => v ?? 0 },
+          { data:'cost', render: v => (v ?? 0).toFixed(2) },
           { data:'conversions', render: v => v ?? 0 },
           { data:'cost_per_conv', render: v => (v ?? 0).toFixed(2) },
           { data:'all_conv', render: v => v ?? 0 },
@@ -578,7 +599,7 @@
         { data:'impr', render: v => v ?? 0 },
         { data:'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
         { data:'avg_cpc', render: v => (v ?? 0).toFixed(2) },
-        { data:'cost', render: v => v ?? 0 },
+        { data:'cost', render: v => (v ?? 0).toFixed(2) },
         { data:'conversions', render: v => v ?? 0 },
         { data:'cost_per_conv', render: v => (v ?? 0).toFixed(2) },
         { data:'all_conv', render: v => v ?? 0 },
