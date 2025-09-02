@@ -279,7 +279,7 @@
         const currentPath = window.location.pathname;
         if (currentPath.includes('self-operated')) {
           // 自运营页面：调用平台切换处理
-          if (window.handlePlatformSwitch) {
+          if (window.handlePlatformSwitch && link) {
             e.preventDefault();
             const platform = link.getAttribute('data-platform') || link.textContent.trim();
             console.log('自运营页面平台切换:', platform);

@@ -1,0 +1,365 @@
+/**
+ * 自运营页面专用逻辑
+ * 继承自页面模板系统，处理自运营页面的特定功能
+ */
+
+(function() {
+  'use strict';
+
+  // 等待页面模板系统加载完成
+  function waitForPageManager() {
+    if (window.PageManager) {
+      initSelfOperatedPage();
+    } else {
+      setTimeout(waitForPageManager, 100);
+    }
+  }
+
+  // 初始化自运营页面
+  function initSelfOperatedPage() {
+    console.log('初始化自运营页面专用功能...');
+    
+    // 创建自运营页面管理器
+    const selfOperatedManager = new SelfOperatedPageManager();
+    
+    // 等待页面就绪
+    document.addEventListener('page-ready', (e) => {
+      console.log('自运营页面就绪:', e.detail);
+      selfOperatedManager.onPageReady(e.detail);
+    });
+  }
+
+  // 自运营页面管理器类
+  class SelfOperatedPageManager extends window.PageManager {
+    constructor() {
+      super();
+      this.dataTable = null;
+      this.currentData = null;
+    }
+
+    // 重写数据加载方法
+    async loadData() {
+      try {
+        console.log('自运营页面开始加载数据...');
+        
+        // 获取日期范围
+        const dateRange = this.getDateRange();
+        if (!dateRange) {
+          throw new Error('无法获取日期范围');
+        }
+
+        // 显示加载状态
+        this.showLoadingState('detail');
+        
+        // 加载聚合数据
+        const rowsNowAgg = await this.fetchAggregatedData(dateRange.start, dateRange.end, 'day');
+        
+        // 计算KPI卡片
+        this.computeKPICards(rowsNowAgg);
+        
+        // 渲染数据表格
+        await this.renderDataTable(rowsNowAgg, 'day');
+        
+        // 加载对比数据
+        await this.loadComparisonData(dateRange);
+        
+        // 隐藏加载状态
+        this.hideLoadingState('detail');
+        
+        // 更新进度显示
+        this.updateProgress(rowsNowAgg.length);
+        
+        console.log('自运营页面数据加载完成');
+        
+      } catch (error) {
+        console.error('自运营页面数据加载失败:', error);
+        this.hideLoadingState('detail');
+        this.showError('数据加载失败: ' + (error.message || error));
+      }
+    }
+
+    // 获取日期范围
+    getDateRange() {
+      const dateFilter = document.getElementById('dateFilter');
+      if (!dateFilter || !dateFilter.value) {
+        return null;
+      }
+
+      const value = dateFilter.value;
+      if (value.includes(' to ')) {
+        const [start, end] = value.split(' to ');
+        return { start, end };
+      }
+
+      return null;
+    }
+
+    // 显示加载状态
+    showLoadingState(section) {
+      const loadingEl = document.getElementById(section + 'Loading');
+      const contentEl = document.getElementById(section + 'Content');
+      
+      if (loadingEl) loadingEl.style.display = '';
+      if (contentEl) contentEl.style.display = 'none';
+    }
+
+    // 隐藏加载状态
+    hideLoadingState(section) {
+      const loadingEl = document.getElementById(section + 'Loading');
+      const contentEl = document.getElementById(section + 'Content');
+      
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (contentEl) contentEl.style.display = '';
+    }
+
+    // 获取聚合数据
+    async fetchAggregatedData(startISO, endISO, granularity) {
+      const params = new URLSearchParams({
+        start: startISO,
+        end: endISO,
+        granularity: granularity,
+        site: this.currentSite || 'ae_self_operated_a',
+        aggregate: 'true'
+      });
+
+      const response = await fetch(`/api/ae_query?${params.toString()}`);
+      const data = await response.json();
+      
+      if (!data.ok) {
+        throw new Error(data.msg || 'API请求失败');
+      }
+      
+      return data.rows || [];
+    }
+
+    // 计算KPI卡片
+    computeKPICards(data) {
+      if (!data || !Array.isArray(data)) return;
+      
+      // 计算平均值
+      const total = data.length;
+      let totalVisitorRatio = 0;
+      let totalCartRatio = 0;
+      let totalPayRatio = 0;
+      let totalProducts = 0;
+      let cartedProducts = 0;
+      let purchasedProducts = 0;
+
+      data.forEach(row => {
+        totalVisitorRatio += (row.visitor_ratio || 0);
+        totalCartRatio += (row.cart_ratio || 0);
+        totalPayRatio += (row.pay_ratio || 0);
+        totalProducts++;
+        if (row.cart_ratio > 0) cartedProducts++;
+        if (row.pay_ratio > 0) purchasedProducts++;
+      });
+
+      // 更新KPI卡片
+      this.updateKPICard('avgVisitor', (totalVisitorRatio / total * 100).toFixed(2) + '%');
+      this.updateKPICard('avgCart', (totalCartRatio / total * 100).toFixed(2) + '%');
+      this.updateKPICard('avgPay', (totalPayRatio / total * 100).toFixed(2) + '%');
+      this.updateKPICard('totalProducts', totalProducts);
+      this.updateKPICard('cartedProducts', cartedProducts);
+      this.updateKPICard('purchasedProducts', purchasedProducts);
+    }
+
+    // 更新KPI卡片
+    updateKPICard(id, value) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.textContent = value;
+      }
+    }
+
+    // 渲染数据表格
+    async renderDataTable(data, granularity) {
+      if (!data || !Array.isArray(data)) return;
+      
+      const table = document.getElementById('report');
+      if (!table) return;
+
+      // 如果DataTable已经初始化，销毁它
+      if (this.dataTable) {
+        this.dataTable.destroy();
+        this.dataTable = null;
+      }
+
+      // 清空表格
+      table.innerHTML = '';
+
+      // 创建表头
+      const thead = document.createElement('thead');
+      thead.innerHTML = `
+        <tr>
+          <th>商品(ID)</th>
+          <th>周期</th>
+          <th>访客比(%)</th>
+          <th>加购比(%)</th>
+          <th>支付比(%)</th>
+          <th>曝光量</th>
+          <th>访客数</th>
+          <th>浏览量</th>
+          <th>加购人数</th>
+          <th>下单商品件数</th>
+          <th>支付件数</th>
+          <th>支付买家数</th>
+          <th>搜索点击率(%)</th>
+          <th>平均停留时长(秒)</th>
+        </tr>
+      `;
+      table.appendChild(thead);
+
+      // 创建表体
+      const tbody = document.createElement('tbody');
+      data.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.product_id || ''}</td>
+          <td>${this.formatDateRange(row.start_date, row.end_date)}</td>
+          <td>${this.formatPercentage(row.visitor_ratio)}</td>
+          <td>${this.formatPercentage(row.cart_ratio)}</td>
+          <td>${this.formatPercentage(row.pay_ratio)}</td>
+          <td>${this.formatNumber(row.exposure || 0)}</td>
+          <td>${this.formatNumber(row.visitors || 0)}</td>
+          <td>${this.formatNumber(row.page_views || 0)}</td>
+          <td>${this.formatNumber(row.cart_users || 0)}</td>
+          <td>${this.formatNumber(row.order_items || 0)}</td>
+          <td>${this.formatNumber(row.pay_items || 0)}</td>
+          <td>${this.formatNumber(row.pay_buyers || 0)}</td>
+          <td>${this.formatPercentage(row.search_ctr)}</td>
+          <td>${this.formatNumber(row.avg_stay_seconds || 0)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+
+      // 初始化DataTable
+      if (window.jQuery && jQuery.fn.DataTable) {
+        this.dataTable = jQuery(table).DataTable({
+          pageLength: 10,
+          order: [[1, 'desc']],
+          scrollX: true,
+          scrollY: 'calc(100vh - 420px)',
+          scrollCollapse: true,
+          fixedHeader: true,
+          language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json'
+          }
+        });
+      }
+    }
+
+    // 加载对比数据
+    async loadComparisonData(dateRange) {
+      try {
+        // 计算上一周期
+        const prevStart = new Date(dateRange.start);
+        prevStart.setDate(prevStart.getDate() - 30);
+        const prevEnd = new Date(dateRange.start);
+        prevEnd.setDate(prevEnd.getDate() - 1);
+
+        // 加载当前周期和上一周期数据
+        const currentData = await this.fetchAggregatedData(dateRange.start, dateRange.end, 'day');
+        const prevData = await this.fetchAggregatedData(
+          prevStart.toISOString().slice(0, 10),
+          prevEnd.toISOString().slice(0, 10),
+          'day'
+        );
+
+        // 这里可以添加图表绘制逻辑
+        console.log('对比数据加载完成:', {
+          current: currentData.length,
+          previous: prevData.length
+        });
+
+      } catch (error) {
+        console.warn('对比数据加载失败:', error);
+      }
+    }
+
+    // 更新进度显示
+    updateProgress(count) {
+      const progressEl = document.getElementById('progress');
+      if (progressEl) {
+        progressEl.textContent = `数据加载完成: ${count} 条记录`;
+      }
+    }
+
+    // 格式化日期范围
+    formatDateRange(start, end) {
+      if (!start || !end) return '';
+      return `${start}~${end}`;
+    }
+
+    // 格式化数字
+    formatNumber(num) {
+      if (num === null || num === undefined) return '0';
+      const n = Number(num);
+      if (isNaN(n)) return '0';
+      return n.toLocaleString();
+    }
+
+    // 格式化百分比
+    formatPercentage(num) {
+      if (num === null || num === undefined) return '0%';
+      const n = Number(num);
+      if (isNaN(n)) return '0%';
+      if (n <= 1) n *= 100;
+      return n.toFixed(2) + '%';
+    }
+
+    // 页面就绪回调
+    onPageReady(pageInfo) {
+      console.log('自运营页面就绪，开始加载数据:', pageInfo);
+      
+      // 设置当前站点信息
+      this.currentSite = pageInfo.site;
+      this.currentSiteName = pageInfo.siteName;
+      
+      // 开始加载数据
+      this.loadData();
+    }
+
+    // 处理文件上传
+    handleFileUpload(file) {
+      // 文件上传逻辑
+      console.log('处理文件上传:', file.name);
+      
+      // 这里可以添加文件上传到服务器的逻辑
+      this.showProgress('文件上传中...');
+      
+      // 模拟上传过程
+      setTimeout(() => {
+        this.hideProgress();
+        this.showSuccess('文件上传成功');
+        this.refreshData();
+      }, 2000);
+    }
+
+    // 显示进度
+    showProgress(message) {
+      const progressEl = document.getElementById('progress');
+      if (progressEl) {
+        progressEl.textContent = message;
+      }
+    }
+
+    // 隐藏进度
+    hideProgress() {
+      const progressEl = document.getElementById('progress');
+      if (progressEl) {
+        progressEl.textContent = '';
+      }
+    }
+
+    // 显示成功消息
+    showSuccess(message) {
+      // 这里可以使用更好的提示组件
+      console.log('成功:', message);
+    }
+  }
+
+  // 等待页面模板系统加载
+  waitForPageManager();
+
+})();
