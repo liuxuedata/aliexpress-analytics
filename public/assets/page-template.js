@@ -295,6 +295,12 @@
     // 初始化数据加载
     async initDataLoading() {
       try {
+        // 自运营页面有自己的数据加载逻辑，跳过基础加载
+        if (this.currentPage === 'self-operated') {
+          console.log('自运营页面跳过基础数据加载，使用专用逻辑');
+          return;
+        }
+        
         await this.loadData();
       } catch (error) {
         console.error('初始数据加载失败:', error);
