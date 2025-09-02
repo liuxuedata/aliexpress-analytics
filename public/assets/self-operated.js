@@ -316,41 +316,67 @@
       let cartedProducts = 0;
       let purchasedProducts = 0;
 
-      data.forEach((row, index) => {
-        // 尝试多种字段名，确保能获取到数据
-        const visitorRatio = parseFloat(row.visitor_ratio || row.visitor_ratio_sum || row.visitor_ratio_avg || 0);
-        const cartRatio = parseFloat(row.cart_ratio || row.cart_ratio_sum || row.cart_ratio_avg || 0);
-        const payRatio = parseFloat(row.pay_ratio || row.pay_ratio_sum || row.pay_ratio_avg || 0);
-        
-        // 如果比率字段不存在，尝试从原始数据计算
-        let finalVisitorRatio = visitorRatio;
-        let finalCartRatio = cartRatio;
-        let finalPayRatio = payRatio;
-        
-        // 计算访客比：访客数/曝光量
-        if (!visitorRatio && row.exposure && row.visitors && row.exposure > 0) {
-          finalVisitorRatio = (row.visitors / row.exposure) * 100;
-        }
-        
-        // 计算加购比：加购人数/访客数
-        if (!cartRatio && row.visitors && row.cart_users && row.visitors > 0) {
-          finalCartRatio = (row.cart_users / row.visitors) * 100;
-        }
-        
-        // 计算支付比：支付买家数/加购人数
-        if (!payRatio && row.cart_users && row.pay_buyers && row.cart_users > 0) {
-          finalPayRatio = (row.pay_buyers / row.cart_users) * 100;
-        }
-        
-        // 累加计算
-        totalVisitorRatio += finalVisitorRatio;
-        totalCartRatio += finalCartRatio;
-        totalPayRatio += finalPayRatio;
-        totalProducts++;
-        
-        if (finalCartRatio > 0) cartedProducts++;
-        if (finalPayRatio > 0) purchasedProducts++;
-      });
+             data.forEach((row, index) => {
+         // 调试：输出前3行的详细数据
+         if (index < 3) {
+           console.log(`行${index + 1} KPI计算原始数据:`, {
+             visitor_ratio: row.visitor_ratio,
+             cart_ratio: row.cart_ratio,
+             pay_ratio: row.pay_ratio,
+             exposure: row.exposure,
+             visitors: row.visitors,
+             cart_users: row.cart_users,
+             pay_buyers: row.pay_buyers
+           });
+         }
+         
+         // 尝试多种字段名，确保能获取到数据
+         const visitorRatio = parseFloat(row.visitor_ratio || row.visitor_ratio_sum || row.visitor_ratio_avg || 0);
+         const cartRatio = parseFloat(row.cart_ratio || row.cart_ratio_sum || row.cart_ratio_avg || 0);
+         const payRatio = parseFloat(row.pay_ratio || row.pay_ratio_sum || row.pay_ratio_avg || 0);
+         
+         // 如果比率字段不存在，尝试从原始数据计算
+         let finalVisitorRatio = visitorRatio;
+         let finalCartRatio = cartRatio;
+         let finalPayRatio = payRatio;
+         
+         // 计算访客比：访客数/曝光量
+         if (!visitorRatio && row.exposure && row.visitors && row.exposure > 0) {
+           finalVisitorRatio = (row.visitors / row.exposure) * 100;
+           if (index < 3) console.log(`行${index + 1} 计算访客比: ${row.visitors}/${row.exposure} = ${finalVisitorRatio.toFixed(2)}%`);
+         }
+         
+         // 计算加购比：加购人数/访客数
+         if (!cartRatio && row.visitors && row.cart_users && row.visitors > 0) {
+           finalCartRatio = (row.cart_users / row.visitors) * 100;
+           if (index < 3) console.log(`行${index + 1} 计算加购比: ${row.cart_users}/${row.visitors} = ${finalCartRatio.toFixed(2)}%`);
+         }
+         
+         // 计算支付比：支付买家数/加购人数
+         if (!payRatio && row.cart_users && row.pay_buyers && row.cart_users > 0) {
+           finalPayRatio = (row.pay_buyers / row.cart_users) * 100;
+           if (index < 3) console.log(`行${index + 1} 计算支付比: ${row.pay_buyers}/${row.cart_users} = ${finalPayRatio.toFixed(2)}%`);
+         }
+         
+         // 累加计算
+         totalVisitorRatio += finalVisitorRatio;
+         totalCartRatio += finalCartRatio;
+         totalPayRatio += finalPayRatio;
+         totalProducts++;
+         
+         // 统计有加购和支付的商品数
+         if (row.cart_users && row.cart_users > 0) cartedProducts++;
+         if (row.pay_buyers && row.pay_buyers > 0) purchasedProducts++;
+         
+         if (index < 3) {
+           console.log(`行${index + 1} KPI计算:`, {
+             original: { visitorRatio, cartRatio, payRatio },
+             calculated: { finalVisitorRatio, finalCartRatio, finalPayRatio },
+             carted: row.cart_users > 0,
+             purchased: row.pay_buyers > 0
+           });
+         }
+       });
 
       // 计算平均值
       const avgVisitorRatio = total > 0 ? (totalVisitorRatio / total) : 0;
@@ -643,20 +669,20 @@
       const thead = document.createElement('thead');
       thead.innerHTML = `
         <tr>
-          <th>商品(ID)</th>
-          <th>周期</th>
-          <th>访客比(%)</th>
-          <th>加购比(%)</th>
-          <th>支付比(%)</th>
-          <th>曝光量</th>
-          <th>访客数</th>
-          <th>浏览量</th>
-          <th>加购人数</th>
-          <th>下单商品件数</th>
-          <th>支付件数</th>
-          <th>支付买家数</th>
-          <th>搜索点击率(%)</th>
-          <th>平均停留时长(秒)</th>
+          <th style="text-align: left; min-width: 120px;">商品(ID)</th>
+          <th style="text-align: center; min-width: 150px;">周期</th>
+          <th style="text-align: center; min-width: 100px;">访客比(%)</th>
+          <th style="text-align: center; min-width: 100px;">加购比(%)</th>
+          <th style="text-align: center; min-width: 100px;">支付比(%)</th>
+          <th style="text-align: center; min-width: 80px;">曝光量</th>
+          <th style="text-align: center; min-width: 80px;">访客数</th>
+          <th style="text-align: center; min-width: 80px;">浏览量</th>
+          <th style="text-align: center; min-width: 80px;">加购人数</th>
+          <th style="text-align: center; min-width: 100px;">下单商品件数</th>
+          <th style="text-align: center; min-width: 80px;">支付件数</th>
+          <th style="text-align: center; min-width: 80px;">支付买家数</th>
+          <th style="text-align: center; min-width: 100px;">搜索点击率(%)</th>
+          <th style="text-align: center; min-width: 120px;">平均停留时长(秒)</th>
         </tr>
       `;
       table.appendChild(thead);
@@ -678,21 +704,41 @@
              `<a href="https://www.aliexpress.com/item/${productId}.html" target="_blank" class="product-link">${productId}</a>` : 
              '';
            
+           // 调试：输出当前行的字段信息
+           if (index < 3) {
+             console.log(`行${index + 1}数据字段:`, {
+               product_id: row.product_id,
+               bucket: row.bucket,
+               visitor_ratio: row.visitor_ratio,
+               cart_ratio: row.cart_ratio,
+               pay_ratio: row.pay_ratio,
+               exposure: row.exposure,
+               visitors: row.visitors,
+               page_views: row.page_views,
+               cart_users: row.cart_users,
+               order_items: row.order_items,
+               pay_items: row.pay_items,
+               pay_buyers: row.pay_buyers,
+               search_ctr: row.search_ctr,
+               avg_stay_seconds: row.avg_stay_seconds
+             });
+           }
+           
            tr.innerHTML = `
-             <td>${productLink}</td>
-             <td>${this.formatDateRange(row.start_date, row.end_date)}</td>
-             <td>${this.formatPercentage(row.visitor_ratio)}</td>
-             <td>${this.formatPercentage(row.cart_ratio)}</td>
-             <td>${this.formatPercentage(row.pay_ratio)}</td>
-             <td>${this.formatNumber(row.exposure || 0)}</td>
-             <td>${this.formatNumber(row.visitors || 0)}</td>
-             <td>${this.formatNumber(row.page_views || 0)}</td>
-             <td>${this.formatNumber(row.cart_users || 0)}</td>
-             <td>${this.formatNumber(row.order_items || 0)}</td>
-             <td>${this.formatNumber(row.pay_items || 0)}</td>
-             <td>${this.formatNumber(row.pay_buyers || 0)}</td>
-             <td>${this.formatPercentage(row.search_ctr)}</td>
-             <td>${this.formatNumber(row.avg_stay_seconds || 0)}</td>
+             <td style="text-align: left;">${productLink}</td>
+             <td style="text-align: center;">${row.bucket || this.formatDateRange(row.start_date, row.end_date)}</td>
+             <td style="text-align: center;">${this.formatPercentage(row.visitor_ratio)}</td>
+             <td style="text-align: center;">${this.formatPercentage(row.cart_ratio)}</td>
+             <td style="text-align: center;">${this.formatPercentage(row.pay_ratio)}</td>
+             <td style="text-align: center;">${this.formatNumber(row.exposure || 0)}</td>
+             <td style="text-align: center;">${this.formatNumber(row.visitors || 0)}</td>
+             <td style="text-align: center;">${this.formatNumber(row.page_views || 0)}</td>
+             <td style="text-align: center;">${this.formatNumber(row.cart_users || 0)}</td>
+             <td style="text-align: center;">${this.formatNumber(row.order_items || 0)}</td>
+             <td style="text-align: center;">${this.formatNumber(row.pay_items || 0)}</td>
+             <td style="text-align: center;">${this.formatNumber(row.pay_buyers || 0)}</td>
+             <td style="text-align: center;">${this.formatPercentage(row.search_ctr)}</td>
+             <td style="text-align: center;">${this.formatNumber(row.avg_stay_seconds || 0)}</td>
            `;
            tbody.appendChild(tr);
          });
@@ -753,25 +799,30 @@
                data: [], // 空数据，因为我们已经手动填充了HTML
                // 明确指定列配置，确保列数匹配
                columnDefs: [
-                 { targets: 0, className: 'product-id-cell' }, // 商品ID列
-                 { targets: '_all', className: 'text-center' }  // 其他列居中
+                 { targets: 0, className: 'product-id-cell', width: '120px' }, // 商品ID列
+                 { targets: 1, width: '150px' }, // 周期列
+                 { targets: [2,3,4], width: '100px' }, // 比率列
+                 { targets: [5,6,7,8,10,11], width: '80px' }, // 数字列
+                 { targets: 9, width: '100px' }, // 下单商品件数列
+                 { targets: 12, width: '100px' }, // 搜索点击率列
+                 { targets: 13, width: '120px' }  // 平均停留时长列
                ],
-               // 确保列数正确
+               // 确保列数正确，使用HTML表格数据而不是DataTables数据
                columns: [
-                 { title: '商品(ID)', data: 0, orderable: true },
-                 { title: '周期', data: 1, orderable: true },
-                 { title: '访客比(%)', data: 2, orderable: true },
-                 { title: '加购比(%)', data: 3, orderable: true },
-                 { title: '支付比(%)', data: 4, orderable: true },
-                 { title: '曝光量', data: 5, orderable: true },
-                 { title: '访客数', data: 6, orderable: true },
-                 { title: '浏览量', data: 7, orderable: true },
-                 { title: '加购人数', data: 8, orderable: true },
-                 { title: '下单商品件数', data: 9, orderable: true },
-                 { title: '支付件数', data: 10, orderable: true },
-                 { title: '支付买家数', data: 11, orderable: true },
-                 { title: '搜索点击率(%)', data: 12, orderable: true },
-                 { title: '平均停留时长(秒)', data: 13, orderable: true }
+                 { title: '商品(ID)', data: null, orderable: true, defaultContent: '' },
+                 { title: '周期', data: null, orderable: true, defaultContent: '' },
+                 { title: '访客比(%)', data: null, orderable: true, defaultContent: '' },
+                 { title: '加购比(%)', data: null, orderable: true, defaultContent: '' },
+                 { title: '支付比(%)', data: null, orderable: true, defaultContent: '' },
+                 { title: '曝光量', data: null, orderable: true, defaultContent: '' },
+                 { title: '访客数', data: null, orderable: true, defaultContent: '' },
+                 { title: '浏览量', data: null, orderable: true, defaultContent: '' },
+                 { title: '加购人数', data: null, orderable: true, defaultContent: '' },
+                 { title: '下单商品件数', data: null, orderable: true, defaultContent: '' },
+                 { title: '支付件数', data: null, orderable: true, defaultContent: '' },
+                 { title: '支付买家数', data: null, orderable: true, defaultContent: '' },
+                 { title: '搜索点击率(%)', data: null, orderable: true, defaultContent: '' },
+                 { title: '平均停留时长(秒)', data: null, orderable: true, defaultContent: '' }
                ]
              });
            
