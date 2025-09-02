@@ -341,7 +341,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const detailLink=document.getElementById('detailLink');
   const productLink=document.getElementById('productLink');
     if(mode==='self'){
-    if(detailLink)detailLink.href='index.html';
+    if(detailLink)detailLink.href='self-operated.html';
     if(productLink)productLink.href='product-analysis.html?mode=self';
   }
 
@@ -449,12 +449,12 @@ document.addEventListener('DOMContentLoaded',()=>{
       platform = 'self';
       // 从currentSiteId中提取站点名称
       if (currentSiteId === 'ae_self_operated_a') {
-        site = 'A站';
+        site = 'ae_self_operated_a';
       } else if (currentSiteId === 'ae_self_operated_poolslab') {
-        site = 'Poolslab运动娱乐';
+        site = 'ae_self_operated_poolslab';
       } else {
         // 如果currentSiteId包含其他站点信息，提取站点名称
-        site = currentSiteId.replace('ae_self_operated_', '');
+        site = currentSiteId;
       }
     } else if (currentSiteId && currentSiteId.startsWith('indep_')) {
       platform = 'indep';

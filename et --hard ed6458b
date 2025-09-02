@@ -1,0 +1,5 @@
+[33m0b403c4[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mnew-site-add-new-branch-0102[m[33m, [m[1;31morigin/new-site-add-new-branch-0102[m[33m)[m 修改运营分析页对比柱状图布局：从并排展示改为单行展示
+[33m1e8021a[m 统一所有页面的KPI卡片UI风格：将产品分析、运营分析、managed等页面的KPI卡片样式改为与自运营数据明细页一致的kpi-grid和kpi-card样式
+[33med6458b[m 将自运营robot站设置为默认首页：修改index.html为跳转页面，更新self-operated.html为首页展示
+[33m6df18c9[m 修复DataTable列数错误：当没有数据时跳过DataTable初始化，避免Incorrect column count警告
+[33mb50f1c6[m 添加新品KPI卡片点击筛选功能，支持筛选新品数据和清除筛选恢复完整数据
