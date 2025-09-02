@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API数据结构测试 - 自运营接口</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+            background: #667eea;
+            color: white;
+        }
+        .btn:hover {
+            background: #5a6fd8;
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 API数据结构测试 - 自运营接口</h1>
+            <p>专门用于查看自运营接口返回的真实数据格式</p>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 测试自运营接口数据结构</h3>
+            <p>点击下面的按钮测试不同的API调用，查看返回的数据结构：</p>
+            
+            <button class="btn" onclick="testSelfOperatedAPI()">测试自运营接口 (/api/ae_query)</button>
+            <button class="btn" onclick="testIndependentAPI()">测试独立站接口 (/api/independent/stats)</button>
+            <button class="btn" onclick="clearResults()">清空结果</button>
+            
+            <div id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        const resultsDiv = document.getElementById('results');
+        
+        function addResult(title, content, type = 'info') {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = `<strong>${title}</strong>\n${content}`;
+            resultsDiv.appendChild(resultDiv);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+        
+        function clearResults() {
+            resultsDiv.innerHTML = '';
+        }
+        
+        async function testSelfOperatedAPI() {
+            try {
+                addResult('🚀 开始测试自运营接口...', '');
+                
+                // 测试不同的参数组合
+                const testCases = [
+                    {
+                        name: '基础查询 (product聚合)',
+                        params: {
+                            start: '2025-08-03',
+                            end: '2025-09-02',
+                            granularity: 'day',
+                            site: 'ae_self_operated_a',
+                            aggregate: 'product'
+                        }
+                    },
+                    {
+                        name: '基础查询 (true聚合)',
+                        params: {
+                            start: '2025-08-03',
+                            end: '2025-09-02',
+                            granularity: 'day',
+                            site: 'ae_self_operated_a',
+                            aggregate: 'true'
+                        }
+                    },
+                    {
+                        name: '基础查询 (无聚合)',
+                        params: {
+                            start: '2025-08-03',
+                            end: '2025-09-02',
+                            granularity: 'day',
+                            site: 'ae_self_operated_a'
+                        }
+                    }
+                ];
+                
+                for (const testCase of testCases) {
+                    addResult(`📋 测试: ${testCase.name}`, '');
+                    
+                    const params = new URLSearchParams(testCase.params);
+                    const url = `/api/ae_query?${params.toString()}`;
+                    
+                    addResult('🌐 请求URL:', url);
+                    
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.ok) {
+                        addResult('✅ 响应成功', `状态: ${data.ok}\n记录数: ${data.rows ? data.rows.length : 0}`);
+                        
+                        if (data.rows && data.rows.length > 0) {
+                            // 分析第一行数据的字段
+                            const firstRow = data.rows[0];
+                            const fields = Object.keys(firstRow);
+                            
+                            addResult('📊 数据字段分析', `总字段数: ${fields.length}\n字段列表: ${fields.join(', ')}`);
+                            
+                            // 详细分析关键字段
+                            const keyFields = ['visitor_ratio', 'cart_ratio', 'pay_ratio', 'cart_users', 'pay_buyers', 'exposure', 'visitors'];
+                            const fieldAnalysis = keyFields.map(field => {
+                                const value = firstRow[field];
+                                const type = typeof value;
+                                const isNull = value === null || value === undefined;
+                                return `${field}: ${isNull ? 'NULL/undefined' : `${value} (${type})`}`;
+                            }).join('\n');
+                            
+                            addResult('🔍 关键字段详情', fieldAnalysis);
+                            
+                            // 显示前3行数据样本
+                            const sampleData = data.rows.slice(0, 3).map((row, index) => {
+                                return `行${index + 1}: ${JSON.stringify(row, null, 2)}`;
+                            }).join('\n\n');
+                            
+                            addResult('📋 前3行数据样本', sampleData);
+                        } else {
+                            addResult('⚠️ 无数据', 'API返回成功但没有数据行');
+                        }
+                    } else {
+                        addResult('❌ 响应失败', `错误: ${data.msg || '未知错误'}`);
+                    }
+                    
+                    addResult('', '─'.repeat(50));
+                }
+                
+            } catch (error) {
+                addResult('❌ 测试失败', `错误: ${error.message}`);
+            }
+        }
+        
+        async function testIndependentAPI() {
+            try {
+                addResult('🚀 开始测试独立站接口...', '');
+                
+                const params = new URLSearchParams({
+                    start: '2025-08-03',
+                    end: '2025-09-02',
+                    site: 'independent_poolsvacuum'
+                });
+                
+                const url = `/api/independent/stats?${params.toString()}`;
+                addResult('🌐 请求URL:', url);
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.ok) {
+                    addResult('✅ 响应成功', `状态: ${data.ok}\n记录数: ${data.rows ? data.rows.length : 0}`);
+                    
+                    if (data.rows && data.rows.length > 0) {
+                        const firstRow = data.rows[0];
+                        const fields = Object.keys(firstRow);
+                        
+                        addResult('📊 数据字段分析', `总字段数: ${fields.length}\n字段列表: ${fields.join(', ')}`);
+                        
+                        // 显示第一行数据样本
+                        addResult('📋 第一行数据样本', JSON.stringify(firstRow, null, 2));
+                    }
+                } else {
+                    addResult('❌ 响应失败', `错误: ${data.msg || '未知错误'}`);
+                }
+                
+            } catch (error) {
+                addResult('❌ 测试失败', `错误: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>
