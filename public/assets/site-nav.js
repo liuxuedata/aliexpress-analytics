@@ -275,18 +275,23 @@
         // 确保链接能正常工作
         console.log('导航链接点击:', link.href);
         
-        // 检查当前页面类型，调用相应的平台切换处理函数
-        const currentPath = window.location.pathname;
-        if (currentPath.includes('self-operated')) {
-          // 自运营页面：调用平台切换处理
-          if (window.handlePlatformSwitch && link) {
-            e.preventDefault();
-            const platform = link.getAttribute('data-platform') || link.textContent.trim();
-            console.log('自运营页面平台切换:', platform);
-            window.handlePlatformSwitch(platform);
-            return;
-          }
-        }
+                 // 检查当前页面类型，调用相应的平台切换处理函数
+         const currentPath = window.location.pathname;
+         if (currentPath.includes('self-operated')) {
+           // 自运营页面：调用平台切换处理
+           if (window.handlePlatformSwitch && link && link.getAttribute) {
+             try {
+               e.preventDefault();
+               const platform = link.getAttribute('data-platform') || link.textContent.trim();
+               console.log('自运营页面平台切换:', platform);
+               window.handlePlatformSwitch(platform);
+               return;
+             } catch (error) {
+               console.warn('平台切换处理出错:', error);
+               // 如果出错，让链接正常工作
+             }
+           }
+         }
         // 不阻止默认行为，让链接正常工作
       });
     });
@@ -294,17 +299,34 @@
     console.log('下拉菜单事件处理已设置');
   }
 
+  // 全局错误处理函数
+  function safeGetAttribute(element, attribute, fallback = '') {
+    try {
+      if (element && typeof element.getAttribute === 'function') {
+        return element.getAttribute(attribute) || fallback;
+      }
+      return fallback;
+    } catch (error) {
+      console.warn('safeGetAttribute 出错:', error, { element, attribute });
+      return fallback;
+    }
+  }
+
   // 初始化函数
   function initialize() {
     console.log('开始初始化站点菜单...');
     
-    // 立即渲染菜单
-    renderSiteMenus();
-    applyNavIcons();
-    updateCurrentSiteDisplay();
-    setupDropdownEvents();
-    
-    console.log('站点菜单初始化完成');
+    try {
+      // 立即渲染菜单
+      renderSiteMenus();
+      applyNavIcons();
+      updateCurrentSiteDisplay();
+      setupDropdownEvents();
+      
+      console.log('站点菜单初始化完成');
+    } catch (error) {
+      console.error('站点菜单初始化失败:', error);
+    }
   }
 
   // 全局函数，供其他页面调用

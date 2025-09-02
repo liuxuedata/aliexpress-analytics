@@ -279,44 +279,58 @@
        let cartedProducts = 0;
        let purchasedProducts = 0;
 
-       data.forEach((row, index) => {
-         // 尝试多种字段名，确保能获取到数据
-         const visitorRatio = parseFloat(row.visitor_ratio || row.visitor_ratio_sum || row.visitor_ratio_avg || 0);
-         const cartRatio = parseFloat(row.cart_ratio || row.cart_ratio_sum || row.cart_ratio_avg || 0);
-         const payRatio = parseFloat(row.pay_ratio || row.pay_ratio_sum || row.pay_ratio_avg || 0);
-         
-         // 如果比率字段不存在，尝试计算
-         let finalVisitorRatio = visitorRatio;
-         let finalCartRatio = cartRatio;
-         let finalPayRatio = payRatio;
-         
-         if (!visitorRatio && row.exposure && row.visitors) {
-           finalVisitorRatio = (row.visitors / row.exposure) * 100;
-         }
-         if (!cartRatio && row.visitors && row.cart_users) {
-           finalCartRatio = (row.cart_users / row.visitors) * 100;
-         }
-         if (!payRatio && row.cart_users && row.pay_buyers) {
-           finalPayRatio = (row.pay_buyers / row.cart_users) * 100;
-         }
-         
-         totalVisitorRatio += finalVisitorRatio;
-         totalCartRatio += finalCartRatio;
-         totalPayRatio += finalPayRatio;
-         totalProducts++;
-         
-         if (finalCartRatio > 0) cartedProducts++;
-         if (finalPayRatio > 0) purchasedProducts++;
-         
-         // 调试信息
-         if (index < 3) {
-           console.log(`行${index + 1}:`, {
-             original: { visitorRatio, cartRatio, payRatio },
-             calculated: { finalVisitorRatio, finalCartRatio, finalPayRatio },
-             raw: { exposure: row.exposure, visitors: row.visitors, cart_users: row.cart_users, pay_buyers: row.pay_buyers }
-           });
-         }
-       });
+               data.forEach((row, index) => {
+          // 尝试多种字段名，确保能获取到数据
+          const visitorRatio = parseFloat(row.visitor_ratio || row.visitor_ratio_sum || row.visitor_ratio_avg || 0);
+          const cartRatio = parseFloat(row.cart_ratio || row.cart_ratio_sum || row.cart_ratio_avg || 0);
+          const payRatio = parseFloat(row.pay_ratio || row.pay_ratio_sum || row.pay_ratio_avg || 0);
+          
+          // 如果比率字段不存在，尝试从原始数据计算
+          let finalVisitorRatio = visitorRatio;
+          let finalCartRatio = cartRatio;
+          let finalPayRatio = payRatio;
+          
+          // 计算访客比：访客数/曝光量
+          if (!visitorRatio && row.exposure && row.visitors && row.exposure > 0) {
+            finalVisitorRatio = (row.visitors / row.exposure) * 100;
+            console.log(`计算访客比: ${row.visitors}/${row.exposure} = ${finalVisitorRatio.toFixed(2)}%`);
+          }
+          
+          // 计算加购比：加购人数/访客数
+          if (!cartRatio && row.visitors && row.cart_users && row.visitors > 0) {
+            finalCartRatio = (row.cart_users / row.visitors) * 100;
+            console.log(`计算加购比: ${row.cart_users}/${row.visitors} = ${finalCartRatio.toFixed(2)}%`);
+          }
+          
+          // 计算支付比：支付买家数/加购人数
+          if (!payRatio && row.cart_users && row.pay_buyers && row.cart_users > 0) {
+            finalPayRatio = (row.pay_buyers / row.cart_users) * 100;
+            console.log(`计算支付比: ${row.pay_buyers}/${row.cart_users} = ${finalPayRatio.toFixed(2)}%`);
+          }
+          
+          // 累加计算
+          totalVisitorRatio += finalVisitorRatio;
+          totalCartRatio += finalCartRatio;
+          totalPayRatio += finalPayRatio;
+          totalProducts++;
+          
+          if (finalCartRatio > 0) cartedProducts++;
+          if (finalPayRatio > 0) purchasedProducts++;
+          
+          // 调试信息
+          if (index < 3) {
+            console.log(`行${index + 1} KPI计算:`, {
+              original: { visitorRatio, cartRatio, payRatio },
+              calculated: { finalVisitorRatio, finalCartRatio, finalPayRatio },
+              raw: { 
+                exposure: row.exposure, 
+                visitors: row.visitors, 
+                cart_users: row.cart_users, 
+                pay_buyers: row.pay_buyers 
+              }
+            });
+          }
+        });
 
        // 计算平均值
        const avgVisitorRatio = total > 0 ? (totalVisitorRatio / total) : 0;
@@ -430,42 +444,48 @@
        return results;
      }
 
-    // 渲染数据表格
-    async renderDataTable(data, granularity) {
-      if (!data || !Array.isArray(data)) return;
-      
-      const table = document.getElementById('report');
-      if (!table) return;
+         // 渲染数据表格
+     async renderDataTable(data, granularity) {
+       if (!data || !Array.isArray(data)) return;
+       
+       const table = document.getElementById('report');
+       if (!table) return;
 
-      console.log('开始渲染数据表格，数据量:', data.length);
+       console.log('开始渲染数据表格，数据量:', data.length);
 
-             // 彻底清理DataTable实例和所有相关元素
+       // 第一步：彻底销毁DataTable实例
        if (this.dataTable) {
          try {
            this.dataTable.destroy();
            this.dataTable = null;
-           console.log('DataTable已销毁');
+           console.log('DataTable实例已销毁');
          } catch (error) {
-           console.warn('销毁DataTable时出错:', error);
+           console.warn('销毁DataTable实例时出错:', error);
          }
        }
 
-       // 清理所有DataTables相关的包装器和元素
-       const existingWrappers = table.parentNode.querySelectorAll('.dataTables_wrapper, .dataTables_filter, .dataTables_length, .dataTables_info, .dataTables_paginate, .dataTables_processing, .dataTables_scroll');
-       existingWrappers.forEach(wrapper => {
-         wrapper.remove();
-       });
-       
-       // 清理表格内容
+       // 第二步：清理所有DataTables相关的DOM元素
+       const tableContainer = table.parentNode;
+       if (tableContainer) {
+         const dataTableElements = tableContainer.querySelectorAll(
+           '.dataTables_wrapper, .dataTables_filter, .dataTables_length, ' +
+           '.dataTables_info, .dataTables_paginate, .dataTables_processing, ' +
+           '.dataTables_scroll, .dataTables_scrollHead, .dataTables_scrollBody'
+         );
+         
+         dataTableElements.forEach(element => {
+           element.remove();
+           console.log('移除DataTables元素:', element.className);
+         });
+       }
+
+       // 第三步：重置表格本身
        table.innerHTML = '';
-       
-       // 移除表格上的DataTable相关类
-       table.classList.remove('dataTable', 'display', 'compact');
-       
-       // 移除表格上的DataTable相关属性
+       table.className = '';
        table.removeAttribute('width');
        table.removeAttribute('cellspacing');
        table.removeAttribute('cellpadding');
+       table.removeAttribute('style');
        
        // 确保表格有正确的ID
        if (!table.id) {
@@ -476,7 +496,8 @@
        console.log('表格清理完成，当前表格状态:', {
          id: table.id,
          className: table.className,
-         innerHTML: table.innerHTML.length
+         innerHTML: table.innerHTML.length,
+         parentChildren: tableContainer ? tableContainer.children.length : 'N/A'
        });
 
       // 创建表头 - 确保与HTML中的列数完全匹配
@@ -533,7 +554,7 @@
       table.appendChild(tbody);
 
              // 等待DOM更新完成后再初始化DataTable
-       await new Promise(resolve => setTimeout(resolve, 300));
+       await new Promise(resolve => setTimeout(resolve, 500));
 
        // 初始化DataTable
        if (window.jQuery && jQuery.fn.DataTable) {
@@ -544,13 +565,28 @@
              return;
            }
 
-           // 检查表格是否为空
-           if (!table.querySelector('thead') || !table.querySelector('tbody')) {
+           // 检查表格结构是否完整
+           const thead = table.querySelector('thead');
+           const tbody = table.querySelector('tbody');
+           
+           if (!thead || !tbody) {
              console.error('表格结构不完整，跳过DataTable初始化');
+             console.log('表格结构检查:', { thead: !!thead, tbody: !!tbody });
              return;
            }
 
-           // 使用更简单的配置，避免复杂选项导致的问题
+           // 检查表格是否有数据行
+           const rows = tbody.querySelectorAll('tr');
+           if (rows.length === 0) {
+             console.warn('表格没有数据行，跳过DataTable初始化');
+             return;
+           }
+
+           console.log('表格结构验证通过，开始初始化DataTable...');
+           console.log('表头列数:', thead.querySelectorAll('th').length);
+           console.log('数据行数:', rows.length);
+
+           // 使用最简化的配置，避免任何可能导致问题的选项
            this.dataTable = jQuery(table).DataTable({
              pageLength: 10,
              order: [[1, 'desc']],
@@ -562,34 +598,35 @@
                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json'
              },
              destroy: true,
-             responsive: false, // 禁用响应式，避免额外复杂性
-             // 移除复杂的列定义，让DataTables自动检测
-             columnDefs: [
-               { targets: '_all', className: 'text-center' }
-             ]
+             responsive: false,
+             autoWidth: false,
+             // 移除所有可能导致问题的配置
+             columnDefs: [],
+             columns: []
            });
            
-           console.log('DataTable初始化成功，数据行数:', this.dataTable.data().count());
-           
-           // 验证列数
-           const columnCount = this.dataTable.columns().count();
-           console.log('DataTable列数:', columnCount);
-           
-           if (columnCount !== 14) {
-             console.warn('列数不匹配！期望14列，实际:', columnCount);
-           }
+           console.log('DataTable初始化成功！');
+           console.log('数据行数:', this.dataTable.data().count());
+           console.log('列数:', this.dataTable.columns().count());
            
          } catch (error) {
            console.error('DataTable初始化失败:', error);
+           
            // 如果初始化失败，尝试使用最基本的配置
            try {
+             console.log('尝试使用基本配置初始化DataTable...');
              this.dataTable = jQuery(table).DataTable({
                destroy: true,
-               pageLength: 10
+               pageLength: 10,
+               ordering: false,
+               searching: false,
+               info: false,
+               paging: false
              });
              console.log('使用基本配置初始化DataTable成功');
            } catch (fallbackError) {
              console.error('基本配置初始化也失败:', fallbackError);
+             console.log('表格将保持为普通HTML表格');
            }
          }
        } else {
