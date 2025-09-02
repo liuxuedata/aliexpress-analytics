@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自运营页面测试 - 简化版</title>
+    
+    <!-- 引入必要的库 -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+        }
+        
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .kpi-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+        
+        .kpi-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+        }
+        
+        .kpi-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .kpi-comparison {
+            margin-top: 10px;
+            font-size: 0.8em;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .date-filter {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        
+        .debug-info {
+            background: #e2e3e5;
+            color: #383d41;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 自运营页面测试 - 简化版</h1>
+            <p>完全独立的测试环境，用于排查数据加载和显示问题</p>
+        </div>
+        
+        <!-- 调试信息 -->
+        <div class="debug-info">
+            <strong>调试信息:</strong>
+            <div id="debugInfo">页面加载中...</div>
+        </div>
+        
+        <!-- 控制面板 -->
+        <div class="controls">
+            <h3>📊 控制面板</h3>
+            <input type="text" id="dateFilter" class="date-filter" placeholder="选择日期范围" readonly>
+            <button id="loadDataBtn" class="btn btn-primary">加载数据</button>
+            <button id="clearDataBtn" class="btn btn-primary">清空数据</button>
+            <button id="testApiBtn" class="btn btn-primary">测试API</button>
+        </div>
+        
+        <!-- KPI卡片 -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-label">平均访客比</div>
+                <div class="kpi-value" id="avgVisitor">-</div>
+                <div class="kpi-comparison" id="avgVisitorComparison"></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">平均加购比</div>
+                <div class="kpi-value" id="avgCart">-</div>
+                <div class="kpi-comparison" id="avgCartComparison"></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">平均支付比</div>
+                <div class="kpi-value" id="avgPay">-</div>
+                <div class="kpi-comparison" id="avgPayComparison"></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">商品总数</div>
+                <div class="kpi-value" id="totalProducts">-</div>
+                <div class="kpi-comparison" id="totalProductsComparison"></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">加购商品数</div>
+                <div class="kpi-value" id="cartedProducts">-</div>
+                <div class="kpi-comparison" id="cartedProductsComparison"></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">支付商品数</div>
+                <div class="kpi-value" id="purchasedProducts">-</div>
+                <div class="kpi-comparison" id="purchasedProductsComparison"></div>
+            </div>
+        </div>
+        
+        <!-- 数据表格 -->
+        <div id="tableContainer">
+            <h3>📋 数据表格</h3>
+            <div id="loadingState" class="loading" style="display: none;">
+                <div>🔄 数据加载中，请稍候...</div>
+            </div>
+            <div id="errorState" class="error" style="display: none;"></div>
+            <div id="successState" class="success" style="display: none;"></div>
+            <table id="dataTable" class="display" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>商品ID</th>
+                        <th>周期</th>
+                        <th>访客比(%)</th>
+                        <th>加购比(%)</th>
+                        <th>支付比(%)</th>
+                        <th>曝光量</th>
+                        <th>访客数</th>
+                        <th>加购人数</th>
+                        <th>支付买家数</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 数据行将在这里动态生成 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // ===== 完全独立的测试代码 =====
+        
+        class SimpleSelfOperatedTester {
+            constructor() {
+                this.dataTable = null;
+                this.isLoading = false;
+                this.currentData = null;
+                this.comparisonData = null;
+                
+                this.init();
+            }
+            
+            init() {
+                console.log('🚀 简化版自运营测试器初始化...');
+                this.updateDebugInfo('测试器初始化完成');
+                this.bindEvents();
+                this.initDatePicker();
+            }
+            
+            updateDebugInfo(message) {
+                const debugEl = document.getElementById('debugInfo');
+                if (debugEl) {
+                    const timestamp = new Date().toLocaleTimeString();
+                    debugEl.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+                    // 保持最新的10条记录
+                    const lines = debugEl.innerHTML.split('<div>');
+                    if (lines.length > 11) {
+                        debugEl.innerHTML = lines.slice(-10).join('<div>');
+                    }
+                }
+            }
+            
+            bindEvents() {
+                // 加载数据按钮
+                document.getElementById('loadDataBtn').addEventListener('click', () => {
+                    this.loadData();
+                });
+                
+                // 清空数据按钮
+                document.getElementById('clearDataBtn').addEventListener('click', () => {
+                    this.clearData();
+                });
+                
+                // 测试API按钮
+                document.getElementById('testApiBtn').addEventListener('click', () => {
+                    this.testApi();
+                });
+            }
+            
+            initDatePicker() {
+                const dateFilter = document.getElementById('dateFilter');
+                if (dateFilter) {
+                    const today = new Date();
+                    const end = today.toISOString().slice(0, 10);
+                    const start = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+                    dateFilter.value = `${start} to ${end}`;
+                    this.updateDebugInfo(`日期选择器初始化: ${start} 到 ${end}`);
+                }
+            }
+            
+            async loadData() {
+                if (this.isLoading) {
+                    this.updateDebugInfo('⚠️ 数据正在加载中，跳过重复请求');
+                    return;
+                }
+                
+                try {
+                    this.isLoading = true;
+                    this.showLoading();
+                    this.updateDebugInfo('🔄 开始加载数据...');
+                    
+                    // 获取日期范围
+                    const dateRange = this.getDateRange();
+                    if (!dateRange) {
+                        throw new Error('无法获取日期范围');
+                    }
+                    
+                    this.updateDebugInfo(`📅 日期范围: ${dateRange.start} 到 ${dateRange.end}`);
+                    
+                    // 并行加载当前数据和对比数据
+                    const [currentData, comparisonData] = await Promise.all([
+                        this.fetchData(dateRange.start, dateRange.end),
+                        this.fetchComparisonData(dateRange)
+                    ]);
+                    
+                    this.currentData = currentData;
+                    this.comparisonData = comparisonData;
+                    
+                    this.updateDebugInfo(`✅ 数据加载完成: 当前${currentData.length}条, 对比${comparisonData.length}条`);
+                    
+                    // 计算和显示KPI
+                    this.calculateAndDisplayKPIs(currentData, comparisonData);
+                    
+                    // 渲染表格
+                    this.renderTable(currentData);
+                    
+                    this.showSuccess(`数据加载成功！共${currentData.length}条记录`);
+                    
+                } catch (error) {
+                    console.error('数据加载失败:', error);
+                    this.updateDebugInfo(`❌ 数据加载失败: ${error.message}`);
+                    this.showError(`数据加载失败: ${error.message}`);
+                } finally {
+                    this.isLoading = false;
+                    this.hideLoading();
+                }
+            }
+            
+            getDateRange() {
+                const dateFilter = document.getElementById('dateFilter');
+                if (!dateFilter || !dateFilter.value) {
+                    // 使用默认日期
+                    const today = new Date();
+                    const end = today.toISOString().slice(0, 10);
+                    const start = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+                    return { start, end };
+                }
+                
+                const value = dateFilter.value;
+                if (value.includes(' to ')) {
+                    const [start, end] = value.split(' to ');
+                    return { start: start.trim(), end: end.trim() };
+                }
+                
+                return null;
+            }
+            
+            async fetchData(start, end) {
+                const params = new URLSearchParams({
+                    start: start,
+                    end: end,
+                    granularity: 'day',
+                    site: 'ae_self_operated_a',
+                    aggregate: 'product'
+                });
+                
+                const url = `/api/ae_query?${params.toString()}`;
+                this.updateDebugInfo(`🌐 请求URL: ${url}`);
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                if (!data.ok) {
+                    throw new Error(data.msg || 'API请求失败');
+                }
+                
+                const rows = data.rows || [];
+                this.updateDebugInfo(`📊 API响应: ${rows.length}条记录`);
+                
+                return rows;
+            }
+            
+            async fetchComparisonData(dateRange) {
+                try {
+                    const prevStart = new Date(dateRange.start);
+                    prevStart.setDate(prevStart.getDate() - 30);
+                    const prevEnd = new Date(dateRange.start);
+                    prevEnd.setDate(prevEnd.getDate() - 1);
+                    
+                    const prevData = await this.fetchData(
+                        prevStart.toISOString().slice(0, 10),
+                        prevEnd.toISOString().slice(0, 10)
+                    );
+                    
+                    this.updateDebugInfo(`📈 对比数据: ${prevData.length}条记录`);
+                    return prevData;
+                } catch (error) {
+                    this.updateDebugInfo(`⚠️ 对比数据获取失败: ${error.message}`);
+                    return [];
+                }
+            }
+            
+            calculateAndDisplayKPIs(currentData, comparisonData) {
+                if (!currentData || currentData.length === 0) return;
+                
+                this.updateDebugInfo('🧮 开始计算KPI...');
+                
+                // 计算当前周期KPI
+                const currentKPIs = this.calculateKPIs(currentData);
+                
+                // 计算对比周期KPI
+                const comparisonKPIs = comparisonData && comparisonData.length > 0 ? 
+                    this.calculateKPIs(comparisonData) : null;
+                
+                // 计算变化
+                const changes = comparisonKPIs ? this.calculateChanges(currentKPIs, comparisonKPIs) : null;
+                
+                // 显示KPI
+                this.displayKPIs(currentKPIs, changes);
+                
+                this.updateDebugInfo('✅ KPI计算完成');
+            }
+            
+            calculateKPIs(data) {
+                let totalVisitorRatio = 0;
+                let totalCartRatio = 0;
+                let totalPayRatio = 0;
+                let cartedProducts = 0;
+                let purchasedProducts = 0;
+                
+                data.forEach((row, index) => {
+                    // 调试前3行数据
+                    if (index < 3) {
+                        this.updateDebugInfo(`行${index + 1}数据: 访客比=${row.visitor_ratio}, 加购比=${row.cart_ratio}, 支付比=${row.pay_ratio}`);
+                    }
+                    
+                    const visitorRatio = parseFloat(row.visitor_ratio) || 0;
+                    const cartRatio = parseFloat(row.cart_ratio) || 0;
+                    const payRatio = parseFloat(row.pay_ratio) || 0;
+                    
+                    totalVisitorRatio += visitorRatio;
+                    totalCartRatio += cartRatio;
+                    totalPayRatio += payRatio;
+                    
+                    if (row.cart_users && row.cart_users > 0) cartedProducts++;
+                    if (row.pay_buyers && row.pay_buyers > 0) purchasedProducts++;
+                });
+                
+                const total = data.length;
+                return {
+                    avgVisitorRatio: total > 0 ? totalVisitorRatio / total : 0,
+                    avgCartRatio: total > 0 ? totalCartRatio / total : 0,
+                    avgPayRatio: total > 0 ? totalPayRatio / total : 0,
+                    totalProducts: total,
+                    cartedProducts: cartedProducts,
+                    purchasedProducts: purchasedProducts
+                };
+            }
+            
+            calculateChanges(current, previous) {
+                return {
+                    avgVisitorRatio: this.calculatePercentageChange(current.avgVisitorRatio, previous.avgVisitorRatio),
+                    avgCartRatio: this.calculatePercentageChange(current.avgCartRatio, previous.avgCartRatio),
+                    avgPayRatio: this.calculatePercentageChange(current.avgPayRatio, previous.avgPayRatio),
+                    totalProducts: current.totalProducts - previous.totalProducts,
+                    cartedProducts: current.cartedProducts - previous.cartedProducts,
+                    purchasedProducts: current.purchasedProducts - previous.purchasedProducts
+                };
+            }
+            
+            calculatePercentageChange(current, previous) {
+                if (previous === 0) return current > 0 ? 100 : 0;
+                return ((current - previous) / previous) * 100;
+            }
+            
+            displayKPIs(kpis, changes) {
+                // 更新主要KPI值
+                this.updateKPI('avgVisitor', kpis.avgVisitorRatio.toFixed(2) + '%');
+                this.updateKPI('avgCart', kpis.avgCartRatio.toFixed(2) + '%');
+                this.updateKPI('avgPay', kpis.avgPayRatio.toFixed(2) + '%');
+                this.updateKPI('totalProducts', kpis.totalProducts);
+                this.updateKPI('cartedProducts', kpis.cartedProducts);
+                this.updateKPI('purchasedProducts', kpis.purchasedProducts);
+                
+                // 显示对比变化
+                if (changes) {
+                    this.updateComparison('avgVisitor', changes.avgVisitorRatio);
+                    this.updateComparison('avgCart', changes.avgCartRatio);
+                    this.updateComparison('avgPay', changes.avgPayRatio);
+                    this.updateComparison('totalProducts', changes.totalProducts);
+                    this.updateComparison('cartedProducts', changes.cartedProducts);
+                    this.updateComparison('purchasedProducts', changes.purchasedProducts);
+                }
+            }
+            
+            updateKPI(id, value) {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = value;
+                }
+            }
+            
+            updateComparison(id, change) {
+                const element = document.getElementById(id + 'Comparison');
+                if (element && change !== undefined) {
+                    const arrow = change > 0 ? '↑' : change < 0 ? '↓' : '→';
+                    const color = change > 0 ? 'green' : change < 0 ? 'red' : 'gray';
+                    const changeText = typeof change === 'number' && change !== 0 ? 
+                        (change > 0 ? `+${change.toFixed(2)}` : change.toFixed(2)) : change;
+                    
+                    element.innerHTML = `<span style="color: ${color};">${arrow} ${changeText}</span>`;
+                }
+            }
+            
+            renderTable(data) {
+                if (!data || data.length === 0) return;
+                
+                this.updateDebugInfo(`📋 开始渲染表格，数据量: ${data.length}`);
+                
+                // 销毁现有DataTable
+                if (this.dataTable) {
+                    this.dataTable.destroy();
+                    this.dataTable = null;
+                }
+                
+                // 清空表格内容
+                const tbody = document.querySelector('#dataTable tbody');
+                tbody.innerHTML = '';
+                
+                // 添加数据行
+                data.forEach((row, index) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row.product_id || '-'}</td>
+                        <td>${row.bucket || '-'}</td>
+                        <td>${this.formatPercentage(row.visitor_ratio)}</td>
+                        <td>${this.formatPercentage(row.cart_ratio)}</td>
+                        <td>${this.formatPercentage(row.pay_ratio)}</td>
+                        <td>${this.formatNumber(row.exposure)}</td>
+                        <td>${this.formatNumber(row.visitors)}</td>
+                        <td>${this.formatNumber(row.cart_users)}</td>
+                        <td>${this.formatNumber(row.pay_buyers)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                
+                // 初始化DataTable
+                this.dataTable = $('#dataTable').DataTable({
+                    pageLength: 10,
+                    order: [[1, 'desc']],
+                    scrollX: true,
+                    language: {
+                        url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json'
+                    }
+                });
+                
+                this.updateDebugInfo('✅ 表格渲染完成');
+            }
+            
+            formatPercentage(num) {
+                if (num === null || num === undefined) return '0%';
+                let n = Number(num);
+                if (isNaN(n)) return '0%';
+                if (n <= 1) n *= 100;
+                return n.toFixed(2) + '%';
+            }
+            
+            formatNumber(num) {
+                if (num === null || num === undefined) return '0';
+                const n = Number(num);
+                if (isNaN(n)) return '0';
+                return n.toLocaleString();
+            }
+            
+            clearData() {
+                this.currentData = null;
+                this.comparisonData = null;
+                
+                // 清空KPI
+                ['avgVisitor', 'avgCart', 'avgPay', 'totalProducts', 'cartedProducts', 'purchasedProducts'].forEach(id => {
+                    this.updateKPI(id, '-');
+                    this.updateComparison(id, null);
+                });
+                
+                // 清空表格
+                if (this.dataTable) {
+                    this.dataTable.destroy();
+                    this.dataTable = null;
+                }
+                
+                const tbody = document.querySelector('#dataTable tbody');
+                tbody.innerHTML = '';
+                
+                this.updateDebugInfo('🗑️ 数据已清空');
+                this.hideAllStates();
+            }
+            
+            async testApi() {
+                this.updateDebugInfo('🧪 开始测试API连接...');
+                
+                try {
+                    const response = await fetch('/api/ae_query?start=2025-08-01&end=2025-08-31&granularity=day&site=ae_self_operated_a&aggregate=product');
+                    const data = await response.json();
+                    
+                    if (data.ok) {
+                        this.updateDebugInfo(`✅ API测试成功: ${data.rows ? data.rows.length : 0}条记录`);
+                    } else {
+                        this.updateDebugInfo(`⚠️ API响应异常: ${data.msg || '未知错误'}`);
+                    }
+                } catch (error) {
+                    this.updateDebugInfo(`❌ API测试失败: ${error.message}`);
+                }
+            }
+            
+            showLoading() {
+                document.getElementById('loadingState').style.display = 'block';
+                document.getElementById('errorState').style.display = 'none';
+                document.getElementById('successState').style.display = 'none';
+            }
+            
+            hideLoading() {
+                document.getElementById('loadingState').style.display = 'none';
+            }
+            
+            showError(message) {
+                const errorEl = document.getElementById('errorState');
+                errorEl.textContent = message;
+                errorEl.style.display = 'block';
+                document.getElementById('successState').style.display = 'none';
+            }
+            
+            showSuccess(message) {
+                const successEl = document.getElementById('successState');
+                successEl.textContent = message;
+                successEl.style.display = 'block';
+                document.getElementById('errorState').style.display = 'none';
+            }
+            
+            hideAllStates() {
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('errorState').style.display = 'none';
+                document.getElementById('successState').style.display = 'none';
+            }
+        }
+        
+        // 页面加载完成后初始化测试器
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 页面加载完成，初始化测试器...');
+            window.tester = new SimpleSelfOperatedTester();
+        });
+    </script>
+</body>
+</html>
