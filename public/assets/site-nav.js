@@ -47,12 +47,16 @@
     }
     
     if (currentSiteEl) {
-      // 优先检查独立站相关的localStorage
-      const currentIndepSiteId = localStorage.getItem('currentIndepSite');
-      const currentIndepSiteName = localStorage.getItem('currentIndepSiteName');
+      // 根据当前页面URL判断页面类型，而不是优先检查localStorage
+      const currentPath = window.location.pathname;
+      const isIndependentPage = currentPath.includes('independent-site');
+      const isSelfOperatedPage = currentPath.includes('self-operated');
       
-      if (currentIndepSiteId || currentIndepSiteName) {
+      if (isIndependentPage) {
         // 独立站页面：使用独立站相关的localStorage
+        const currentIndepSiteId = localStorage.getItem('currentIndepSite');
+        const currentIndepSiteName = localStorage.getItem('currentIndepSiteName');
+        
         if (currentIndepSiteName) {
           currentSiteEl.textContent = currentIndepSiteName;
           console.log('独立站页面更新站点显示:', currentIndepSiteName);
@@ -65,8 +69,19 @@
           const displayName = siteNameMap[currentIndepSiteId] || '独立站';
           currentSiteEl.textContent = displayName;
           console.log('独立站页面更新站点显示:', displayName);
+        } else {
+          // 从URL参数获取站点名称
+          const urlParams = new URLSearchParams(window.location.search);
+          const siteParam = urlParams.get('site');
+          if (siteParam) {
+            currentSiteEl.textContent = siteParam;
+            console.log('独立站页面从URL参数获取站点名称:', siteParam);
+          } else {
+            currentSiteEl.textContent = 'poolsvacuum.com';
+            console.log('独立站页面使用默认名称: poolsvacuum.com');
+          }
         }
-      } else {
+      } else if (isSelfOperatedPage) {
         // 自运营页面：使用自运营相关的localStorage
         const currentSiteId = localStorage.getItem('currentSite');
         const currentSiteName = localStorage.getItem('currentSiteName');
@@ -74,11 +89,32 @@
         if (currentSiteId && currentSiteName) {
           // 显示站点名称而不是ID
           currentSiteEl.textContent = currentSiteName;
-          console.log('更新站点显示:', currentSiteName);
+          console.log('自运营页面更新站点显示:', currentSiteName);
         } else if (currentSiteId) {
           // 如果没有站点名称，显示默认名称
           currentSiteEl.textContent = '自运营';
-          console.log('使用默认站点显示');
+          console.log('自运营页面使用默认名称: 自运营');
+        } else {
+          // 默认显示
+          currentSiteEl.textContent = '自运营robot站';
+          console.log('自运营页面使用默认名称: 自运营robot站');
+        }
+      } else {
+        // 其他页面：尝试智能判断
+        const currentSiteId = localStorage.getItem('currentSite');
+        const currentSiteName = localStorage.getItem('currentSiteName');
+        const currentIndepSiteId = localStorage.getItem('currentIndepSite');
+        const currentIndepSiteName = localStorage.getItem('currentIndepSiteName');
+        
+        if (currentSiteId && currentSiteName) {
+          currentSiteEl.textContent = currentSiteName;
+          console.log('其他页面使用自运营站点显示:', currentSiteName);
+        } else if (currentIndepSiteId && currentIndepSiteName) {
+          currentSiteEl.textContent = currentIndepSiteName;
+          console.log('其他页面使用独立站站点显示:', currentIndepSiteName);
+        } else {
+          currentSiteEl.textContent = '自运营';
+          console.log('其他页面使用默认名称: 自运营');
         }
       }
     }

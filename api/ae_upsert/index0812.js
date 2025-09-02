@@ -138,7 +138,7 @@ export default async function handler(req, res) {
     let upserted = 0;
     for (let i = 0; i < rows.length; i += CHUNK) {
       const chunk = rows.slice(i, i + CHUNK);
-      const { error } = await supabase.from(TABLE).upsert(chunk, { onConflict: 'product_id,stat_date' });
+              const { error } = await supabase.from(TABLE).upsert(chunk, { onConflict: 'site,product_id,stat_date' });
       if (error) return res.status(500).json({ error: error.message, from: i, to: i + CHUNK });
       upserted += chunk.length;
     }

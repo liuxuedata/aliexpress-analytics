@@ -724,8 +724,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
   function updateCurrent(){
     const name=localStorage.getItem(currentSiteKey)||sites[0];
-    currentSiteEl.textContent='自运营 '+name;
-    localStorage.setItem(currentSiteKey,name);
+    // 使用 site-nav.js 的站点名称映射
+    const siteNameMap = {
+      'ae_self_operated_a': '自运营robot站',
+      'ae_self_operated_poolslab': 'Poolslab运动娱乐'
+    };
+    const displayName = siteNameMap[name] || `自运营 ${name}`;
+    currentSiteEl.textContent = displayName;
+    localStorage.setItem(currentSiteKey, name);
+    // 同时设置 site-nav.js 需要的 localStorage
+    localStorage.setItem('currentSiteName', displayName);
   }
   currentSiteEl.addEventListener('dblclick',()=>{
     const cur=localStorage.getItem(currentSiteKey)||sites[0];
@@ -770,7 +778,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
   siteSelect.addEventListener('change', function() {
     const selectedSite = this.value;
     localStorage.setItem('currentSite', selectedSite);
-    currentSiteEl.textContent = '自运营 ' + selectedSite;
+    
+    // 使用 site-nav.js 的站点名称映射
+    const siteNameMap = {
+      'ae_self_operated_a': '自运营robot站',
+      'ae_self_operated_poolslab': 'Poolslab运动娱乐'
+    };
+    const displayName = siteNameMap[selectedSite] || `自运营 ${selectedSite}`;
+    currentSiteEl.textContent = displayName;
+    
+    // 同时设置 site-nav.js 需要的 localStorage
+    localStorage.setItem('currentSiteName', displayName);
     
     // 重新加载数据
     if (typeof fetchAndRenderAll === 'function') {
