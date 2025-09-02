@@ -6,12 +6,47 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>产品分析</title>
   <link rel="stylesheet" href="assets/theme.css?v=20250812-deep">
+  <link rel="stylesheet" href="assets/global-theme.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="assets/product-meta.js"></script>
   <script src="assets/loading.js"></script>
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
+  <style>
+    /* KPI卡片对比数据样式 */
+    .kpi-comparison {
+      margin-top: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-align: center;
+    }
+    
+    .kpi-comparison .delta {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.375rem;
+      font-weight: 600;
+    }
+    
+    .kpi-comparison .delta.up {
+      color: #059669;
+      background: rgba(34, 197, 94, 0.1);
+    }
+    
+    .kpi-comparison .delta.down {
+      color: #dc2626;
+      background: rgba(239, 68, 68, 0.1);
+    }
+    
+    .kpi-comparison .up {
+      color: #059669;
+    }
+    
+    .kpi-comparison .down {
+      color: #dc2626;
+    }
+  </style>
 </head>
 <body>
 <header class="header">
@@ -52,7 +87,7 @@
       <section class="content-pad">
         <div id="ctrl" class="controls" style="margin-bottom:12px;"></div>
         <div class="controls" style="margin-bottom:12px;flex-wrap:wrap;"><label>产品</label><select id="productSelect" class="sel" style="width:200px;flex:0 0 200px;"></select><img id="productImg" style="width:40px;height:40px;object-fit:cover;margin-left:8px;display:none;"/><a id="productLink" href="#" target="_blank" style="margin-left:8px;display:none;word-break:break-all;white-space:normal;flex:1 1 auto;"></a><span id="listingDate" style="margin-left:8px;"></span></div>
-        <div id="kpi" class="kpi-row"></div>
+        <div id="kpi" class="kpi-grid"></div>
         <div id="lineWrap" class="panel" style="margin-top:16px;display:none;">
           <h3 id="expTitle">曝光趋势</h3>
           <div id="expLine" style="width:100%;height:260px;"></div>
@@ -201,24 +236,33 @@ document.addEventListener('DOMContentLoaded',()=>{
     console.log('使用全托管模式，站点:', currentSiteId); 
     setupFM();
   }
-function card(title,cur,prev,isPct,avg,share){
+function card(title,cur,prev,isPct,avg,share,cardType='info'){
     const diff=(cur-prev)||0;
     const arrow=diff>=0?'↑':'↓';
-    const cls=diff>=0?'up':'down';
+    const cls=diff>=0?'delta up':'delta down';
     const fmt=v=>isPct?`${(v*100).toFixed(2)}%`:v;
     const delta=isPct?`${Math.abs(diff*100).toFixed(2)}%`:Math.abs(diff);
-    const parts=[`<span class="delta ${cls}">${arrow} ${delta}</span>`];
+    
+    let comparisonHtml = '';
     if(avg!=null){
       const diffAvg=(cur-avg)||0;
       const dir=diffAvg>=0?'高于平均':'低于平均';
       const clsAvg=diffAvg>=0?'up':'down';
       const deltaAvg=isPct?`${Math.abs(diffAvg*100).toFixed(2)}%`:Math.abs(diffAvg);
-      parts.push(`<span class="${clsAvg}" style="margin-left:8px;">${dir} ${deltaAvg}</span>`);
+      comparisonHtml += `<span class="${clsAvg}" style="margin-left:8px;">${dir} ${deltaAvg}</span>`;
     }
     if(share!=null){
-      parts.push(`<span style="margin-left:8px;">占比 ${(share*100).toFixed(2)}%</span>`);
+      comparisonHtml += `<span style="margin-left:8px;">占比 ${(share*100).toFixed(2)}%</span>`;
     }
-    return `<div class="stat-card"><h4>${title}</h4><p>${fmt(cur)}</p><div class="sub">${parts.join('')}</div></div>`;
+    
+    return `<div class="kpi-card ${cardType}">
+      <h4>${title}</h4>
+      <p>${fmt(cur)}</p>
+      <div class="kpi-comparison">
+        <span class="${cls}">${arrow} ${delta}</span>
+        ${comparisonHtml}
+      </div>
+    </div>`;
   }
 
   function setupFM(){
@@ -547,16 +591,16 @@ const def=`${start} to ${end}`; input.value=def; localStorage.setItem(key,def);
         const uvTotalLabel=mode==='indep'?'总点击数':'总访客数';
         const addTotalLabel=mode==='indep'?'总转化数':'总加购人数';
         document.getElementById('kpi').innerHTML=[
-          card(uvLabel,curUvRate,prevUvRate,true,avgUvRate),
-          card(addLabel,curAddRate,prevAddRate,true,avgAddRate),
-          card('平均支付比',curPayRate,prevPayRate,true,avgPayRate),
-          card('总曝光量',cur.exp,prev.exp,false,null,shareExp),
-          card(uvTotalLabel,cur.uv,prev.uv,false,null,shareUv),
-          card(addTotalLabel,cur.add,prev.add,false,null,shareAdd),
-          card('总支付买家数',cur.pay,prev.pay,false,null,sharePay),
-          card('曝光商品数',cur.exp > 0 ? 1 : 0, prev.exp > 0 ? 1 : 0, false),
-          card('加购商品数',cur.add > 0 ? 1 : 0, prev.add > 0 ? 1 : 0, false),
-          card('支付商品数',cur.pay > 0 ? 1 : 0, prev.pay > 0 ? 1 : 0, false)
+          card(uvLabel,curUvRate,prevUvRate,true,avgUvRate,'info'),
+          card(addLabel,curAddRate,prevAddRate,true,avgAddRate,'success'),
+          card('平均支付比',curPayRate,prevPayRate,true,avgPayRate,'danger'),
+          card('总曝光量',cur.exp,prev.exp,false,null,shareExp,'success'),
+          card(uvTotalLabel,cur.uv,prev.uv,false,null,shareUv,'info'),
+          card(addTotalLabel,cur.add,prev.add,false,null,shareAdd,'warning'),
+          card('总支付买家数',cur.pay,prev.pay,false,null,sharePay,'danger'),
+          card('曝光商品数',cur.exp > 0 ? 1 : 0, prev.exp > 0 ? 1 : 0, false,null,null,'success'),
+          card('加购商品数',cur.add > 0 ? 1 : 0, prev.add > 0 ? 1 : 0, false,null,null,'warning'),
+          card('支付商品数',cur.pay > 0 ? 1 : 0, prev.pay > 0 ? 1 : 0, false,null,null,'danger')
         ].join('');
         line(pid);
         const dates=[...rowsDayA,...rowsDayB].filter(r=>String(getId(r))===String(pid)).map(r=>mode==='indep'?r.day:r.bucket).sort();
