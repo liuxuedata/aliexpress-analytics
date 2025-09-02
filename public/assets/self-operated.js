@@ -231,6 +231,27 @@
               return altData.rows;
             }
           }
+          
+          // 如果还是为空，尝试不使用聚合
+          console.log('尝试不使用聚合参数...');
+          const noAggregateParams = new URLSearchParams({
+            start: startISO,
+            end: endISO,
+            granularity: granularity,
+            site: this.currentSite || 'ae_self_operated_a'
+          });
+          
+          const noAggregateUrl = `/api/ae_query?${noAggregateParams.toString()}`;
+          console.log('尝试无聚合URL:', noAggregateUrl);
+          
+          const noAggResponse = await fetch(noAggregateUrl);
+          if (noAggResponse.ok) {
+            const noAggData = await noAggResponse.json();
+            if (noAggData.ok && noAggData.rows && noAggData.rows.length > 0) {
+              console.log('使用无聚合参数成功获取数据:', noAggData.rows.length);
+              return noAggData.rows;
+            }
+          }
         }
         
         return rows;
@@ -261,32 +282,29 @@
         const cartRatio = parseFloat(row.cart_ratio) || 0;
         const payRatio = parseFloat(row.pay_ratio) || 0;
         
-        // 如果比率已经是百分比格式（>1），则除以100
-        const normalizedVisitorRatio = visitorRatio > 1 ? visitorRatio / 100 : visitorRatio;
-        const normalizedCartRatio = cartRatio > 1 ? cartRatio / 100 : cartRatio;
-        const normalizedPayRatio = payRatio > 1 ? payRatio / 100 : payRatio;
-        
-        totalVisitorRatio += normalizedVisitorRatio;
-        totalCartRatio += normalizedCartRatio;
-        totalPayRatio += normalizedPayRatio;
+        // 直接使用原始值，不进行额外的百分比转换
+        totalVisitorRatio += visitorRatio;
+        totalCartRatio += cartRatio;
+        totalPayRatio += payRatio;
         totalProducts++;
         
-        if (normalizedCartRatio > 0) cartedProducts++;
-        if (normalizedPayRatio > 0) purchasedProducts++;
+        if (cartRatio > 0) cartedProducts++;
+        if (payRatio > 0) purchasedProducts++;
         
         // 调试信息
         if (index < 3) {
           console.log(`行${index + 1}:`, {
-            original: { visitorRatio, cartRatio, payRatio },
-            normalized: { normalizedVisitorRatio, normalizedCartRatio, normalizedPayRatio }
+            visitorRatio,
+            cartRatio,
+            payRatio
           });
         }
       });
 
-      // 计算平均值并转换为百分比
-      const avgVisitorRatio = total > 0 ? (totalVisitorRatio / total) * 100 : 0;
-      const avgCartRatio = total > 0 ? (totalCartRatio / total) * 100 : 0;
-      const avgPayRatio = total > 0 ? (totalPayRatio / total) * 100 : 0;
+      // 计算平均值
+      const avgVisitorRatio = total > 0 ? (totalVisitorRatio / total) : 0;
+      const avgCartRatio = total > 0 ? (totalCartRatio / total) : 0;
+      const avgPayRatio = total > 0 ? (totalPayRatio / total) : 0;
 
       console.log('KPI计算结果:', {
         total,
@@ -339,10 +357,19 @@
       table.innerHTML = '';
       
       // 检查并移除所有DataTables相关的包装器和元素
-      const existingWrappers = table.parentNode.querySelectorAll('.dataTables_wrapper, .dataTables_filter, .dataTables_length, .dataTables_info, .dataTables_paginate');
+      const existingWrappers = table.parentNode.querySelectorAll('.dataTables_wrapper, .dataTables_filter, .dataTables_length, .dataTables_info, .dataTables_paginate, .dataTables_processing');
       existingWrappers.forEach(wrapper => {
         wrapper.remove();
       });
+      
+      // 移除表格上的DataTable相关类
+      table.classList.remove('dataTable', 'display', 'compact');
+      
+      // 移除表格上的DataTable相关属性
+      table.removeAttribute('id');
+      table.removeAttribute('width');
+      table.removeAttribute('cellspacing');
+      table.removeAttribute('cellpadding');
 
       // 创建表头
       const thead = document.createElement('thead');
@@ -397,26 +424,32 @@
       }
       table.appendChild(tbody);
 
+      // 等待DOM更新完成后再初始化DataTable
+      await new Promise(resolve => setTimeout(resolve, 200));
+
       // 初始化DataTable
       if (window.jQuery && jQuery.fn.DataTable) {
         try {
-          // 等待一小段时间确保DOM完全准备好
-          setTimeout(() => {
-            this.dataTable = jQuery(table).DataTable({
-              pageLength: 10,
-              order: [[1, 'desc']],
-              scrollX: true,
-              scrollY: 'calc(100vh - 420px)',
-              scrollCollapse: true,
-              fixedHeader: true,
-              language: {
-                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json'
-              },
-              destroy: true,
-              responsive: true
-            });
-            console.log('DataTable初始化成功，数据行数:', this.dataTable.data().count());
-          }, 100);
+          // 再次检查是否已经有DataTable实例
+          if (jQuery(table).hasClass('dataTable')) {
+            console.log('表格已经是DataTable实例，跳过初始化');
+            return;
+          }
+
+          this.dataTable = jQuery(table).DataTable({
+            pageLength: 10,
+            order: [[1, 'desc']],
+            scrollX: true,
+            scrollY: 'calc(100vh - 420px)',
+            scrollCollapse: true,
+            fixedHeader: true,
+            language: {
+              url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json'
+            },
+            destroy: true,
+            responsive: true
+          });
+          console.log('DataTable初始化成功，数据行数:', this.dataTable.data().count());
         } catch (error) {
           console.error('DataTable初始化失败:', error);
         }
@@ -478,7 +511,7 @@
     // 格式化百分比
     formatPercentage(num) {
       if (num === null || num === undefined) return '0%';
-      const n = Number(num);
+      let n = Number(num);
       if (isNaN(n)) return '0%';
       if (n <= 1) n *= 100;
       return n.toFixed(2) + '%';
