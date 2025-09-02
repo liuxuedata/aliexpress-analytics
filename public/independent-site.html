@@ -382,8 +382,8 @@
   campaignSel.addEventListener('change', buildTable);
 
   // 获取当前选中的独立站站点ID
-  const currentIndepSiteId = localStorage.getItem('currentIndepSite');
-  const currentIndepSiteName = localStorage.getItem('currentIndepSiteName');
+  let currentIndepSiteId = localStorage.getItem('currentIndepSite');
+  let currentIndepSiteName = localStorage.getItem('currentIndepSiteName');
   
   // 更新站点名称显示
   function updateSiteDisplay() {
@@ -485,8 +485,8 @@
   });
   
   // 设置默认日期范围
-  const currentIndepSiteId = localStorage.getItem('currentIndepSite') || 'independent_poolsvacuum';
-  const indepPeriodKey = `indepPeriod_${currentIndepSiteId}`;
+  const siteId = localStorage.getItem('currentIndepSite') || 'independent_poolsvacuum';
+  const indepPeriodKey = `indepPeriod_${siteId}`;
   const stored = localStorage.getItem(indepPeriodKey);
   if (stored && stored.includes(' to ')) {
     $('#dateFilter').val(stored);
@@ -582,8 +582,8 @@
 
   document.getElementById('refreshBtn').addEventListener('click', () => {
     // 保存当前日期范围到localStorage
-    const currentIndepSiteId = localStorage.getItem('currentIndepSite') || 'independent_poolsvacuum';
-    const indepPeriodKey = `indepPeriod_${currentIndepSiteId}`;
+    const refreshSiteId = localStorage.getItem('currentIndepSite') || 'independent_poolsvacuum';
+    const indepPeriodKey = `indepPeriod_${refreshSiteId}`;
     const dateFilter = document.getElementById('dateFilter');
     if (dateFilter && dateFilter.value) {
       localStorage.setItem(indepPeriodKey, dateFilter.value);
@@ -608,9 +608,9 @@
     fd.append('file', file);
     
     // 获取当前站点信息
-    const currentIndepSiteId = localStorage.getItem('currentIndepSite');
+    const uploadSiteId = localStorage.getItem('currentIndepSite');
     const currentSiteName = getCurrentSiteForAPI();
-    console.log('文件上传 - 当前独立站站点ID:', currentIndepSiteId);
+    console.log('文件上传 - 当前独立站站点ID:', uploadSiteId);
     console.log('文件上传 - 当前站点名称:', currentSiteName);
     console.log('文件信息:', { name: file.name, size: file.size, type: file.type });
     
@@ -622,7 +622,7 @@
       let apiUrl = '/api/independent/ingest'; // 默认Google Ads API
       
       // 如果是icyberite.com，使用Facebook Ads API
-      if (currentIndepSiteId === 'independent_icyberite') {
+      if (uploadSiteId === 'independent_icyberite') {
         apiUrl = '/api/independent/facebook-ingest';
         console.log('使用Facebook Ads API:', apiUrl);
       } else {
@@ -630,8 +630,8 @@
       }
       
       const headers = {};
-      if (currentIndepSiteId) {
-        headers['X-Site-ID'] = currentIndepSiteId;
+      if (uploadSiteId) {
+        headers['X-Site-ID'] = uploadSiteId;
       }
       // 添加站点名称头，用于数据导入
       headers['X-Site-Name'] = currentSiteName;
@@ -664,7 +664,30 @@
       setTimeout(() => { statusEl.textContent = ''; }, 3000);
     }
   });
-  load();
+  
+  // 确保所有函数定义完成后再调用load
+  setTimeout(() => {
+    if (typeof load === 'function') {
+      try {
+        load();
+      } catch (error) {
+        console.error('load函数执行错误:', error);
+      }
+    } else {
+      console.error('load函数未定义');
+    }
+  }, 1000);
+  
+  // 备用加载方案
+  setTimeout(() => {
+    if (typeof load === 'function') {
+      try {
+        load();
+      } catch (error) {
+        console.error('备用load函数执行错误:', error);
+      }
+    }
+  }, 3000);
 })();
 </script>
 

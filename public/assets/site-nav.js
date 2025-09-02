@@ -47,17 +47,39 @@
     }
     
     if (currentSiteEl) {
-      const currentSiteId = localStorage.getItem('currentSite');
-      const currentSiteName = localStorage.getItem('currentSiteName');
+      // 优先检查独立站相关的localStorage
+      const currentIndepSiteId = localStorage.getItem('currentIndepSite');
+      const currentIndepSiteName = localStorage.getItem('currentIndepSiteName');
       
-      if (currentSiteId && currentSiteName) {
-        // 显示站点名称而不是ID
-        currentSiteEl.textContent = currentSiteName;
-        console.log('更新站点显示:', currentSiteName);
-      } else if (currentSiteId) {
-        // 如果没有站点名称，显示默认名称
-        currentSiteEl.textContent = '自运营';
-        console.log('使用默认站点显示');
+      if (currentIndepSiteId || currentIndepSiteName) {
+        // 独立站页面：使用独立站相关的localStorage
+        if (currentIndepSiteName) {
+          currentSiteEl.textContent = currentIndepSiteName;
+          console.log('独立站页面更新站点显示:', currentIndepSiteName);
+        } else if (currentIndepSiteId) {
+          // 根据站点ID映射到站点名称
+          const siteNameMap = {
+            'independent_icyberite': 'icyberite.com',
+            'independent_poolsvacuum': 'poolsvacuum.com'
+          };
+          const displayName = siteNameMap[currentIndepSiteId] || '独立站';
+          currentSiteEl.textContent = displayName;
+          console.log('独立站页面更新站点显示:', displayName);
+        }
+      } else {
+        // 自运营页面：使用自运营相关的localStorage
+        const currentSiteId = localStorage.getItem('currentSite');
+        const currentSiteName = localStorage.getItem('currentSiteName');
+        
+        if (currentSiteId && currentSiteName) {
+          // 显示站点名称而不是ID
+          currentSiteEl.textContent = currentSiteName;
+          console.log('更新站点显示:', currentSiteName);
+        } else if (currentSiteId) {
+          // 如果没有站点名称，显示默认名称
+          currentSiteEl.textContent = '自运营';
+          console.log('使用默认站点显示');
+        }
       }
     }
   }
