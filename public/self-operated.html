@@ -522,21 +522,22 @@ const from = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime(
           input.addEventListener('change', refreshFromPageRange);
           input.addEventListener('blur', refreshFromPageRange);
         }
-        const refreshBtn = document.getElementById('refreshBtn');
-        if (refreshBtn && !refreshBtn._newkpi_hook){
-          refreshBtn._newkpi_hook = true;
-          refreshBtn.addEventListener('click', () => {
-            const prog = document.getElementById('progress');
-            if (!prog) return;
-            const pObs = new MutationObserver(()=>{
-              if ((prog.textContent||'').trim().length){
-                pObs.disconnect();
-                refreshFromPageRange();
-              }
-            });
-            pObs.observe(prog, { childList:true, characterData:true, subtree:true });
-          });
-        }
+        // 刷新按钮现在由新的页面模板系统处理，移除旧的事件绑定
+        // const refreshBtn = document.getElementById('refreshBtn');
+        // if (refreshBtn && !refreshBtn._newkpi_hook){
+        //   refreshBtn._newkpi_hook = true;
+        //   refreshBtn.addEventListener('click', () => {
+        //     const prog = document.getElementById('progress');
+        //     if (!prog) return;
+        //     const pObs = new MutationObserver(()=>{
+        //       if ((prog.textContent||'').trim().length){
+        //         pObs.disconnect();
+        //         refreshFromPageRange();
+        //       }
+        //     });
+        //     pObs.observe(prog, { childList:true, characterData:true, subtree:true });
+        //   });
+        // }
       }
     });
     obs.observe(document.body, { childList:true, subtree:true });

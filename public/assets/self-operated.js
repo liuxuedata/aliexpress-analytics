@@ -736,8 +736,7 @@
         const prevEnd = new Date(dateRange.start);
         prevEnd.setDate(prevEnd.getDate() - 1);
 
-        // 加载当前周期和上一周期数据
-        const currentData = await this.fetchAggregatedData(dateRange.start, dateRange.end, 'day');
+        // 只加载上一周期数据，当前周期数据已经在主流程中加载过了
         const prevData = await this.fetchAggregatedData(
           prevStart.toISOString().slice(0, 10),
           prevEnd.toISOString().slice(0, 10),
@@ -746,7 +745,6 @@
 
         // 这里可以添加图表绘制逻辑
         console.log('对比数据加载完成:', {
-          current: currentData.length,
           previous: prevData.length
         });
 
@@ -794,8 +792,23 @@
       this.currentSite = pageInfo.site;
       this.currentSiteName = pageInfo.siteName;
       
+      // 绑定刷新按钮事件
+      this.bindRefreshButton();
+      
       // 开始加载数据
       this.loadData();
+    }
+
+    // 绑定刷新按钮事件
+    bindRefreshButton() {
+      const refreshBtn = document.getElementById('refreshBtn');
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+          console.log('刷新按钮被点击，重新加载数据');
+          this.loadData();
+        });
+        console.log('刷新按钮事件已绑定');
+      }
     }
 
     // 处理文件上传
