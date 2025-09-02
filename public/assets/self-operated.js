@@ -141,16 +141,17 @@
       if (contentEl) contentEl.style.display = '';
     }
 
-    // 获取聚合数据（与index.html保持一致）
+    // 获取聚合数据（使用正确的自运营API接口）
     async fetchAggregatedData(startISO, endISO, granularity) {
       const params = new URLSearchParams({
-        platform: 'self',
-        aggregate: 'product',
-        from: startISO,
-        to: endISO
+        start: startISO,
+        end: endISO,
+        granularity: granularity,
+        site: this.currentSite || 'ae_self_operated_a',
+        aggregate: 'product'
       });
 
-      const url = `/api/new-products?${params.toString()}`;
+      const url = `/api/ae_query?${params.toString()}`;
       console.log('请求URL:', url);
       console.log('请求参数:', Object.fromEntries(params));
 
@@ -581,26 +582,26 @@
          parentChildren: tableContainer ? tableContainer.children.length : 'N/A'
        });
 
-      // 创建表头 - 确保与HTML中的列数完全匹配
-      const thead = document.createElement('thead');
-      thead.innerHTML = `
-        <tr>
-          <th style="text-align: left; min-width: 120px;">商品(ID)</th>
-          <th style="text-align: center; min-width: 150px;">周期</th>
-          <th style="text-align: center; min-width: 100px;">访客比(%)</th>
-          <th style="text-align: center; min-width: 100px;">加购比(%)</th>
-          <th style="text-align: center; min-width: 100px;">支付比(%)</th>
-          <th style="text-align: center; min-width: 80px;">曝光量</th>
-          <th style="text-align: center; min-width: 80px;">访客数</th>
-          <th style="text-align: center; min-width: 80px;">浏览量</th>
-          <th style="text-align: center; min-width: 80px;">加购人数</th>
-          <th style="text-align: center; min-width: 100px;">下单商品件数</th>
-          <th style="text-align: center; min-width: 80px;">支付件数</th>
-          <th style="text-align: center; min-width: 80px;">支付买家数</th>
-          <th style="text-align: center; min-width: 100px;">搜索点击率(%)</th>
-          <th style="text-align: center; min-width: 120px;">平均停留时长(秒)</th>
-        </tr>
-      `;
+             // 创建表头 - 确保与HTML中的列数完全匹配
+       const thead = document.createElement('thead');
+       thead.innerHTML = `
+         <tr>
+           <th style="text-align: left; min-width: 120px;">商品(ID)</th>
+           <th style="text-align: center; min-width: 150px;">周期</th>
+           <th style="text-align: center; min-width: 100px;">访客比(%)</th>
+           <th style="text-align: center; min-width: 100px;">加购比(%)</th>
+           <th style="text-align: center; min-width: 100px;">支付比(%)</th>
+           <th style="text-align: center; min-width: 80px;">曝光量</th>
+           <th style="text-align: center; min-width: 80px;">访客数</th>
+           <th style="text-align: center; min-width: 80px;">浏览量</th>
+           <th style="text-align: center; min-width: 80px;">加购件数</th>
+           <th style="text-align: center; min-width: 100px;">下单商品件数</th>
+           <th style="text-align: center; min-width: 80px;">支付件数</th>
+           <th style="text-align: center; min-width: 80px;">支付买家数</th>
+           <th style="text-align: center; min-width: 100px;">搜索点击率(%)</th>
+           <th style="text-align: center; min-width: 120px;">平均停留时长(秒)</th>
+         </tr>
+       `;
       table.appendChild(thead);
 
       // 创建表体
@@ -620,42 +621,42 @@
              `<a href="https://www.aliexpress.com/item/${productId}.html" target="_blank" class="product-link">${productId}</a>` : 
              '';
            
-           // 调试：输出当前行的字段信息
-           if (index < 3) {
-             console.log(`行${index + 1}数据字段:`, {
-               product_id: row.product_id,
-               bucket: row.bucket,
-               visitor_ratio: row.visitor_ratio,
-               cart_ratio: row.cart_ratio,
-               pay_ratio: row.pay_ratio,
-               exposure: row.exposure,
-               visitors: row.visitors,
-               page_views: row.page_views,
-               cart_users: row.cart_users,
-               order_items: row.order_items,
-               pay_items: row.pay_items,
-               pay_buyers: row.pay_buyers,
-               search_ctr: row.search_ctr,
-               avg_stay_seconds: row.avg_stay_seconds
-             });
-           }
+                       // 调试：输出当前行的字段信息
+            if (index < 3) {
+              console.log(`行${index + 1}数据字段:`, {
+                product_id: row.product_id,
+                bucket: row.bucket,
+                visitor_ratio: row.visitor_ratio,
+                add_to_cart_ratio: row.add_to_cart_ratio,
+                payment_ratio: row.payment_ratio,
+                exposure: row.exposure,
+                visitors: row.visitors,
+                views: row.views,
+                add_count: row.add_count,
+                order_items: row.order_items,
+                pay_items: row.pay_items,
+                pay_buyers: row.pay_buyers,
+                search_ctr: row.search_ctr,
+                avg_stay_seconds: row.avg_stay_seconds
+              });
+            }
            
-           tr.innerHTML = `
-             <td style="text-align: left;">${productLink}</td>
-             <td style="text-align: center;">${row.bucket || this.formatDateRange(row.start_date, row.end_date)}</td>
-             <td style="text-align: center;">${this.formatPercentage(row.visitor_ratio)}</td>
-             <td style="text-align: center;">${this.formatPercentage(row.cart_ratio)}</td>
-             <td style="text-align: center;">${this.formatPercentage(row.pay_ratio)}</td>
-             <td style="text-align: center;">${this.formatNumber(row.exposure || 0)}</td>
-             <td style="text-align: center;">${this.formatNumber(row.visitors || 0)}</td>
-             <td style="text-align: center;">${this.formatNumber(row.page_views || 0)}</td>
-             <td style="text-align: center;">${this.formatNumber(row.cart_users || 0)}</td>
-             <td style="text-align: center;">${this.formatNumber(row.order_items || 0)}</td>
-             <td style="text-align: center;">${this.formatNumber(row.pay_items || 0)}</td>
-             <td style="text-align: center;">${this.formatNumber(row.pay_buyers || 0)}</td>
-             <td style="text-align: center;">${this.formatPercentage(row.search_ctr)}</td>
-             <td style="text-align: center;">${this.formatNumber(row.avg_stay_seconds || 0)}</td>
-           `;
+                       tr.innerHTML = `
+              <td style="text-align: left;">${productLink}</td>
+              <td style="text-align: center;">${row.bucket || this.formatDateRange(row.start_date, row.end_date)}</td>
+              <td style="text-align: center;">${this.formatPercentage(row.visitor_ratio)}</td>
+              <td style="text-align: center;">${this.formatPercentage(row.add_to_cart_ratio)}</td>
+              <td style="text-align: center;">${this.formatPercentage(row.payment_ratio)}</td>
+              <td style="text-align: center;">${this.formatNumber(row.exposure || 0)}</td>
+              <td style="text-align: center;">${this.formatNumber(row.visitors || 0)}</td>
+              <td style="text-align: center;">${this.formatNumber(row.views || 0)}</td>
+              <td style="text-align: center;">${this.formatNumber(row.add_count || 0)}</td>
+              <td style="text-align: center;">${this.formatNumber(row.order_items || 0)}</td>
+              <td style="text-align: center;">${this.formatNumber(row.pay_items || 0)}</td>
+              <td style="text-align: center;">${this.formatNumber(row.pay_buyers || 0)}</td>
+              <td style="text-align: center;">${this.formatPercentage(row.search_ctr)}</td>
+              <td style="text-align: center;">${this.formatNumber(row.avg_stay_seconds || 0)}</td>
+            `;
            tbody.appendChild(tr);
          });
       }
@@ -982,9 +983,9 @@
         const sum = rs.reduce((a,b) => ({
           exposure: a.exposure + (b.exposure || 0),
           visitors: a.visitors + (b.visitors || 0),
-          add_people: a.add_people + (b.add_people || 0),
-          pay_buyers: a.pay_buyers + (b.pay_buyers || 0)
-        }), {exposure:0,visitors:0,add_people:0,pay_buyers:0});
+          add_count: a.add_count + (b.add_count || 0),
+          pay_items: a.pay_items + (b.pay_items || 0)
+        }), {exposure:0,visitors:0,add_count:0,pay_items:0});
         
         const products = new Map();
         rs.forEach(r => {
@@ -993,8 +994,8 @@
           }
           const acc = products.get(r.product_id);
           acc.exp += r.exposure || 0;
-          acc.add += r.add_people || 0;
-          acc.pay += r.pay_buyers || 0;
+          acc.add += r.add_count || 0;
+          acc.pay += r.pay_items || 0;
         });
         
         let pe = 0, pc = 0, pp = 0;
@@ -1005,8 +1006,8 @@
         });
         
         const vr = sum.exposure > 0 ? ((sum.visitors / sum.exposure) * 100) : 0;
-        const cr = sum.visitors > 0 ? ((sum.add_people / sum.visitors) * 100) : 0;
-        const pr = sum.add_people > 0 ? ((sum.pay_buyers / sum.add_people) * 100) : 0;
+        const cr = sum.visitors > 0 ? ((sum.add_count / sum.visitors) * 100) : 0;
+        const pr = sum.add_count > 0 ? ((sum.pay_items / sum.add_count) * 100) : 0;
         
         return {vr, cr, pr, total: products.size, pc, pp};
       }
