@@ -282,7 +282,9 @@
           if (window.handlePlatformSwitch) {
             e.preventDefault();
             const platform = link.getAttribute('data-platform') || link.textContent.trim();
+            console.log('自运营页面平台切换:', platform);
             window.handlePlatformSwitch(platform);
+            return;
           }
         }
         // 不阻止默认行为，让链接正常工作

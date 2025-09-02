@@ -146,16 +146,16 @@
   <div class="logo-title"><img src="assets/logo.svg" alt="Ecommerce Analytics" class="site-logo"> 跨境电商数据分析平台</div>
   <nav class="header-center">
     <ul class="platform-nav">
-      <li class="ali active"><a href="#">速卖通</a>
+      <li class="ali active"><a href="#" data-platform="ae_self_operated">速卖通</a>
         <ul class="dropdown" id="managedMenu">
           <li><a href="managed.html">全托管</a></li>
         </ul>
       </li>
-      <li class="amazon"><a href="#">亚马逊</a></li>
-      <li class="tiktok"><a href="#">TikTok Shop</a></li>
-      <li class="temu"><a href="#">Temu</a></li>
-      <li class="ozon"><a href="#">Ozon</a></li>
-      <li class="independent"><a href="#">独立站</a>
+      <li class="amazon"><a href="#" data-platform="amazon">亚马逊</a></li>
+      <li class="tiktok"><a href="#" data-platform="tiktok">TikTok Shop</a></li>
+      <li class="temu"><a href="#" data-platform="temu">Temu</a></li>
+      <li class="ozon"><a href="#" data-platform="ozon">Ozon</a></li>
+      <li class="independent"><a href="#" data-platform="independent">独立站</a>
         <ul class="dropdown" id="indepMenu"></ul>
       </li>
     </ul>
@@ -914,10 +914,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const n=prompt('修改站点名',cur);
     if(n){sites[idx]=n;save();renderMenu();localStorage.setItem(currentSiteKey,n);updateCurrent();}
   });
-  document.getElementById('addSite').addEventListener('click',()=>{
-    const n=prompt('新增站点名');
-    if(n){sites.push(n);save();renderMenu();updateCurrent();}
-  });
+  // 移除对不存在元素的引用，避免JavaScript错误
+  // document.getElementById('addSite').addEventListener('click',()=>{
+  //   const n=prompt('新增站点名');
+  //   if(n){sites.push(n);save();renderMenu();updateCurrent();}
+  // });
   renderMenu();updateCurrent();
   
   // 平台切换处理 - 通用机制
@@ -955,97 +956,56 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // 将平台切换函数暴露到全局，供 site-nav.js 调用
   window.handlePlatformSwitch = handlePlatformSwitch;
   
-  // 站点管理逻辑
-  const siteSelector = document.getElementById('siteSelector');
-  const siteSelect = document.getElementById('siteSelect');
-  
-  // 加载站点列表
-  async function loadSites() {
-    try {
-      const response = await fetch('/api/sites?platform=ae_self_operated');
-      const result = await response.json();
-      
-      if (result.data && result.data.length > 0) {
-        siteSelect.innerHTML = result.data.map(site => 
-          `<option value="${site.name}">${site.display_name}</option>`
-        ).join('');
-        
-        // 显示站点选择器
-        siteSelector.style.display = 'block';
-        
-        // 设置当前站点
-        const currentSite = localStorage.getItem('currentSite') || 'A站';
-        siteSelect.value = currentSite;
+    // 平台切换处理 - 通用机制
+  function handlePlatformSwitch(platform) {
+    console.log('平台切换:', platform);
+    
+    // 根据平台设置相应的站点和参数
+    switch(platform) {
+      case 'ae_self_operated':
+        // 保持当前自运营站点
+        break;
+      case 'independent':
+        // 切换到独立站
+        window.location.href = 'independent-site.html';
+        return;
+      case 'managed':
+        // 切换到全托管
+        window.location.href = 'managed.html';
+        return;
+      case 'amazon':
+        // 切换到亚马逊
+        window.location.href = 'amazon-overview.html';
+        return;
+      case 'tiktok':
+        // 切换到TikTok Shop
+        window.location.href = 'tiktok.html';
+        return;
+      case 'temu':
+        // 切换到Temu
+        window.location.href = 'temu.html';
+        return;
+      case 'ozon':
+        // 切换到Ozon
+        window.location.href = 'ozon-detail.html';
+        return;
+      default:
+        // 其他平台暂时跳转到相应页面或显示提示
+        console.log('平台', platform, '暂未实现');
+        return;
+    }
+    
+    // 如果是自运营平台，重新加载数据
+    if (platform === 'ae_self_operated') {
+      // 重新加载数据
+      if (typeof fetchAndRenderAll === 'function') {
+        fetchAndRenderAll();
       }
-    } catch (error) {
-      console.error('加载站点失败:', error);
     }
   }
   
-  // 站点切换处理
-  siteSelect.addEventListener('change', function() {
-    const selectedSite = this.value;
-    localStorage.setItem('currentSite', selectedSite);
-    
-    // 使用 site-nav.js 的站点名称映射
-    const siteNameMap = {
-      'ae_self_operated_a': '自运营robot站',
-      'ae_self_operated_poolslab': 'Poolslab运动娱乐'
-    };
-    const displayName = siteNameMap[selectedSite] || `自运营 ${selectedSite}`;
-    currentSiteEl.textContent = displayName;
-    
-    // 同时设置 site-nav.js 需要的 localStorage
-    localStorage.setItem('currentSiteName', displayName);
-    
-    // 重新加载数据
-    if (typeof fetchAndRenderAll === 'function') {
-      fetchAndRenderAll();
-    }
-  });
-  
-  // 添加站点按钮处理
-  document.getElementById('addSite').addEventListener('click', function() {
-    const siteName = prompt('请输入新站点名称（如：B站）');
-    if (siteName) {
-      const displayName = prompt('请输入显示名称（如：速卖通自运营 B站）');
-      if (displayName) {
-        addNewSite(siteName, displayName);
-      }
-    }
-  });
-  
-  // 添加新站点
-  async function addNewSite(name, displayName) {
-    try {
-      const response = await fetch('/api/sites', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: name,
-          platform: 'ae_self_operated',
-          display_name: displayName
-        })
-      });
-      
-      const result = await response.json();
-      
-      if (response.ok) {
-        alert('站点添加成功！');
-        loadSites(); // 重新加载站点列表
-      } else {
-        alert('添加失败: ' + result.error);
-      }
-    } catch (error) {
-      console.error('添加站点失败:', error);
-      alert('添加站点失败，请重试');
-    }
-  }
-  
-  // 初始化加载站点
-  loadSites();
+  // 将平台切换函数暴露到全局，供 site-nav.js 调用
+  window.handlePlatformSwitch = handlePlatformSwitch;
   
   const userArea=document.getElementById('userArea');
   function refreshUser(){
