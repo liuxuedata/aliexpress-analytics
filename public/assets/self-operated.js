@@ -267,13 +267,19 @@
       this.updateKPI('purchasedProducts', cur.pp);
       this.updateKPI('newProducts', newProducts); // 添加新品数KPI
       
-      // 更新对比数据
-      setDelta('avgVisitorComparison', cur.vr - prev.vr, true);
-      setDelta('avgCartComparison', cur.cr - prev.cr, true);
-      setDelta('avgPayComparison', cur.pr - prev.pr, true);
-      setDelta('totalProductsComparison', cur.total - prev.total, false);
-      setDelta('cartedProductsComparison', cur.pc - prev.pc, false);
-      setDelta('purchasedProductsComparison', cur.pp - prev.pp, false);
+             // 更新对比数据
+       setDelta('avgVisitorComparison', cur.vr - prev.vr, true);
+       setDelta('avgCartComparison', cur.cr - prev.cr, true);
+       setDelta('avgPayComparison', cur.pr - prev.pr, true);
+       setDelta('totalProductsComparison', cur.total - prev.total, false);
+       setDelta('cartedProductsComparison', cur.pc - prev.pc, false);
+       setDelta('purchasedProductsComparison', cur.pp - prev.pp, false);
+       
+       // 计算新品对比数据（当前周期新品数 - 对比周期新品数）
+       const prevNewProductIds = new Set((prevRows || []).map(r => r.product_id));
+       const prevNewProducts = Array.from(prevProductIds).filter(id => !prevNewProductIds.has(id)).length;
+       const newProductsDiff = newProducts - prevNewProducts;
+       setDelta('newProductsComparison', newProductsDiff, false);
       
       // 调试：输出KPI更新结果
       console.log('KPI更新结果:', {
@@ -377,13 +383,17 @@
       `;
       table.appendChild(thead);
 
-      // 创建表体
-      const tbody = document.createElement('tbody');
-      if (data.length === 0) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = '<td colspan="14" style="text-align: center; padding: 20px; color: #666;">暂无数据</td>';
-        tbody.appendChild(tr);
-      } else {
+             // 创建表体
+       const tbody = document.createElement('tbody');
+       if (data.length === 0) {
+         const tr = document.createElement('tr');
+         tr.innerHTML = '<td colspan="14" style="text-align: center; padding: 20px; color: #666;">暂无数据</td>';
+         tbody.appendChild(tr);
+         
+         // 如果没有数据，不初始化DataTable，避免列数错误
+         console.log('没有数据，跳过DataTable初始化');
+         return;
+       } else {
         data.forEach((row, index) => {
           const tr = document.createElement('tr');
           
@@ -443,13 +453,16 @@
             // 等待DOM更新完成
             await new Promise(resolve => setTimeout(resolve, 100));
             
-            // 检查表格是否有数据行
-            const tbody = table.querySelector('tbody');
-            const rows = tbody ? tbody.querySelectorAll('tr') : [];
-            console.log('表格实际行数:', rows.length);
-            
-            // 如果表格有数据行，使用正确的DataTable配置
-            if (rows.length > 0) {
+                         // 检查表格是否有数据行（排除"暂无数据"行）
+             const tbody = table.querySelector('tbody');
+             const rows = tbody ? tbody.querySelectorAll('tr') : [];
+             const dataRows = Array.from(rows).filter(row => 
+               !row.textContent.includes('暂无数据') && row.cells.length > 1
+             );
+             console.log('表格实际行数:', rows.length, '数据行数:', dataRows.length);
+             
+             // 如果表格有实际数据行，使用正确的DataTable配置
+             if (dataRows.length > 0) {
               this.dataTable = jQuery(table).DataTable({
                 destroy: true,
                 pageLength: 10,
@@ -467,9 +480,13 @@
               console.log('DataTable数据行数:', this.dataTable.data().count());
               console.log('DataTable实际显示行数:', this.dataTable.rows().count());
               
-            } else {
-              console.warn('表格没有数据行，跳过DataTable初始化');
-            }
+                         } else {
+               console.warn('表格没有实际数据行，跳过DataTable初始化');
+               // 如果没有数据，显示"暂无数据"提示
+               if (tbody) {
+                 tbody.innerHTML = '<tr><td colspan="14" style="text-align: center; padding: 20px; color: #666;">暂无数据</td></tr>';
+               }
+             }
             
           } catch (error) {
             console.error('DataTable初始化失败:', error);
