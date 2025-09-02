@@ -130,10 +130,30 @@
       font-size: 12px;
     }
     
-    .legend-list a:hover {
-      text-decoration: underline;
-    }
-  </style>
+            .legend-list a:hover {
+          text-decoration: underline;
+        }
+        
+        /* KPI对比数据样式 */
+        .kpi-comparison {
+          margin-top: 0.5rem;
+          font-size: 0.875rem;
+          font-weight: 500;
+          text-align: center;
+        }
+        
+        .kpi-comparison .text-green-600 {
+          color: #059669;
+        }
+        
+        .kpi-comparison .text-red-600 {
+          color: #dc2626;
+        }
+        
+        .kpi-comparison .text-gray-500 {
+          color: #6b7280;
+        }
+      </style>
 </head>
 <body class="fm">
 <div id="loginOverlay" class="login-overlay" style="display:none">
@@ -216,12 +236,36 @@
       </div>
       <div class="divider"></div>
       <div class="kpi-grid">
-        <div class="kpi-card info"><h4>平均访客比</h4><p id="avgVisitor">0%</p></div>
-        <div class="kpi-card success"><h4>平均加购比</h4><p id="avgCart">0%</p></div>
-        <div class="kpi-card success"><h4>平均支付比</h4><p id="avgPay">0%</p></div>
-        <div class="kpi-card success"><h4>商品总数</h4><p id="totalProducts">0</p></div>
-        <div class="kpi-card warning"><h4>加购商品数</h4><p id="cartedProducts">0</p></div>
-        <div class="kpi-card danger"><h4>支付商品数</h4><p id="purchasedProducts">0</p></div>
+        <div class="kpi-card info">
+          <h4>平均访客比</h4>
+          <p id="avgVisitor">0%</p>
+          <div id="avgVisitorComparison" class="kpi-comparison"></div>
+        </div>
+        <div class="kpi-card success">
+          <h4>平均加购比</h4>
+          <p id="avgCart">0%</p>
+          <div id="avgCartComparison" class="kpi-comparison"></div>
+        </div>
+        <div class="kpi-card success">
+          <h4>平均支付比</h4>
+          <p id="avgPay">0%</p>
+          <div id="avgPayComparison" class="kpi-comparison"></div>
+        </div>
+        <div class="kpi-card success">
+          <h4>商品总数</h4>
+          <p id="totalProducts">0</p>
+          <div id="totalProductsComparison" class="kpi-comparison"></div>
+        </div>
+        <div class="kpi-card warning">
+          <h4>加购商品数</h4>
+          <p id="cartedProducts">0</p>
+          <div id="cartedProductsComparison" class="kpi-comparison"></div>
+        </div>
+        <div class="kpi-card danger">
+          <h4>支付商品数</h4>
+          <p id="purchasedProducts">0</p>
+          <div id="purchasedProductsComparison" class="kpi-comparison"></div>
+        </div>
       </div>
     </div>
 

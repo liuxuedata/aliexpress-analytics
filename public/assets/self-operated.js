@@ -61,34 +61,34 @@
         // 显示加载状态
         this.showLoadingState('detail');
         
-        // 加载聚合数据
-        const rowsNowAgg = await this.fetchAggregatedData(dateRange.start, dateRange.end, 'day');
+        // 并行加载当前数据和对比数据，避免多次请求
+        const [currentData, comparisonData] = await Promise.all([
+          this.fetchAggregatedData(dateRange.start, dateRange.end, 'day'),
+          this.fetchComparisonData(dateRange)
+        ]);
         
-        console.log('聚合数据加载完成，记录数:', rowsNowAgg.length);
+        console.log('数据加载完成:', {
+          current: currentData.length,
+          comparison: comparisonData.length
+        });
         
         // 验证数据格式
-        if (rowsNowAgg.length > 0) {
-          console.log('数据样本:', rowsNowAgg[0]);
-          console.log('数据字段:', Object.keys(rowsNowAgg[0]));
+        if (currentData.length > 0) {
+          console.log('当前数据样本:', currentData[0]);
+          console.log('当前数据字段:', Object.keys(currentData[0]));
         }
         
-                 // 计算KPI卡片
-         this.computeKPICards(rowsNowAgg);
-         
-         // 渲染数据表格
-         await this.renderDataTable(rowsNowAgg, 'day');
-         
-         // 重新应用KPI值，防止被表格渲染覆盖
-         this.reapplyKPICards(rowsNowAgg);
-         
-         // 加载对比数据
-         await this.loadComparisonData(dateRange);
-         
-         // 隐藏加载状态
-         this.hideLoadingState('detail');
-         
-         // 更新进度显示
-         this.updateProgress(rowsNowAgg.length);
+        // 计算KPI卡片（包含对比数据）
+        this.computeKPICardsWithComparison(currentData, comparisonData);
+        
+        // 渲染数据表格
+        await this.renderDataTable(currentData, 'day');
+        
+        // 隐藏加载状态
+        this.hideLoadingState('detail');
+        
+        // 更新进度显示
+        this.updateProgress(currentData.length);
         
         console.log('自运营页面数据加载完成');
         
@@ -264,110 +264,198 @@
       }
     }
 
-         // 计算KPI卡片
-     computeKPICards(data) {
-       if (!data || !Array.isArray(data)) return;
-       
-       console.log('开始计算KPI卡片，原始数据:', data.slice(0, 3)); // 只显示前3条用于调试
-       
-       // 计算平均值
-       const total = data.length;
-       let totalVisitorRatio = 0;
-       let totalCartRatio = 0;
-       let totalPayRatio = 0;
-       let totalProducts = 0;
-       let cartedProducts = 0;
-       let purchasedProducts = 0;
+             // 计算KPI卡片（包含对比数据）
+    computeKPICardsWithComparison(currentData, comparisonData) {
+      if (!currentData || !Array.isArray(currentData)) return;
+      
+      console.log('开始计算KPI卡片（含对比数据）:', {
+        current: currentData.length,
+        comparison: comparisonData ? comparisonData.length : 0
+      });
+      
+      // 计算当前周期KPI
+      const currentKPIs = this.calculateKPIs(currentData);
+      
+      // 计算对比周期KPI
+      const comparisonKPIs = comparisonData && comparisonData.length > 0 ? 
+        this.calculateKPIs(comparisonData) : null;
+      
+      // 计算对比变化
+      const comparisonChanges = comparisonKPIs ? 
+        this.calculateComparisonChanges(currentKPIs, comparisonKPIs) : null;
+      
+      console.log('KPI计算结果:', {
+        current: currentKPIs,
+        comparison: comparisonKPIs,
+        changes: comparisonChanges
+      });
+      
+      // 更新KPI卡片（包含对比数据）
+      this.updateKPICardsWithComparison(currentKPIs, comparisonChanges);
+      
+      // 验证KPI更新是否成功
+      setTimeout(() => {
+        this.verifyKPICards();
+      }, 100);
+    }
 
-               data.forEach((row, index) => {
-          // 尝试多种字段名，确保能获取到数据
-          const visitorRatio = parseFloat(row.visitor_ratio || row.visitor_ratio_sum || row.visitor_ratio_avg || 0);
-          const cartRatio = parseFloat(row.cart_ratio || row.cart_ratio_sum || row.cart_ratio_avg || 0);
-          const payRatio = parseFloat(row.pay_ratio || row.pay_ratio_sum || row.pay_ratio_avg || 0);
-          
-          // 如果比率字段不存在，尝试从原始数据计算
-          let finalVisitorRatio = visitorRatio;
-          let finalCartRatio = cartRatio;
-          let finalPayRatio = payRatio;
-          
-          // 计算访客比：访客数/曝光量
-          if (!visitorRatio && row.exposure && row.visitors && row.exposure > 0) {
-            finalVisitorRatio = (row.visitors / row.exposure) * 100;
-            console.log(`计算访客比: ${row.visitors}/${row.exposure} = ${finalVisitorRatio.toFixed(2)}%`);
-          }
-          
-          // 计算加购比：加购人数/访客数
-          if (!cartRatio && row.visitors && row.cart_users && row.visitors > 0) {
-            finalCartRatio = (row.cart_users / row.visitors) * 100;
-            console.log(`计算加购比: ${row.cart_users}/${row.visitors} = ${finalCartRatio.toFixed(2)}%`);
-          }
-          
-          // 计算支付比：支付买家数/加购人数
-          if (!payRatio && row.cart_users && row.pay_buyers && row.cart_users > 0) {
-            finalPayRatio = (row.pay_buyers / row.cart_users) * 100;
-            console.log(`计算支付比: ${row.pay_buyers}/${row.cart_users} = ${finalPayRatio.toFixed(2)}%`);
-          }
-          
-          // 累加计算
-          totalVisitorRatio += finalVisitorRatio;
-          totalCartRatio += finalCartRatio;
-          totalPayRatio += finalPayRatio;
-          totalProducts++;
-          
-          if (finalCartRatio > 0) cartedProducts++;
-          if (finalPayRatio > 0) purchasedProducts++;
-          
-          // 调试信息
-          if (index < 3) {
-            console.log(`行${index + 1} KPI计算:`, {
-              original: { visitorRatio, cartRatio, payRatio },
-              calculated: { finalVisitorRatio, finalCartRatio, finalPayRatio },
-              raw: { 
-                exposure: row.exposure, 
-                visitors: row.visitors, 
-                cart_users: row.cart_users, 
-                pay_buyers: row.pay_buyers 
-              }
-            });
-          }
-        });
+    // 计算KPI卡片（原始方法，保留兼容性）
+    computeKPICards(data) {
+      return this.computeKPICardsWithComparison(data, null);
+    }
 
-       // 计算平均值
-       const avgVisitorRatio = total > 0 ? (totalVisitorRatio / total) : 0;
-       const avgCartRatio = total > 0 ? (totalCartRatio / total) : 0;
-       const avgPayRatio = total > 0 ? (totalPayRatio / total) : 0;
+    // 计算单个数据集的KPI
+    calculateKPIs(data) {
+      if (!data || !Array.isArray(data)) return null;
+      
+      const total = data.length;
+      let totalVisitorRatio = 0;
+      let totalCartRatio = 0;
+      let totalPayRatio = 0;
+      let totalProducts = 0;
+      let cartedProducts = 0;
+      let purchasedProducts = 0;
 
-       console.log('KPI计算结果:', {
-         total,
-         avgVisitorRatio: avgVisitorRatio.toFixed(2) + '%',
-         avgCartRatio: avgCartRatio.toFixed(2) + '%',
-         avgPayRatio: avgPayRatio.toFixed(2) + '%',
-         totalProducts,
-         cartedProducts,
-         purchasedProducts
-       });
+      data.forEach((row, index) => {
+        // 尝试多种字段名，确保能获取到数据
+        const visitorRatio = parseFloat(row.visitor_ratio || row.visitor_ratio_sum || row.visitor_ratio_avg || 0);
+        const cartRatio = parseFloat(row.cart_ratio || row.cart_ratio_sum || row.cart_ratio_avg || 0);
+        const payRatio = parseFloat(row.pay_ratio || row.pay_ratio_sum || row.pay_ratio_avg || 0);
+        
+        // 如果比率字段不存在，尝试从原始数据计算
+        let finalVisitorRatio = visitorRatio;
+        let finalCartRatio = cartRatio;
+        let finalPayRatio = payRatio;
+        
+        // 计算访客比：访客数/曝光量
+        if (!visitorRatio && row.exposure && row.visitors && row.exposure > 0) {
+          finalVisitorRatio = (row.visitors / row.exposure) * 100;
+        }
+        
+        // 计算加购比：加购人数/访客数
+        if (!cartRatio && row.visitors && row.cart_users && row.visitors > 0) {
+          finalCartRatio = (row.cart_users / row.visitors) * 100;
+        }
+        
+        // 计算支付比：支付买家数/加购人数
+        if (!payRatio && row.cart_users && row.pay_buyers && row.cart_users > 0) {
+          finalPayRatio = (row.pay_buyers / row.cart_users) * 100;
+        }
+        
+        // 累加计算
+        totalVisitorRatio += finalVisitorRatio;
+        totalCartRatio += finalCartRatio;
+        totalPayRatio += finalPayRatio;
+        totalProducts++;
+        
+        if (finalCartRatio > 0) cartedProducts++;
+        if (finalPayRatio > 0) purchasedProducts++;
+      });
 
-       // 更新KPI卡片
-       this.updateKPICard('avgVisitor', avgVisitorRatio.toFixed(2) + '%');
-       this.updateKPICard('avgCart', avgCartRatio.toFixed(2) + '%');
-       this.updateKPICard('avgPay', avgPayRatio.toFixed(2) + '%');
-       this.updateKPICard('totalProducts', totalProducts);
-       this.updateKPICard('cartedProducts', cartedProducts);
-       this.updateKPICard('purchasedProducts', purchasedProducts);
-       
-       // 验证KPI更新是否成功
-       setTimeout(() => {
-         this.verifyKPICards();
-       }, 100);
-     }
+      // 计算平均值
+      const avgVisitorRatio = total > 0 ? (totalVisitorRatio / total) : 0;
+      const avgCartRatio = total > 0 ? (totalCartRatio / total) : 0;
+      const avgPayRatio = total > 0 ? (totalPayRatio / total) : 0;
 
-         // 更新KPI卡片
-     updateKPICard(id, value) {
-       const element = document.getElementById(id);
-       if (element) {
-         element.textContent = value;
-       }
-     }
+      return {
+        total,
+        avgVisitorRatio,
+        avgCartRatio,
+        avgPayRatio,
+        totalProducts,
+        cartedProducts,
+        purchasedProducts
+      };
+    }
+
+    // 计算对比变化
+    calculateComparisonChanges(current, previous) {
+      if (!current || !previous) return null;
+      
+      const changes = {};
+      
+      // 计算百分比变化
+      changes.avgVisitorRatio = this.calculatePercentageChange(
+        current.avgVisitorRatio, previous.avgVisitorRatio
+      );
+      changes.avgCartRatio = this.calculatePercentageChange(
+        current.avgCartRatio, previous.avgCartRatio
+      );
+      changes.avgPayRatio = this.calculatePercentageChange(
+        current.avgPayRatio, previous.avgPayRatio
+      );
+      changes.totalProducts = this.calculateNumberChange(
+        current.totalProducts, previous.totalProducts
+      );
+      changes.cartedProducts = this.calculateNumberChange(
+        current.cartedProducts, previous.cartedProducts
+      );
+      changes.purchasedProducts = this.calculateNumberChange(
+        current.purchasedProducts, previous.purchasedProducts
+      );
+      
+      return changes;
+    }
+
+    // 计算百分比变化
+    calculatePercentageChange(current, previous) {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return ((current - previous) / previous) * 100;
+    }
+
+    // 计算数字变化
+    calculateNumberChange(current, previous) {
+      return current - previous;
+    }
+
+             // 更新KPI卡片（包含对比数据）
+    updateKPICardsWithComparison(currentKPIs, comparisonChanges) {
+      if (!currentKPIs) return;
+      
+      // 更新主要KPI值
+      this.updateKPICard('avgVisitor', currentKPIs.avgVisitorRatio.toFixed(2) + '%');
+      this.updateKPICard('avgCart', currentKPIs.avgCartRatio.toFixed(2) + '%');
+      this.updateKPICard('avgPay', currentKPIs.avgPayRatio.toFixed(2) + '%');
+      this.updateKPICard('totalProducts', currentKPIs.totalProducts);
+      this.updateKPICard('cartedProducts', currentKPIs.cartedProducts);
+      this.updateKPICard('purchasedProducts', currentKPIs.purchasedProducts);
+      
+      // 如果有对比数据，显示变化趋势
+      if (comparisonChanges) {
+        this.updateKPICardComparison('avgVisitor', comparisonChanges.avgVisitorRatio);
+        this.updateKPICardComparison('avgCart', comparisonChanges.avgCartRatio);
+        this.updateKPICardComparison('avgPay', comparisonChanges.avgPayRatio);
+        this.updateKPICardComparison('totalProducts', comparisonChanges.totalProducts);
+        this.updateKPICardComparison('cartedProducts', comparisonChanges.cartedProducts);
+        this.updateKPICardComparison('purchasedProducts', comparisonChanges.purchasedProducts);
+      }
+    }
+
+    // 更新KPI卡片对比数据
+    updateKPICardComparison(kpiId, change) {
+      const comparisonElement = document.getElementById(kpiId + 'Comparison');
+      if (comparisonElement && change !== undefined) {
+        const isPercentage = kpiId.includes('Ratio');
+        const changeValue = isPercentage ? change.toFixed(2) : change;
+        const changeText = isPercentage ? `${changeValue}%` : changeValue;
+        const arrow = change > 0 ? '↑' : change < 0 ? '↓' : '→';
+        const color = change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-gray-500';
+        
+        comparisonElement.innerHTML = `
+          <span class="${color} text-sm">
+            ${arrow} ${changeText}
+          </span>
+        `;
+      }
+    }
+
+    // 更新KPI卡片（原始方法，保留兼容性）
+    updateKPICard(id, value) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.textContent = value;
+      }
+    }
 
      // 重新应用KPI值，防止被表格渲染覆盖
      reapplyKPICards(data) {
@@ -647,43 +735,45 @@
            console.log('表头列数:', thead.querySelectorAll('th').length);
            console.log('数据行数:', rows.length);
 
-                       // 使用标准配置，确保功能完整
-            this.dataTable = jQuery(table).DataTable({
-              pageLength: 10,
-              order: [[1, 'desc']],
-              scrollX: true,
-              scrollY: 'calc(100vh - 420px)',
-              scrollCollapse: true,
-              fixedHeader: true,
-              language: {
-                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json'
-              },
-              destroy: true,
-              responsive: true,
-              autoWidth: false,
-              // 明确指定列配置，确保列数匹配
-              columnDefs: [
-                { targets: 0, className: 'product-id-cell' }, // 商品ID列
-                { targets: '_all', className: 'text-center' }  // 其他列居中
-              ],
-              // 确保列数正确
-              columns: [
-                { title: '商品(ID)', data: 0, orderable: true },
-                { title: '周期', data: 1, orderable: true },
-                { title: '访客比(%)', data: 2, orderable: true },
-                { title: '加购比(%)', data: 3, orderable: true },
-                { title: '支付比(%)', data: 4, orderable: true },
-                { title: '曝光量', data: 5, orderable: true },
-                { title: '访客数', data: 6, orderable: true },
-                { title: '浏览量', data: 7, orderable: true },
-                { title: '加购人数', data: 8, orderable: true },
-                { title: '下单商品件数', data: 9, orderable: true },
-                { title: '支付件数', data: 10, orderable: true },
-                { title: '支付买家数', data: 11, orderable: true },
-                { title: '搜索点击率(%)', data: 12, orderable: true },
-                { title: '平均停留时长(秒)', data: 13, orderable: true }
-              ]
-            });
+                                               // 使用标准配置，确保功能完整，明确指定数据源
+             this.dataTable = jQuery(table).DataTable({
+               pageLength: 10,
+               order: [[1, 'desc']],
+               scrollX: true,
+               scrollY: 'calc(100vh - 420px)',
+               scrollCollapse: true,
+               fixedHeader: true,
+               language: {
+                 url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json'
+               },
+               destroy: true,
+               responsive: true,
+               autoWidth: false,
+               // 明确指定数据源，防止DataTables自动获取数据
+               data: [], // 空数据，因为我们已经手动填充了HTML
+               // 明确指定列配置，确保列数匹配
+               columnDefs: [
+                 { targets: 0, className: 'product-id-cell' }, // 商品ID列
+                 { targets: '_all', className: 'text-center' }  // 其他列居中
+               ],
+               // 确保列数正确
+               columns: [
+                 { title: '商品(ID)', data: 0, orderable: true },
+                 { title: '周期', data: 1, orderable: true },
+                 { title: '访客比(%)', data: 2, orderable: true },
+                 { title: '加购比(%)', data: 3, orderable: true },
+                 { title: '支付比(%)', data: 4, orderable: true },
+                 { title: '曝光量', data: 5, orderable: true },
+                 { title: '访客数', data: 6, orderable: true },
+                 { title: '浏览量', data: 7, orderable: true },
+                 { title: '加购人数', data: 8, orderable: true },
+                 { title: '下单商品件数', data: 9, orderable: true },
+                 { title: '支付件数', data: 10, orderable: true },
+                 { title: '支付买家数', data: 11, orderable: true },
+                 { title: '搜索点击率(%)', data: 12, orderable: true },
+                 { title: '平均停留时长(秒)', data: 13, orderable: true }
+               ]
+             });
            
                        console.log('DataTable初始化成功！');
             console.log('数据行数:', this.dataTable.data().count());
@@ -727,8 +817,8 @@
        }
     }
 
-    // 加载对比数据
-    async loadComparisonData(dateRange) {
+    // 获取对比数据
+    async fetchComparisonData(dateRange) {
       try {
         // 计算上一周期
         const prevStart = new Date(dateRange.start);
@@ -736,21 +826,27 @@
         const prevEnd = new Date(dateRange.start);
         prevEnd.setDate(prevEnd.getDate() - 1);
 
-        // 只加载上一周期数据，当前周期数据已经在主流程中加载过了
         const prevData = await this.fetchAggregatedData(
           prevStart.toISOString().slice(0, 10),
           prevEnd.toISOString().slice(0, 10),
           'day'
         );
 
-        // 这里可以添加图表绘制逻辑
-        console.log('对比数据加载完成:', {
-          previous: prevData.length
+        console.log('对比数据获取完成:', {
+          period: `${prevStart.toISOString().slice(0, 10)} to ${prevEnd.toISOString().slice(0, 10)}`,
+          records: prevData.length
         });
 
+        return prevData;
       } catch (error) {
-        console.warn('对比数据加载失败:', error);
+        console.warn('对比数据获取失败:', error);
+        return [];
       }
+    }
+
+    // 加载对比数据（保留兼容性）
+    async loadComparisonData(dateRange) {
+      return await this.fetchComparisonData(dateRange);
     }
 
     // 更新进度显示
