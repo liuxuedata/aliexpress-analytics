@@ -31,6 +31,10 @@
     // 创建自运营页面管理器
     selfOperatedManager = new SelfOperatedPageManager();
     
+    // 将管理器暴露到全局，供page-template.js使用
+    window.selfOperatedManager = selfOperatedManager;
+    console.log('自运营页面管理器已暴露到全局:', window.selfOperatedManager);
+    
     // 移除旧的事件监听器（如果存在）
     if (pageReadyListener) {
       document.removeEventListener('page-ready', pageReadyListener);

@@ -187,13 +187,34 @@
           onClose: function(dates) {
             if (dates.length === 2) {
               console.log('日期选择器关闭，触发数据刷新:', dates);
-              if (self && typeof self.updateStatus === 'function') {
-                self.updateStatus('数据加载中...', 'loading');
+              
+              // 尝试获取当前页面的实际管理器实例
+              let currentManager = null;
+              
+              // 如果是自运营页面，使用selfOperatedManager
+              if (window.selfOperatedManager) {
+                currentManager = window.selfOperatedManager;
+                console.log('找到自运营页面管理器:', currentManager);
+              } else if (self && typeof self.refreshData === 'function') {
+                // 否则使用当前的PageManager实例
+                currentManager = self;
+                console.log('使用PageManager实例:', currentManager);
               }
-              if (self && typeof self.refreshData === 'function') {
-                self.refreshData();
+              
+              if (currentManager && typeof currentManager.updateStatus === 'function') {
+                currentManager.updateStatus('数据加载中...', 'loading');
+              }
+              
+              if (currentManager && typeof currentManager.refreshData === 'function') {
+                console.log('调用refreshData方法，管理器类型:', currentManager.constructor.name);
+                currentManager.refreshData();
               } else {
-                console.error('refreshData方法不存在或未绑定:', self);
+                console.error('refreshData方法不存在或未绑定，当前管理器:', currentManager);
+                console.error('可用的管理器:', {
+                  selfOperatedManager: window.selfOperatedManager,
+                  pageManager: window.pageManager,
+                  self: self
+                });
               }
             }
           }
