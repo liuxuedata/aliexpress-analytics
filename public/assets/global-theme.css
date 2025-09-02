@@ -70,8 +70,8 @@ body {
 
 /* 3. KPI卡片系统 */
 .kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-6);
   margin: var(--space-6) 0;
 }

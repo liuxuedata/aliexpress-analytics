@@ -25,6 +25,13 @@
       height: 180px;
     }
     
+    /* KPI卡片图表布局 - 单行显示 */
+    .kpi-grid .kpi-card {
+      flex: 1;
+      min-width: 200px;
+      max-width: 300px;
+    }
+    
     /* 数据加载状态样式 */
     .loading-status {
       display: flex;
@@ -68,8 +75,8 @@
     }
     
     .charts-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      display: flex;
+      flex-direction: column;
       gap: 24px;
     }
     
