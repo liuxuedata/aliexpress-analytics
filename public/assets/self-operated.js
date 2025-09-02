@@ -61,6 +61,9 @@
       try {
         console.log('开始加载所有数据...');
         
+        // 更新状态为加载中
+        this.updateStatus('数据加载中...', 'loading');
+        
         // 获取日期范围
         const { from, to } = this.getDateRange();
         const startISO = from;
@@ -92,12 +95,12 @@
         // 渲染数据表格
         await this.renderDataTable(rowsAggA, 'day');
         
-        // 更新状态
-        this.updateStatus('加载完成');
+        // 更新状态为成功
+        this.updateStatus('数据加载完成', 'success');
         
       } catch (error) {
         console.error('数据加载失败:', error);
-        this.updateStatus('加载失败：' + (error.message || error));
+        this.updateStatus('数据加载失败：' + (error.message || error), 'error');
         this.showError('查询失败：' + (error.message || error));
       }
     }
@@ -303,10 +306,17 @@
     }
     
     // 更新状态
-    updateStatus(message) {
+    updateStatus(message, type = 'success') {
       const statusEl = document.getElementById('status');
       if (statusEl) {
         statusEl.textContent = message;
+      }
+      
+      // 更新状态显示器的样式
+      const statusDisplay = document.getElementById('statusDisplay');
+      if (statusDisplay) {
+        statusDisplay.textContent = message;
+        statusDisplay.className = `status-display ${type}`;
       }
     }
 
@@ -439,6 +449,25 @@
             <td style="text-align: center;">${this.formatPercentage(row.search_ctr)}</td>
             <td style="text-align: center;">${this.formatNumber(row.avg_stay_seconds || 0)}</td>
           `;
+          
+          // 为每行数据添加双击事件（排除商品ID列）
+          tr.addEventListener('dblclick', (e) => {
+            // 如果点击的是商品ID列，不处理
+            if (e.target.cellIndex === 0) return;
+            
+            // 获取商品ID
+            const productId = row.product_id;
+            if (productId) {
+              console.log('双击行数据，跳转到产品分析页:', productId);
+              // 跳转到产品分析页
+              window.open(`product-analysis.html?mode=self&pid=${productId}`, '_blank');
+            }
+          });
+          
+          // 为每行添加鼠标悬停效果
+          tr.style.cursor = 'pointer';
+          tr.title = '双击查看产品分析';
+          
           tbody.appendChild(tr);
         });
       }
@@ -527,10 +556,7 @@
       this.currentSite = pageInfo.site;
       this.currentSiteName = pageInfo.siteName;
       
-              // 绑定刷新按钮事件
-        this.bindRefreshButton();
-        
-        // 绑定新品筛选事件
+              // 绑定新品筛选事件
         this.bindNewProductsFilter();
         
         // 防止重复加载
@@ -544,17 +570,7 @@
         this.loadData();
     }
 
-          // 绑定刷新按钮事件
-      bindRefreshButton() {
-        const refreshBtn = document.getElementById('refreshBtn');
-        if (refreshBtn) {
-          refreshBtn.addEventListener('click', () => {
-            console.log('刷新按钮被点击，重新加载数据');
-            this.loadData();
-          });
-          console.log('刷新按钮事件已绑定');
-        }
-      }
+  
       
       // 绑定新品KPI卡片点击事件
       bindNewProductsFilter() {
@@ -631,7 +647,7 @@
         this.renderDataTable(this.currentData, 'day');
         
         // 恢复状态显示
-        this.updateStatus('加载完成');
+        this.updateStatus('数据加载完成', 'success');
       }
   }
 

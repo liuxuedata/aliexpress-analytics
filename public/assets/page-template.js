@@ -184,6 +184,7 @@
           defaultDate: [start, end],
           onClose: (dates) => {
             if (dates.length === 2) {
+              this.updateStatus('数据加载中...', 'loading');
               this.refreshData();
             }
           }
@@ -240,14 +241,23 @@
       });
     }
 
-    // 初始化事件监听
-    initEventListeners() {
-      // 刷新按钮
-      const refreshBtn = document.getElementById('refreshBtn');
-      if (refreshBtn) {
-        refreshBtn.addEventListener('click', () => this.refreshData());
+    // 更新状态显示
+    updateStatus(message, type = 'success') {
+      const statusEl = document.getElementById('status');
+      if (statusEl) {
+        statusEl.textContent = message;
       }
       
+      // 更新状态显示器的样式
+      const statusDisplay = document.getElementById('statusDisplay');
+      if (statusDisplay) {
+        statusDisplay.textContent = message;
+        statusDisplay.className = `status-display ${type}`;
+      }
+    }
+
+    // 初始化事件监听
+    initEventListeners() {
       // 导航链接
       this.initNavigationLinks();
     }
