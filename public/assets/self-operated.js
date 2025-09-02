@@ -187,12 +187,13 @@
           });
         }
         
+        // 使用与index.html一致的字段名：add_people 和 pay_buyers
         const sum = rs.reduce((a,b) => ({
           exposure: a.exposure + (b.exposure || 0),
           visitors: a.visitors + (b.visitors || 0),
-          add_count: a.add_count + (b.add_count || 0),
-          pay_items: a.pay_items + (b.pay_items || 0)
-        }), {exposure:0,visitors:0,add_count:0,pay_items:0});
+          add_people: a.add_people + (b.add_people || 0),
+          pay_buyers: a.pay_buyers + (b.pay_buyers || 0)
+        }), {exposure:0,visitors:0,add_people:0,pay_buyers:0});
         
         console.log('KPI计算调试 - 汇总数据:', sum);
         
@@ -203,8 +204,8 @@
           }
           const acc = products.get(r.product_id);
           acc.exp += r.exposure || 0;
-          acc.add += r.add_count || 0;
-          acc.pay += r.pay_items || 0;
+          acc.add += r.add_people || 0;  // 使用 add_people 而不是 add_count
+          acc.pay += r.pay_buyers || 0;  // 使用 pay_buyers 而不是 pay_items
         });
         
         let pe = 0, pc = 0, pp = 0;
@@ -214,10 +215,10 @@
           if (v.pay > 0) pp++;
         });
         
-        // 修复计算逻辑：使用正确的字段名
+        // 修复计算逻辑：使用与index.html一致的字段名
         const vr = sum.exposure > 0 ? ((sum.visitors / sum.exposure) * 100) : 0;
-        const cr = sum.visitors > 0 ? ((sum.add_count / sum.visitors) * 100) : 0;
-        const pr = sum.add_count > 0 ? ((sum.pay_items / sum.add_count) * 100) : 0;
+        const cr = sum.visitors > 0 ? ((sum.add_people / sum.visitors) * 100) : 0;  // 使用 add_people
+        const pr = sum.add_people > 0 ? ((sum.pay_buyers / sum.add_people) * 100) : 0;  // 使用 add_people 和 pay_buyers
         
         console.log('KPI计算调试 - 计算结果:', { vr, cr, pr, total: products.size, pc, pp });
         
