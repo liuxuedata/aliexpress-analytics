@@ -40,6 +40,29 @@
       margin: 20px 0;
     }
     
+    /* 运营分析图表布局 */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+    
+    .panel {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .panel h3 {
+      margin: 0 0 20px 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #374151;
+    }
+    
     .loading-message {
       display: flex;
       flex-direction: column;
@@ -199,8 +222,9 @@
     <!-- 运营分析 -->
     <section id="analysis" class="content-pad" style="display:none;">
       <div class="grid">
+        <!-- 周期对比柱状图 -->
         <div class="panel">
-          <h3>Daily 趋势（点击 / 曝光 / 转化价值）</h3>
+          <h3>周期对比（曝光量 / 点击量 / 转化次数 / 转化商品数）</h3>
           
           <!-- 加载状态提示 -->
           <div id="analysisLoading" class="loading-status" style="display: none;">
@@ -212,9 +236,23 @@
           
           <!-- 图表内容 -->
           <div id="analysisContent">
-            <div id="lineChart" style="width:100%;height:360px;"></div>
+            <div id="compareBar" style="width:100%;height:320px;"></div>
           </div>
         </div>
+        
+        <!-- 点击率趋势图 -->
+        <div class="panel">
+          <h3>点击率趋势对比</h3>
+          <div id="ctrChart" style="width:100%;height:320px;"></div>
+        </div>
+        
+        <!-- 转化率趋势图 -->
+        <div class="panel">
+          <h3>转化率趋势对比</h3>
+          <div id="convChart" style="width:100%;height:320px;"></div>
+        </div>
+        
+        <!-- Top Landing Pages -->
         <div class="panel">
           <h3>Top Landing Pages（按转化数）</h3>
           
@@ -651,6 +689,143 @@
     campaignSel.innerHTML = '<option value="">全部</option>' + camps.map(c=>`<option value="${c}">${c}</option>`).join('');
   }
 
+  // 渲染分析图表
+  function renderAnalysisCharts(data) {
+    try {
+      // 周期对比柱状图
+      renderCompareBarChart(data);
+      
+      // 点击率趋势图
+      renderCTRTrendChart(data);
+      
+      // 转化率趋势图
+      renderConvTrendChart(data);
+    } catch (error) {
+      console.error('渲染分析图表失败:', error);
+    }
+  }
+
+  // 渲染周期对比柱状图
+  function renderCompareBarChart(data) {
+    const current = data.kpis || {};
+    const previous = data.previous?.kpis || {};
+    
+    const chart = echarts.init(document.getElementById('compareBar'));
+    chart.setOption({
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['本周期', '上一周期'] },
+      xAxis: { 
+        type: 'category', 
+        data: ['曝光量', '点击量', '转化次数', '转化商品数'] 
+      },
+      yAxis: { type: 'value' },
+      series: [
+        {
+          name: '本周期',
+          type: 'bar',
+          data: [
+            current.exposure_product_count || 0,
+            current.click_product_count || 0,
+            current.conversion_count || 0,
+            current.conversion_product_count || 0
+          ],
+          itemStyle: { color: '#3b82f6' }
+        },
+        {
+          name: '上一周期',
+          type: 'bar',
+          data: [
+            previous.exposure_product_count || 0,
+            previous.click_product_count || 0,
+            previous.conversion_count || 0,
+            previous.conversion_product_count || 0
+          ],
+          itemStyle: { color: '#10b981' }
+        }
+      ]
+    });
+  }
+
+  // 渲染点击率趋势图
+  function renderCTRTrendChart(data) {
+    const current = data.series || [];
+    const previous = data.previous?.series || [];
+    
+    const chart = echarts.init(document.getElementById('ctrChart'));
+    chart.setOption({
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['本周期', '上一周期'] },
+      xAxis: { 
+        type: 'category', 
+        data: current.map(x => x.day) 
+      },
+      yAxis: { 
+        type: 'value',
+        axisLabel: {
+          formatter: function(value) {
+            return (value * 100).toFixed(2) + '%';
+          }
+        }
+      },
+      series: [
+        {
+          name: '本周期',
+          type: 'line',
+          smooth: true,
+          data: current.map(x => x.ctr || 0),
+          itemStyle: { color: '#3b82f6' }
+        },
+        {
+          name: '上一周期',
+          type: 'line',
+          smooth: true,
+          data: previous.map(x => x.ctr || 0),
+          itemStyle: { color: '#10b981' }
+        }
+      ]
+    });
+  }
+
+  // 渲染转化率趋势图
+  function renderConvTrendChart(data) {
+    const current = data.series || [];
+    const previous = data.previous?.series || [];
+    
+    const chart = echarts.init(document.getElementById('convChart'));
+    chart.setOption({
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['本周期', '上一周期'] },
+      xAxis: { 
+        type: 'category', 
+        data: current.map(x => x.day) 
+      },
+      yAxis: { 
+        type: 'value',
+        axisLabel: {
+          formatter: function(value) {
+            return (value * 100).toFixed(2) + '%';
+          }
+        }
+      },
+      series: [
+        {
+          name: '本周期',
+          type: 'line',
+          smooth: true,
+          data: current.map(x => x.conv_rate || 0),
+          itemStyle: { color: '#ef4444' }
+        },
+        {
+          name: '上一周期',
+          type: 'line',
+          smooth: true,
+          data: previous.map(x => x.conv_rate || 0),
+          itemStyle: { color: '#f59e0b' }
+        }
+      ]
+    });
+  }
+
   async function load() {
     try {
       // 显示加载状态
@@ -668,36 +843,53 @@
       
       console.log('独立站查询参数:', { siteName, siteParam, from, to });
       
-      // 添加 aggregate=product 参数来实现产品级别的聚合
-      const url = `/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${from}&to=${to}&aggregate=product`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.error || '加载失败');
+      // 获取当前周期数据
+      const currentUrl = `/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${from}&to=${to}&aggregate=product`;
+      
+      // 计算上一周期日期范围
+      const currentFrom = new Date(from);
+      const currentTo = new Date(to);
+      const daysDiff = Math.ceil((currentTo - currentFrom) / (1000 * 60 * 60 * 24));
+      
+      const prevTo = new Date(currentFrom);
+      prevTo.setDate(prevTo.getDate() - 1);
+      const prevFrom = new Date(prevTo);
+      prevFrom.setDate(prevFrom.getDate() - daysDiff + 1);
+      
+      const prevFromStr = prevFrom.toISOString().slice(0, 10);
+      const prevToStr = prevTo.toISOString().slice(0, 10);
+      
+      console.log('对比周期:', { current: `${from} to ${to}`, previous: `${prevFromStr} to ${prevToStr}` });
+      
+      // 并行获取两个周期的数据
+      const [currentRes, prevRes] = await Promise.all([
+        fetch(currentUrl),
+        fetch(`/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${prevFromStr}&to=${prevToStr}&aggregate=product`)
+      ]);
+      
+      if (!currentRes.ok) throw new Error(`当前周期 HTTP ${currentRes.status}`);
+      if (!prevRes.ok) throw new Error(`上一周期 HTTP ${prevRes.status}`);
+      
+      const currentJson = await currentRes.json();
+      const prevJson = await prevRes.json();
+      
+      if (!currentJson.ok) throw new Error(currentJson.error || '当前周期加载失败');
+      if (!prevJson.ok) throw new Error(prevJson.error || '上一周期加载失败');
+
+      // 合并数据
+      const json = {
+        ...currentJson,
+        previous: prevJson
+      };
 
       rawTable = json.table || [];
       renderKPI(json.kpis || {});
       populateFilters();
       buildTable();
 
-      // 趋势图
-      const days = json.series.map(x=>x.day);
-      const clicks = json.series.map(x=>x.clicks);
-      const impr = json.series.map(x=>x.impr);
-      const value = json.series.map(x=>x.conv_value);
-      const ec = echarts.init(document.getElementById('lineChart'));
-      ec.setOption({
-        tooltip: { trigger: 'axis' },
-        legend: { data:['Clicks','Impr.','Conv value'] },
-        xAxis: { type:'category', data: days },
-        yAxis: [{ type:'value', name:'Clicks / Impr' }, { type:'value', name:'Value', position:'right' }],
-        series: [
-          { name:'Clicks', type:'line', smooth:true, data: clicks },
-          { name:'Impr.', type:'bar', data: impr },
-          { name:'Conv value', type:'line', yAxisIndex:1, smooth:true, data: value },
-        ]
-      });
-
+      // 渲染对比图表
+      renderAnalysisCharts(json);
+      
       // Top landing pages
       const topRows = json.topList.map(r => [
         shorten(r.product || r.path), r.clicks, r.impr, (r.ctr*100).toFixed(2)+'%', r.conversions, r.cost, r.conv_value, r.cpa.toFixed(2), r.roas.toFixed(2)
