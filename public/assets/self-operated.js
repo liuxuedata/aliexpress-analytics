@@ -444,6 +444,34 @@
        return results;
      }
 
+     // 添加商品链接样式
+     addProductLinkStyles() {
+       // 检查是否已经有样式
+       if (document.getElementById('product-link-styles')) {
+         return;
+       }
+       
+       const style = document.createElement('style');
+       style.id = 'product-link-styles';
+       style.textContent = `
+         .product-link {
+           color: #007bff !important;
+           text-decoration: underline !important;
+           cursor: pointer !important;
+           font-weight: 500 !important;
+         }
+         .product-link:hover {
+           color: #0056b3 !important;
+           text-decoration: none !important;
+         }
+         .product-id-cell {
+           text-align: left !important;
+         }
+       `;
+       document.head.appendChild(style);
+       console.log('商品链接样式已添加');
+     }
+
          // 渲染数据表格
      async renderDataTable(data, granularity) {
        if (!data || !Array.isArray(data)) return;
@@ -467,15 +495,36 @@
        // 第二步：清理所有DataTables相关的DOM元素
        const tableContainer = table.parentNode;
        if (tableContainer) {
-         const dataTableElements = tableContainer.querySelectorAll(
-           '.dataTables_wrapper, .dataTables_filter, .dataTables_length, ' +
-           '.dataTables_info, .dataTables_paginate, .dataTables_processing, ' +
-           '.dataTables_scroll, .dataTables_scrollHead, .dataTables_scrollBody'
-         );
+         // 查找并移除所有DataTables相关的元素
+         const dataTableSelectors = [
+           '.dataTables_wrapper',
+           '.dataTables_filter', 
+           '.dataTables_length',
+           '.dataTables_info',
+           '.dataTables_paginate',
+           '.dataTables_processing',
+           '.dataTables_scroll',
+           '.dataTables_scrollHead',
+           '.dataTables_scrollBody',
+           '.dataTables_scrollFoot'
+         ];
          
-         dataTableElements.forEach(element => {
-           element.remove();
-           console.log('移除DataTables元素:', element.className);
+         dataTableSelectors.forEach(selector => {
+           const elements = tableContainer.querySelectorAll(selector);
+           elements.forEach(element => {
+             element.remove();
+             console.log('移除DataTables元素:', selector);
+           });
+         });
+         
+         // 移除表格周围的DataTables相关元素
+         const siblings = Array.from(tableContainer.children);
+         siblings.forEach(sibling => {
+           if (sibling !== table && sibling.className && 
+               sibling.className.includes('dataTables')) {
+             sibling.remove();
+             console.log('移除DataTables兄弟元素:', sibling.className);
+           }
          });
        }
 
@@ -486,6 +535,8 @@
        table.removeAttribute('cellspacing');
        table.removeAttribute('cellpadding');
        table.removeAttribute('style');
+       table.removeAttribute('data-page');
+       table.removeAttribute('data-page-size');
        
        // 确保表格有正确的ID
        if (!table.id) {
@@ -530,31 +581,41 @@
         tr.innerHTML = '<td colspan="14" style="text-align: center; padding: 20px; color: #666;">暂无数据</td>';
         tbody.appendChild(tr);
       } else {
-        data.forEach((row, index) => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${row.product_id || ''}</td>
-            <td>${this.formatDateRange(row.start_date, row.end_date)}</td>
-            <td>${this.formatPercentage(row.visitor_ratio)}</td>
-            <td>${this.formatPercentage(row.cart_ratio)}</td>
-            <td>${this.formatPercentage(row.pay_ratio)}</td>
-            <td>${this.formatNumber(row.exposure || 0)}</td>
-            <td>${this.formatNumber(row.visitors || 0)}</td>
-            <td>${this.formatNumber(row.page_views || 0)}</td>
-            <td>${this.formatNumber(row.cart_users || 0)}</td>
-            <td>${this.formatNumber(row.order_items || 0)}</td>
-            <td>${this.formatNumber(row.pay_items || 0)}</td>
-            <td>${this.formatNumber(row.pay_buyers || 0)}</td>
-            <td>${this.formatPercentage(row.search_ctr)}</td>
-            <td>${this.formatNumber(row.avg_stay_seconds || 0)}</td>
-          `;
-          tbody.appendChild(tr);
-        });
+                 data.forEach((row, index) => {
+           const tr = document.createElement('tr');
+           
+           // 创建商品ID链接
+           const productId = row.product_id || '';
+           const productLink = productId ? 
+             `<a href="https://www.aliexpress.com/item/${productId}.html" target="_blank" class="product-link">${productId}</a>` : 
+             '';
+           
+           tr.innerHTML = `
+             <td>${productLink}</td>
+             <td>${this.formatDateRange(row.start_date, row.end_date)}</td>
+             <td>${this.formatPercentage(row.visitor_ratio)}</td>
+             <td>${this.formatPercentage(row.cart_ratio)}</td>
+             <td>${this.formatPercentage(row.pay_ratio)}</td>
+             <td>${this.formatNumber(row.exposure || 0)}</td>
+             <td>${this.formatNumber(row.visitors || 0)}</td>
+             <td>${this.formatNumber(row.page_views || 0)}</td>
+             <td>${this.formatNumber(row.cart_users || 0)}</td>
+             <td>${this.formatNumber(row.order_items || 0)}</td>
+             <td>${this.formatNumber(row.pay_items || 0)}</td>
+             <td>${this.formatNumber(row.pay_buyers || 0)}</td>
+             <td>${this.formatPercentage(row.search_ctr)}</td>
+             <td>${this.formatNumber(row.avg_stay_seconds || 0)}</td>
+           `;
+           tbody.appendChild(tr);
+         });
       }
       table.appendChild(tbody);
 
              // 等待DOM更新完成后再初始化DataTable
        await new Promise(resolve => setTimeout(resolve, 500));
+       
+       // 添加商品链接样式
+       this.addProductLinkStyles();
 
        // 初始化DataTable
        if (window.jQuery && jQuery.fn.DataTable) {
@@ -586,28 +647,60 @@
            console.log('表头列数:', thead.querySelectorAll('th').length);
            console.log('数据行数:', rows.length);
 
-           // 使用最简化的配置，避免任何可能导致问题的选项
-           this.dataTable = jQuery(table).DataTable({
-             pageLength: 10,
-             order: [[1, 'desc']],
-             scrollX: true,
-             scrollY: 'calc(100vh - 420px)',
-             scrollCollapse: true,
-             fixedHeader: true,
-             language: {
-               url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json'
-             },
-             destroy: true,
-             responsive: false,
-             autoWidth: false,
-             // 移除所有可能导致问题的配置
-             columnDefs: [],
-             columns: []
-           });
+                       // 使用标准配置，确保功能完整
+            this.dataTable = jQuery(table).DataTable({
+              pageLength: 10,
+              order: [[1, 'desc']],
+              scrollX: true,
+              scrollY: 'calc(100vh - 420px)',
+              scrollCollapse: true,
+              fixedHeader: true,
+              language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json'
+              },
+              destroy: true,
+              responsive: true,
+              autoWidth: false,
+              // 明确指定列配置，确保列数匹配
+              columnDefs: [
+                { targets: 0, className: 'product-id-cell' }, // 商品ID列
+                { targets: '_all', className: 'text-center' }  // 其他列居中
+              ],
+              // 确保列数正确
+              columns: [
+                { title: '商品(ID)', data: 0, orderable: true },
+                { title: '周期', data: 1, orderable: true },
+                { title: '访客比(%)', data: 2, orderable: true },
+                { title: '加购比(%)', data: 3, orderable: true },
+                { title: '支付比(%)', data: 4, orderable: true },
+                { title: '曝光量', data: 5, orderable: true },
+                { title: '访客数', data: 6, orderable: true },
+                { title: '浏览量', data: 7, orderable: true },
+                { title: '加购人数', data: 8, orderable: true },
+                { title: '下单商品件数', data: 9, orderable: true },
+                { title: '支付件数', data: 10, orderable: true },
+                { title: '支付买家数', data: 11, orderable: true },
+                { title: '搜索点击率(%)', data: 12, orderable: true },
+                { title: '平均停留时长(秒)', data: 13, orderable: true }
+              ]
+            });
            
-           console.log('DataTable初始化成功！');
-           console.log('数据行数:', this.dataTable.data().count());
-           console.log('列数:', this.dataTable.columns().count());
+                       console.log('DataTable初始化成功！');
+            console.log('数据行数:', this.dataTable.data().count());
+            
+            // 验证列数
+            const columnCount = this.dataTable.columns().count();
+            console.log('DataTable列数:', columnCount);
+            
+            if (columnCount !== 14) {
+               console.error('列数不匹配！期望14列，实际:', columnCount);
+               // 如果列数不匹配，尝试重新初始化
+               this.dataTable.destroy();
+               this.dataTable = null;
+               throw new Error(`列数不匹配：期望14列，实际${columnCount}列`);
+            }
+            
+            console.log('列数验证通过，DataTable初始化完成');
            
          } catch (error) {
            console.error('DataTable初始化失败:', error);
