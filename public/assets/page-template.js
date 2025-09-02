@@ -126,14 +126,26 @@
 
     // 初始化UI组件
     initUIComponents() {
-      // 初始化日期选择器
-      this.initDatePicker();
-      
-      // 初始化KPI卡片
-      this.initKPICards();
-      
-      // 初始化加载状态
-      this.initLoadingStates();
+      // 等待DOM完全准备好后再初始化组件
+      this.waitForDOMReady(() => {
+        // 初始化日期选择器
+        this.initDatePicker();
+        
+        // 初始化KPI卡片
+        this.initKPICards();
+        
+        // 初始化加载状态
+        this.initLoadingStates();
+      });
+    }
+
+    // 等待DOM完全准备好
+    waitForDOMReady(callback) {
+      if (document.readyState === 'complete') {
+        callback();
+      } else {
+        window.addEventListener('load', callback);
+      }
     }
 
     // 初始化日期选择器
