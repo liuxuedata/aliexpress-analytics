@@ -464,26 +464,67 @@ document.addEventListener('DOMContentLoaded',()=>{
       site = 'managed_stats'; // 全托管使用 managed_stats 作为站点标识
     }
     
-    const today=new Date().toISOString().slice(0,10);
-    const qs=new URLSearchParams({platform,from:'2000-01-01',to:today,limit:'5000'});
-    
-    // 如果是自运营或全托管平台且有站点信息，添加站点参数
-    if ((platform === 'self' || platform === 'managed') && site) {
-      qs.set('site', site);
-    }
-    
-    console.log('loadProdTotal调用参数:', { platform, currentSiteId, site, qs: qs.toString() });
+    console.log('loadProdTotal调用参数:', { platform, currentSiteId, site });
     
     try{
-      const r=await fetch('/api/new-products?'+qs.toString());
-      const j=await r.json();
-      
-      const newCount = j.new_count || 0;
-      document.getElementById('prodTotal').textContent=newCount;
-      console.log('loadProdTotal结果:', { platform, currentSiteId, site, newCount, items: j.items?.length || 0 });
-    }catch(e){
+      if (platform === 'managed') {
+        // 全托管模式：从stats接口获取数据计算商品总数
+        const today = new Date().toISOString().slice(0,10);
+        const qs = new URLSearchParams({granularity: 'week', limit: '5000'});
+        qs.set('period_end', today);
+        
+        const r = await fetch('/api/stats?' + qs.toString());
+        const j = await r.json();
+        
+        if (j.rows && j.rows.length > 0) {
+          // 计算不重复的商品ID数量
+          const uniqueProducts = new Set();
+          j.rows.forEach(row => {
+            if (row.product_id) {
+              uniqueProducts.add(row.product_id);
+            }
+          });
+          
+          const productCount = uniqueProducts.size;
+          document.getElementById('prodTotal').textContent = productCount;
+          console.log('全托管loadProdTotal结果:', { 
+            platform, 
+            currentSiteId, 
+            site, 
+            productCount, 
+            totalRows: j.rows.length,
+            uniqueProducts: uniqueProducts.size
+          });
+        } else {
+          document.getElementById('prodTotal').textContent = '0';
+          console.log('全托管loadProdTotal结果: 没有数据');
+        }
+      } else {
+        // 自运营模式：从new-products接口获取数据
+        const today = new Date().toISOString().slice(0,10);
+        const qs = new URLSearchParams({platform, from: '2000-01-01', to: today, limit: '5000'});
+        
+        // 如果是自运营平台且有站点信息，添加站点参数
+        if (platform === 'self' && site) {
+          qs.set('site', site);
+        }
+        
+        const r = await fetch('/api/new-products?' + qs.toString());
+        const j = await r.json();
+        
+        const newCount = j.new_count || 0;
+        document.getElementById('prodTotal').textContent = newCount;
+        console.log('自运营loadProdTotal结果:', { 
+          platform, 
+          currentSiteId, 
+          site, 
+          newCount, 
+          items: j.items?.length || 0 
+        });
+      }
+    } catch(e) {
       console.error('loadProdTotal错误:', e);
-      document.getElementById('prodTotal').textContent='0';
+      document.getElementById('prodTotal').textContent = '0';
     }
   }
   loadProdTotal();

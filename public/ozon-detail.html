@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="assets/login.css">
   <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <link rel="stylesheet" href="assets/global-theme.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
@@ -70,7 +71,7 @@
     </div>
 
     <div class="content">
-      <div id="kpi" class="kpi"></div>
+              <div id="kpi" class="kpi-grid"></div>
       <section id="detail" class="content-pad">
         <div class="panel">
           <h3>数据明细</h3>
@@ -229,13 +230,13 @@
     if(!host) return;
     const delta = (c,p,isPct)=>{ const d=c-p; const cls=d>=0?'up':'down'; const val=isPct ? (d*100).toFixed(2)+'%' : d; const sign=d>=0&&isPct?'+':''; return `<span class="delta ${cls}">${sign}${val}</span>`; };
     host.innerHTML = [
-      `<div class="card"><h4>总访客比<span class=\"help\" onclick=\"alert('访客比 = 浏览过商品详情页的独立访客 / 总展示次数')\">?</span></h4><p>${(k.visitor_rate.current*100).toFixed(2)}%${delta(k.visitor_rate.current,k.visitor_rate.previous,true)}</p></div>`,
-      `<div class="card"><h4>加购比<span class=\"help\" onclick=\"alert('加购比 = 总加入购物车次数 / 浏览过商品详情页的独立访客')\">?</span></h4><p>${(k.cart_rate.current*100).toFixed(2)}%${delta(k.cart_rate.current,k.cart_rate.previous,true)}</p></div>`,
-      `<div class="card"><h4>支付比</h4><p>${(k.pay_rate.current*100).toFixed(2)}%${delta(k.pay_rate.current,k.pay_rate.previous,true)}</p></div>`,
-      `<div class="card"><h4>商品总数</h4><p>${k.product_total.current}${delta(k.product_total.current,k.product_total.previous,false)}</p></div>`,
-      `<div class="card"><h4>有加购商品总数</h4><p>${k.cart_product_total.current}${delta(k.cart_product_total.current,k.cart_product_total.previous,false)}</p></div>`,
-      `<div class="card"><h4>有支付商品总数</h4><p>${k.pay_product_total.current}${delta(k.pay_product_total.current,k.pay_product_total.previous,false)}</p></div>`,
-      `<div class="card clickable" id="kpi-new"><h4>新品数</h4><p>${k.new_product_total}<a id="kpi-new-clear" class="mini-link" style="display:${onlyNew?'inline':'none'}">清除筛选</a></p></div>`
+      `<div class="kpi-card info"><h4>总访客比<span class="help" onclick="alert('访客比 = 浏览过商品详情页的独立访客 / 总展示次数')">?</span></h4><p>${(k.visitor_rate.current*100).toFixed(2)}%</p><div class="kpi-comparison">${delta(k.visitor_rate.current,k.visitor_rate.previous,true)}</div></div>`,
+      `<div class="kpi-card success"><h4>加购比<span class="help" onclick="alert('加购比 = 总加入购物车次数 / 浏览过商品详情页的独立访客')">?</span></h4><p>${(k.cart_rate.current*100).toFixed(2)}%</p><div class="kpi-comparison">${delta(k.cart_rate.current,k.cart_rate.previous,true)}</div></div>`,
+      `<div class="kpi-card danger"><h4>支付比</h4><p>${(k.pay_rate.current*100).toFixed(2)}%</p><div class="kpi-comparison">${delta(k.pay_rate.current,k.pay_rate.previous,true)}</div></div>`,
+      `<div class="kpi-card success"><h4>商品总数</h4><p>${k.product_total.current}</p><div class="kpi-comparison">${delta(k.product_total.current,k.product_total.previous,false)}</div></div>`,
+      `<div class="kpi-card warning"><h4>有加购商品总数</h4><p>${k.cart_product_total.current}</p><div class="kpi-comparison">${delta(k.cart_product_total.current,k.cart_product_total.previous,false)}</div></div>`,
+      `<div class="kpi-card danger"><h4>有支付商品总数</h4><p>${k.pay_product_total.current}</p><div class="kpi-comparison">${delta(k.pay_product_total.current,k.pay_product_total.previous,false)}</div></div>`,
+      `<div class="kpi-card info clickable" id="kpi-new"><h4>新品数</h4><p>${k.new_product_total}</p><div class="kpi-clear" style="display:${onlyNew?'block':'none'}"><a id="kpi-new-clear" class="mini-link">清除筛选</a></div></div>`
     ].join('');
     newProducts = k.new_products || [];
     const newCard = document.getElementById('kpi-new');
