@@ -58,131 +58,70 @@
       this.isLoading = false;
     }
 
-    // 重写数据加载方法
-    async loadData() {
-      // 防止重复加载
-      if (this.isLoading) {
-        console.log('数据正在加载中，跳过重复请求');
-        return;
-      }
+      // 数据加载主方法（与index.html保持一致）
+  async loadData() {
+    try {
+      console.log('开始加载所有数据...');
       
-      try {
-        this.isLoading = true;
-        console.log('自运营页面开始加载数据...');
-        console.log('当前站点信息:', { site: this.currentSite, siteName: this.currentSiteName });
-        
-        // 获取日期范围
-        const dateRange = this.getDateRange();
-        if (!dateRange) {
-          throw new Error('无法获取日期范围');
-        }
-
-        console.log('获取到日期范围:', dateRange);
-
-        // 显示加载状态
-        this.showLoadingState('detail');
-        
-        // 并行加载当前数据和对比数据，避免多次请求
-        const [currentData, comparisonData] = await Promise.all([
-          this.fetchAggregatedData(dateRange.start, dateRange.end, 'day'),
-          this.fetchComparisonData(dateRange)
-        ]);
-        
-        console.log('数据加载完成:', {
-          current: currentData.length,
-          comparison: comparisonData.length
-        });
-        
-        // 验证数据格式
-        if (currentData.length > 0) {
-          console.log('当前数据样本:', currentData[0]);
-          console.log('当前数据字段:', Object.keys(currentData[0]));
-        }
-        
-        // 计算KPI卡片（包含对比数据）
-        this.computeKPICardsWithComparison(currentData, comparisonData);
-        
-        // 渲染数据表格
-        await this.renderDataTable(currentData, 'day');
-        
-        // 隐藏加载状态
-        this.hideLoadingState('detail');
-        
-        // 更新进度显示
-        this.updateProgress(currentData.length);
-        
-        console.log('自运营页面数据加载完成');
-        
-      } catch (error) {
-        console.error('自运营页面数据加载失败:', error);
-        this.hideLoadingState('detail');
-        
-        // 显示详细的错误信息
-        const errorMessage = `数据加载失败: ${error.message || error}`;
-        console.error(errorMessage);
-        
-        // 使用alert显示错误，确保用户能看到
-        if (typeof alert === 'function') {
-          alert(errorMessage);
-        }
-      } finally {
-        this.isLoading = false;
-      }
+      // 获取日期范围
+      const { from, to } = this.getDateRange();
+      const startISO = from;
+      const endISO = to;
+      
+      // 计算对比周期
+      const { prevStart, prevEnd, days } = this.periodShift(startISO, endISO);
+      
+      console.log('当前周期:', startISO, 'to', endISO);
+      console.log('对比周期:', prevStart, 'to', prevEnd);
+      
+      // 使用Promise.all并行获取数据，避免多次调用
+      const [rowsAggA, rowsAggB] = await Promise.all([
+        this.fetchAggregatedData(startISO, endISO, 'day'),
+        this.fetchAggregatedData(prevStart, prevEnd, 'day')
+      ]);
+      
+      console.log('成功获取数据:', {
+        '当前周期': rowsAggA.length,
+        '对比周期': rowsAggB.length
+      });
+      
+      // 一次性计算所有KPI
+      this.computeCards(rowsAggA, rowsAggB);
+      
+      // 渲染数据表格
+      await this.renderTable(rowsAggA, 'day');
+      
+      // 更新状态
+      this.updateStatus('加载完成');
+      
+    } catch (error) {
+      console.error('数据加载失败:', error);
+      this.updateStatus('加载失败：' + (error.message || error));
+      this.showError('查询失败：' + (error.message || error));
     }
+  }
 
-    // 获取日期范围
-    getDateRange() {
-      // 尝试多种方式查找日期选择器
-      let dateFilter = document.getElementById('dateFilter');
-      
-      if (!dateFilter) {
-        // 如果通过ID找不到，尝试通过类名查找
-        dateFilter = document.querySelector('.date-filter');
-      }
-      
-      if (!dateFilter) {
-        // 如果还是找不到，尝试通过placeholder查找
-        dateFilter = document.querySelector('input[placeholder*="日期"], input[placeholder*="date"]');
-      }
-      
-      if (!dateFilter) {
-        console.error('未找到日期选择器元素，尝试了多种查找方式');
-        // 返回默认日期范围作为备用
-        const today = new Date();
-        const end = today.toISOString().slice(0, 10);
-        const start = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-        console.log('使用默认日期范围:', { start, end });
-        return { start, end };
-      }
-      
-      if (!dateFilter.value) {
-        console.error('日期选择器没有值');
-        // 返回默认日期范围作为备用
-        const today = new Date();
-        const end = today.toISOString().slice(0, 10);
-        const start = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-        console.log('使用默认日期范围:', { start, end });
-        return { start, end };
-      }
-
-      const value = dateFilter.value;
-      console.log('日期选择器值:', value);
-      
-      if (value.includes(' to ')) {
-        const [start, end] = value.split(' to ');
-        const result = { start: start.trim(), end: end.trim() };
-        console.log('解析的日期范围:', result);
-        return result;
-      }
-
-      console.error('日期格式不正确:', value);
-      // 返回默认日期范围作为备用
-      const today = new Date();
-      const end = today.toISOString().slice(0, 10);
-      const start = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-      console.log('使用默认日期范围:', { start, end });
-      return { start, end };
+      // 获取日期范围（与index.html保持一致）
+  getDateRange() {
+    const input = document.getElementById('dateFilter');
+    if (input && input.value && input.value.includes(' to ')) {
+      const [from, to] = input.value.split(' to ');
+      return { from: from.trim(), to: to.trim() };
     }
+    
+    // 返回默认日期范围
+    const today = new Date();
+    const to = today.toISOString().slice(0, 10);
+    // 如果今天是2024年或更早，使用2025-07-01作为开始日期
+    const from = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime() - 30 * 86400000).toISOString().slice(0, 10);
+    
+    // 更新日期选择器的值
+    if (input) {
+      input.value = `${from} to ${to}`;
+    }
+    
+    return { from, to };
+  }
 
     // 显示加载状态
     showLoadingState(section) {
@@ -1023,6 +962,146 @@
     showSuccess(message) {
       // 这里可以使用更好的提示组件
       console.log('成功:', message);
+    }
+
+    // 重构数据加载逻辑，与index.html保持一致
+    async fetchAndRenderAll() {
+      try {
+        console.log('开始加载所有数据...');
+        
+        // 获取日期范围
+        const { from, to } = this.getDateRange();
+        const startISO = from;
+        const endISO = to;
+        
+        // 计算对比周期
+        const { prevStart, prevEnd, days } = this.periodShift(startISO, endISO);
+        
+        console.log('当前周期:', startISO, 'to', endISO);
+        console.log('对比周期:', prevStart, 'to', prevEnd);
+        
+        // 使用Promise.all并行获取数据，避免多次调用
+        const [rowsAggA, rowsAggB] = await Promise.all([
+          this.fetchAggregatedData(startISO, endISO, 'day'),
+          this.fetchAggregatedData(prevStart, prevEnd, 'day')
+        ]);
+        
+        console.log('成功获取数据:', {
+          '当前周期': rowsAggA.length,
+          '对比周期': rowsAggB.length
+        });
+        
+        // 一次性计算所有KPI
+        this.computeCards(rowsAggA, rowsAggB);
+        
+        // 渲染数据表格
+        await this.renderTable(rowsAggA, 'day');
+        
+        // 更新状态
+        this.updateStatus('加载完成');
+        
+      } catch (error) {
+        console.error('数据加载失败:', error);
+        this.updateStatus('加载失败：' + (error.message || error));
+        this.showError('查询失败：' + (error.message || error));
+      }
+    }
+    
+    // 计算对比周期（与index.html保持一致）
+    periodShift(startISO, endISO) {
+      const start = new Date(startISO + 'T00:00:00');
+      const end = new Date(endISO + 'T00:00:00');
+      const days = Math.round((end - start) / 86400000) + 1;
+      const prevEnd = new Date(start.getTime() - 86400000);
+      const prevStart = new Date(prevEnd.getTime() - (days-1)*86400000);
+      const fmt = d => d.toISOString().slice(0,10);
+      return { prevStart: fmt(prevStart), prevEnd: fmt(prevEnd), days };
+    }
+    
+    // 计算KPI卡片（与index.html保持一致）
+    computeCards(rows, prevRows) {
+      function summarize(rs) {
+        if (!rs.length) return {vr:0,cr:0,pr:0,total:0,pc:0,pp:0};
+        
+        const sum = rs.reduce((a,b) => ({
+          exposure: a.exposure + (b.exposure || 0),
+          visitors: a.visitors + (b.visitors || 0),
+          add_people: a.add_people + (b.add_people || 0),
+          pay_buyers: a.pay_buyers + (b.pay_buyers || 0)
+        }), {exposure:0,visitors:0,add_people:0,pay_buyers:0});
+        
+        const products = new Map();
+        rs.forEach(r => {
+          if (!products.has(r.product_id)) {
+            products.set(r.product_id, {exp:0,add:0,pay:0});
+          }
+          const acc = products.get(r.product_id);
+          acc.exp += r.exposure || 0;
+          acc.add += r.add_people || 0;
+          acc.pay += r.pay_buyers || 0;
+        });
+        
+        let pe = 0, pc = 0, pp = 0;
+        products.forEach(v => {
+          if (v.exp > 0) pe++;
+          if (v.add > 0) pc++;
+          if (v.pay > 0) pp++;
+        });
+        
+        const vr = sum.exposure > 0 ? ((sum.visitors / sum.exposure) * 100) : 0;
+        const cr = sum.visitors > 0 ? ((sum.add_people / sum.visitors) * 100) : 0;
+        const pr = sum.add_people > 0 ? ((sum.pay_buyers / sum.add_people) * 100) : 0;
+        
+        return {vr, cr, pr, total: products.size, pc, pp};
+      }
+      
+      function setDelta(id, diff, isPercent) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        
+        const arrow = diff >= 0 ? '↑' : '↓';
+        const cls = diff >= 0 ? 'delta up' : 'delta down';
+        const val = isPercent ? Math.abs(diff).toFixed(2) + '%' : Math.abs(diff).toString();
+        
+        el.innerHTML = `<span class="${cls}">${arrow} ${val}</span>`;
+      }
+      
+      const cur = summarize(rows);
+      const prev = summarize(prevRows || []);
+      
+      // 更新KPI值
+      this.updateKPI('avgVisitor', cur.vr.toFixed(2) + '%');
+      this.updateKPI('avgCart', cur.cr.toFixed(2) + '%');
+      this.updateKPI('avgPay', cur.pr.toFixed(2) + '%');
+      this.updateKPI('totalProducts', cur.total);
+      this.updateKPI('cartedProducts', cur.pc);
+      this.updateKPI('purchasedProducts', cur.pp);
+      
+      // 更新对比数据
+      setDelta('avgVisitorComparison', cur.vr - prev.vr, true);
+      setDelta('avgCartComparison', cur.cr - prev.cr, true);
+      setDelta('avgPayComparison', cur.pr - prev.pr, true);
+      setDelta('totalProductsComparison', cur.total - prev.total, false);
+      setDelta('cartedProductsComparison', cur.pc - prev.pc, false);
+      setDelta('purchasedProductsComparison', cur.pp - prev.pp, false);
+      
+      console.log('KPI计算完成:', { cur, prev });
+    }
+    
+    // 更新KPI值
+    updateKPI(id, value) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.textContent = value;
+      }
+    }
+    
+    // 更新状态
+    updateStatus(message) {
+      const statusEl = document.getElementById('status');
+      if (statusEl) {
+        statusEl.textContent = message;
+      }
     }
   }
 
