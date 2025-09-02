@@ -23,18 +23,8 @@
   <link rel="stylesheet" href="assets/global-theme.css">
   <script src="assets/site-nav.js"></script>
   <style>
-    /* NewKPICtrl */
-    .kpi-ctrl{display:flex;gap:.5rem;align-items:center;margin:.25rem 0 .5rem;color:#334155;font:500 13px/1 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
-    .kpi-ctrl button{border:1px solid #e5e7eb;background:#fff;border-radius:8px;padding:.25rem .5rem;cursor:pointer}
-    .kpi-ctrl button:hover{background:#f8fafc}
-    .kpi-ctrl input[type="date"]{border:1px solid #e5e7eb;border-radius:8px;padding:.25rem .5rem}
-    .kpi-ctrl .hint{font-size:12px;color:#64748b}
-    .stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
-    .stat-card.clickable,.kpi .card.clickable{cursor:pointer}
-    /* KPI basic helpers */
-    .kpi-row{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin:.25rem 0 .75rem}
-    /* Force hide any old period controls if they still exist */
-    #kpi-new-self-ctrl, #kpi-new-managed-ctrl, .kpi .kpi-ctrl { display: none !important; }
+    /* 移除旧的KPI样式，使用全局UI系统 */
+    /* 旧的样式已被全局主题系统替代 */
     
     /* 站点选择器样式 */
     .site-selector {
@@ -65,58 +55,7 @@
       background: #2563eb;
     }
     
-    /* 骨架屏加载状态样式 */
-    .skeleton-loading {
-      padding: 20px;
-      background: #f8fafc;
-      border-radius: 8px;
-      margin: 20px 0;
-    }
-    
-    /* 表格骨架屏 */
-    .skeleton-table {
-      width: 100%;
-    }
-    
-    .skeleton-header {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-    
-    .skeleton-rows {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    
-    .skeleton-row {
-      display: flex;
-      gap: 8px;
-    }
-    
-    .skeleton-cell {
-      height: 20px;
-      background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
-      background-size: 200% 100%;
-      animation: skeleton-loading 1.5s infinite;
-      border-radius: 4px;
-      flex: 1;
-    }
-    
-    .skeleton-header .skeleton-cell {
-      height: 16px;
-      background: #d1d5db;
-    }
-    
-    @keyframes skeleton-loading {
-      0% { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
-    }
-    
-    /* 自运营页面特定样式 */
-    .loading-state {
-      padding: 40px 20px;
+    /* 使用全局UI系统的样式，移除旧的骨架屏样式 */
       text-align: center;
       background: #f8fafc;
       border-radius: 8px;
@@ -315,16 +254,8 @@
         </div>
       </section>
       <section id="product" class="content-pad" style="display:none;">
-        <div class="panel">
+        <div class="chart-container">
           <h3>产品分析</h3>
-          
-          <!-- 加载状态 -->
-          <div id="productLoading" class="loading-state" style="display: none;">
-            <div class="loading-bar">
-              <div class="loading-progress"></div>
-            </div>
-            <p class="loading-text">努力加载中,请等待片刻。。。</p>
-          </div>
           
           <!-- 内容 -->
           <div id="productContent">
@@ -649,10 +580,22 @@ async function fetchAndRenderAll() {
     const { prevStart, prevEnd, days }=periodShift(startISO,endISO);
     const rowsA=await fetchAgg(startISO,endISO,'day');
     const rowsB=await fetchAgg(prevStart,prevEnd,'day');
-    const metricKey=(function(k){ if(k==='exposure_sum')return 'exp'; if(k==='visitors_sum')return 'vis'; if(k==='add_people_sum')return 'add'; if(k==='orders_sum')return 'orders'; if(k==='fav_sum')return 'fav'; })(document.getElementById('metricSel').value);
-    drawLineChartDaily(rowsA,rowsB,days,startISO,prevStart,metricKey);
-    drawRatioBar(rowsA,rowsB);
-    await drawTop6Both(rowsA,rowsB);
+    
+    // 检查metricSel元素是否存在，如果不存在则使用默认值
+    const metricSelElement = document.getElementById('metricSel');
+    const metricKey = metricSelElement ? 
+      (function(k){ if(k==='exposure_sum')return 'exp'; if(k==='visitors_sum')return 'vis'; if(k==='add_people_sum')return 'add'; if(k==='orders_sum')return 'orders'; if(k==='fav_sum')return 'fav'; })(metricSelElement.value) : 'exp';
+    
+    // 检查相关函数是否存在，如果不存在则跳过图表绘制
+    if (typeof drawLineChartDaily === 'function') {
+      drawLineChartDaily(rowsA,rowsB,days,startISO,prevStart,metricKey);
+    }
+    if (typeof drawRatioBar === 'function') {
+      drawRatioBar(rowsA,rowsB);
+    }
+    if (typeof drawTop6Both === 'function') {
+      await drawTop6Both(rowsA,rowsB);
+    }
 
     $('#progress').text(`A: ${rowsA.length} 条 · B: ${rowsB.length} 条`);
   } catch (err) {
@@ -662,7 +605,8 @@ async function fetchAndRenderAll() {
 /* ---------- 初始化 ---------- */
 const fp=flatpickr('#dateFilter',{ mode:'range', dateFormat:'Y-m-d', onClose:(ds)=>{ if(ds.length===2) fetchAndRenderAll(); } });
 $('#refreshBtn').on('click', fetchAndRenderAll);
-$('#metricSel').on('change', fetchAndRenderAll);
+// 移除对不存在元素的引用
+// $('#metricSel').on('change', fetchAndRenderAll);
 
 (async function initDefault(){
   // 设置默认日期范围为2025年7月1日到今天
@@ -943,7 +887,28 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
   refreshUser();
   window.addEventListener('user-login', refreshUser);
-  document.querySelectorAll('.sub-nav a').forEach(a=>{a.addEventListener('click',e=>{e.preventDefault();const t=a.dataset.target;document.querySelectorAll('.sub-nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active');['detail','analysis','product'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=id===t?'':'none';});});});
+  document.querySelectorAll('.sub-nav a').forEach(a=>{
+    a.addEventListener('click',e=>{
+      const t=a.dataset.target;
+      const href=a.getAttribute('href');
+      
+      // 如果是外部链接（不是#），直接跳转
+      if (href && href !== '#') {
+        return; // 不阻止默认行为，允许跳转
+      }
+      
+      // 如果是内部导航（data-target），阻止默认行为并处理
+      if (t) {
+        e.preventDefault();
+        document.querySelectorAll('.sub-nav a').forEach(x=>x.classList.remove('active'));
+        a.classList.add('active');
+        ['detail','analysis','product'].forEach(id=>{
+          const el=document.getElementById(id);
+          if(el) el.style.display=(id===t ? '' : 'none');
+        });
+      }
+    });
+  });
 });
 </script>
 </body>
