@@ -83,6 +83,9 @@
           '对比周期': rowsAggB.length
         });
         
+        // 保存当前数据，用于后续筛选
+        this.currentData = rowsAggA;
+        
         // 一次性计算所有KPI
         this.computeCards(rowsAggA, rowsAggB);
         
@@ -222,7 +225,7 @@
         
         console.log('KPI计算调试 - 计算结果:', { vr, cr, pr, total: products.size, pc, pp });
         
-        return {vr, cr, pr, total: products.size, pc, pp};
+        return {vr, cr, pr, total: products.size, pc, pp, newProducts: 0}; // 暂时返回0，后续计算
       }
       
       function setDelta(id, diff, isPercent) {
@@ -239,6 +242,22 @@
       const cur = summarize(rows);
       const prev = summarize(prevRows || []);
       
+      // 计算本周期新品数：当前周期有但对比周期没有的商品
+      const currentProductIds = new Set(rows.map(r => r.product_id));
+      const prevProductIds = new Set((prevRows || []).map(r => r.product_id));
+      const newProductIds = Array.from(currentProductIds).filter(id => !prevProductIds.has(id));
+      const newProducts = newProductIds.length;
+      
+      // 保存新品ID列表，用于后续筛选
+      this.newProductIds = newProductIds;
+      
+      console.log('本周期新品数计算:', {
+        currentProductIds: currentProductIds.size,
+        prevProductIds: prevProductIds.size,
+        newProducts: newProducts,
+        newProductIds: newProductIds
+      });
+      
       // 更新KPI值
       this.updateKPI('avgVisitor', cur.vr.toFixed(2) + '%');
       this.updateKPI('avgCart', cur.cr.toFixed(2) + '%');
@@ -246,6 +265,7 @@
       this.updateKPI('totalProducts', cur.total);
       this.updateKPI('cartedProducts', cur.pc);
       this.updateKPI('purchasedProducts', cur.pp);
+      this.updateKPI('newProducts', newProducts); // 添加新品数KPI
       
       // 更新对比数据
       setDelta('avgVisitorComparison', cur.vr - prev.vr, true);
@@ -490,31 +510,112 @@
       this.currentSite = pageInfo.site;
       this.currentSiteName = pageInfo.siteName;
       
-      // 绑定刷新按钮事件
-      this.bindRefreshButton();
-      
-      // 防止重复加载
-      if (this.pageReadyTriggered) {
-        console.log('页面就绪事件已触发过，跳过重复加载');
-        return;
-      }
-      this.pageReadyTriggered = true;
-      
-      // 开始加载数据
-      this.loadData();
+              // 绑定刷新按钮事件
+        this.bindRefreshButton();
+        
+        // 绑定新品筛选事件
+        this.bindNewProductsFilter();
+        
+        // 防止重复加载
+        if (this.pageReadyTriggered) {
+          console.log('页面就绪事件已触发过，跳过重复加载');
+          return;
+        }
+        this.pageReadyTriggered = true;
+        
+        // 开始加载数据
+        this.loadData();
     }
 
-    // 绑定刷新按钮事件
-    bindRefreshButton() {
-      const refreshBtn = document.getElementById('refreshBtn');
-      if (refreshBtn) {
-        refreshBtn.addEventListener('click', () => {
-          console.log('刷新按钮被点击，重新加载数据');
-          this.loadData();
-        });
-        console.log('刷新按钮事件已绑定');
+          // 绑定刷新按钮事件
+      bindRefreshButton() {
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) {
+          refreshBtn.addEventListener('click', () => {
+            console.log('刷新按钮被点击，重新加载数据');
+            this.loadData();
+          });
+          console.log('刷新按钮事件已绑定');
+        }
       }
-    }
+      
+      // 绑定新品KPI卡片点击事件
+      bindNewProductsFilter() {
+        const newProductsCard = document.getElementById('newProducts');
+        if (newProductsCard) {
+          newProductsCard.addEventListener('click', () => {
+            console.log('新品KPI卡片被点击，筛选新品数据');
+            this.filterNewProducts();
+          });
+          console.log('新品KPI卡片事件已绑定');
+        }
+      }
+      
+      // 筛选新品数据
+      filterNewProducts() {
+        if (!this.newProductIds || this.newProductIds.length === 0) {
+          console.log('没有新品数据可筛选');
+          return;
+        }
+        
+        // 筛选出新品数据
+        const filteredData = this.currentData.filter(row => 
+          this.newProductIds.includes(row.product_id)
+        );
+        
+        console.log('新品筛选结果:', {
+          totalData: this.currentData.length,
+          filteredData: filteredData.length,
+          newProductIds: this.newProductIds
+        });
+        
+        // 重新渲染表格，显示筛选后的数据
+        this.renderDataTable(filteredData, 'day');
+        
+        // 显示筛选状态和清除按钮
+        this.showFilterStatus('新品筛选', filteredData.length);
+      }
+      
+      // 显示筛选状态和清除按钮
+      showFilterStatus(filterType, count) {
+        const statusEl = document.getElementById('status');
+        if (statusEl) {
+          statusEl.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span>${filterType}：显示 ${count} 条记录</span>
+              <button id="clearFilter" style="
+                padding: 4px 12px;
+                background: #dc3545;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 12px;
+              ">清除筛选</button>
+            </div>
+          `;
+          
+          // 绑定清除筛选按钮事件
+          const clearBtn = document.getElementById('clearFilter');
+          if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+              console.log('清除筛选按钮被点击，恢复完整数据');
+              this.clearFilter();
+            });
+          }
+        }
+      }
+      
+      // 清除筛选，恢复完整数据
+      clearFilter() {
+        console.log('清除筛选，恢复完整数据');
+        
+        // 重新渲染完整数据表格
+        this.renderDataTable(this.currentData, 'day');
+        
+        // 恢复状态显示
+        this.updateStatus('加载完成');
+      }
   }
 
   // 等待页面模板系统加载
