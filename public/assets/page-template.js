@@ -63,6 +63,7 @@
       
       try {
         console.log(`初始化页面: ${this.currentPage}`);
+        console.log('页面URL:', window.location.href);
         
         // 设置页面标题
         this.setPageTitle();
@@ -138,7 +139,7 @@
     // 初始化日期选择器
     initDatePicker() {
       const dateFilter = document.getElementById('dateFilter');
-      if (dateFilter && typeof flatpickr !== 'undefined') {
+      if (dateFilter) {
         const today = new Date();
         const end = today.toISOString().slice(0, 10);
         const start = today.getFullYear() < 2025 ? 
@@ -147,15 +148,37 @@
         
         dateFilter.value = `${start} to ${end}`;
         
+        // 等待flatpickr加载完成
+        this.waitForFlatpickr(dateFilter, start, end);
+      }
+    }
+
+    // 等待flatpickr加载完成
+    waitForFlatpickr(dateFilter, start, end) {
+      if (typeof flatpickr !== 'undefined') {
+        this.initializeFlatpickr(dateFilter, start, end);
+      } else {
+        // 如果flatpickr还没加载，等待一下再试
+        setTimeout(() => this.waitForFlatpickr(dateFilter, start, end), 100);
+      }
+    }
+
+    // 初始化flatpickr
+    initializeFlatpickr(dateFilter, start, end) {
+      try {
         flatpickr(dateFilter, {
           mode: 'range',
           dateFormat: 'Y-m-d',
+          defaultDate: [start, end],
           onClose: (dates) => {
             if (dates.length === 2) {
               this.refreshData();
             }
           }
         });
+        console.log('日期选择器初始化成功');
+      } catch (error) {
+        console.error('日期选择器初始化失败:', error);
       }
     }
 
@@ -185,6 +208,10 @@
             card.classList.add('warning');
           }
         });
+        
+        console.log('KPI卡片样式初始化完成');
+      } else {
+        console.warn('未找到KPI网格容器');
       }
     }
 

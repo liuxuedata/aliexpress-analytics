@@ -41,6 +41,7 @@
     async loadData() {
       try {
         console.log('自运营页面开始加载数据...');
+        console.log('当前站点信息:', { site: this.currentSite, siteName: this.currentSiteName });
         
         // 获取日期范围
         const dateRange = this.getDateRange();
@@ -48,11 +49,15 @@
           throw new Error('无法获取日期范围');
         }
 
+        console.log('获取到日期范围:', dateRange);
+
         // 显示加载状态
         this.showLoadingState('detail');
         
         // 加载聚合数据
         const rowsNowAgg = await this.fetchAggregatedData(dateRange.start, dateRange.end, 'day');
+        
+        console.log('聚合数据加载完成，记录数:', rowsNowAgg.length);
         
         // 计算KPI卡片
         this.computeKPICards(rowsNowAgg);
@@ -74,23 +79,42 @@
       } catch (error) {
         console.error('自运营页面数据加载失败:', error);
         this.hideLoadingState('detail');
-        this.showError('数据加载失败: ' + (error.message || error));
+        
+        // 显示详细的错误信息
+        const errorMessage = `数据加载失败: ${error.message || error}`;
+        console.error(errorMessage);
+        
+        // 使用alert显示错误，确保用户能看到
+        if (typeof alert === 'function') {
+          alert(errorMessage);
+        }
       }
     }
 
     // 获取日期范围
     getDateRange() {
       const dateFilter = document.getElementById('dateFilter');
-      if (!dateFilter || !dateFilter.value) {
+      if (!dateFilter) {
+        console.error('未找到日期选择器元素');
+        return null;
+      }
+      
+      if (!dateFilter.value) {
+        console.error('日期选择器没有值');
         return null;
       }
 
       const value = dateFilter.value;
+      console.log('日期选择器值:', value);
+      
       if (value.includes(' to ')) {
         const [start, end] = value.split(' to ');
-        return { start, end };
+        const result = { start: start.trim(), end: end.trim() };
+        console.log('解析的日期范围:', result);
+        return result;
       }
 
+      console.error('日期格式不正确:', value);
       return null;
     }
 
@@ -119,17 +143,28 @@
         end: endISO,
         granularity: granularity,
         site: this.currentSite || 'ae_self_operated_a',
-        aggregate: 'true'
+        aggregate: 'product'
       });
 
-      const response = await fetch(`/api/ae_query?${params.toString()}`);
-      const data = await response.json();
-      
-      if (!data.ok) {
-        throw new Error(data.msg || 'API请求失败');
+      const url = `/api/ae_query?${params.toString()}`;
+      console.log('请求URL:', url);
+      console.log('请求参数:', Object.fromEntries(params));
+
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        console.log('API响应:', data);
+        
+        if (!data.ok) {
+          throw new Error(data.msg || 'API请求失败');
+        }
+        
+        return data.rows || [];
+      } catch (error) {
+        console.error('API请求失败:', error);
+        throw error;
       }
-      
-      return data.rows || [];
     }
 
     // 计算KPI卡片
