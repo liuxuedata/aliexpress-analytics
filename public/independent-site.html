@@ -341,7 +341,6 @@
               <div class="skeleton-cell"></div>
               <div class="skeleton-cell"></div>
               <div class="skeleton-cell"></div>
-              <div class="skeleton-cell"></div>
             </div>
             <div class="skeleton-rows">
               <div class="skeleton-row">
@@ -359,7 +358,6 @@
                 <div class="skeleton-cell"></div>
                 <div class="skeleton-cell"></div>
                 <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
               </div>
               <div class="skeleton-row">
                 <div class="skeleton-cell"></div>
@@ -376,10 +374,8 @@
                 <div class="skeleton-cell"></div>
                 <div class="skeleton-cell"></div>
                 <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
               </div>
               <div class="skeleton-row">
-                <div class="skeleton-cell"></div>
                 <div class="skeleton-cell"></div>
                 <div class="skeleton-cell"></div>
                 <div class="skeleton-cell"></div>
@@ -405,7 +401,7 @@
             <table id="report" class="display nowrap" style="width:100%">
               <thead>
                 <tr>
-                  <th>产品</th><th>设备</th><th>网络</th><th>Campaign</th><th>周期</th>
+                  <th>产品</th><th>设备</th><th>网络</th><th>Campaign</th>
                   <th>点击</th><th>曝光</th><th>CTR <span class="help-icon" title="CTR = 总点击 / 总曝光">?</span></th><th>Avg CPC</th><th>Cost</th>
                   <th>转化</th><th>Cost/Conv</th><th>All conv</th><th>Conv value</th>
                   <th>All conv rate <span class="help-icon" title="All conv rate = All conv / 总点击">?</span></th><th>Conv rate <span class="help-icon" title="Conv rate = 转化 / 总点击">?</span></th>
@@ -576,7 +572,6 @@
           { data:'device', render: v => v || '' },
           { data:'network', render: v => v || '' },
           { data:'campaign', render: v => v || '' },
-          { data:'period', render: v => v || '' },
           { data:'clicks', render: v => v ?? 0 },
           { data:'impr', render: v => v ?? 0 },
           { data:'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
@@ -590,6 +585,12 @@
           { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
         ]
       });
+      
+      // 默认隐藏筛选列
+      dt.column(1).visible(false); // 设备列
+      dt.column(2).visible(false); // 网络列
+      dt.column(3).visible(false); // Campaign列
+      
       return;
     }
     
@@ -632,9 +633,15 @@
         { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
       ]
     });
-    dt.column(1).visible(showDevice);
-    dt.column(2).visible(showNetwork);
-    dt.column(3).visible(showCampaign);
+    // 默认隐藏筛选列，只作为筛选条件
+    dt.column(1).visible(false); // 设备列默认隐藏
+    dt.column(2).visible(false); // 网络列默认隐藏
+    dt.column(3).visible(false); // Campaign列默认隐藏
+    
+    // 根据筛选条件显示列
+    if (showDevice) dt.column(1).visible(true);
+    if (showNetwork) dt.column(2).visible(true);
+    if (showCampaign) dt.column(3).visible(true);
   }
 
   $('#columnMenu').on('change','input[type=checkbox]', buildTable);
@@ -962,17 +969,6 @@
       console.error('load函数未定义');
     }
   }, 1000);
-  
-  // 备用加载方案
-  setTimeout(() => {
-    if (typeof load === 'function') {
-      try {
-        load();
-      } catch (error) {
-        console.error('备用load函数执行错误:', error);
-      }
-    }
-  }, 3000);
 })();
 </script>
 
