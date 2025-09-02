@@ -64,42 +64,53 @@
       background: #2563eb;
     }
     
-    /* 加载状态样式 */
-    .loading-state {
-      text-align: center;
-      padding: 40px 20px;
+    /* 骨架屏加载状态样式 */
+    .skeleton-loading {
+      padding: 20px;
       background: #f8fafc;
       border-radius: 8px;
       margin: 20px 0;
     }
     
-    .loading-bar {
+    /* 表格骨架屏 */
+    .skeleton-table {
       width: 100%;
-      height: 8px;
-      background: #e5e7eb;
+    }
+    
+    .skeleton-header {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .skeleton-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .skeleton-row {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .skeleton-cell {
+      height: 20px;
+      background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s infinite;
       border-radius: 4px;
-      overflow: hidden;
-      margin-bottom: 20px;
+      flex: 1;
     }
     
-    .loading-progress {
-      width: 30%;
-      height: 100%;
-      background: #3b82f6;
-      border-radius: 4px;
-      animation: loading-animation 2s ease-in-out infinite;
+    .skeleton-header .skeleton-cell {
+      height: 16px;
+      background: #d1d5db;
     }
     
-    @keyframes loading-animation {
-      0% { transform: translateX(-100%); }
-      50% { transform: translateX(0); }
-      100% { transform: translateX(100%); }
-    }
-    
-    .loading-text {
-      color: #6b7280;
-      font-size: 14px;
-      margin: 0;
+    @keyframes skeleton-loading {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
     }
   </style>
 </head>
@@ -200,12 +211,73 @@
         <div class="panel">
           <h3>数据明细</h3>
           
-          <!-- 加载状态 -->
-          <div id="detailLoading" class="loading-state" style="display: none;">
-            <div class="loading-bar">
-              <div class="loading-progress"></div>
+          <!-- 骨架屏加载状态 -->
+          <div id="detailLoading" class="skeleton-loading" style="display: none;">
+            <!-- 表格骨架屏 -->
+            <div class="skeleton-table">
+              <div class="skeleton-header">
+                <div class="skeleton-cell"></div>
+                <div class="skeleton-cell"></div>
+                <div class="skeleton-cell"></div>
+                <div class="skeleton-cell"></div>
+                <div class="skeleton-cell"></div>
+                <div class="skeleton-cell"></div>
+                <div class="skeleton-cell"></div>
+                <div class="skeleton-cell"></div>
+                <div class="skeleton-cell"></div>
+                <div class="skeleton-cell"></div>
+                <div class="skeleton-cell"></div>
+                <div class="skeleton-cell"></div>
+                <div class="skeleton-cell"></div>
+              </div>
+              <div class="skeleton-rows">
+                <div class="skeleton-row">
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                </div>
+                <div class="skeleton-row">
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                </div>
+                <div class="skeleton-row">
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                  <div class="skeleton-cell"></div>
+                </div>
+              </div>
             </div>
-            <p class="loading-text">努力加载中,请等待片刻。。。</p>
           </div>
           
           <!-- 数据表格 -->

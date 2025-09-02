@@ -154,12 +154,23 @@
     if (managedMenu) {
       managedMenu.innerHTML = '';
       
+      // 获取当前自运营站点
+      const currentSite = localStorage.getItem('currentSite');
+      
       // 添加自运营站点
       defaultSites.ae_self_operated.forEach(site => {
         const li = document.createElement('li');
         const a = document.createElement('a');
         a.href = 'self-operated.html';
         a.textContent = site.display_name;
+        
+        // 如果是当前站点，添加高亮样式
+        if (site.id === currentSite) {
+          li.className = 'active';
+          a.style.background = 'var(--brand)';
+          a.style.color = '#fff';
+        }
+        
         a.addEventListener('click', e => {
           e.preventDefault();
           localStorage.setItem('currentSite', site.id);
@@ -192,11 +203,22 @@
     if (indepMenu) {
       indepMenu.innerHTML = '';
       
+      // 获取当前独立站站点
+      const currentIndepSite = localStorage.getItem('currentIndepSite');
+      
       defaultSites.independent.forEach(site => {
         const li = document.createElement('li');
         const a = document.createElement('a');
         a.href = 'independent-site.html';
         a.textContent = site.display_name;
+        
+        // 如果是当前站点，添加高亮样式
+        if (site.id === currentIndepSite) {
+          li.className = 'active';
+          a.style.background = 'var(--brand)';
+          a.style.color = '#fff';
+        }
+        
         a.addEventListener('click', e => {
           e.preventDefault();
           localStorage.setItem('currentIndepSite', site.id);
