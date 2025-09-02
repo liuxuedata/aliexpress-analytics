@@ -121,6 +121,59 @@
       font-style: italic;
     }
     
+    /* 产品分析样式 */
+    .product-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      padding: 1rem 0;
+    }
+    
+    .product-info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .product-info-item label {
+      font-weight: 600;
+      color: var(--primary-700);
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .product-info-item span,
+    .product-info-item .product-url {
+      color: var(--primary-800);
+      font-size: 1rem;
+    }
+    
+    .product-link {
+      color: var(--brand-blue);
+      text-decoration: none;
+      word-break: break-all;
+      line-height: 1.4;
+    }
+    
+    .product-link:hover {
+      text-decoration: underline;
+      color: var(--brand-blue-dark);
+    }
+    
+    /* 产品行链接样式 */
+    .product-row-link {
+      color: var(--brand-blue);
+      text-decoration: none;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    
+    .product-row-link:hover {
+      text-decoration: underline;
+      color: var(--brand-blue-dark);
+    }
+    
     .dataTables_processing .loading-message {
       display: flex;
       flex-direction: column;
@@ -325,22 +378,62 @@
       </div>
     </section>
 
-    <!-- 产品分析（占位） -->
+    <!-- 产品分析 -->
     <section id="product" class="content-pad" style="display:none;">
-      <div class="chart-container">
-        <h3>产品分析</h3>
-        
-        <!-- 加载状态提示 -->
-        <div id="productLoading" class="loading-state" style="display: none;">
-          <div class="loading-spinner"></div>
-          <p class="loading-text">努力加载中,请等待片刻。。。</p>
+      <div class="grid-system grid-2">
+        <!-- 产品基本信息 -->
+        <div class="chart-container" style="grid-column:1/-1;">
+          <h3>产品基本信息</h3>
+          
+          <!-- 加载状态提示 -->
+          <div id="productLoading" class="loading-state" style="display: none;">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">努力加载中,请等待片刻。。。</p>
+          </div>
+          
+          <!-- 产品信息内容 -->
+          <div id="productContent" class="chart-content">
+            <div class="product-info-grid">
+              <div class="product-info-item">
+                <label>产品链接：</label>
+                <div class="product-url">
+                  <a id="productUrl" href="#" target="_blank" class="product-link">请选择产品查看链接</a>
+                </div>
+              </div>
+              <div class="product-info-item">
+                <label>上架时间：</label>
+                <span id="listingDate">-</span>
+              </div>
+              <div class="product-info-item">
+                <label>产品名称：</label>
+                <span id="productName">-</span>
+              </div>
+            </div>
+          </div>
         </div>
         
-        <!-- 内容 -->
-        <div id="productContent">
-          <div class="placeholder-content">
-            <p>（后续可按路径映射到商品，增加售价、毛利、库存、类目等维度的分析）</p>
-          </div>
+        <!-- 曝光趋势对比 -->
+        <div class="chart-container">
+          <h3>曝光趋势对比</h3>
+          <div id="exposureTrendChart" style="width:100%;height:300px;"></div>
+        </div>
+        
+        <!-- CTR趋势对比 -->
+        <div class="chart-container">
+          <h3>CTR趋势对比</h3>
+          <div id="ctrTrendChart" style="width:100%;height:300px;"></div>
+        </div>
+        
+        <!-- 转化率趋势对比 -->
+        <div class="chart-container">
+          <h3>转化率趋势对比</h3>
+          <div id="conversionTrendChart" style="width:100%;height:300px;"></div>
+        </div>
+        
+        <!-- 产品KPI指标 -->
+        <div class="chart-container">
+          <h3>产品KPI指标</h3>
+          <div id="productKPI" class="kpi-grid"></div>
         </div>
       </div>
     </section>
@@ -509,10 +602,10 @@
           processing: '<div class="loading-message"><div class="loading-spinner"></div><p>努力加载中,请等待片刻。。。</p></div>'
         },
         columns:[
-          { data:'product', render:(v,t,r)=>{
-              const name = v || r.landing_path || '';
-              return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
-            }},
+                  { data:'product', render:(v,t,r)=>{
+            const name = v || r.landing_path || '';
+            return `<a href="#" class="product-row-link" data-product="${encodeURIComponent(JSON.stringify(r))}" title="${name}">${shorten(name)}</a>`;
+          }},
           { data:'device', render: v => v || '' },
           { data:'network', render: v => v || '' },
           { data:'campaign', render: v => v || '' },
@@ -520,13 +613,13 @@
           { data:'impr', render: v => v ?? 0 },
           { data:'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
           { data:'avg_cpc', render: v => (v ?? 0).toFixed(2) },
-          { data:'cost', render: v => (v ?? 0).toFixed(2) },
+          { data:'cost', render: v => v ?? 0 },
           { data:'conversions', render: v => v ?? 0 },
           { data:'cost_per_conv', render: v => (v ?? 0).toFixed(2) },
           { data:'all_conv', render: v => v ?? 0 },
           { data:'conv_value', render: v => (v ?? 0).toFixed(2) },
           { data:'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
-          { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
+          { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' }
         ]
       });
       
@@ -562,23 +655,22 @@
       columns:[
         { data:'product', render:(v,t,r)=>{
             const name = v || r.landing_path || '';
-            return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
+            return `<a href="#" class="product-row-link" data-product="${encodeURIComponent(JSON.stringify(r))}" title="${name}">${shorten(name)}</a>`;
           }},
         { data:'device', render: v => v || '' },
         { data:'network', render: v => v || '' },
         { data:'campaign', render: v => v || '' },
-        // { data:'period', render: v => v || '' }, // 隐藏周期列
         { data:'clicks', render: v => v ?? 0 },
         { data:'impr', render: v => v ?? 0 },
         { data:'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
         { data:'avg_cpc', render: v => (v ?? 0).toFixed(2) },
-        { data:'cost', render: v => (v ?? 0).toFixed(2) },
+        { data:'cost', render: v => v ?? 0 },
         { data:'conversions', render: v => v ?? 0 },
         { data:'cost_per_conv', render: v => (v ?? 0).toFixed(2) },
         { data:'all_conv', render: v => v ?? 0 },
         { data:'conv_value', render: v => (v ?? 0).toFixed(2) },
         { data:'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
-        { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
+        { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' }
       ]
     });
     // 默认隐藏筛选列，只作为筛选条件
@@ -949,12 +1041,272 @@
       
       // 隐藏加载状态
       hideLoadingState('detail');
+      
+      // 绑定产品行点击事件
+      bindProductRowEvents();
     } catch(e) {
       console.error(e);
       alert(e.message || '加载失败');
       // 隐藏加载状态
       hideLoadingState('detail');
     }
+  }
+  
+  // 绑定产品行点击事件
+  function bindProductRowEvents() {
+    // 使用事件委托，因为表格是动态生成的
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('product-row-link')) {
+        e.preventDefault();
+        const productData = JSON.parse(decodeURIComponent(e.target.getAttribute('data-product')));
+        showProductAnalysis(productData);
+      }
+    });
+  }
+  
+  // 显示产品分析
+  function showProductAnalysis(productData) {
+    // 切换到产品分析页面
+    document.getElementById('detail').style.display = 'none';
+    document.getElementById('analysis').style.display = 'none';
+    document.getElementById('product').style.display = 'block';
+    
+    // 更新导航状态
+    document.querySelectorAll('a[data-jump]').forEach(x => x.classList.remove('active'));
+    document.querySelector('a[data-jump="product"]').classList.add('active');
+    
+    // 显示产品信息
+    document.getElementById('productName').textContent = productData.product || productData.landing_path || '未知产品';
+    document.getElementById('productUrl').href = productData.landing_url || '#';
+    document.getElementById('productUrl').textContent = productData.landing_url || '无链接';
+    
+    // 模拟上架时间（这里可以根据实际数据调整）
+    const listingDate = new Date();
+    listingDate.setDate(listingDate.getDate() - Math.floor(Math.random() * 30)); // 随机30天内
+    document.getElementById('listingDate').textContent = listingDate.toISOString().slice(0, 10);
+    
+    // 加载产品分析数据
+    loadProductAnalysis(productData);
+  }
+  
+  // 加载产品分析数据
+  async function loadProductAnalysis(productData) {
+    try {
+      showLoadingState('product');
+      
+      // 获取当前日期范围
+      const dateRange = parseDateRange();
+      const from = dateRange.from;
+      const to = dateRange.to;
+      
+      // 计算上一周期日期范围
+      const currentFrom = new Date(from);
+      const currentTo = new Date(to);
+      const daysDiff = Math.ceil((currentTo - currentFrom) / (1000 * 60 * 60 * 24));
+      
+      const prevTo = new Date(currentFrom);
+      prevTo.setDate(prevTo.getDate() - 1);
+      const prevFrom = new Date(prevTo);
+      prevFrom.setDate(prevFrom.getDate() - daysDiff + 1);
+      
+      const prevFromStr = prevFrom.toISOString().slice(0, 10);
+      const prevToStr = prevTo.toISOString().slice(0, 10);
+      
+      // 获取产品趋势数据（这里使用模拟数据，实际应该调用API）
+      const productTrendData = generateProductTrendData(from, to, prevFromStr, prevToStr, productData);
+      
+      // 渲染趋势图表
+      renderProductTrendCharts(productTrendData);
+      
+      // 渲染产品KPI
+      renderProductKPI(productData);
+      
+      hideLoadingState('product');
+    } catch(e) {
+      console.error(e);
+      alert('产品分析加载失败');
+      hideLoadingState('product');
+    }
+  }
+  
+  // 生成产品趋势数据（模拟数据）
+  function generateProductTrendData(currentFrom, currentTo, prevFrom, prevTo, productData) {
+    const currentDays = getDaysArray(currentFrom, currentTo);
+    const prevDays = getDaysArray(prevFrom, prevTo);
+    
+    return {
+      exposure: {
+        current: currentDays.map(day => ({
+          day: day,
+          value: Math.floor(Math.random() * 1000) + 100
+        })),
+        previous: prevDays.map(day => ({
+          day: day,
+          value: Math.floor(Math.random() * 800) + 80
+        }))
+      },
+      ctr: {
+        current: currentDays.map(day => ({
+          day: day,
+          value: (Math.random() * 0.05 + 0.01) * 100 // 1-6%
+        })),
+        previous: prevDays.map(day => ({
+          day: day,
+          value: (Math.random() * 0.04 + 0.01) * 100 // 1-5%
+        }))
+      },
+      conversion: {
+        current: currentDays.map(day => ({
+          day: day,
+          value: (Math.random() * 0.03 + 0.001) * 100 // 0.1-3.1%
+        })),
+        previous: prevDays.map(day => ({
+          day: day,
+          value: (Math.random() * 0.025 + 0.001) * 100 // 0.1-2.6%
+        }))
+      }
+    };
+  }
+  
+  // 获取日期数组
+  function getDaysArray(from, to) {
+    const days = [];
+    const current = new Date(from);
+    const end = new Date(to);
+    
+    while (current <= end) {
+      days.push(current.toISOString().slice(0, 10));
+      current.setDate(current.getDate() + 1);
+    }
+    
+    return days;
+  }
+  
+  // 渲染产品趋势图表
+  function renderProductTrendCharts(data) {
+    // 曝光趋势图
+    const exposureChart = echarts.init(document.getElementById('exposureTrendChart'));
+    exposureChart.setOption({
+      title: { text: '曝光趋势对比', left: 'center' },
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['本周期', '上一周期'], bottom: 10 },
+      xAxis: { type: 'category', data: data.exposure.current.map(x => x.day) },
+      yAxis: { type: 'value' },
+      series: [
+        {
+          name: '本周期',
+          type: 'line',
+          data: data.exposure.current.map(x => x.value),
+          itemStyle: { color: '#3b82f6' },
+          smooth: true
+        },
+        {
+          name: '上一周期',
+          type: 'line',
+          data: data.exposure.previous.map(x => x.value),
+          itemStyle: { color: '#f59e0b' },
+          smooth: true
+        }
+      ]
+    });
+    
+    // CTR趋势图
+    const ctrChart = echarts.init(document.getElementById('ctrTrendChart'));
+    ctrChart.setOption({
+      title: { text: 'CTR趋势对比', left: 'center' },
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['本周期', '上一周期'], bottom: 10 },
+      xAxis: { type: 'category', data: data.ctr.current.map(x => x.day) },
+      yAxis: { type: 'value', axisLabel: { formatter: '{value}%' } },
+      series: [
+        {
+          name: '本周期',
+          type: 'line',
+          data: data.ctr.current.map(x => x.value),
+          itemStyle: { color: '#3b82f6' },
+          smooth: true
+        },
+        {
+          name: '上一周期',
+          type: 'line',
+          data: data.ctr.previous.map(x => x.value),
+          itemStyle: { color: '#f59e0b' },
+          smooth: true
+        }
+      ]
+    });
+    
+    // 转化率趋势图
+    const conversionChart = echarts.init(document.getElementById('conversionTrendChart'));
+    conversionChart.setOption({
+      title: { text: '转化率趋势对比', left: 'center' },
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['本周期', '上一周期'], bottom: 10 },
+      xAxis: { type: 'category', data: data.conversion.current.map(x => x.day) },
+      yAxis: { type: 'value', axisLabel: { formatter: '{value}%' } },
+      series: [
+        {
+          name: '本周期',
+          type: 'line',
+          data: data.conversion.current.map(x => x.value),
+          itemStyle: { color: '#3b82f6' },
+          smooth: true
+        },
+        {
+          name: '上一周期',
+          type: 'line',
+          data: data.conversion.previous.map(x => x.value),
+          itemStyle: { color: '#f59e0b' },
+          smooth: true
+        }
+      ]
+    });
+  }
+  
+  // 渲染产品KPI
+  function renderProductKPI(productData) {
+    const kpiEl = document.getElementById('productKPI');
+    if (!kpiEl) return;
+    
+    const cards = [
+      { 
+        title: '平均CTR', 
+        value: ((productData.ctr || 0) * 100).toFixed(2) + '%', 
+        type: 'info'
+      },
+      { 
+        title: '平均转化率', 
+        value: ((productData.conv_rate || 0) * 100).toFixed(2) + '%', 
+        type: 'success'
+      },
+      { 
+        title: '总曝光量', 
+        value: productData.impr || 0, 
+        type: 'success'
+      },
+      { 
+        title: '总点击数', 
+        value: productData.clicks || 0, 
+        type: 'info'
+      },
+      { 
+        title: '总转化数', 
+        value: productData.conversions || 0, 
+        type: 'danger'
+      },
+      { 
+        title: '总花费', 
+        value: (productData.cost || 0).toFixed(2), 
+        type: 'warning'
+      }
+    ];
+    
+    kpiEl.innerHTML = cards.map(card => `
+      <div class="kpi-card ${card.type}">
+        <h4>${card.title}</h4>
+        <p>${card.value}</p>
+      </div>
+    `).join('');
   }
 
   document.getElementById('refreshBtn').addEventListener('click', () => {
