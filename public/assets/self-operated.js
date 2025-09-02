@@ -111,14 +111,17 @@
         // 渲染数据表格
         await this.renderDataTable(rowsAggA, 'day');
         
-        // 更新状态为成功
-        this.updateStatus('数据加载完成', 'success');
-        
-      } catch (error) {
-        console.error('数据加载失败:', error);
-        this.updateStatus('数据加载失败：' + (error.message || error), 'error');
-        this.showError('查询失败：' + (error.message || error));
-      }
+                 // 更新状态为成功
+         this.updateStatus('数据加载完成', 'success');
+         
+         // 数据加载完成后，绑定新品筛选事件
+         this.bindNewProductsFilter();
+         
+       } catch (error) {
+         console.error('数据加载失败:', error);
+         this.updateStatus('数据加载失败：' + (error.message || error), 'error');
+         this.showError('查询失败：' + (error.message || error));
+       }
     }
 
     // 获取日期范围（与index.html保持一致）
@@ -567,57 +570,96 @@
       return n.toFixed(2) + '%';
     }
 
-    // 页面就绪回调
-    onPageReady(pageInfo) {
-      console.log('自运营页面就绪，开始加载数据:', pageInfo);
-      
-      // 设置当前站点信息
-      this.currentSite = pageInfo.site;
-      this.currentSiteName = pageInfo.siteName;
-      
-              // 绑定新品筛选事件
-        this.bindNewProductsFilter();
-        
-        // 防止重复加载
-        if (this.pageReadyTriggered) {
-          console.log('页面就绪事件已触发过，跳过重复加载');
-          return;
-        }
-        this.pageReadyTriggered = true;
-        
-        // 开始加载数据
-        this.loadData();
-    }
+         // 页面就绪回调
+     onPageReady(pageInfo) {
+       console.log('自运营页面就绪，开始加载数据:', pageInfo);
+       
+       // 设置当前站点信息
+       this.currentSite = pageInfo.site;
+       this.currentSiteName = pageInfo.siteName;
+       
+       // 防止重复加载
+       if (this.pageReadyTriggered) {
+         console.log('页面就绪事件已触发过，跳过重复加载');
+         return;
+       }
+       this.pageReadyTriggered = true;
+       
+       // 开始加载数据
+       this.loadData();
+     }
 
   
       
       // 绑定新品KPI卡片点击事件
       bindNewProductsFilter() {
+        console.log('开始绑定新品筛选事件...');
+        
         const newProductsCard = document.getElementById('newProducts');
+        console.log('新品KPI卡片元素:', newProductsCard);
+        
         if (newProductsCard) {
-          newProductsCard.addEventListener('click', () => {
+          // 移除旧的事件监听器（如果存在）
+          newProductsCard.removeEventListener('click', this._newProductsClickHandler);
+          
+          // 创建新的事件处理函数
+          this._newProductsClickHandler = () => {
             console.log('新品KPI卡片被点击，筛选新品数据');
             this.filterNewProducts();
-          });
+          };
+          
+          // 绑定点击事件
+          newProductsCard.addEventListener('click', this._newProductsClickHandler);
           console.log('新品KPI卡片事件已绑定');
+          
+          // 添加视觉反馈
+          newProductsCard.style.cursor = 'pointer';
+          newProductsCard.title = '点击筛选新品数据';
+        } else {
+          console.warn('未找到新品KPI卡片元素');
         }
         
         // 绑定清除筛选链接事件
         const clearLink = document.getElementById('clearNewProductsFilter');
+        console.log('清除筛选链接元素:', clearLink);
+        
         if (clearLink) {
-          clearLink.addEventListener('click', (e) => {
+          // 移除旧的事件监听器（如果存在）
+          clearLink.removeEventListener('click', this._clearFilterClickHandler);
+          
+          // 创建新的事件处理函数
+          this._clearFilterClickHandler = (e) => {
             e.preventDefault();
+            e.stopPropagation();
             console.log('清除新品筛选链接被点击，恢复完整数据');
             this.clearNewProductsFilter();
-          });
+          };
+          
+          // 绑定点击事件
+          clearLink.addEventListener('click', this._clearFilterClickHandler);
           console.log('清除新品筛选链接事件已绑定');
+        } else {
+          console.warn('未找到清除筛选链接元素');
         }
+        
+        console.log('新品筛选事件绑定完成');
       }
       
       // 筛选新品数据
       filterNewProducts() {
+        console.log('开始筛选新品数据...');
+        console.log('this.newProductIds:', this.newProductIds);
+        console.log('this.currentData:', this.currentData);
+        
         if (!this.newProductIds || this.newProductIds.length === 0) {
           console.log('没有新品数据可筛选');
+          this.showError('没有新品数据可筛选');
+          return;
+        }
+        
+        if (!this.currentData || this.currentData.length === 0) {
+          console.log('没有当前数据可筛选');
+          this.showError('没有当前数据可筛选');
           return;
         }
         
@@ -629,7 +671,8 @@
         console.log('新品筛选结果:', {
           totalData: this.currentData.length,
           filteredData: filteredData.length,
-          newProductIds: this.newProductIds
+          newProductIds: this.newProductIds,
+          filteredData: filteredData
         });
         
         // 重新渲染表格，显示筛选后的数据
@@ -640,6 +683,8 @@
         
         // 更新状态显示
         this.updateStatus(`新品筛选：显示 ${filteredData.length} 条记录`, 'success');
+        
+        console.log('新品筛选完成');
       }
       
       // 显示新品筛选状态
