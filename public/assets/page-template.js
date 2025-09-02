@@ -178,18 +178,27 @@
     // 初始化flatpickr
     initializeFlatpickr(dateFilter, start, end) {
       try {
+        // 保存this引用，确保在flatpickr回调中能正确访问
+        const self = this;
         flatpickr(dateFilter, {
           mode: 'range',
           dateFormat: 'Y-m-d',
           defaultDate: [start, end],
-          onClose: (dates) => {
+          onClose: function(dates) {
             if (dates.length === 2) {
-              this.updateStatus('数据加载中...', 'loading');
-              this.refreshData();
+              console.log('日期选择器关闭，触发数据刷新:', dates);
+              if (self && typeof self.updateStatus === 'function') {
+                self.updateStatus('数据加载中...', 'loading');
+              }
+              if (self && typeof self.refreshData === 'function') {
+                self.refreshData();
+              } else {
+                console.error('refreshData方法不存在或未绑定:', self);
+              }
             }
           }
         });
-        console.log('日期选择器初始化成功');
+        console.log('日期选择器初始化成功，this绑定:', this);
       } catch (error) {
         console.error('日期选择器初始化失败:', error);
       }

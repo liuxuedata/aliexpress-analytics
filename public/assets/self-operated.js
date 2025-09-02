@@ -56,9 +56,21 @@
       this.pageReadyTriggered = false;
     }
 
+    // 重写refreshData方法，确保能正确调用loadData
+    async refreshData() {
+      console.log('SelfOperatedPageManager.refreshData() 被调用');
+      try {
+        await this.loadData();
+      } catch (error) {
+        console.error('数据刷新失败:', error);
+        this.showError('数据刷新失败，请重试');
+      }
+    }
+
     // 数据加载主方法（与index.html保持一致）
     async loadData() {
       try {
+        console.log('SelfOperatedPageManager.loadData() 被调用');
         console.log('开始加载所有数据...');
         
         // 更新状态为加载中
@@ -108,9 +120,13 @@
     // 获取日期范围（与index.html保持一致）
     getDateRange() {
       const input = document.getElementById('dateFilter');
+      console.log('getDateRange被调用，当前input值:', input ? input.value : 'input不存在');
+      
       if (input && input.value && input.value.includes(' to ')) {
         const [from, to] = input.value.split(' to ');
-        return { from: from.trim(), to: to.trim() };
+        const result = { from: from.trim(), to: to.trim() };
+        console.log('从input获取到日期范围:', result);
+        return result;
       }
       
       // 返回默认日期范围
@@ -124,7 +140,9 @@
         input.value = `${from} to ${to}`;
       }
       
-      return { from, to };
+      const result = { from, to };
+      console.log('使用默认日期范围:', result);
+      return result;
     }
 
     // 获取聚合数据（使用正确的自运营API接口）
