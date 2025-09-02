@@ -52,7 +52,7 @@
       <section class="content-pad">
         <div id="ctrl" class="controls" style="margin-bottom:12px;"></div>
         <div class="controls" style="margin-bottom:12px;flex-wrap:wrap;"><label>产品</label><select id="productSelect" class="sel" style="width:200px;flex:0 0 200px;"></select><img id="productImg" style="width:40px;height:40px;object-fit:cover;margin-left:8px;display:none;"/><a id="productLink" href="#" target="_blank" style="margin-left:8px;display:none;word-break:break-all;white-space:normal;flex:1 1 auto;"></a><span id="listingDate" style="margin-left:8px;"></span></div>
-        <div id="kpi" class="kpi-row"></div>
+        <div id="kpi" class="kpi-grid"></div>
         <div id="lineWrap" class="panel" style="margin-top:16px;display:none;">
           <h3 id="expTitle">曝光趋势</h3>
           <div id="expLine" style="width:100%;height:260px;"></div>
@@ -207,18 +207,38 @@ function card(title,cur,prev,isPct,avg,share){
     const cls=diff>=0?'up':'down';
     const fmt=v=>isPct?`${(v*100).toFixed(2)}%`:v;
     const delta=isPct?`${Math.abs(diff*100).toFixed(2)}%`:Math.abs(diff);
-    const parts=[`<span class="delta ${cls}">${arrow} ${delta}</span>`];
+    
+    // 根据标题确定KPI卡片类型
+    let cardType = 'info';
+    if (title.includes('访客') || title.includes('曝光')) cardType = 'info';
+    else if (title.includes('加购')) cardType = 'warning';
+    else if (title.includes('支付')) cardType = 'danger';
+    else if (title.includes('商品数')) cardType = 'success';
+    
+    // 生成对比数据HTML
+    const comparisonHtml = `<div class="kpi-comparison">
+      <span class="delta ${cls}">${arrow} ${delta}</span>
+    </div>`;
+    
+    // 生成额外的信息（如果有）
+    let extraInfo = '';
     if(avg!=null){
       const diffAvg=(cur-avg)||0;
       const dir=diffAvg>=0?'高于平均':'低于平均';
       const clsAvg=diffAvg>=0?'up':'down';
       const deltaAvg=isPct?`${Math.abs(diffAvg*100).toFixed(2)}%`:Math.abs(diffAvg);
-      parts.push(`<span class="${clsAvg}" style="margin-left:8px;">${dir} ${deltaAvg}</span>`);
+      extraInfo += `<div style="font-size: 12px; color: #6b7280; margin-top: 4px;">${dir} ${deltaAvg}</div>`;
     }
     if(share!=null){
-      parts.push(`<span style="margin-left:8px;">占比 ${(share*100).toFixed(2)}%</span>`);
+      extraInfo += `<div style="font-size: 12px; color: #6b7280; margin-top: 4px;">占比 ${(share*100).toFixed(2)}%</div>`;
     }
-    return `<div class="stat-card"><h4>${title}</h4><p>${fmt(cur)}</p><div class="sub">${parts.join('')}</div></div>`;
+    
+    return `<div class="kpi-card ${cardType}">
+      <h4>${title}</h4>
+      <p>${fmt(cur)}</p>
+      ${comparisonHtml}
+      ${extraInfo}
+    </div>`;
   }
 
   function setupFM(){

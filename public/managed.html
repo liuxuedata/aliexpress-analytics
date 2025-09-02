@@ -176,7 +176,7 @@
       <label>选择商品</label>
       <select id="productSelect"></select>
     </div>
-    <div id="productKpi" class="kpi-row"></div>
+            <div id="productKpi" class="kpi-grid"></div>
   </div>
 </section>
 
@@ -343,7 +343,21 @@
     const delta = isPercent ? Math.abs(diff).toFixed(2)+'%' : Math.abs(diff).toString();
     const curStr = isPercent ? cur.toFixed(2) + '%' : cur;
     const cls = diff >= 0 ? 'up' : 'down';
-    return `<div class="stat-card"><h4>${title}</h4><p>${curStr}</p><div class="sub"><span class="delta ${cls}">${arrow} ${delta}</span></div></div>`;
+    
+    // 根据标题确定KPI卡片类型
+    let cardType = 'info';
+    if (title.includes('访客') || title.includes('曝光')) cardType = 'info';
+    else if (title.includes('加购')) cardType = 'warning';
+    else if (title.includes('支付')) cardType = 'danger';
+    else if (title.includes('产品数') || title.includes('总数')) cardType = 'success';
+    
+    return `<div class="kpi-card ${cardType}">
+      <h4>${title}</h4>
+      <p>${curStr}</p>
+      <div class="kpi-comparison">
+        <span class="delta ${cls}">${arrow} ${delta}</span>
+      </div>
+    </div>`;
   }
   function renderKPI(k, p){
     p = p || {};
@@ -689,10 +703,12 @@
     }
     let card = document.getElementById('kpi-new-managed-card');
     if (!card){
-      const html = '<div id="kpi-new-managed-card" class="stat-card clickable" title="点击只看该周新品">'
+      const html = '<div id="kpi-new-managed-card" class="kpi-card info clickable" title="点击只看该周新品">'
                  +   '<h4>本周期新品数</h4>'
-                 +   '<p><span id="kpi-new-managed-count">--</span>'
-                 +   '<a id="kpi-new-managed-clear" class="mini-link">清除筛选</a></p>'
+                 +   '<p><span id="kpi-new-managed-count">--</span></p>'
+                 +   '<div class="kpi-comparison">'
+                 +     '<a id="kpi-new-managed-clear" class="mini-link">清除筛选</a>'
+                 +   '</div>'
                  + '</div>';
       host.insertAdjacentHTML('beforeend', html);
       card = document.getElementById('kpi-new-managed-card');
@@ -836,10 +852,12 @@
     }
     let card = document.getElementById('kpi-new-managed-card');
     if (!card){
-      const html = '<div id="kpi-new-managed-card" class="stat-card clickable" title="点击只看该周新品">'
+      const html = '<div id="kpi-new-managed-card" class="kpi-card info clickable" title="点击只看该周新品">'
                  +   '<h4>本周期新品数</h4>'
-                 +   '<p><span id="kpi-new-managed-count">--</span>'
-                 +   '<a id="kpi-new-managed-clear" class="mini-link">清除筛选</a></p>'
+                 +   '<p><span id="kpi-new-managed-count">--</span></p>'
+                 +   '<div class="kpi-comparison">'
+                 +     '<a id="kpi-new-managed-clear" class="mini-link">清除筛选</a>'
+                 +   '</div>'
                  + '</div>';
       host.insertAdjacentHTML('beforeend', html);
       card = document.getElementById('kpi-new-managed-card');

@@ -11,6 +11,7 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
   <style>
+    /* 移除旧的KPI样式，使用全局统一的样式 */
     .kpi-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:12px}
     
     /* KPI对比卡片样式 */
@@ -18,85 +19,11 @@
       margin-bottom: 30px;
     }
     
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-      margin-bottom: 20px;
+    /* 新增：KPI图表容器样式 */
+    .kpi-chart-container {
+      position: relative;
+      height: 180px;
     }
-    
-                   .kpi-card {
-        background: #ffffff;
-        border-radius: 12px;
-        padding: 24px;
-        color: #111827;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        border: 1px solid #e5e7eb;
-      }
-    
-    .kpi-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-    }
-    
-    .kpi-card h4 {
-      margin: 0 0 12px 0;
-      font-size: 15px;
-      font-weight: 600;
-      opacity: 1;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #374151;
-    }
-    
-    .kpi-value {
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 12px;
-      color: #111827;
-    }
-    
-    .kpi-comparison {
-      font-size: 13px;
-      opacity: 1;
-      color: #6b7280;
-    }
-    
-    .comparison-label {
-      display: block;
-      margin-bottom: 4px;
-      font-weight: 500;
-    }
-    
-    .comparison-value {
-      font-weight: 700;
-      margin-right: 8px;
-      color: #111827;
-    }
-    
-    .trend {
-      font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 11px;
-    }
-    
-    .trend.up {
-      background: rgba(34, 197, 94, 0.2);
-      color: #22c55e;
-    }
-    
-    .trend.down {
-      background: rgba(239, 68, 68, 0.2);
-      color: #ef4444;
-    }
-    
-         /* 新增：KPI图表容器样式 */
-     .kpi-chart-container {
-       position: relative;
-       height: 180px;
-     }
     
     /* 数据加载状态样式 */
     .loading-status {
