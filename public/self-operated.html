@@ -112,6 +112,85 @@
       0% { background-position: -200% 0; }
       100% { background-position: 200% 0; }
     }
+    
+    /* 自运营页面特定样式 */
+    .loading-state {
+      padding: 40px 20px;
+      text-align: center;
+      background: #f8fafc;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    
+    .loading-bar {
+      width: 200px;
+      height: 4px;
+      background: #e5e7eb;
+      border-radius: 2px;
+      margin: 0 auto 20px;
+      overflow: hidden;
+    }
+    
+    .loading-progress {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #10b981);
+      border-radius: 2px;
+      animation: loading-progress 2s ease-in-out infinite;
+    }
+    
+    @keyframes loading-progress {
+      0% { transform: translateX(-100%); }
+      50% { transform: translateX(0%); }
+      100% { transform: translateX(100%); }
+    }
+    
+    .loading-text {
+      color: #6b7280;
+      font-size: 14px;
+      margin: 0;
+    }
+    
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+    
+    .controls {
+      margin-bottom: 16px;
+    }
+    
+    .sel {
+      padding: 4px 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      background: white;
+      margin: 0 8px;
+    }
+    
+    .notice {
+      color: #6b7280;
+      font-size: 12px;
+      margin-left: 8px;
+    }
+    
+    .legend-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    
+    .legend-list a {
+      color: #3b82f6;
+      text-decoration: none;
+      font-size: 12px;
+    }
+    
+    .legend-list a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body class="fm">
@@ -169,8 +248,8 @@
     </div>
     <ul class="sub-nav">
       <li><a href="#" class="active" data-target="detail">详细数据</a></li>
-      <li><a href="operation-analysis.html?mode=self">运营分析</a></li>
-      <li><a href="product-analysis.html?mode=self">产品分析</a></li>
+      <li><a href="#" data-target="analysis">运营分析</a></li>
+      <li><a href="#" data-target="product">产品分析</a></li>
     </ul>
   </nav>
 
@@ -876,87 +955,42 @@ const from = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime(
 <script src="assets/login.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', ()=>{
-  const siteListKey='managedSites';
-  const currentSiteKey='currentSite';
-  let sites=JSON.parse(localStorage.getItem(siteListKey)||'null');
-  if(!Array.isArray(sites)||!sites.length){sites=['A站','B站','C站'];}
-  const menuEl=document.getElementById('managedMenu');
-  const currentSiteEl=document.getElementById('currentSite');
-  function save(){localStorage.setItem(siteListKey,JSON.stringify(sites));}
-  function renderMenu(){
-    menuEl.innerHTML='';
-    sites.forEach((name,idx)=>{
-      const li=document.createElement('li');
-      const a=document.createElement('a');
-      a.href='index.html';
-      a.textContent=name;
-      a.addEventListener('click',(e)=>{e.preventDefault();localStorage.setItem(currentSiteKey,name);window.location.href='index.html';});
-      a.addEventListener('dblclick',()=>{const n=prompt('修改站点名',name);if(n){sites[idx]=n;save();renderMenu();updateCurrent();}});
-      li.appendChild(a);menuEl.appendChild(li);
-    });
+  // 使用 site-nav.js 的站点管理逻辑
+  const currentSiteEl = document.getElementById('currentSite');
+  // 初始化站点显示
+  function updateCurrentSiteDisplay() {
+    if (currentSiteEl) {
+      // 从 localStorage 获取当前站点信息
+      const currentSiteId = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+      const currentSiteName = localStorage.getItem('currentSiteName') || '自运营robot站';
+      
+      // 更新显示
+      currentSiteEl.textContent = currentSiteName;
+      
+      // 确保 localStorage 中有正确的值
+      if (!localStorage.getItem('currentSite')) {
+        localStorage.setItem('currentSite', currentSiteId);
+      }
+      if (!localStorage.getItem('currentSiteName')) {
+        localStorage.setItem('currentSiteName', currentSiteName);
+      }
+      
+      console.log('自运营页面站点显示更新:', { currentSiteId, currentSiteName });
+    }
   }
-  function updateCurrent(){
-    const name=localStorage.getItem(currentSiteKey)||sites[0];
-    // 使用 site-nav.js 的站点名称映射
-    const siteNameMap = {
-      'ae_self_operated_a': '自运营robot站',
-      'ae_self_operated_poolslab': 'Poolslab运动娱乐'
-    };
-    const displayName = siteNameMap[name] || `自运营 ${name}`;
-    currentSiteEl.textContent = displayName;
-    localStorage.setItem(currentSiteKey, name);
-    // 同时设置 site-nav.js 需要的 localStorage
-    localStorage.setItem('currentSiteName', displayName);
-  }
-  currentSiteEl.addEventListener('dblclick',()=>{
-    const cur=localStorage.getItem(currentSiteKey)||sites[0];
-    const idx=sites.indexOf(cur);
-    const n=prompt('修改站点名',cur);
-    if(n){sites[idx]=n;save();renderMenu();localStorage.setItem(currentSiteKey,n);updateCurrent();}
+
+
+  // 初始化站点显示
+  updateCurrentSiteDisplay();
+  
+  // 监听 localStorage 变化
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'currentSite' || e.key === 'currentSiteName') {
+      updateCurrentSiteDisplay();
+    }
   });
-  // 移除对不存在元素的引用，避免JavaScript错误
-  // document.getElementById('addSite').addEventListener('click',()=>{
-  //   const n=prompt('新增站点名');
-  //   if(n){sites.push(n);save();renderMenu();updateCurrent();}
-  // });
-  renderMenu();updateCurrent();
   
   // 平台切换处理 - 通用机制
-  function handlePlatformSwitch(platform) {
-    console.log('平台切换:', platform);
-    
-    // 根据平台设置相应的站点和参数
-    switch(platform) {
-      case 'ae_self_operated':
-        // 保持当前自运营站点
-        break;
-      case 'independent':
-        // 切换到独立站
-        window.location.href = 'independent-site.html';
-        return;
-      case 'managed':
-        // 切换到全托管
-        window.location.href = 'managed.html';
-        return;
-      default:
-        // 其他平台暂时跳转到相应页面或显示提示
-        console.log('平台', platform, '暂未实现');
-        return;
-    }
-    
-    // 如果是自运营平台，重新加载数据
-    if (platform === 'ae_self_operated') {
-      // 重新加载数据
-      if (typeof fetchAndRenderAll === 'function') {
-        fetchAndRenderAll();
-      }
-    }
-  }
-  
-  // 将平台切换函数暴露到全局，供 site-nav.js 调用
-  window.handlePlatformSwitch = handlePlatformSwitch;
-  
-    // 平台切换处理 - 通用机制
   function handlePlatformSwitch(platform) {
     console.log('平台切换:', platform);
     
