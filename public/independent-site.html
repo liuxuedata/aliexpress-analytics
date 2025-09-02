@@ -31,110 +31,66 @@
       background: #2563eb;
     }
     
-    /* 骨架屏加载状态样式 */
-    .skeleton-loading {
-      padding: 20px;
+    /* 加载状态样式 - 与全托管页面保持一致 */
+    .loading-status {
+      padding: 40px 20px;
+      text-align: center;
       background: #f8fafc;
       border-radius: 8px;
       margin: 20px 0;
     }
     
-    /* 表格骨架屏 */
-    .skeleton-table {
-      width: 100%;
-    }
-    
-    .skeleton-header {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-    
-    .skeleton-rows {
+    .loading-message {
       display: flex;
       flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #e5e7eb;
+      border-top: 4px solid #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    .loading-message p {
+      color: #6b7280;
+      font-size: 16px;
+      margin: 0;
+      font-weight: 500;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* DataTables 加载状态样式 */
+    .dataTables_processing {
+      background: rgba(255, 255, 255, 0.9) !important;
+      border-radius: 8px !important;
+      padding: 20px !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    .dataTables_processing .loading-message {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       gap: 12px;
     }
     
-    .skeleton-row {
-      display: flex;
-      gap: 8px;
+    .dataTables_processing .loading-spinner {
+      width: 32px;
+      height: 32px;
     }
     
-    .skeleton-cell {
-      height: 20px;
-      background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
-      background-size: 200% 100%;
-      animation: skeleton-loading 1.5s infinite;
-      border-radius: 4px;
-      flex: 1;
-    }
-    
-    .skeleton-header .skeleton-cell {
-      height: 16px;
-      background: #d1d5db;
-    }
-    
-    /* 图表骨架屏 */
-    .skeleton-chart {
-      width: 100%;
-      height: 360px;
-      background: #f3f4f6;
-      border-radius: 8px;
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .skeleton-chart::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-      animation: skeleton-shimmer 2s infinite;
-    }
-    
-    /* 面板骨架屏 */
-    .skeleton-panel {
-      padding: 20px;
-    }
-    
-    .skeleton-title {
-      height: 24px;
-      background: #e5e7eb;
-      border-radius: 4px;
-      margin-bottom: 16px;
-      width: 60%;
-      animation: skeleton-loading 1.5s infinite;
-    }
-    
-    .skeleton-content {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    
-    .skeleton-text {
-      height: 16px;
-      background: #e5e7eb;
-      border-radius: 4px;
-      animation: skeleton-loading 1.5s infinite;
-    }
-    
-    .skeleton-text:nth-child(1) { width: 100%; }
-    .skeleton-text:nth-child(2) { width: 80%; }
-    .skeleton-text:nth-child(3) { width: 60%; }
-    
-    @keyframes skeleton-loading {
-      0% { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
-    }
-    
-    @keyframes skeleton-shimmer {
-      0% { left: -100%; }
-      100% { left: 100%; }
+    .dataTables_processing p {
+      font-size: 14px;
+      margin: 0;
     }
   </style>
   <!-- DataTables & ECharts CDN -->
@@ -246,12 +202,11 @@
         <div class="panel">
           <h3>Daily 趋势（点击 / 曝光 / 转化价值）</h3>
           
-          <!-- 骨架屏加载状态 -->
-          <div id="analysisLoading" class="skeleton-loading" style="display: none;">
-            <!-- 图表骨架屏 -->
-            <div class="skeleton-chart">
-              <div class="skeleton-chart-header"></div>
-              <div class="skeleton-chart-content"></div>
+          <!-- 加载状态提示 -->
+          <div id="analysisLoading" class="loading-status" style="display: none;">
+            <div class="loading-message">
+              <div class="loading-spinner"></div>
+              <p>努力加载中,请等待片刻。。。</p>
             </div>
           </div>
           
@@ -263,45 +218,11 @@
         <div class="panel">
           <h3>Top Landing Pages（按转化数）</h3>
           
-          <!-- 骨架屏加载状态 -->
-          <div id="topTableLoading" class="skeleton-loading" style="display: none;">
-            <!-- 表格骨架屏 -->
-            <div class="skeleton-table">
-              <div class="skeleton-header">
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-              </div>
-              <div class="skeleton-rows">
-                <div class="skeleton-row">
-                  <div class="skeleton-cell"></div>
-                  <div class="skeleton-cell"></div>
-                  <div class="skeleton-cell"></div>
-                  <div class="skeleton-cell"></div>
-                  <div class="skeleton-cell"></div>
-                  <div class="skeleton-cell"></div>
-                  <div class="skeleton-cell"></div>
-                  <div class="skeleton-cell"></div>
-                  <div class="skeleton-cell"></div>
-                </div>
-                <div class="skeleton-row">
-                  <div class="skeleton-cell"></div>
-                  <div class="skeleton-cell"></div>
-                  <div class="skeleton-cell"></div>
-                  <div class="skeleton-cell"></div>
-                  <div class="skeleton-cell"></div>
-                  <div class="skeleton-cell"></div>
-                  <div class="skeleton-cell"></div>
-                  <div class="skeleton-cell"></div>
-                  <div class="skeleton-cell"></div>
-                </div>
-              </div>
+          <!-- 加载状态提示 -->
+          <div id="topTableLoading" class="loading-status" style="display: none;">
+            <div class="loading-message">
+              <div class="loading-spinner"></div>
+              <p>努力加载中,请等待片刻。。。</p>
             </div>
           </div>
           
@@ -322,76 +243,11 @@
       <div class="panel">
         <h3>Landing Pages 明细</h3>
         
-        <!-- 骨架屏加载状态 -->
-        <div id="detailLoading" class="skeleton-loading" style="display: none;">
-          <!-- 表格骨架屏 -->
-          <div class="skeleton-table">
-            <div class="skeleton-header">
-              <div class="skeleton-cell"></div>
-              <div class="skeleton-cell"></div>
-              <div class="skeleton-cell"></div>
-              <div class="skeleton-cell"></div>
-              <div class="skeleton-cell"></div>
-              <div class="skeleton-cell"></div>
-              <div class="skeleton-cell"></div>
-              <div class="skeleton-cell"></div>
-              <div class="skeleton-cell"></div>
-              <div class="skeleton-cell"></div>
-              <div class="skeleton-cell"></div>
-              <div class="skeleton-cell"></div>
-              <div class="skeleton-cell"></div>
-              <div class="skeleton-cell"></div>
-            </div>
-            <div class="skeleton-rows">
-              <div class="skeleton-row">
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-              </div>
-              <div class="skeleton-row">
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-              </div>
-              <div class="skeleton-row">
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-                <div class="skeleton-cell"></div>
-              </div>
-            </div>
+        <!-- 加载状态提示 -->
+        <div id="detailLoading" class="loading-status" style="display: none;">
+          <div class="loading-message">
+            <div class="loading-spinner"></div>
+            <p>努力加载中,请等待片刻。。。</p>
           </div>
         </div>
         
@@ -419,16 +275,11 @@
       <div class="panel">
         <h3>产品分析</h3>
         
-        <!-- 骨架屏加载状态 -->
-        <div id="productLoading" class="skeleton-loading" style="display: none;">
-          <!-- 产品分析骨架屏 -->
-          <div class="skeleton-panel">
-            <div class="skeleton-title"></div>
-            <div class="skeleton-content">
-              <div class="skeleton-text"></div>
-              <div class="skeleton-text"></div>
-              <div class="skeleton-text"></div>
-            </div>
+        <!-- 加载状态提示 -->
+        <div id="productLoading" class="loading-status" style="display: none;">
+          <div class="loading-message">
+            <div class="loading-spinner"></div>
+            <p>努力加载中,请等待片刻。。。</p>
           </div>
         </div>
         
@@ -564,6 +415,10 @@
         scrollX:true,
         fixedHeader:true,
         autoWidth:false,
+        processing: true,
+        language: {
+          processing: '<div class="loading-message"><div class="loading-spinner"></div><p>努力加载中,请等待片刻。。。</p></div>'
+        },
         columns:[
           { data:'product', render:(v,t,r)=>{
               const name = v || r.landing_path || '';
@@ -611,6 +466,10 @@
       scrollX:true,
       fixedHeader:true,
       autoWidth:false,
+      processing: true,
+      language: {
+        processing: '<div class="loading-message"><div class="loading-spinner"></div><p>努力加载中,请等待片刻。。。</p></div>'
+      },
       columns:[
         { data:'product', render:(v,t,r)=>{
             const name = v || r.landing_path || '';
