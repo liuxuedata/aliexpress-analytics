@@ -178,6 +178,13 @@
         // 调试：输出前几条数据的字段
         if (rs.length > 0) {
           console.log('KPI计算调试 - 第一条数据字段:', rs[0]);
+          console.log('KPI计算调试 - 关键字段值:', {
+            exposure: rs[0].exposure,
+            visitors: rs[0].visitors,
+            add_count: rs[0].add_count,
+            pay_items: rs[0].pay_items,
+            add_people: rs[0].add_people
+          });
         }
         
         const sum = rs.reduce((a,b) => ({
@@ -246,6 +253,16 @@
       setDelta('totalProductsComparison', cur.total - prev.total, false);
       setDelta('cartedProductsComparison', cur.pc - prev.pc, false);
       setDelta('purchasedProductsComparison', cur.pp - prev.pp, false);
+      
+      // 调试：输出KPI更新结果
+      console.log('KPI更新结果:', {
+        avgVisitor: cur.vr.toFixed(2) + '%',
+        avgCart: cur.cr.toFixed(2) + '%',
+        avgPay: cur.pr.toFixed(2) + '%',
+        totalProducts: cur.total,
+        cartedProducts: cur.pc,
+        purchasedProducts: cur.pp
+      });
       
       console.log('KPI计算完成:', { cur, prev });
     }
