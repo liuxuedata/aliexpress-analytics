@@ -89,7 +89,7 @@
       this.computeCards(rowsAggA, rowsAggB);
       
       // 渲染数据表格
-      await this.renderTable(rowsAggA, 'day');
+      await this.renderDataTable(rowsAggA, 'day');
       
       // 更新状态
       this.updateStatus('加载完成');
@@ -141,17 +141,16 @@
       if (contentEl) contentEl.style.display = '';
     }
 
-    // 获取聚合数据
+    // 获取聚合数据（与index.html保持一致）
     async fetchAggregatedData(startISO, endISO, granularity) {
       const params = new URLSearchParams({
-        start: startISO,
-        end: endISO,
-        granularity: granularity,
-        site: this.currentSite || 'ae_self_operated_a',
-        aggregate: 'product'
+        platform: 'self',
+        aggregate: 'product',
+        from: startISO,
+        to: endISO
       });
 
-      const url = `/api/ae_query?${params.toString()}`;
+      const url = `/api/new-products?${params.toString()}`;
       console.log('请求URL:', url);
       console.log('请求参数:', Object.fromEntries(params));
 
@@ -172,50 +171,7 @@
         const rows = data.rows || [];
         console.log(`成功获取数据，记录数: ${rows.length}`);
         
-        // 如果数据为空，尝试不同的聚合方式
-        if (rows.length === 0) {
-          console.log('尝试使用不同的聚合参数...');
-          const alternativeParams = new URLSearchParams({
-            start: startISO,
-            end: endISO,
-            granularity: granularity,
-            site: this.currentSite || 'ae_self_operated_a',
-            aggregate: 'true' // 尝试使用 'true' 而不是 'product'
-          });
-          
-          const alternativeUrl = `/api/ae_query?${alternativeParams.toString()}`;
-          console.log('尝试替代URL:', alternativeUrl);
-          
-          const altResponse = await fetch(alternativeUrl);
-          if (altResponse.ok) {
-            const altData = await altResponse.json();
-            if (altData.ok && altData.rows && altData.rows.length > 0) {
-              console.log('使用替代参数成功获取数据:', altData.rows.length);
-              return altData.rows;
-            }
-          }
-          
-          // 如果还是为空，尝试不使用聚合
-          console.log('尝试不使用聚合参数...');
-          const noAggregateParams = new URLSearchParams({
-            start: startISO,
-            end: endISO,
-            granularity: granularity,
-            site: this.currentSite || 'ae_self_operated_a'
-          });
-          
-          const noAggregateUrl = `/api/ae_query?${noAggregateParams.toString()}`;
-          console.log('尝试无聚合URL:', noAggregateUrl);
-          
-          const noAggResponse = await fetch(noAggregateUrl);
-          if (noAggResponse.ok) {
-            const noAggData = await noAggResponse.json();
-            if (noAggData.ok && noAggData.rows && noAggData.rows.length > 0) {
-              console.log('使用无聚合参数成功获取数据:', noAggData.rows.length);
-              return noAggData.rows;
-            }
-          }
-        }
+        // 简化逻辑，直接返回数据
         
         return rows;
       } catch (error) {
@@ -995,7 +951,7 @@
         this.computeCards(rowsAggA, rowsAggB);
         
         // 渲染数据表格
-        await this.renderTable(rowsAggA, 'day');
+        await this.renderDataTable(rowsAggA, 'day');
         
         // 更新状态
         this.updateStatus('加载完成');
