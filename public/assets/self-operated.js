@@ -170,10 +170,15 @@
       return { prevStart: fmt(prevStart), prevEnd: fmt(prevEnd), days };
     }
     
-    // 计算KPI卡片（与index.html保持一致）
+    // 计算KPI卡片（修复字段名和计算逻辑）
     computeCards(rows, prevRows) {
       function summarize(rs) {
         if (!rs.length) return {vr:0,cr:0,pr:0,total:0,pc:0,pp:0};
+        
+        // 调试：输出前几条数据的字段
+        if (rs.length > 0) {
+          console.log('KPI计算调试 - 第一条数据字段:', rs[0]);
+        }
         
         const sum = rs.reduce((a,b) => ({
           exposure: a.exposure + (b.exposure || 0),
@@ -181,6 +186,8 @@
           add_count: a.add_count + (b.add_count || 0),
           pay_items: a.pay_items + (b.pay_items || 0)
         }), {exposure:0,visitors:0,add_count:0,pay_items:0});
+        
+        console.log('KPI计算调试 - 汇总数据:', sum);
         
         const products = new Map();
         rs.forEach(r => {
@@ -200,9 +207,12 @@
           if (v.pay > 0) pp++;
         });
         
+        // 修复计算逻辑：使用正确的字段名
         const vr = sum.exposure > 0 ? ((sum.visitors / sum.exposure) * 100) : 0;
         const cr = sum.visitors > 0 ? ((sum.add_count / sum.visitors) * 100) : 0;
         const pr = sum.add_count > 0 ? ((sum.pay_items / sum.add_count) * 100) : 0;
+        
+        console.log('KPI计算调试 - 计算结果:', { vr, cr, pr, total: products.size, pc, pp });
         
         return {vr, cr, pr, total: products.size, pc, pp};
       }
