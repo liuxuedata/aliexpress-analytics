@@ -7,6 +7,9 @@
   'use strict';
 
   // 等待页面模板系统加载完成
+  let selfOperatedManager = null;
+  let pageReadyListener = null;
+  
   function waitForPageManager() {
     if (window.PageManager) {
       initSelfOperatedPage();
@@ -17,16 +20,32 @@
 
   // 初始化自运营页面
   function initSelfOperatedPage() {
+    // 防止重复初始化
+    if (selfOperatedManager) {
+      console.log('自运营页面管理器已存在，跳过重复初始化');
+      return;
+    }
+    
     console.log('初始化自运营页面专用功能...');
     
     // 创建自运营页面管理器
-    const selfOperatedManager = new SelfOperatedPageManager();
+    selfOperatedManager = new SelfOperatedPageManager();
+    
+    // 移除旧的事件监听器（如果存在）
+    if (pageReadyListener) {
+      document.removeEventListener('page-ready', pageReadyListener);
+    }
+    
+    // 创建新的事件监听器
+    pageReadyListener = (e) => {
+      console.log('自运营页面就绪:', e.detail);
+      if (selfOperatedManager && !selfOperatedManager.pageReadyTriggered) {
+        selfOperatedManager.onPageReady(e.detail);
+      }
+    };
     
     // 等待页面就绪
-    document.addEventListener('page-ready', (e) => {
-      console.log('自运营页面就绪:', e.detail);
-      selfOperatedManager.onPageReady(e.detail);
-    });
+    document.addEventListener('page-ready', pageReadyListener);
   }
 
   // 自运营页面管理器类
@@ -35,6 +54,8 @@
       super();
       this.dataTable = null;
       this.currentData = null;
+      this.pageReadyTriggered = false;
+      this.isLoading = false;
     }
 
     // 重写数据加载方法
@@ -942,6 +963,13 @@
       // 绑定刷新按钮事件
       this.bindRefreshButton();
       
+      // 防止重复加载
+      if (this.pageReadyTriggered) {
+        console.log('页面就绪事件已触发过，跳过重复加载');
+        return;
+      }
+      this.pageReadyTriggered = true;
+      
       // 开始加载数据
       this.loadData();
     }
@@ -970,7 +998,8 @@
       setTimeout(() => {
         this.hideProgress();
         this.showSuccess('文件上传成功');
-        this.refreshData();
+        // 重新加载数据而不是调用未定义的方法
+        this.loadData();
       }, 2000);
     }
 
