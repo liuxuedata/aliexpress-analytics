@@ -389,43 +389,46 @@
       // 添加商品链接样式
       this.addProductLinkStyles();
 
-      // 使用与index.html相同的DataTable配置
-      if (window.jQuery && jQuery.fn.DataTable) {
-        try {
-          this.dataTable = jQuery(table).DataTable({
-            data: [], // 空数据，因为我们已经手动填充了HTML
-            columns: [
-              { title: '商品(ID)' },
-              { title: '周期' },
-              { title: '访客比(%)' }, 
-              { title: '加购比(%)' }, 
-              { title: '支付比(%)' },
-              { title: '曝光量' }, 
-              { title: '访客数' }, 
-              { title: '浏览量' },
-              { title: '加购件数' },
-              { title: '下单商品件数' },
-              { title: '支付件数' },
-              { title: '支付买家数' },
-              { title: '搜索点击率(%)' },
-              { title: '平均停留时长(秒)' }
-            ],
-            order: [[1, 'desc']], 
-            scrollX: true, 
-            scrollY: 'calc(100vh - 420px)', 
-            scrollCollapse: true, 
-            fixedHeader: true
-          });
-          
-          console.log('DataTable初始化成功！');
-          console.log('数据行数:', this.dataTable.data().count());
-          
-        } catch (error) {
-          console.error('DataTable初始化失败:', error);
+              // 使用与index.html相同的DataTable配置
+        if (window.jQuery && jQuery.fn.DataTable) {
+          try {
+            // 等待DOM更新完成
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // 检查表格是否有数据行
+            const tbody = table.querySelector('tbody');
+            const rows = tbody ? tbody.querySelectorAll('tr') : [];
+            console.log('表格实际行数:', rows.length);
+            
+            // 如果表格有数据行，使用正确的DataTable配置
+            if (rows.length > 0) {
+              this.dataTable = jQuery(table).DataTable({
+                destroy: true,
+                pageLength: 10,
+                order: [[1, 'desc']], 
+                scrollX: true, 
+                scrollY: 'calc(100vh - 420px)', 
+                scrollCollapse: true, 
+                fixedHeader: true,
+                language: {
+                  url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json'
+                }
+              });
+              
+              console.log('DataTable初始化成功！');
+              console.log('DataTable数据行数:', this.dataTable.data().count());
+              console.log('DataTable实际显示行数:', this.dataTable.rows().count());
+              
+            } else {
+              console.warn('表格没有数据行，跳过DataTable初始化');
+            }
+            
+          } catch (error) {
+            console.error('DataTable初始化失败:', error);
+          }
+        } else {
+          console.warn('jQuery或DataTables未加载');
         }
-      } else {
-        console.warn('jQuery或DataTables未加载');
-      }
     }
 
     // 格式化日期范围
