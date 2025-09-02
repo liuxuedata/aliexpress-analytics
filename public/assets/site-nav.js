@@ -18,6 +18,24 @@
       { id: 'independent_icyberite', name: 'icyberite', display_name: 'icyberite.com' }
     ]
   };
+  
+  // 站点名称映射函数
+  function getSiteDisplayName(siteId, platform) {
+    if (platform === 'ae_self_operated') {
+      const siteMap = {
+        'ae_self_operated_a': '自运营robot站',
+        'ae_self_operated_poolslab': 'Poolslab运动娱乐'
+      };
+      return siteMap[siteId] || `自运营 ${siteId}`;
+    } else if (platform === 'independent') {
+      const siteMap = {
+        'independent_poolsvacuum': 'poolsvacuum.com',
+        'independent_icyberite': 'icyberite.com'
+      };
+      return siteMap[siteId] || `独立站 ${siteId}`;
+    }
+    return siteId;
+  }
 
   function applyNavIcons(){
     // 只处理侧边栏的图标，不处理站点选择器
@@ -91,9 +109,12 @@
           currentSiteEl.textContent = currentSiteName;
           console.log('自运营页面更新站点显示:', currentSiteName);
         } else if (currentSiteId) {
-          // 如果没有站点名称，显示默认名称
-          currentSiteEl.textContent = '自运营';
-          console.log('自运营页面使用默认名称: 自运营');
+          // 使用站点名称映射函数获取显示名称
+          const displayName = getSiteDisplayName(currentSiteId, 'ae_self_operated');
+          currentSiteEl.textContent = displayName;
+          // 同时更新localStorage中的站点名称
+          localStorage.setItem('currentSiteName', displayName);
+          console.log('自运营页面使用映射名称:', displayName);
         } else {
           // 默认显示
           currentSiteEl.textContent = '自运营robot站';
@@ -231,6 +252,17 @@
       link.addEventListener('click', (e) => {
         // 确保链接能正常工作
         console.log('导航链接点击:', link.href);
+        
+        // 检查当前页面类型，调用相应的平台切换处理函数
+        const currentPath = window.location.pathname;
+        if (currentPath.includes('self-operated')) {
+          // 自运营页面：调用平台切换处理
+          if (window.handlePlatformSwitch) {
+            e.preventDefault();
+            const platform = link.getAttribute('data-platform') || link.textContent.trim();
+            window.handlePlatformSwitch(platform);
+          }
+        }
         // 不阻止默认行为，让链接正常工作
       });
     });

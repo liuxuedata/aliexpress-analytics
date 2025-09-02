@@ -848,6 +848,41 @@ document.addEventListener('DOMContentLoaded', ()=>{
   });
   renderMenu();updateCurrent();
   
+  // 平台切换处理 - 通用机制
+  function handlePlatformSwitch(platform) {
+    console.log('平台切换:', platform);
+    
+    // 根据平台设置相应的站点和参数
+    switch(platform) {
+      case 'ae_self_operated':
+        // 保持当前自运营站点
+        break;
+      case 'independent':
+        // 切换到独立站
+        window.location.href = 'independent-site.html';
+        return;
+      case 'managed':
+        // 切换到全托管
+        window.location.href = 'managed.html';
+        return;
+      default:
+        // 其他平台暂时跳转到相应页面或显示提示
+        console.log('平台', platform, '暂未实现');
+        return;
+    }
+    
+    // 如果是自运营平台，重新加载数据
+    if (platform === 'ae_self_operated') {
+      // 重新加载数据
+      if (typeof fetchAndRenderAll === 'function') {
+        fetchAndRenderAll();
+      }
+    }
+  }
+  
+  // 将平台切换函数暴露到全局，供 site-nav.js 调用
+  window.handlePlatformSwitch = handlePlatformSwitch;
+  
   // 站点管理逻辑
   const siteSelector = document.getElementById('siteSelector');
   const siteSelect = document.getElementById('siteSelect');
