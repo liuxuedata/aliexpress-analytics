@@ -300,11 +300,8 @@
        setDelta('cartedProductsComparison', cur.pc - prev.pc, false);
        setDelta('purchasedProductsComparison', cur.pp - prev.pp, false);
        
-       // 计算新品对比数据（当前周期新品数 - 对比周期新品数）
-       const prevNewProductIds = new Set((prevRows || []).map(r => r.product_id));
-       const prevNewProducts = Array.from(prevProductIds).filter(id => !prevNewProductIds.has(id)).length;
-       const newProductsDiff = newProducts - prevNewProducts;
-       setDelta('newProductsComparison', newProductsDiff, false);
+       // 新品KPI卡片不需要和上期对比，直接显示当前周期新品数
+       // 不调用setDelta，保持新品数显示
       
       // 调试：输出KPI更新结果
       console.log('KPI更新结果:', {
@@ -604,6 +601,17 @@
           });
           console.log('新品KPI卡片事件已绑定');
         }
+        
+        // 绑定清除筛选链接事件
+        const clearLink = document.getElementById('clearNewProductsFilter');
+        if (clearLink) {
+          clearLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('清除新品筛选链接被点击，恢复完整数据');
+            this.clearNewProductsFilter();
+          });
+          console.log('清除新品筛选链接事件已绑定');
+        }
       }
       
       // 筛选新品数据
@@ -627,43 +635,31 @@
         // 重新渲染表格，显示筛选后的数据
         this.renderDataTable(filteredData, 'day');
         
-        // 显示筛选状态和清除按钮
-        this.showFilterStatus('新品筛选', filteredData.length);
+        // 显示新品筛选状态
+        this.showNewProductsFilterStatus(filteredData.length);
+        
+        // 更新状态显示
+        this.updateStatus(`新品筛选：显示 ${filteredData.length} 条记录`, 'success');
       }
       
-      // 显示筛选状态和清除按钮
-      showFilterStatus(filterType, count) {
-        const statusEl = document.getElementById('status');
-        if (statusEl) {
-          statusEl.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <span>${filterType}：显示 ${count} 条记录</span>
-              <button id="clearFilter" style="
-                padding: 4px 12px;
-                background: #dc3545;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 12px;
-              ">清除筛选</button>
-            </div>
-          `;
-          
-          // 绑定清除筛选按钮事件
-          const clearBtn = document.getElementById('clearFilter');
-          if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
-              console.log('清除筛选按钮被点击，恢复完整数据');
-              this.clearFilter();
-            });
-          }
+      // 显示新品筛选状态
+      showNewProductsFilterStatus(count) {
+        const clearDiv = document.getElementById('newProductsClear');
+        if (clearDiv) {
+          clearDiv.style.display = 'block';
+          console.log('显示新品清除筛选链接');
         }
       }
       
-      // 清除筛选，恢复完整数据
-      clearFilter() {
-        console.log('清除筛选，恢复完整数据');
+      // 清除新品筛选，恢复完整数据
+      clearNewProductsFilter() {
+        console.log('清除新品筛选，恢复完整数据');
+        
+        // 隐藏清除筛选链接
+        const clearDiv = document.getElementById('newProductsClear');
+        if (clearDiv) {
+          clearDiv.style.display = 'none';
+        }
         
         // 重新渲染完整数据表格
         this.renderDataTable(this.currentData, 'day');
