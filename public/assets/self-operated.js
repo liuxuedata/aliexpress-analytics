@@ -264,69 +264,88 @@
       }
     }
 
-    // 计算KPI卡片
-    computeKPICards(data) {
-      if (!data || !Array.isArray(data)) return;
-      
-      console.log('开始计算KPI卡片，原始数据:', data.slice(0, 3)); // 只显示前3条用于调试
-      
-      // 计算平均值
-      const total = data.length;
-      let totalVisitorRatio = 0;
-      let totalCartRatio = 0;
-      let totalPayRatio = 0;
-      let totalProducts = 0;
-      let cartedProducts = 0;
-      let purchasedProducts = 0;
+         // 计算KPI卡片
+     computeKPICards(data) {
+       if (!data || !Array.isArray(data)) return;
+       
+       console.log('开始计算KPI卡片，原始数据:', data.slice(0, 3)); // 只显示前3条用于调试
+       
+       // 计算平均值
+       const total = data.length;
+       let totalVisitorRatio = 0;
+       let totalCartRatio = 0;
+       let totalPayRatio = 0;
+       let totalProducts = 0;
+       let cartedProducts = 0;
+       let purchasedProducts = 0;
 
-      data.forEach((row, index) => {
-        // 确保数据是数字类型
-        const visitorRatio = parseFloat(row.visitor_ratio) || 0;
-        const cartRatio = parseFloat(row.cart_ratio) || 0;
-        const payRatio = parseFloat(row.pay_ratio) || 0;
-        
-        // 直接使用原始值，不进行额外的百分比转换
-        totalVisitorRatio += visitorRatio;
-        totalCartRatio += cartRatio;
-        totalPayRatio += payRatio;
-        totalProducts++;
-        
-        if (cartRatio > 0) cartedProducts++;
-        if (payRatio > 0) purchasedProducts++;
-        
-        // 调试信息
-        if (index < 3) {
-          console.log(`行${index + 1}:`, {
-            visitorRatio,
-            cartRatio,
-            payRatio
-          });
-        }
-      });
+       data.forEach((row, index) => {
+         // 尝试多种字段名，确保能获取到数据
+         const visitorRatio = parseFloat(row.visitor_ratio || row.visitor_ratio_sum || row.visitor_ratio_avg || 0);
+         const cartRatio = parseFloat(row.cart_ratio || row.cart_ratio_sum || row.cart_ratio_avg || 0);
+         const payRatio = parseFloat(row.pay_ratio || row.pay_ratio_sum || row.pay_ratio_avg || 0);
+         
+         // 如果比率字段不存在，尝试计算
+         let finalVisitorRatio = visitorRatio;
+         let finalCartRatio = cartRatio;
+         let finalPayRatio = payRatio;
+         
+         if (!visitorRatio && row.exposure && row.visitors) {
+           finalVisitorRatio = (row.visitors / row.exposure) * 100;
+         }
+         if (!cartRatio && row.visitors && row.cart_users) {
+           finalCartRatio = (row.cart_users / row.visitors) * 100;
+         }
+         if (!payRatio && row.cart_users && row.pay_buyers) {
+           finalPayRatio = (row.pay_buyers / row.cart_users) * 100;
+         }
+         
+         totalVisitorRatio += finalVisitorRatio;
+         totalCartRatio += finalCartRatio;
+         totalPayRatio += finalPayRatio;
+         totalProducts++;
+         
+         if (finalCartRatio > 0) cartedProducts++;
+         if (finalPayRatio > 0) purchasedProducts++;
+         
+         // 调试信息
+         if (index < 3) {
+           console.log(`行${index + 1}:`, {
+             original: { visitorRatio, cartRatio, payRatio },
+             calculated: { finalVisitorRatio, finalCartRatio, finalPayRatio },
+             raw: { exposure: row.exposure, visitors: row.visitors, cart_users: row.cart_users, pay_buyers: row.pay_buyers }
+           });
+         }
+       });
 
-      // 计算平均值
-      const avgVisitorRatio = total > 0 ? (totalVisitorRatio / total) : 0;
-      const avgCartRatio = total > 0 ? (totalCartRatio / total) : 0;
-      const avgPayRatio = total > 0 ? (totalPayRatio / total) : 0;
+       // 计算平均值
+       const avgVisitorRatio = total > 0 ? (totalVisitorRatio / total) : 0;
+       const avgCartRatio = total > 0 ? (totalCartRatio / total) : 0;
+       const avgPayRatio = total > 0 ? (totalPayRatio / total) : 0;
 
-      console.log('KPI计算结果:', {
-        total,
-        avgVisitorRatio: avgVisitorRatio.toFixed(2) + '%',
-        avgCartRatio: avgCartRatio.toFixed(2) + '%',
-        avgPayRatio: avgPayRatio.toFixed(2) + '%',
-        totalProducts,
-        cartedProducts,
-        purchasedProducts
-      });
+       console.log('KPI计算结果:', {
+         total,
+         avgVisitorRatio: avgVisitorRatio.toFixed(2) + '%',
+         avgCartRatio: avgCartRatio.toFixed(2) + '%',
+         avgPayRatio: avgPayRatio.toFixed(2) + '%',
+         totalProducts,
+         cartedProducts,
+         purchasedProducts
+       });
 
-      // 更新KPI卡片
-      this.updateKPICard('avgVisitor', avgVisitorRatio.toFixed(2) + '%');
-      this.updateKPICard('avgCart', avgCartRatio.toFixed(2) + '%');
-      this.updateKPICard('avgPay', avgPayRatio.toFixed(2) + '%');
-      this.updateKPICard('totalProducts', totalProducts);
-      this.updateKPICard('cartedProducts', cartedProducts);
-      this.updateKPICard('purchasedProducts', purchasedProducts);
-    }
+       // 更新KPI卡片
+       this.updateKPICard('avgVisitor', avgVisitorRatio.toFixed(2) + '%');
+       this.updateKPICard('avgCart', avgCartRatio.toFixed(2) + '%');
+       this.updateKPICard('avgPay', avgPayRatio.toFixed(2) + '%');
+       this.updateKPICard('totalProducts', totalProducts);
+       this.updateKPICard('cartedProducts', cartedProducts);
+       this.updateKPICard('purchasedProducts', purchasedProducts);
+       
+       // 验证KPI更新是否成功
+       setTimeout(() => {
+         this.verifyKPICards();
+       }, 100);
+     }
 
          // 更新KPI卡片
      updateKPICard(id, value) {
@@ -381,6 +400,36 @@
        console.log('KPI值重新应用完成');
      }
 
+     // 验证KPI卡片是否正确显示
+     verifyKPICards() {
+       const kpiIds = ['avgVisitor', 'avgCart', 'avgPay', 'totalProducts', 'cartedProducts', 'purchasedProducts'];
+       const results = {};
+       
+       kpiIds.forEach(id => {
+         const element = document.getElementById(id);
+         if (element) {
+           results[id] = {
+             exists: true,
+             value: element.textContent,
+             isEmpty: !element.textContent || element.textContent === '0' || element.textContent === '0%'
+           };
+         } else {
+           results[id] = { exists: false, value: null, isEmpty: true };
+         }
+       });
+       
+       console.log('KPI验证结果:', results);
+       
+       // 如果有空的KPI，尝试重新应用
+       const emptyKPIs = Object.entries(results).filter(([id, result]) => result.isEmpty);
+       if (emptyKPIs.length > 0) {
+         console.warn('发现空的KPI:', emptyKPIs.map(([id]) => id));
+         // 这里可以添加重新计算的逻辑
+       }
+       
+       return results;
+     }
+
     // 渲染数据表格
     async renderDataTable(data, granularity) {
       if (!data || !Array.isArray(data)) return;
@@ -390,46 +439,45 @@
 
       console.log('开始渲染数据表格，数据量:', data.length);
 
-      // 如果DataTable已经初始化，销毁它
-      if (this.dataTable) {
-        try {
-          this.dataTable.destroy();
-          this.dataTable = null;
-          console.log('DataTable已销毁');
-        } catch (error) {
-          console.warn('销毁DataTable时出错:', error);
-        }
-      }
+             // 彻底清理DataTable实例和所有相关元素
+       if (this.dataTable) {
+         try {
+           this.dataTable.destroy();
+           this.dataTable = null;
+           console.log('DataTable已销毁');
+         } catch (error) {
+           console.warn('销毁DataTable时出错:', error);
+         }
+       }
 
-      // 清空表格内容，但保留表格元素本身
-      const existingTbody = table.querySelector('tbody');
-      if (existingTbody) {
-        existingTbody.remove();
-      }
-      
-      const existingThead = table.querySelector('thead');
-      if (existingThead) {
-        existingThead.remove();
-      }
-      
-      // 检查并移除所有DataTables相关的包装器和元素
-      const existingWrappers = table.parentNode.querySelectorAll('.dataTables_wrapper, .dataTables_filter, .dataTables_length, .dataTables_info, .dataTables_paginate, .dataTables_processing');
-      existingWrappers.forEach(wrapper => {
-        wrapper.remove();
-      });
-      
-      // 移除表格上的DataTable相关类
-      table.classList.remove('dataTable', 'display', 'compact');
-      
-      // 移除表格上的DataTable相关属性
-      table.removeAttribute('width');
-      table.removeAttribute('cellspacing');
-      table.removeAttribute('cellpadding');
-      
-      // 确保表格有正确的ID
-      if (!table.id) {
-        table.id = 'report';
-      }
+       // 清理所有DataTables相关的包装器和元素
+       const existingWrappers = table.parentNode.querySelectorAll('.dataTables_wrapper, .dataTables_filter, .dataTables_length, .dataTables_info, .dataTables_paginate, .dataTables_processing, .dataTables_scroll');
+       existingWrappers.forEach(wrapper => {
+         wrapper.remove();
+       });
+       
+       // 清理表格内容
+       table.innerHTML = '';
+       
+       // 移除表格上的DataTable相关类
+       table.classList.remove('dataTable', 'display', 'compact');
+       
+       // 移除表格上的DataTable相关属性
+       table.removeAttribute('width');
+       table.removeAttribute('cellspacing');
+       table.removeAttribute('cellpadding');
+       
+       // 确保表格有正确的ID
+       if (!table.id) {
+         table.id = 'report';
+       }
+       
+       // 添加调试信息
+       console.log('表格清理完成，当前表格状态:', {
+         id: table.id,
+         className: table.className,
+         innerHTML: table.innerHTML.length
+       });
 
       // 创建表头 - 确保与HTML中的列数完全匹配
       const thead = document.createElement('thead');
@@ -484,19 +532,26 @@
       }
       table.appendChild(tbody);
 
-      // 等待DOM更新完成后再初始化DataTable
-      await new Promise(resolve => setTimeout(resolve, 200));
+             // 等待DOM更新完成后再初始化DataTable
+       await new Promise(resolve => setTimeout(resolve, 300));
 
-      // 初始化DataTable
-      if (window.jQuery && jQuery.fn.DataTable) {
-        try {
-          // 再次检查是否已经有DataTable实例
-          if (jQuery(table).hasClass('dataTable')) {
-            console.log('表格已经是DataTable实例，跳过初始化');
-            return;
-          }
+       // 初始化DataTable
+       if (window.jQuery && jQuery.fn.DataTable) {
+         try {
+           // 再次检查是否已经有DataTable实例
+           if (jQuery(table).hasClass('dataTable')) {
+             console.log('表格已经是DataTable实例，跳过初始化');
+             return;
+           }
 
-                     this.dataTable = jQuery(table).DataTable({
+           // 检查表格是否为空
+           if (!table.querySelector('thead') || !table.querySelector('tbody')) {
+             console.error('表格结构不完整，跳过DataTable初始化');
+             return;
+           }
+
+           // 使用更简单的配置，避免复杂选项导致的问题
+           this.dataTable = jQuery(table).DataTable({
              pageLength: 10,
              order: [[1, 'desc']],
              scrollX: true,
@@ -507,32 +562,39 @@
                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json'
              },
              destroy: true,
-             responsive: true,
-             // 明确指定列定义，确保与HTML完全匹配
-             columns: [
-               { title: '商品(ID)', data: 0 },
-               { title: '周期', data: 1 },
-               { title: '访客比(%)', data: 2 },
-               { title: '加购比(%)', data: 3 },
-               { title: '支付比(%)', data: 4 },
-               { title: '曝光量', data: 5 },
-               { title: '访客数', data: 6 },
-               { title: '浏览量', data: 7 },
-               { title: '加购人数', data: 8 },
-               { title: '下单商品件数', data: 9 },
-               { title: '支付件数', data: 10 },
-               { title: '支付买家数', data: 11 },
-               { title: '搜索点击率(%)', data: 12 },
-               { title: '平均停留时长(秒)', data: 13 }
+             responsive: false, // 禁用响应式，避免额外复杂性
+             // 移除复杂的列定义，让DataTables自动检测
+             columnDefs: [
+               { targets: '_all', className: 'text-center' }
              ]
            });
-          console.log('DataTable初始化成功，数据行数:', this.dataTable.data().count());
-        } catch (error) {
-          console.error('DataTable初始化失败:', error);
-        }
-      } else {
-        console.warn('jQuery或DataTables未加载');
-      }
+           
+           console.log('DataTable初始化成功，数据行数:', this.dataTable.data().count());
+           
+           // 验证列数
+           const columnCount = this.dataTable.columns().count();
+           console.log('DataTable列数:', columnCount);
+           
+           if (columnCount !== 14) {
+             console.warn('列数不匹配！期望14列，实际:', columnCount);
+           }
+           
+         } catch (error) {
+           console.error('DataTable初始化失败:', error);
+           // 如果初始化失败，尝试使用最基本的配置
+           try {
+             this.dataTable = jQuery(table).DataTable({
+               destroy: true,
+               pageLength: 10
+             });
+             console.log('使用基本配置初始化DataTable成功');
+           } catch (fallbackError) {
+             console.error('基本配置初始化也失败:', fallbackError);
+           }
+         }
+       } else {
+         console.warn('jQuery或DataTables未加载');
+       }
     }
 
     // 加载对比数据
