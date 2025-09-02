@@ -72,20 +72,23 @@
           console.log('数据字段:', Object.keys(rowsNowAgg[0]));
         }
         
-        // 计算KPI卡片
-        this.computeKPICards(rowsNowAgg);
-        
-        // 渲染数据表格
-        await this.renderDataTable(rowsNowAgg, 'day');
-        
-        // 加载对比数据
-        await this.loadComparisonData(dateRange);
-        
-        // 隐藏加载状态
-        this.hideLoadingState('detail');
-        
-        // 更新进度显示
-        this.updateProgress(rowsNowAgg.length);
+                 // 计算KPI卡片
+         this.computeKPICards(rowsNowAgg);
+         
+         // 渲染数据表格
+         await this.renderDataTable(rowsNowAgg, 'day');
+         
+         // 重新应用KPI值，防止被表格渲染覆盖
+         this.reapplyKPICards(rowsNowAgg);
+         
+         // 加载对比数据
+         await this.loadComparisonData(dateRange);
+         
+         // 隐藏加载状态
+         this.hideLoadingState('detail');
+         
+         // 更新进度显示
+         this.updateProgress(rowsNowAgg.length);
         
         console.log('自运营页面数据加载完成');
         
@@ -325,13 +328,58 @@
       this.updateKPICard('purchasedProducts', purchasedProducts);
     }
 
-    // 更新KPI卡片
-    updateKPICard(id, value) {
-      const element = document.getElementById(id);
-      if (element) {
-        element.textContent = value;
-      }
-    }
+         // 更新KPI卡片
+     updateKPICard(id, value) {
+       const element = document.getElementById(id);
+       if (element) {
+         element.textContent = value;
+       }
+     }
+
+     // 重新应用KPI值，防止被表格渲染覆盖
+     reapplyKPICards(data) {
+       if (!data || !Array.isArray(data)) return;
+       
+       console.log('重新应用KPI值...');
+       
+       // 重新计算并应用KPI值
+       const total = data.length;
+       let totalVisitorRatio = 0;
+       let totalCartRatio = 0;
+       let totalPayRatio = 0;
+       let totalProducts = 0;
+       let cartedProducts = 0;
+       let purchasedProducts = 0;
+
+       data.forEach(row => {
+         const visitorRatio = parseFloat(row.visitor_ratio) || 0;
+         const cartRatio = parseFloat(row.cart_ratio) || 0;
+         const payRatio = parseFloat(row.pay_ratio) || 0;
+         
+         totalVisitorRatio += visitorRatio;
+         totalCartRatio += cartRatio;
+         totalPayRatio += payRatio;
+         totalProducts++;
+         
+         if (cartRatio > 0) cartedProducts++;
+         if (payRatio > 0) purchasedProducts++;
+       });
+
+       // 计算平均值
+       const avgVisitorRatio = total > 0 ? (totalVisitorRatio / total) : 0;
+       const avgCartRatio = total > 0 ? (totalCartRatio / total) : 0;
+       const avgPayRatio = total > 0 ? (totalPayRatio / total) : 0;
+
+       // 重新应用KPI值
+       this.updateKPICard('avgVisitor', avgVisitorRatio.toFixed(2) + '%');
+       this.updateKPICard('avgCart', avgCartRatio.toFixed(2) + '%');
+       this.updateKPICard('avgPay', avgPayRatio.toFixed(2) + '%');
+       this.updateKPICard('totalProducts', totalProducts);
+       this.updateKPICard('cartedProducts', cartedProducts);
+       this.updateKPICard('purchasedProducts', purchasedProducts);
+       
+       console.log('KPI值重新应用完成');
+     }
 
     // 渲染数据表格
     async renderDataTable(data, granularity) {
@@ -353,8 +401,16 @@
         }
       }
 
-      // 清空表格
-      table.innerHTML = '';
+      // 清空表格内容，但保留表格元素本身
+      const existingTbody = table.querySelector('tbody');
+      if (existingTbody) {
+        existingTbody.remove();
+      }
+      
+      const existingThead = table.querySelector('thead');
+      if (existingThead) {
+        existingThead.remove();
+      }
       
       // 检查并移除所有DataTables相关的包装器和元素
       const existingWrappers = table.parentNode.querySelectorAll('.dataTables_wrapper, .dataTables_filter, .dataTables_length, .dataTables_info, .dataTables_paginate, .dataTables_processing');
@@ -366,12 +422,16 @@
       table.classList.remove('dataTable', 'display', 'compact');
       
       // 移除表格上的DataTable相关属性
-      table.removeAttribute('id');
       table.removeAttribute('width');
       table.removeAttribute('cellspacing');
       table.removeAttribute('cellpadding');
+      
+      // 确保表格有正确的ID
+      if (!table.id) {
+        table.id = 'report';
+      }
 
-      // 创建表头
+      // 创建表头 - 确保与HTML中的列数完全匹配
       const thead = document.createElement('thead');
       thead.innerHTML = `
         <tr>
@@ -436,19 +496,36 @@
             return;
           }
 
-          this.dataTable = jQuery(table).DataTable({
-            pageLength: 10,
-            order: [[1, 'desc']],
-            scrollX: true,
-            scrollY: 'calc(100vh - 420px)',
-            scrollCollapse: true,
-            fixedHeader: true,
-            language: {
-              url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json'
-            },
-            destroy: true,
-            responsive: true
-          });
+                     this.dataTable = jQuery(table).DataTable({
+             pageLength: 10,
+             order: [[1, 'desc']],
+             scrollX: true,
+             scrollY: 'calc(100vh - 420px)',
+             scrollCollapse: true,
+             fixedHeader: true,
+             language: {
+               url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json'
+             },
+             destroy: true,
+             responsive: true,
+             // 明确指定列定义，确保与HTML完全匹配
+             columns: [
+               { title: '商品(ID)', data: 0 },
+               { title: '周期', data: 1 },
+               { title: '访客比(%)', data: 2 },
+               { title: '加购比(%)', data: 3 },
+               { title: '支付比(%)', data: 4 },
+               { title: '曝光量', data: 5 },
+               { title: '访客数', data: 6 },
+               { title: '浏览量', data: 7 },
+               { title: '加购人数', data: 8 },
+               { title: '下单商品件数', data: 9 },
+               { title: '支付件数', data: 10 },
+               { title: '支付买家数', data: 11 },
+               { title: '搜索点击率(%)', data: 12 },
+               { title: '平均停留时长(秒)', data: 13 }
+             ]
+           });
           console.log('DataTable初始化成功，数据行数:', this.dataTable.data().count());
         } catch (error) {
           console.error('DataTable初始化失败:', error);
