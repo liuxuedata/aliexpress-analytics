@@ -384,32 +384,6 @@
        font-weight: 600;
      }
      
-     .product-selector .time-controls {
-       margin-top: 16px;
-       padding-top: 16px;
-       border-top: 1px solid #e5e7eb;
-       display: flex;
-       align-items: center;
-       gap: 12px;
-       flex-wrap: wrap;
-     }
-     
-     .product-selector .time-controls label {
-       font-weight: 600;
-       color: #374151;
-       min-width: 80px;
-     }
-     
-     .product-selector .time-controls .date-filter {
-       padding: 8px 12px;
-       border: 2px solid #e5e7eb;
-       border-radius: 8px;
-       font-size: 14px;
-       transition: all 0.3s ease;
-       min-width: 200px;
-     }
-     
-     .product-selector .time-controls .date-filter:focus,
      .time-controls .date-filter:focus {
        outline: none;
        border-color: #3b82f6;
@@ -522,60 +496,7 @@
      .analysis-kpi-card:nth-child(3) { animation-delay: 0.3s; }
      .analysis-kpi-card:nth-child(4) { animation-delay: 0.4s; }
      
-     /* 新增：优化产品详情分析页面的UI */
-     .product-info-panel {
-       background: #f9fafb;
-       border-radius: 12px;
-       padding: 20px;
-       margin-bottom: 24px;
-       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-       border: 1px solid #e5e7eb;
-     }
-     
-     .product-header {
-       display: flex;
-       justify-content: space-around;
-       align-items: center;
-       gap: 20px;
-       flex-wrap: wrap;
-     }
-     
-     .product-id, .product-link, .product-listing-date {
-       text-align: center;
-       flex: 1;
-       min-width: 150px;
-     }
-     
-     .product-id h4, .product-link h4, .product-listing-date h4 {
-       color: #374151;
-       font-size: 14px;
-       font-weight: 600;
-       margin-bottom: 8px;
-     }
-     
-     .product-id p, .product-listing-date p {
-       color: #1f2937;
-       font-size: 24px;
-       font-weight: 700;
-       margin: 0;
-       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-     }
-     
-     .product-link-btn {
-       background: #3b82f6;
-       color: white;
-       padding: 10px 20px;
-       border-radius: 8px;
-       font-size: 16px;
-       font-weight: 600;
-       text-decoration: none;
-       transition: background-color 0.3s ease;
-       display: inline-block;
-     }
-     
-     .product-link-btn:hover {
-       background: #2563eb;
-     }
+     /* 产品详情分析部分已移除 */
   </style>
 </head>
 <body class="fm">
@@ -800,45 +721,25 @@
       </section>
              <!-- 产品分析 -->
       <section id="products" class="analysis-container" style="display:none;">
-          <h3 style="font-size: 20px; color: #6b7280; margin-bottom: 10px;">产品详情分析</h3>
-           
-           <!-- 产品基本信息 -->
-           <div class="product-info-panel">
-             <div class="product-header">
-               <div class="product-id">
-                 <h4>产品ID</h4>
-                 <p id="currentProductId">--</p>
-               </div>
-               <div class="product-link">
-                 <h4>产品链接</h4>
-                 <a id="productLink" href="#" target="_blank" class="product-link-btn">查看产品</a>
-               </div>
-               <div class="product-listing-date">
-                 <h4>上架时间</h4>
-                 <p id="productListingDate">2025-07-03</p>
-               </div>
-             </div>
-           </div>
-          
+            <!-- 时间周期控件 -->
+            <div class="time-controls">
+              <label>时间周期：</label>
+              <input id="productDateFilter" class="date-filter" placeholder="选择日期范围">
+              <span class="notice">（默认显示最近7天）</span>
+            </div>
+
            <!-- 产品选择器 -->
             <div class="product-selector">
               <div class="controls">
                 <label>产品：</label>
                 <select id="productSelect" class="sel">
                   <option value="">加载中...</option>
-              </select>
+                </select>
                 <span class="notice">（按曝光量排序）</span>
                 <div class="product-count-info">
                   <span>产品总数：<strong id="productTotalCount">0</strong></span>
-            </div>
-          </div>
-          </div>
-
-            <!-- 时间周期控件 - 移到第二排 -->
-            <div class="time-controls" style="margin-top: 16px;">
-              <label>时间周期：</label>
-              <input id="productDateFilter" class="date-filter" placeholder="选择日期范围">
-              <span class="notice">（默认显示最近7天）</span>
+                </div>
+              </div>
             </div>
            
                        <!-- 产品KPI - 单个产品的KPI指标 -->
@@ -898,7 +799,6 @@
               <h3>支付比趋势</h3>
               <div id="productPayRateChart" style="width:100%;height:260px;"></div>
             </div>
-          </div>
           </div>
       </section>
     </div>
@@ -1663,10 +1563,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
         
         console.log('开始加载产品数据:', { productId, dateRange, currentSite });
-        
-        // 更新产品基本信息
-        document.getElementById('currentProductId').textContent = productId;
-        document.getElementById('productLink').href = `https://aliexpress.com/item/${productId}.html`;
         
         // 构建查询参数 - 使用GET请求而不是POST
         const queryParams = new URLSearchParams({
