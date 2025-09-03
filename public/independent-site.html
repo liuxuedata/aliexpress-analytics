@@ -794,54 +794,7 @@
   </main>
 </div>
 
-<script>
-// Hash路由处理
-function handleHashRoute() {
-  const hash = window.location.hash.slice(1) || 'detail';
-  const targetLink = document.querySelector(`[data-target="${hash}"]`);
-  
-  if (targetLink) {
-    // 更新导航状态
-    document.querySelectorAll('.sub-nav a').forEach(x => x.classList.remove('active'));
-    targetLink.classList.add('active');
-    
-    // 显示对应内容
-    ['detail', 'analysis', 'products'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = (id === hash ? '' : 'none');
-    });
-    
-    // 根据路由加载相应数据
-    if (hash === 'analysis') {
-      loadIndependentAnalysisData();
-    } else if (hash === 'products') {
-      loadIndependentProductAnalysisData();
-    }
-  }
-}
-
-// 监听hash变化
-window.addEventListener('hashchange', handleHashRoute);
-
-// 初始化hash路由
-handleHashRoute();
-
-// 导航点击处理
-document.querySelectorAll('.sub-nav a').forEach(a => {
-  a.addEventListener('click', e => {
-    const target = a.dataset.target;
-    if (target) {
-      e.preventDefault();
-      window.location.hash = target;
-    }
-  });
-});
-      
-      setTimeout(()=> window.dispatchEvent(new Event('resize')), 0);
-    }
-  });
-})();
-</script>
+<!-- Hash 路由脚本移动至文末以确保依赖函数已定义 -->
 
 <script>
 // 独立站运营分析数据加载
@@ -1925,6 +1878,46 @@ function populateIndependentProductSelect(data) {
     }
   }, 1000);
 })();
+</script>
+
+<script>
+// 延迟执行Hash路由逻辑，确保数据加载函数已定义
+document.addEventListener('DOMContentLoaded', () => {
+  function handleHashRoute() {
+    const hash = window.location.hash.slice(1) || 'detail';
+    const link = document.querySelector(`[data-target="${hash}"]`);
+    if (link) {
+      document.querySelectorAll('.sub-nav a').forEach(x => x.classList.remove('active'));
+      link.classList.add('active');
+
+      ['detail', 'analysis', 'products'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = (id === hash ? '' : 'none');
+      });
+
+      if (hash === 'analysis') {
+        loadIndependentAnalysisData();
+      } else if (hash === 'products') {
+        loadIndependentProductAnalysisData();
+      }
+
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
+    }
+  }
+
+  window.addEventListener('hashchange', handleHashRoute);
+  handleHashRoute();
+
+  document.querySelectorAll('.sub-nav a').forEach(a => {
+    a.addEventListener('click', e => {
+      const target = a.dataset.target;
+      if (target) {
+        e.preventDefault();
+        window.location.hash = target;
+      }
+    });
+  });
+});
 </script>
 
 <script src="assets/login.js"></script>
