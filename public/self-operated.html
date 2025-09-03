@@ -381,11 +381,66 @@
       animation-fill-mode: both;
     }
     
-    .analysis-kpi-card:nth-child(1) { animation-delay: 0.1s; }
-    .analysis-kpi-card:nth-child(2) { animation-delay: 0.2s; }
-    .analysis-kpi-card:nth-child(3) { animation-delay: 0.3s; }
-    .analysis-kpi-card:nth-child(4) { animation-delay: 0.4s; }
-  </style>
+         .analysis-kpi-card:nth-child(1) { animation-delay: 0.1s; }
+     .analysis-kpi-card:nth-child(2) { animation-delay: 0.2s; }
+     .analysis-kpi-card:nth-child(3) { animation-delay: 0.3s; }
+     .analysis-kpi-card:nth-child(4) { animation-delay: 0.4s; }
+     
+     /* 新增：优化产品详情分析页面的UI */
+     .product-info-panel {
+       background: #f9fafb;
+       border-radius: 12px;
+       padding: 20px;
+       margin-bottom: 24px;
+       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+       border: 1px solid #e5e7eb;
+     }
+     
+     .product-header {
+       display: flex;
+       justify-content: space-around;
+       align-items: center;
+       gap: 20px;
+       flex-wrap: wrap;
+     }
+     
+     .product-id, .product-link, .product-listing-date {
+       text-align: center;
+       flex: 1;
+       min-width: 150px;
+     }
+     
+     .product-id h4, .product-link h4, .product-listing-date h4 {
+       color: #374151;
+       font-size: 14px;
+       font-weight: 600;
+       margin-bottom: 8px;
+     }
+     
+     .product-id p, .product-listing-date p {
+       color: #1f2937;
+       font-size: 24px;
+       font-weight: 700;
+       margin: 0;
+       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+     }
+     
+     .product-link-btn {
+       background: #3b82f6;
+       color: white;
+       padding: 10px 20px;
+       border-radius: 8px;
+       font-size: 16px;
+       font-weight: 600;
+       text-decoration: none;
+       transition: background-color 0.3s ease;
+       display: inline-block;
+     }
+     
+     .product-link-btn:hover {
+       background: #2563eb;
+     }
+   </style>
 </head>
 <body class="fm">
 <div id="loginOverlay" class="login-overlay" style="display:none">
@@ -584,21 +639,28 @@
           </div>
         </div>
       </section>
-      <!-- 产品分析 -->
-      <section id="products" class="content-pad" style="display:none;">
-        <div class="analysis-container">
-          <h3>🔍 产品分析</h3>
-          
-          <!-- 产品选择器 -->
-          <div class="product-selector">
-            <div class="controls">
-              <label>产品：</label>
-              <select id="productSelect" class="sel"></select>
-              <img id="productImg" style="width:40px;height:40px;object-fit:cover;display:none;"/>
-              <a id="productLink" href="#" target="_blank" style="display:none;word-break:break-all;white-space:normal;flex:1 1 auto;"></a>
-              <span id="listingDate"></span>
-            </div>
-          </div>
+             <!-- 产品分析 -->
+       <section id="products" class="content-pad" style="display:none;">
+         <div class="analysis-container">
+           <h3>🔍 产品详情分析</h3>
+           
+           <!-- 产品基本信息 -->
+           <div class="product-info-panel">
+             <div class="product-header">
+               <div class="product-id">
+                 <h4>产品ID</h4>
+                 <p id="currentProductId">--</p>
+               </div>
+               <div class="product-link">
+                 <h4>产品链接</h4>
+                 <a id="productLink" href="#" target="_blank" class="product-link-btn">查看产品</a>
+               </div>
+               <div class="product-listing-date">
+                 <h4>上架时间</h4>
+                 <p id="productListingDate">2025-07-03</p>
+               </div>
+             </div>
+           </div>
           
           <!-- 产品KPI -->
           <div id="productKpi" class="analysis-kpi-grid">
@@ -1068,47 +1130,30 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   }
   
-  // 产品分析数据加载
-  async function loadProductAnalysisData() {
-    try {
-      const dateRange = getDateRange();
-      const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
-      
-      console.log('开始加载产品分析数据:', { dateRange, currentSite });
-      
-      // 构建查询参数 - 使用GET请求而不是POST
-      const queryParams = new URLSearchParams({
-        start: dateRange.start,
-        end: dateRange.end,
-        granularity: 'day',
-        site: currentSite,
-        aggregate: 'product'  // 使用'product'获取产品级别的数据
-      });
-      
-      // 获取产品列表 - 使用GET请求
-      const productsResponse = await fetch(`/api/ae_query?${queryParams.toString()}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      if (!productsResponse.ok) {
-        throw new Error(`API响应错误: ${productsResponse.status} ${productsResponse.statusText}`);
-      }
-      
-      const productsData = await productsResponse.json();
-      console.log('产品分析数据响应:', productsData);
-      
-      if (productsData.ok && productsData.rows) {  // 注意：API返回的是rows而不是data
-        populateProductSelect(productsData.rows);
-      } else {
-        console.warn('产品分析数据格式不正确:', productsData);
-        showProductAnalysisError('数据格式不正确，请检查API响应');
-      }
-    } catch (error) {
-      console.error('加载产品分析数据失败:', error);
-      showProductAnalysisError(`加载产品分析数据失败: ${error.message}`);
-    }
-  }
+     // 产品分析数据加载 - 现在从hash参数获取产品ID
+   async function loadProductAnalysisData() {
+     try {
+       // 从hash参数获取产品ID
+       const hash = window.location.hash;
+       const pidMatch = hash.match(/[?&]pid=([^&]+)/);
+       const productId = pidMatch ? pidMatch[1] : null;
+       
+       if (!productId) {
+         // 如果没有产品ID，显示提示信息
+         showProductAnalysisError('请从数据明细表双击产品ID进入产品详情页');
+         return;
+       }
+       
+       console.log('加载产品分析数据，产品ID:', productId);
+       
+       // 直接加载指定产品的数据
+       await loadProductData(productId);
+       
+     } catch (error) {
+       console.error('加载产品分析数据失败:', error);
+       showProductAnalysisError(`加载产品分析数据失败: ${error.message}`);
+     }
+   }
   
   // 获取日期范围
   function getDateRange() {
@@ -1125,10 +1170,20 @@ document.addEventListener('DOMContentLoaded', ()=>{
   
   // 更新运营分析KPI
   function updateAnalysisKPI(data) {
+    console.log('更新运营分析KPI，数据:', data);
+    
+    // 确保使用正确的字段名
     const totalExposure = data.reduce((sum, item) => sum + (item.exposure || 0), 0);
     const totalVisitors = data.reduce((sum, item) => sum + (item.visitors || 0), 0);
     const totalViews = data.reduce((sum, item) => sum + (item.views || 0), 0);
     const totalAddCount = data.reduce((sum, item) => sum + (item.add_count || 0), 0);
+    
+    console.log('KPI计算结果:', {
+      totalExposure,
+      totalVisitors, 
+      totalViews,
+      totalAddCount
+    });
     
     document.getElementById('totalExposure').textContent = totalExposure.toLocaleString();
     document.getElementById('totalVisitors').textContent = totalVisitors.toLocaleString();
@@ -1286,54 +1341,58 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   }
   
-  // 加载特定产品数据
-  async function loadProductData(productId) {
-    try {
-      const dateRange = getDateRange();
-      const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
-      
-      console.log('开始加载产品数据:', { productId, dateRange, currentSite });
-      
-      // 构建查询参数 - 使用GET请求而不是POST
-      const queryParams = new URLSearchParams({
-        start: dateRange.start,
-        end: dateRange.end,
-        granularity: 'day',
-        site: currentSite,
-        aggregate: 'time'  // 使用'time'获取时间序列数据
-      });
-      
-      const response = await fetch(`/api/ae_query?${queryParams.toString()}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`API响应错误: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      console.log('产品数据响应:', data);
-      
-      if (data.ok && data.rows) {  // 注意：API返回的是rows而不是data
-        // 过滤出指定产品的数据
-        const productData = data.rows.filter(item => item.product_id === productId);
-        if (productData.length > 0) {
-          updateProductKPI(productData);
-          renderProductCharts(productData);
-          document.getElementById('productCharts').style.display = 'grid';
-        } else {
-          showProductDataError('未找到该产品的数据');
-        }
-      } else {
-        console.warn('产品数据格式不正确:', data);
-        showProductDataError('数据格式不正确，请检查API响应');
-      }
-    } catch (error) {
-      console.error('加载产品数据失败:', error);
-      showProductDataError(`加载产品数据失败: ${error.message}`);
-    }
-  }
+     // 加载特定产品数据
+   async function loadProductData(productId) {
+     try {
+       const dateRange = getDateRange();
+       const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+       
+       console.log('开始加载产品数据:', { productId, dateRange, currentSite });
+       
+       // 更新产品基本信息
+       document.getElementById('currentProductId').textContent = productId;
+       document.getElementById('productLink').href = `https://aliexpress.com/item/${productId}.html`;
+       
+       // 构建查询参数 - 使用GET请求而不是POST
+       const queryParams = new URLSearchParams({
+         start: dateRange.start,
+         end: dateRange.end,
+         granularity: 'day',
+         site: currentSite,
+         aggregate: 'time'  // 使用'time'获取时间序列数据
+       });
+       
+       const response = await fetch(`/api/ae_query?${queryParams.toString()}`, {
+         method: 'GET',
+         headers: { 'Content-Type': 'application/json' }
+       });
+       
+       if (!response.ok) {
+         throw new Error(`API响应错误: ${response.status} ${response.statusText}`);
+       }
+       
+       const data = await response.json();
+       console.log('产品数据响应:', data);
+       
+       if (data.ok && data.rows) {  // 注意：API返回的是rows而不是data
+         // 过滤出指定产品的数据
+         const productData = data.rows.filter(item => item.product_id === productId);
+         if (productData.length > 0) {
+           updateProductKPI(productData);
+           renderProductCharts(productData);
+           document.getElementById('productCharts').style.display = 'grid';
+         } else {
+           showProductDataError('未找到该产品的数据');
+         }
+       } else {
+         console.warn('产品数据格式不正确:', data);
+         showProductDataError('数据格式不正确，请检查API响应');
+       }
+     } catch (error) {
+       console.error('加载产品数据失败:', error);
+       showProductDataError(`加载产品数据失败: ${error.message}`);
+     }
+   }
   
   // 更新产品KPI
   function updateProductKPI(data) {
@@ -1485,48 +1544,68 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
   refreshUser();
   window.addEventListener('user-login', refreshUser);
-  // Hash路由处理
-  function handleHashRoute() {
-    const hash = window.location.hash.slice(1) || 'detail';
-    const targetLink = document.querySelector(`[data-target="${hash}"]`);
-    
-    if (targetLink) {
-      // 更新导航状态
-      document.querySelectorAll('.sub-nav a').forEach(x => x.classList.remove('active'));
-      targetLink.classList.add('active');
-      
-      // 显示对应内容
-      ['detail', 'analysis', 'products'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = (id === hash ? '' : 'none');
-      });
-      
-      // 根据路由加载相应数据
-      if (hash === 'analysis') {
-        loadAnalysisData();
-      } else if (hash === 'products') {
-        loadProductAnalysisData();
-      }
-    }
-  }
+     // Hash路由处理
+   function handleHashRoute() {
+     const hash = window.location.hash.slice(1) || 'detail';
+     const targetLink = document.querySelector(`[data-target="${hash}"]`);
+     
+     if (targetLink) {
+       // 更新导航状态
+       document.querySelectorAll('.sub-nav a').forEach(x => x.classList.remove('active'));
+       targetLink.classList.add('active');
+       
+       // 显示对应内容
+       ['detail', 'analysis', 'products'].forEach(id => {
+         const el = document.getElementById(id);
+         if (el) el.style.display = (id === hash ? '' : 'none');
+       });
+       
+       // 根据路由加载相应数据
+       if (hash === 'analysis') {
+         loadAnalysisData();
+       } else if (hash === 'products') {
+         loadProductAnalysisData();
+       }
+     }
+   }
+   
+   // 添加双击产品跳转功能
+   function addProductDoubleClickHandler() {
+     // 监听数据表格中的产品ID双击事件
+     document.addEventListener('dblclick', function(e) {
+       const target = e.target;
+       
+       // 检查是否双击了产品ID
+       if (target.tagName === 'A' && target.getAttribute('data-pid')) {
+         const productId = target.getAttribute('data-pid');
+         console.log('双击产品ID:', productId);
+         
+         // 跳转到产品分析页面
+         window.location.href = `self-operated.html#products?pid=${productId}`;
+       }
+     });
+   }
   
   // 监听hash变化
   window.addEventListener('hashchange', handleHashRoute);
   
-  // 初始化hash路由
-  handleHashRoute();
-  
-  // 导航点击处理
-  document.querySelectorAll('.sub-nav a').forEach(a => {
-    a.addEventListener('click', e => {
-      const target = a.dataset.target;
-      if (target) {
-        e.preventDefault();
-        window.location.hash = target;
-      }
-    });
-  });
-});
+     // 初始化hash路由
+   handleHashRoute();
+   
+   // 添加双击产品跳转功能
+   addProductDoubleClickHandler();
+   
+   // 导航点击处理
+   document.querySelectorAll('.sub-nav a').forEach(a => {
+     a.addEventListener('click', e => {
+       const target = a.dataset.target;
+       if (target) {
+         e.preventDefault();
+         window.location.hash = target;
+       }
+     });
+   });
+ });
 </script>
 </body>
 </html>
