@@ -71,6 +71,38 @@
       }
     }
 
+    // 更新页面标题显示当前站点名称
+    updatePageTitle() {
+      const siteSubtitleEl = document.getElementById('siteSubtitle');
+      const pageTitleEl = document.getElementById('pageTitle');
+      
+      if (this.currentSiteName) {
+        // 根据站点名称生成合适的标题
+        let siteDisplayName = this.currentSiteName;
+        
+        // 如果是poolslab相关站点，显示更友好的名称
+        if (this.currentSiteName.includes('poolslab')) {
+          siteDisplayName = 'Poolslab运动娱乐';
+        } else if (this.currentSiteName.includes('icyberite')) {
+          siteDisplayName = 'Icyberite科技';
+        } else if (this.currentSiteName.includes('ae_self_operated')) {
+          siteDisplayName = '自运营站点';
+        }
+        
+        // 更新页面副标题
+        if (siteSubtitleEl) {
+          siteSubtitleEl.textContent = `${siteDisplayName} - 智能数据分析与决策支持`;
+        }
+        
+        // 更新浏览器标题
+        if (pageTitleEl) {
+          pageTitleEl.textContent = `跨境电商数据分析平台 - ${siteDisplayName}`;
+        }
+        
+        console.log('页面标题已更新为:', siteDisplayName);
+      }
+    }
+
     // 数据加载主方法（与index.html保持一致）
     async loadData() {
       try {
@@ -577,6 +609,9 @@
        // 设置当前站点信息
        this.currentSite = pageInfo.site;
        this.currentSiteName = pageInfo.siteName;
+       
+       // 更新页面标题显示当前站点名称
+       this.updatePageTitle();
        
        // 防止重复加载
        if (this.pageReadyTriggered) {
