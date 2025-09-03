@@ -423,6 +423,75 @@
     const url = new URL(window.location.href);
     return url.searchParams.get(name);
   }
+  // 确保独立站页面正确识别站点类型
+  const currentSiteId = localStorage.getItem('currentSite');
+  if (currentSiteId && currentSiteId.startsWith('independent')) {
+    // 如果当前站点是独立站，确保设置正确的站点标识
+    localStorage.setItem('currentIndepSite', currentSiteId);
+    console.log('独立站页面已识别，站点ID:', currentSiteId);
+  } else {
+    // 设置默认独立站标识
+    const defaultIndepSite = 'independent_poolsvacuum';
+    localStorage.setItem('currentIndepSite', defaultIndepSite);
+    localStorage.setItem('currentSite', defaultIndepSite);
+    console.log('设置默认独立站标识:', defaultIndepSite);
+  }
+
+  // 更新页面显示的站点名称
+  function updateSiteDisplay() {
+    const currentSiteEl = document.getElementById('currentSite');
+    const currentIndepSiteName = localStorage.getItem('currentIndepSiteName');
+    
+    if (currentIndepSiteName) {
+      currentSiteEl.textContent = currentIndepSiteName;
+    } else {
+      // 从URL参数获取站点名称
+      const siteParam = getParam('site');
+      if (siteParam) {
+        currentSiteEl.textContent = siteParam;
+        localStorage.setItem('currentIndepSiteName', siteParam);
+      } else {
+        currentSiteEl.textContent = '独立站';
+      }
+    }
+  }
+  
+  // 初始化时更新站点显示
+  updateSiteDisplay();
+  
+  // 设置站点输入框的默认值
+  const siteParam = getParam('site');
+  if (siteParam) {
+    siteInput.value = siteParam;
+    localStorage.setItem('currentIndepSiteName', siteParam);
+  } else {
+    const storedSiteName = localStorage.getItem('currentIndepSiteName');
+    if (storedSiteName) {
+      siteInput.value = storedSiteName;
+    }
+  }
+  
+  // 监听站点输入框变化，同步时间控件
+  siteInput.addEventListener('change', function() {
+    const newSiteName = this.value.trim();
+    if (newSiteName) {
+      localStorage.setItem('currentIndepSiteName', newSiteName);
+      // 更新页面显示的站点名称
+      updateSiteDisplay();
+      
+      // 同步时间控件到新站点
+      const currentDateRange = $('#dateFilter').val();
+      if (currentDateRange && currentDateRange.includes(' to ')) {
+        const newSiteId = `independent_${newSiteName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        const newIndepPeriodKey = `indepPeriod_${newSiteId}`;
+        localStorage.setItem(newIndepPeriodKey, currentDateRange);
+        localStorage.setItem('currentIndepSite', newSiteId);
+        localStorage.setItem('currentSite', newSiteId);
+        console.log('站点已更新为:', newSiteName, '时间控件已同步');
+      }
+    }
+  });
+
   const siteInput = document.getElementById('site');
   const fromInput = document.getElementById('from');
   const toInput = document.getElementById('to');
@@ -750,29 +819,57 @@
     }
   }, 1000);
   
-  // 初始化统一的时间控件
+  // 初始化统一的时间控件 - 与自运营站同步
   const fp = flatpickr('#dateFilter', { 
     mode: 'range', 
     dateFormat: 'Y-m-d', 
     onClose: (ds) => { 
-      if (ds.length === 2) load(); 
+      if (ds.length === 2) {
+        // 保存到独立站专用存储
+        const siteId = localStorage.getItem('currentIndepSite') || 'independent_poolsvacuum';
+        const indepPeriodKey = `indepPeriod_${siteId}`;
+        const dateRange = `${ds[0]} to ${ds[1]}`;
+        localStorage.setItem(indepPeriodKey, dateRange);
+        
+        // 同时同步到自运营站存储，确保时间控件同步
+        const selfPeriodKey = `selfPeriod_ae_self_operated_a`;
+        localStorage.setItem(selfPeriodKey, dateRange);
+        
+        load(); 
+      }
     } 
   });
   
-  // 设置默认日期范围
+  // 设置默认日期范围 - 优先使用自运营站的时间设置
+  const selfPeriodKey = `selfPeriod_ae_self_operated_a`;
+  const selfStored = localStorage.getItem(selfPeriodKey);
   const siteId = localStorage.getItem('currentIndepSite') || 'independent_poolsvacuum';
   const indepPeriodKey = `indepPeriod_${siteId}`;
-  const stored = localStorage.getItem(indepPeriodKey);
-  if (stored && stored.includes(' to ')) {
-    $('#dateFilter').val(stored);
+  const indepStored = localStorage.getItem(indepPeriodKey);
+  
+  let dateRange;
+  if (selfStored && selfStored.includes(' to ')) {
+    // 使用自运营站的时间设置
+    dateRange = selfStored;
+    // 同步到独立站存储
+    localStorage.setItem(indepPeriodKey, dateRange);
+  } else if (indepStored && indepStored.includes(' to ')) {
+    // 使用独立站的时间设置
+    dateRange = indepStored;
+    // 同步到自运营站存储
+    localStorage.setItem(selfPeriodKey, dateRange);
   } else {
+    // 设置默认时间范围
     const today = new Date();
     const end = today.toISOString().slice(0,10);
     const start = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime()-30*86400000).toISOString().slice(0,10);
-    const def = `${start} to ${end}`;
-    $('#dateFilter').val(def);
-    localStorage.setItem(indepPeriodKey, def);
+    dateRange = `${start} to ${end}`;
+    // 同时保存到两个存储
+    localStorage.setItem(indepPeriodKey, dateRange);
+    localStorage.setItem(selfPeriodKey, dateRange);
   }
+  
+  $('#dateFilter').val(dateRange);
 
   function parseDateRange() {
     const input = document.getElementById('dateFilter');
@@ -952,7 +1049,13 @@
       // 使用新的站点参数获取逻辑
       const siteParam = getCurrentSiteForAPI();
       
+      // 同步时间控件到自运营站
+      const currentDateRange = `${from} to ${to}`;
+      const selfPeriodKey = `selfPeriod_ae_self_operated_a`;
+      localStorage.setItem(selfPeriodKey, currentDateRange);
+      
       console.log('独立站查询参数:', { siteName, siteParam, from, to });
+      console.log('时间控件已同步到自运营站:', currentDateRange);
       
       // 获取当前周期数据
       const currentUrl = `/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${from}&to=${to}&aggregate=product`;
@@ -1026,6 +1129,11 @@
     const dateFilter = document.getElementById('dateFilter');
     if (dateFilter && dateFilter.value) {
       localStorage.setItem(indepPeriodKey, dateFilter.value);
+      
+      // 同步到自运营站存储，确保时间控件同步
+      const selfPeriodKey = `selfPeriod_ae_self_operated_a`;
+      localStorage.setItem(selfPeriodKey, dateFilter.value);
+      console.log('时间控件已同步到自运营站:', dateFilter.value);
     }
     load();
   });
