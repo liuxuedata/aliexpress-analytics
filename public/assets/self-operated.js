@@ -556,6 +556,7 @@
               exposure: row.exposure,
               visitors: row.visitors,
               views: row.views,
+              add_people: row.add_people,
               add_count: row.add_count,
               order_items: row.order_items,
               pay_items: row.pay_items,
@@ -574,7 +575,7 @@
             <td style="text-align: center;">${this.formatNumber(row.exposure || 0)}</td>
             <td style="text-align: center;">${this.formatNumber(row.visitors || 0)}</td>
             <td style="text-align: center;">${this.formatNumber(row.views || 0)}</td>
-            <td style="text-align: center;">${this.formatNumber(row.add_count || 0)}</td>
+            <td style="text-align: center;">${this.formatNumber(row.add_people || 0)}</td>
             <td style="text-align: center;">${this.formatNumber(row.order_items || 0)}</td>
             <td style="text-align: center;">${this.formatNumber(row.pay_items || 0)}</td>
             <td style="text-align: center;">${this.formatNumber(row.pay_buyers || 0)}</td>
