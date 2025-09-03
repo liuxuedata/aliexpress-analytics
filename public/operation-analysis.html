@@ -19,21 +19,22 @@
     }
     
     .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      display: flex;
       gap: 20px;
       margin-bottom: 20px;
+      overflow-x: auto;
     }
-    
-                   .kpi-card {
-        background: #ffffff;
-        border-radius: 12px;
-        padding: 24px;
-        color: #111827;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        border: 1px solid #e5e7eb;
-      }
+
+    .kpi-card {
+      flex: 0 0 280px;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 24px;
+      color: #111827;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      border: 1px solid #e5e7eb;
+    }
     
     .kpi-card:hover {
       transform: translateY(-2px);

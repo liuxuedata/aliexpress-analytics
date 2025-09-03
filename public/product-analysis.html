@@ -419,16 +419,17 @@ const def=`${start} to ${end}`; input.value=def; localStorage.setItem(key,def);
             fetchAgg(startISO,endISO),
             fetchAgg(prevStart,prevEnd)
           ]);
-          renderProductSelf(rowsA,rowsB,rowsA,rowsB,days,startISO,prevStart);
+          renderProductSelf(rowsA,rowsB,rowsA,rowsB,days,startISO,prevStart,[]);
           return;
         }
+        const allProducts = await fetchAllProducts();
         const [rowsAggA,rowsAggB,rowsDayA,rowsDayB]=await Promise.all([
-                  fetchAgg(startISO,endISO,'day'),
-        fetchAgg(prevStart,prevEnd,'day'),
+          fetchAgg(startISO,endISO,'day'),
+          fetchAgg(prevStart,prevEnd,'day'),
           fetchAgg(startISO,endISO,'day'),
           fetchAgg(prevStart,prevEnd,'day')
         ]);
-        renderProductSelf(rowsAggA,rowsAggB,rowsDayA,rowsDayB,days,startISO,prevStart);
+        renderProductSelf(rowsAggA,rowsAggB,rowsDayA,rowsDayB,days,startISO,prevStart,allProducts);
       }catch(err){
         console.error(err);
         alert('查询失败：'+(err.message||err));
@@ -469,6 +470,22 @@ const def=`${start} to ${end}`; input.value=def; localStorage.setItem(key,def);
       console.log('产品分析fetchAgg响应:', { rows: j.rows?.length || 0, site: currentSite });
       return j.rows||[];
     }
+    async function fetchAllProducts(){
+      try{
+        const today=new Date().toISOString().slice(0,10);
+        const qs=new URLSearchParams({platform:'self',from:'2000-01-01',to:today,limit:'5000'});
+        let currentSite=localStorage.getItem('currentSite')||'ae_self_operated_a';
+        if(currentSite==='A站'||currentSite==='自运营robot站')currentSite='ae_self_operated_a';
+        if(currentSite==='Poolslab运动娱乐'||currentSite==='poolslab')currentSite='ae_self_operated_poolslab';
+        qs.set('site',currentSite);
+        const r=await fetch('/api/new-products?'+qs.toString());
+        const j=await r.json();
+        return (j.items||[]).map(it=>it.product_id);
+      }catch(e){
+        console.error('fetchAllProducts错误:',e);
+        return [];
+      }
+    }
     function periodShift(startISO,endISO){
       const start=new Date(startISO+'T00:00:00'); const end=new Date(endISO+'T00:00:00');
       const days=Math.round((end-start)/86400000)+1;
@@ -477,7 +494,7 @@ const def=`${start} to ${end}`; input.value=def; localStorage.setItem(key,def);
       const fmt=d=>d.toISOString().slice(0,10);
       return{prevStart:fmt(prevStart),prevEnd:fmt(prevEnd),days};
     }
-    function renderProductSelf(rowsAggA,rowsAggB,rowsDayA,rowsDayB,days,startA,startB){
+    function renderProductSelf(rowsAggA,rowsAggB,rowsDayA,rowsDayB,days,startA,startB,allIds){
       const expMap=new Map();
       const linkMap=new Map();
       const getId=r=>mode==='indep'?(r.landing_path||r.product):r.product_id;
@@ -503,7 +520,8 @@ const def=`${start} to ${end}`; input.value=def; localStorage.setItem(key,def);
         add:a.add+Number(mode==='indep'?r.conversions||0:r.add_people||0),
         pay:a.pay+Number(mode==='indep'?r.conversions||0:r.pay_buyers||0)
       }),{exp:0,uv:0,add:0,pay:0});
-      const ids=Array.from(expMap.keys()).sort((a,b)=>expMap.get(b)-expMap.get(a));
+      const expIds=Array.from(expMap.keys()).sort((a,b)=>expMap.get(b)-expMap.get(a));
+      const ids=[...new Set([...expIds,...(allIds||[])])];
       const sel=document.getElementById('productSelect'); sel.innerHTML='';
       ids.forEach(id=>{
         const o=document.createElement('option');
