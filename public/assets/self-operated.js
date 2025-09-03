@@ -168,12 +168,11 @@
         return result;
       }
       
-      // 返回默认日期范围
+      // 返回默认日期范围（最近7天）
       const today = new Date();
       const to = today.toISOString().slice(0, 10);
-      // 如果今天是2024年或更早，使用2025-07-01作为开始日期
-      const from = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime() - 30 * 86400000).toISOString().slice(0, 10);
-      
+      const from = new Date(today.getTime() - 6 * 86400000).toISOString().slice(0, 10);
+
       // 更新日期选择器的值
       if (input) {
         input.value = `${from} to ${to}`;

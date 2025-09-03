@@ -280,10 +280,15 @@
     
          /* 图表网格布局 */
      .charts-grid {
-       display: grid;
-       grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-       gap: 20px;
-     }
+     display: grid;
+     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+     gap: 20px;
+    }
+
+    /* 产品趋势图：每行展示两个图表 */
+    #productCharts {
+      grid-template-columns: repeat(2, 1fr);
+    }
      
      .chart-panel {
        background: white;
@@ -1493,13 +1498,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
   function renderComparisonChart(chartId, title, currentValue, previousValue, label) {
     const chart = echarts.init(document.getElementById(chartId));
     const option = {
-      title: { 
-        text: title, 
-        textStyle: { color: '#374151', fontSize: 16 },
-        subtext: `${label}: ${currentValue.toLocaleString()}`,
-        subtextStyle: { color: '#6b7280', fontSize: 14 }
-      },
-      tooltip: { 
+      // 外部已有标题，内部不重复显示
+      tooltip: {
         trigger: 'axis',
         formatter: function(params) {
           const data = params[0];
@@ -1525,14 +1525,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
           data: [currentValue, 0],
           type: 'bar',
           itemStyle: { color: '#3B82F6' },
-          barWidth: '40%'
+          barWidth: '40%',
+          label: { show: true, position: 'top', formatter: v => v.value.toLocaleString() }
         },
         {
           name: '上一周期',
           data: [0, previousValue],
           type: 'bar',
           itemStyle: { color: '#10B981' },
-          barWidth: '40%'
+          barWidth: '40%',
+          label: { show: true, position: 'top', formatter: v => v.value.toLocaleString() }
         }
       ]
     };
@@ -1613,8 +1615,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
               linkEl.textContent = url;
               linkEl.style.display = '';
             }
-            updateProductKPI(productData);
-            renderProductCharts(productData);
+            const previousProductData = await getPreviousProductData(productId);
+            updateProductKPI(productData, previousProductData);
+            renderProductCharts(productData, previousProductData);
             document.getElementById('productCharts').style.display = 'grid';
           } else {
             const linkEl = document.getElementById('productLink');
@@ -1634,9 +1637,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   
            // 更新产品KPI - 计算单个产品的KPI指标，包含与上一周期的对比
-    async function updateProductKPI(data) {
+    async function updateProductKPI(data, previousData) {
       if (!data || data.length === 0) return;
-      
+
       console.log('更新产品KPI，数据:', data);
       
       // 计算当前周期的KPI指标
@@ -1652,11 +1655,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
        const currentAvgVisitorRate = currentTotalExposure > 0 ? (currentTotalVisitors / currentTotalExposure * 100).toFixed(2) : 0;
        const currentAvgCartRate = currentTotalVisitors > 0 ? (currentTotalAddPeople / currentTotalVisitors * 100).toFixed(2) : 0; // 使用add_people计算加购比
        const currentAvgPayRate = currentTotalAddPeople > 0 ? (currentTotalPayItems / currentTotalAddPeople * 100).toFixed(2) : 0; // 使用add_people计算支付比
-      
-      // 获取上一周期数据进行对比
-      const previousData = await getPreviousPeriodData();
+
       let comparisonData = {};
-      
       if (previousData && previousData.length > 0) {
                  const previousTotalExposure = previousData.reduce((sum, item) => sum + (item.exposure || 0), 0);
          const previousTotalVisitors = previousData.reduce((sum, item) => sum + (item.visitors || 0), 0);
@@ -1796,7 +1796,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
     
     // 获取上一周期数据
-    async function getPreviousPeriodData() {
+  async function getPreviousPeriodData() {
       try {
         const dateRange = getProductDateRange();
         const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
@@ -1834,8 +1834,48 @@ document.addEventListener('DOMContentLoaded', ()=>{
         console.error('获取上一周期数据失败:', error);
       }
       
-      return null;
+    return null;
+  }
+
+  // 获取指定产品的上一周期数据
+  async function getPreviousProductData(productId) {
+    try {
+      const { start, end } = getProductDateRange();
+      const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+
+      const currentStart = new Date(start);
+      const currentEnd = new Date(end);
+      const periodDays = Math.ceil((currentEnd - currentStart) / (1000 * 60 * 60 * 24));
+
+      const previousEnd = new Date(currentStart);
+      previousEnd.setDate(previousEnd.getDate() - 1);
+      const previousStart = new Date(previousEnd);
+      previousStart.setDate(previousStart.getDate() - periodDays + 1);
+
+      const queryParams = new URLSearchParams({
+        start: previousStart.toISOString().slice(0, 10),
+        end: previousEnd.toISOString().slice(0, 10),
+        granularity: 'day',
+        site: currentSite,
+        aggregate: 'time'
+      });
+
+      const response = await fetch(`/api/ae_query?${queryParams.toString()}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.ok && data.rows) {
+          return data.rows.filter(item => item.product_id === productId);
+        }
+      }
+    } catch (error) {
+      console.error('获取上一周期产品数据失败:', error);
     }
+    return null;
+  }
     
     // 获取产品分析页面的日期范围
     function getProductDateRange() {
@@ -1853,8 +1893,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   
   // 渲染产品图表
-  function renderProductCharts(data) {
-    console.log('渲染产品图表，数据:', data);
+  function renderProductCharts(data, previousData = []) {
+    console.log('渲染产品图表，数据:', data, previousData);
     
     // 获取日期标签 - 优先使用bucket，如果没有则使用stat_date
     const getDateLabel = (item) => {
@@ -1865,6 +1905,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     };
     
     const dateLabels = data.map(getDateLabel);
+    const prevLabels = previousData.map(getDateLabel);
     console.log('产品图表日期标签:', dateLabels);
     
     // 产品曝光趋势图
@@ -1872,21 +1913,32 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const productExposureOption = {
       title: { text: '曝光趋势', textStyle: { color: '#374151' } },
       tooltip: { trigger: 'axis' },
-      xAxis: { 
-        type: 'category', 
+      legend: { data: ['本周期', '上一周期'], textStyle: { color: '#374151' } },
+      xAxis: {
+        type: 'category',
         data: dateLabels,
         axisLabel: { color: '#374151', fontSize: 12 }
       },
-      yAxis: { 
+      yAxis: {
         type: 'value',
         axisLabel: { color: '#374151', fontSize: 12 }
       },
-      series: [{
-        data: data.map(item => item.exposure || 0),
-        type: 'line',
-        smooth: true,
-        itemStyle: { color: '#3B82F6' }
-      }]
+      series: [
+        {
+          name: '本周期',
+          data: data.map(item => item.exposure || 0),
+          type: 'line',
+          smooth: true,
+          itemStyle: { color: '#3B82F6' }
+        },
+        {
+          name: '上一周期',
+          data: previousData.map(item => item.exposure || 0),
+          type: 'line',
+          smooth: true,
+          itemStyle: { color: '#94A3B8' }
+        }
+      ]
     };
     productExposureChart.setOption(productExposureOption);
     
@@ -1895,25 +1947,40 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const productVisitorRateOption = {
       title: { text: '访客比趋势', textStyle: { color: '#374151' } },
       tooltip: { trigger: 'axis' },
-      xAxis: { 
-        type: 'category', 
+      legend: { data: ['本周期', '上一周期'], textStyle: { color: '#374151' } },
+      xAxis: {
+        type: 'category',
         data: dateLabels,
         axisLabel: { color: '#374151', fontSize: 12 }
       },
-      yAxis: { 
+      yAxis: {
         type: 'value',
         axisLabel: { color: '#374151', fontSize: 12, formatter: '{value}%' }
       },
-      series: [{
-        data: data.map(item => {
-          const exposure = item.exposure || 0;
-          const visitors = item.visitors || 0;
-          return exposure > 0 ? ((visitors / exposure) * 100).toFixed(2) : 0;
-        }),
-        type: 'line',
-        smooth: true,
-        itemStyle: { color: '#10B981' }
-      }]
+      series: [
+        {
+          name: '本周期',
+          data: data.map(item => {
+            const exposure = item.exposure || 0;
+            const visitors = item.visitors || 0;
+            return exposure > 0 ? ((visitors / exposure) * 100).toFixed(2) : 0;
+          }),
+          type: 'line',
+          smooth: true,
+          itemStyle: { color: '#10B981' }
+        },
+        {
+          name: '上一周期',
+          data: previousData.map(item => {
+            const exposure = item.exposure || 0;
+            const visitors = item.visitors || 0;
+            return exposure > 0 ? ((visitors / exposure) * 100).toFixed(2) : 0;
+          }),
+          type: 'line',
+          smooth: true,
+          itemStyle: { color: '#6EE7B7' }
+        }
+      ]
     };
     productVisitorRateChart.setOption(productVisitorRateOption);
     
@@ -1922,25 +1989,40 @@ document.addEventListener('DOMContentLoaded', ()=>{
      const productAddRateOption = {
        title: { text: '加购比趋势', textStyle: { color: '#374151' } },
        tooltip: { trigger: 'axis' },
-       xAxis: { 
-         type: 'category', 
+       legend: { data: ['本周期', '上一周期'], textStyle: { color: '#374151' } },
+       xAxis: {
+         type: 'category',
          data: dateLabels,
          axisLabel: { color: '#374151', fontSize: 12 }
        },
-       yAxis: { 
+       yAxis: {
          type: 'value',
          axisLabel: { color: '#374151', fontSize: 12, formatter: '{value}%' }
        },
-       series: [{
-         data: data.map(item => {
-           const visitors = item.visitors || 0;
-           const addPeople = item.add_people || 0; // 使用add_people字段计算加购比
-           return visitors > 0 ? ((addPeople / visitors) * 100).toFixed(2) : 0;
-         }),
-         type: 'line',
-         smooth: true,
-         itemStyle: { color: '#F59E0B' }
-       }]
+       series: [
+         {
+           name: '本周期',
+           data: data.map(item => {
+             const visitors = item.visitors || 0;
+             const addPeople = item.add_people || 0;
+             return visitors > 0 ? ((addPeople / visitors) * 100).toFixed(2) : 0;
+           }),
+           type: 'line',
+           smooth: true,
+           itemStyle: { color: '#F59E0B' }
+         },
+         {
+           name: '上一周期',
+           data: previousData.map(item => {
+             const visitors = item.visitors || 0;
+             const addPeople = item.add_people || 0;
+             return visitors > 0 ? ((addPeople / visitors) * 100).toFixed(2) : 0;
+           }),
+           type: 'line',
+           smooth: true,
+           itemStyle: { color: '#FCD34D' }
+         }
+       ]
      };
      productAddRateChart.setOption(productAddRateOption);
     
@@ -1949,25 +2031,40 @@ document.addEventListener('DOMContentLoaded', ()=>{
      const productPayRateOption = {
        title: { text: '支付比趋势', textStyle: { color: '#374151' } },
        tooltip: { trigger: 'axis' },
-       xAxis: { 
-         type: 'category', 
+       legend: { data: ['本周期', '上一周期'], textStyle: { color: '#374151' } },
+       xAxis: {
+         type: 'category',
          data: dateLabels,
          axisLabel: { color: '#374151', fontSize: 12 }
        },
-       yAxis: { 
+       yAxis: {
          type: 'value',
-         axisLabel: { color: '#374151', fontSize: 12, formatter: '{value}%' } 
+         axisLabel: { color: '#374151', fontSize: 12, formatter: '{value}%' }
        },
-       series: [{
-         data: data.map(item => {
-           const addPeople = item.add_people || 0; // 使用add_people字段计算支付比
-           const payItems = item.pay_items || 0;
-           return addPeople > 0 ? ((payItems / addPeople) * 100).toFixed(2) : 0;
-         }),
-         type: 'line',
-         smooth: true,
-         itemStyle: { color: '#EF4444' }
-       }]
+       series: [
+         {
+           name: '本周期',
+           data: data.map(item => {
+             const addPeople = item.add_people || 0;
+             const payItems = item.pay_items || 0;
+             return addPeople > 0 ? ((payItems / addPeople) * 100).toFixed(2) : 0;
+           }),
+           type: 'line',
+           smooth: true,
+           itemStyle: { color: '#EF4444' }
+         },
+         {
+           name: '上一周期',
+           data: previousData.map(item => {
+             const addPeople = item.add_people || 0;
+             const payItems = item.pay_items || 0;
+             return addPeople > 0 ? ((payItems / addPeople) * 100).toFixed(2) : 0;
+           }),
+           type: 'line',
+           smooth: true,
+           itemStyle: { color: '#FCA5A5' }
+         }
+       ]
      };
      productPayRateChart.setOption(productPayRateOption);
   }
