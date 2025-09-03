@@ -434,6 +434,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(mode==='self' || isFromSelfOperated || (currentSiteId && currentSiteId.startsWith('ae_self_operated'))){
     console.log('使用自运营模式，站点:', currentSiteId);
     setupSelf();
+  }else if(currentSiteId && currentSiteId.startsWith('independent')){
+    console.log('使用独立站模式，站点:', currentSiteId);
+    setupIndependent();
   }else{
     console.log('使用全托管模式，站点:', currentSiteId); 
     setupFM();
@@ -1097,6 +1100,177 @@ document.addEventListener('DOMContentLoaded',()=>{
       return{prevStart:fmt(prevStart),prevEnd:fmt(prevEnd)};
     }
   }
+
+  // 独立站运营分析设置
+  function setupIndependent(){
+    const ctrl=document.getElementById('ctrl');
+    ctrl.innerHTML='<div class="date-controls"><span>时间粒度：</span><button class="granularity-btn active" data-granularity="week">按周</button><button class="granularity-btn" data-granularity="month">按月</button><span style="margin-left: 20px;">周期：</span><input id="dateFilter" class="date-filter" placeholder="选择日期范围" style="margin-left: 8px;"></div>';
+    
+    // 绑定粒度切换事件
+    document.querySelectorAll('.granularity-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.granularity-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        loadIndependentData();
+      });
+    });
+    
+    const input=document.getElementById('dateFilter');
+    flatpickr(input,{mode:'single',dateFormat:'Y-m-d',onClose:ds=>{if(ds.length===1)loadIndependentData();}});
+    
+    const currentSiteId = localStorage.getItem('currentSite') || 'independent_poolsvacuum';
+    const periodKey = `independentPeriod_${currentSiteId}`;
+    const stored=localStorage.getItem(periodKey);
+    if(stored && stored.includes(' to ')){
+      input.value=stored;
+    }else{
+      const today=new Date(); const end=today.toISOString().slice(0,10);
+      // 如果今天是2024年或更早，使用2025-07-01作为开始日期
+      const start = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime()-30*86400000).toISOString().slice(0,10);
+      const def=`${start} to ${end}`;
+      input.value=def; localStorage.setItem(periodKey,def);
+    }
+    loadIndependentData();
+
+    async function loadIndependentData(){
+      const val=input.value; if(!val.includes(' to '))return; const [startISO,endISO]=val.split(' to ');
+      localStorage.setItem(periodKey, `${startISO} to ${endISO}`);
+      const {prevStart,prevEnd}=periodShift(startISO,endISO);
+      
+      // 显示加载状态
+      showLoadingStatus('数据加载中...');
+      
+      console.log('独立站loadIndependentData开始加载数据:', { startISO, endISO, prevStart, prevEnd });
+      
+      try {
+        const [rowsCur,rowsPrev]=await Promise.all([
+          fetchIndependentData(startISO,endISO),
+          fetchIndependentData(prevStart,prevEnd)
+        ]);
+        
+        // 显示成功状态
+        showSuccessStatus('数据加载完成');
+        
+        // 渲染独立站数据
+        renderIndependentData(rowsCur, rowsPrev);
+        
+      } catch (error) {
+        console.error('独立站数据加载失败:', error);
+        showErrorStatus('数据加载失败，请重试');
+        return;
+      }
+    }
+
+    // 获取独立站数据
+    async function fetchIndependentData(start,end){
+      const currentSiteId = localStorage.getItem('currentSite') || 'independent_poolsvacuum';
+      const currentSiteName = localStorage.getItem('currentIndepSiteName') || 'poolsvacuum.com';
+      
+      console.log('fetchIndependentData调用参数:', { start, end, currentSiteId, currentSiteName });
+      
+      const url=`/api/independent/stats?site=${encodeURIComponent(currentSiteName)}&from=${start}&to=${end}&aggregate=product`;
+      console.log('fetchIndependentData请求URL:', url);
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('fetchIndependentData响应:', data);
+      
+      if (!data.ok) {
+        throw new Error(data.error || 'API请求失败');
+      }
+      
+      return data.table || [];
+    }
+
+    // 渲染独立站数据
+    function renderIndependentData(rowsCur, rowsPrev){
+      if (!rowsCur || rowsCur.length === 0) {
+        console.log('独立站没有数据可渲染');
+        return;
+      }
+
+      // 计算KPI数据
+      const curKPI = calculateIndependentKPI(rowsCur);
+      const prevKPI = calculateIndependentKPI(rowsPrev || []);
+      
+      // 更新KPI卡片
+      updateIndependentKPICards(curKPI, prevKPI);
+      
+      // 渲染图表
+      renderIndependentCharts(rowsCur, rowsPrev);
+    }
+
+    // 计算独立站KPI
+    function calculateIndependentKPI(rows){
+      if (!rows || rows.length === 0) return { exposure: 0, visitors: 0, add_count: 0, pay_orders: 0, products: 0 };
+      
+      const total = rows.reduce((acc, row) => ({
+        exposure: acc.exposure + (row.impr || 0),
+        visitors: acc.visitors + (row.clicks || 0),
+        add_count: acc.add_count + (row.all_conv || 0),
+        pay_orders: acc.pay_orders + (row.conversions || 0)
+      }), { exposure: 0, visitors: 0, add_count: 0, pay_orders: 0 });
+      
+      // 计算不重复的商品数
+      const uniqueProducts = new Set(rows.map(row => row.product_id || row.landing_path));
+      total.products = uniqueProducts.size;
+      
+      return total;
+    }
+
+    // 更新独立站KPI卡片
+    function updateIndependentKPICards(curKPI, prevKPI){
+      const kpiElements = {
+        'expChart': { current: curKPI.exposure, previous: prevKPI.exposure, title: '曝光量' },
+        'uvChart': { current: curKPI.visitors, previous: prevKPI.visitors, title: '访客数' },
+        'cartChart': { current: curKPI.add_count, previous: prevKPI.add_count, title: '加购次数' },
+        'payChart': { current: curKPI.pay_orders, previous: prevKPI.pay_orders, title: '支付订单数' },
+        'expProdChart': { current: curKPI.products, previous: prevKPI.products, title: '曝光商品数' },
+        'cartProdChart': { current: curKPI.products, previous: prevKPI.products, title: '加购商品数' },
+        'payProdChart': { current: curKPI.products, previous: prevKPI.products, title: '支付商品数' }
+      };
+
+      Object.entries(kpiElements).forEach(([id, data]) => {
+        const element = document.getElementById(id);
+        if (element) {
+          const chart = echarts.init(element);
+          const option = {
+            title: { text: data.title, left: 'center', top: 10, textStyle: { fontSize: 14 } },
+            tooltip: { trigger: 'axis' },
+            legend: { data: ['本周期', '上一周期'], bottom: 10 },
+            xAxis: { type: 'category', data: ['本周期', '上一周期'] },
+            yAxis: { type: 'value' },
+            series: [
+              {
+                name: '本周期',
+                type: 'bar',
+                data: [data.current, 0],
+                itemStyle: { color: '#3b82f6' }
+              },
+              {
+                name: '上一周期',
+                type: 'bar',
+                data: [0, data.previous],
+                itemStyle: { color: '#9ca3af' }
+              }
+            ]
+          };
+          chart.setOption(option);
+        }
+      });
+    }
+
+    // 渲染独立站图表
+    function renderIndependentCharts(rowsCur, rowsPrev){
+      // 这里可以添加更多的图表渲染逻辑
+      console.log('独立站图表渲染完成');
+    }
+  }
+});
 });
 </script>
 </body>
