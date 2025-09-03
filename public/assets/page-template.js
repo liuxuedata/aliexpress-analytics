@@ -106,10 +106,36 @@
         // 自运营页面
         this.currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
         this.currentSiteName = localStorage.getItem('currentSiteName') || '自运营robot站';
+        
+        // 确保localStorage中有正确的站点信息
+        if (!localStorage.getItem('currentSite')) {
+          localStorage.setItem('currentSite', this.currentSite);
+        }
+        if (!localStorage.getItem('currentSiteName')) {
+          localStorage.setItem('currentSiteName', this.currentSiteName);
+        }
+        
+        console.log('自运营页面站点信息初始化:', { 
+          currentSite: this.currentSite, 
+          currentSiteName: this.currentSiteName 
+        });
       } else if (currentPath.includes('independent-site')) {
         // 独立站页面
         this.currentSite = localStorage.getItem('currentIndepSite') || 'independent_poolsvacuum';
         this.currentSiteName = localStorage.getItem('currentIndepSiteName') || 'poolsvacuum.com';
+        
+        // 确保localStorage中有正确的站点信息
+        if (!localStorage.getItem('currentIndepSite')) {
+          localStorage.setItem('currentIndepSite', this.currentSite);
+        }
+        if (!localStorage.getItem('currentIndepSiteName')) {
+          localStorage.setItem('currentIndepSiteName', this.currentSiteName);
+        }
+        
+        console.log('独立站页面站点信息初始化:', { 
+          currentSite: this.currentSite, 
+          currentSiteName: this.currentSiteName 
+        });
       }
       
       // 更新站点显示

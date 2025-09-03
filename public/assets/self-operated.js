@@ -103,11 +103,40 @@
       }
     }
 
+    // 验证和修复站点信息
+    validateAndFixSiteInfo() {
+      console.log('开始验证站点信息...');
+      
+      // 检查currentSite
+      if (!this.currentSite || this.currentSite === '自运营robot站' || this.currentSite === '自运营') {
+        this.currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+        console.log('修复currentSite为:', this.currentSite);
+      }
+      
+      // 检查currentSiteName
+      if (!this.currentSiteName || this.currentSiteName === '自运营robot站') {
+        this.currentSiteName = localStorage.getItem('currentSiteName') || '自运营robot站';
+        console.log('修复currentSiteName为:', this.currentSiteName);
+      }
+      
+      // 确保localStorage中有正确的值
+      localStorage.setItem('currentSite', this.currentSite);
+      localStorage.setItem('currentSiteName', this.currentSiteName);
+      
+      console.log('站点信息验证完成:', { 
+        currentSite: this.currentSite, 
+        currentSiteName: this.currentSiteName 
+      });
+    }
+
     // 数据加载主方法（与index.html保持一致）
     async loadData() {
       try {
         console.log('SelfOperatedPageManager.loadData() 被调用');
         console.log('开始加载所有数据...');
+        
+        // 验证和修复站点信息
+        this.validateAndFixSiteInfo();
         
         // 更新状态为加载中
         this.updateStatus('数据加载中...', 'loading');
@@ -122,6 +151,10 @@
         
         console.log('当前周期:', startISO, 'to', endISO);
         console.log('对比周期:', prevStart, 'to', prevEnd);
+        console.log('当前站点信息:', { 
+          currentSite: this.currentSite, 
+          currentSiteName: this.currentSiteName 
+        });
         
         // 使用Promise.all并行获取数据，避免多次调用
         const [rowsAggA, rowsAggB] = await Promise.all([
@@ -186,17 +219,39 @@
 
     // 获取聚合数据（使用正确的自运营API接口）
     async fetchAggregatedData(startISO, endISO, granularity) {
+      // 确保有正确的站点信息
+      let siteParam = this.currentSite;
+      
+      // 如果没有站点信息，从localStorage获取
+      if (!siteParam) {
+        siteParam = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+        this.currentSite = siteParam;
+        console.log('从localStorage获取站点信息:', siteParam);
+      }
+      
+      // 如果站点是中文名称，转换为正确的站点ID
+      if (siteParam === '自运营robot站' || siteParam === '自运营') {
+        siteParam = 'ae_self_operated_a';
+        this.currentSite = siteParam;
+        console.log('转换中文站点名称为站点ID:', siteParam);
+      }
+      
       const params = new URLSearchParams({
         start: startISO,
         end: endISO,
         granularity: granularity,
-        site: this.currentSite || 'ae_self_operated_a',
+        site: siteParam,
         aggregate: 'product'
       });
 
       const url = `/api/ae_query?${params.toString()}`;
       console.log('请求URL:', url);
       console.log('请求参数:', Object.fromEntries(params));
+      console.log('当前站点信息:', { 
+        currentSite: this.currentSite, 
+        currentSiteName: this.currentSiteName,
+        siteParam: siteParam
+      });
 
       try {
         const response = await fetch(url);
@@ -602,27 +657,40 @@
       return n.toFixed(2) + '%';
     }
 
-         // 页面就绪回调
-     onPageReady(pageInfo) {
-       console.log('自运营页面就绪，开始加载数据:', pageInfo);
-       
-       // 设置当前站点信息
-       this.currentSite = pageInfo.site;
-       this.currentSiteName = pageInfo.siteName;
-       
-       // 更新页面标题显示当前站点名称
-       this.updatePageTitle();
-       
-       // 防止重复加载
-       if (this.pageReadyTriggered) {
-         console.log('页面就绪事件已触发过，跳过重复加载');
-         return;
-       }
-       this.pageReadyTriggered = true;
-       
-       // 开始加载数据
-       this.loadData();
-     }
+             // 页面就绪回调
+    onPageReady(pageInfo) {
+      console.log('自运营页面就绪，开始加载数据:', pageInfo);
+      
+      // 设置当前站点信息
+      this.currentSite = pageInfo.site || localStorage.getItem('currentSite') || 'ae_self_operated_a';
+      this.currentSiteName = pageInfo.siteName || localStorage.getItem('currentSiteName') || '自运营robot站';
+      
+      // 确保localStorage中有正确的站点信息
+      if (!localStorage.getItem('currentSite')) {
+        localStorage.setItem('currentSite', this.currentSite);
+      }
+      if (!localStorage.getItem('currentSiteName')) {
+        localStorage.setItem('currentSiteName', this.currentSiteName);
+      }
+      
+      console.log('站点信息已设置:', { 
+        currentSite: this.currentSite, 
+        currentSiteName: this.currentSiteName 
+      });
+      
+      // 更新页面标题显示当前站点名称
+      this.updatePageTitle();
+      
+      // 防止重复加载
+      if (this.pageReadyTriggered) {
+        console.log('页面就绪事件已触发过，跳过重复加载');
+        return;
+      }
+      this.pageReadyTriggered = true;
+      
+      // 开始加载数据
+      this.loadData();
+    }
 
   
       
