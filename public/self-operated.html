@@ -206,13 +206,19 @@
       text-shadow: none;
     }
     
-    /* 分析KPI卡片网格 */
-    .analysis-kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
+         /* 分析KPI卡片网格 */
+     .analysis-kpi-grid {
+       display: grid;
+       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+       gap: 16px;
+       margin-bottom: 24px;
+     }
+     
+     /* 运营分析KPI卡片特殊样式 - 合并两层为一层 */
+     #analysis .analysis-kpi-grid {
+       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+       gap: 12px;
+     }
     
          .analysis-kpi-card {
        background: white;
@@ -722,44 +728,44 @@
         <div class="analysis-container">
           <h3>运营分析</h3>
           
-          <!-- 运营分析KPI卡片 -->
-          <div id="analysisKpi" class="analysis-kpi-grid">
-            <div class="analysis-kpi-card">
-              <h4>总展示数</h4>
-              <p id="totalExposure">0</p>
-              <div id="exposureComparison" class="kpi-comparison"></div>
-            </div>
-            <div class="analysis-kpi-card">
-              <h4>详情页访客数</h4>
-              <p id="totalVisitors">0</p>
-              <div id="visitorsComparison" class="kpi-comparison"></div>
-            </div>
-            <div class="analysis-kpi-card">
-              <h4>加购次数</h4>
-              <p id="totalAddCount">0</p>
-              <div id="addCountComparison" class="kpi-comparison"></div>
-            </div>
-            <div class="analysis-kpi-card">
-              <h4>订购商品数</h4>
-              <p id="totalPayItems">0</p>
-              <div id="payItemsComparison" class="kpi-comparison"></div>
-            </div>
-            <div class="analysis-kpi-card">
-              <h4>有曝光商品数</h4>
-              <p id="exposedProducts">0</p>
-              <div id="exposedProductsComparison" class="kpi-comparison"></div>
-            </div>
-            <div class="analysis-kpi-card">
-              <h4>有加购商品数</h4>
-              <p id="cartedProducts">0</p>
-              <div id="cartedProductsComparison" class="kpi-comparison"></div>
-            </div>
-            <div class="analysis-kpi-card">
-              <h4>有支付商品数</h4>
-              <p id="paidProducts">0</p>
-              <div id="paidProductsComparison" class="kpi-comparison"></div>
-            </div>
-          </div>
+                     <!-- 运营分析KPI卡片 - 合并为一层 -->
+           <div id="analysisKpi" class="analysis-kpi-grid">
+             <div class="analysis-kpi-card">
+               <h4>总展示数</h4>
+               <p id="totalExposure">0</p>
+               <div id="exposureComparison" class="kpi-comparison"></div>
+             </div>
+             <div class="analysis-kpi-card">
+               <h4>详情页访客数</h4>
+               <p id="totalVisitors">0</p>
+               <div id="visitorsComparison" class="kpi-comparison"></div>
+             </div>
+             <div class="analysis-kpi-card">
+               <h4>加购次数</h4>
+               <p id="totalAddCount">0</p>
+               <div id="addCountComparison" class="kpi-comparison"></div>
+             </div>
+             <div class="analysis-kpi-card">
+               <h4>订购商品数</h4>
+               <p id="totalPayItems">0</p>
+               <div id="payItemsComparison" class="kpi-comparison"></div>
+             </div>
+             <div class="analysis-kpi-card">
+               <h4>有曝光商品数</h4>
+               <p id="exposedProducts">0</p>
+               <div id="exposedProductsComparison" class="kpi-comparison"></div>
+             </div>
+             <div class="analysis-kpi-card">
+               <h4>有加购商品数</h4>
+               <p id="cartedProducts">0</p>
+               <div id="cartedProductsComparison" class="kpi-comparison"></div>
+             </div>
+             <div class="analysis-kpi-card">
+               <h4>有支付商品数</h4>
+               <p id="paidProducts">0</p>
+               <div id="paidProductsComparison" class="kpi-comparison"></div>
+             </div>
+           </div>
           
           <!-- 对比图表 -->
           <div class="charts-grid">
