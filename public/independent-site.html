@@ -34,6 +34,25 @@
       text-align: center;
     }
     
+    /* 防止表格容器出现水平滚动条 */
+    .dataTables_wrapper {
+      overflow-x: hidden !important;
+    }
+    
+    /* 确保表格宽度固定 */
+    #report {
+      width: 100% !important;
+      table-layout: fixed;
+    }
+    
+    /* 强制列宽 */
+    #report th, #report td {
+      box-sizing: border-box;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
     /* 问号图标样式 */
     .help-icon {
       display: inline-block;
@@ -529,32 +548,33 @@
         destroy:true,
         pageLength:20,
         data: [],
-        scrollX:true,
+        scrollX: false,
         fixedHeader:true,
-        autoWidth:false,
+        autoWidth: true,
         processing: true,
+        responsive: false,
         language: {
-          processing: '<div class="loading-message"><div class="loading-spinner"></div><p>努力加载中,请等待片刻。。。</p></div>'
+          processing: '<div class="loading-message"><div class="loading-spinner"></p>努力加载中,请等待片刻。。。</p></div>'
         },
         columns:[
                   { data:'product', render:(v,t,r)=>{
             const name = v || r.landing_path || '';
             return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
-          }},
-          { data:'device', render: v => v || '' },
-          { data:'network', render: v => v || '' },
-          { data:'campaign', render: v => v || '' },
-          { data:'clicks', render: v => v ?? 0 },
-          { data:'impr', render: v => v ?? 0 },
-          { data:'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
-          { data:'avg_cpc', render: v => (v ?? 0).toFixed(2) },
-          { data:'cost', render: v => (v ?? 0).toFixed(2) },
-          { data:'conversions', render: v => v ?? 0 },
-          { data:'cost_per_conv', render: v => (v ?? 0).toFixed(2) },
-          { data:'all_conv', render: v => v ?? 0 },
-          { data:'conv_value', render: v => (v ?? 0).toFixed(2) },
-          { data:'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
-          { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' }
+          }, width: '200px' },
+          { data:'device', render: v => v || '', width: '80px' },
+          { data:'network', render: v => v || '', width: '100px' },
+          { data:'campaign', render: v => v || '', width: '120px' },
+          { data:'clicks', render: v => v ?? 0, width: '80px' },
+          { data:'impr', render: v => v ?? 0, width: '80px' },
+          { data:'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '80px' },
+          { data:'avg_cpc', render: v => (v ?? 0).toFixed(2), width: '100px' },
+          { data:'cost', render: v => (v ?? 0).toFixed(2), width: '100px' },
+          { data:'conversions', render: v => v ?? 0, width: '80px' },
+          { data:'cost_per_conv', render: v => (v ?? 0).toFixed(2), width: '100px' },
+          { data:'all_conv', render: v => v ?? 0, width: '80px' },
+          { data:'conv_value', render: v => (v ?? 0).toFixed(2), width: '100px' },
+          { data:'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '120px' },
+          { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' }
         ]
       });
       
@@ -562,6 +582,12 @@
       dt.column(1).visible(false); // 设备列
       dt.column(2).visible(false); // 网络列
       dt.column(3).visible(false); // Campaign列
+      
+      // 强制重新计算列宽，确保对齐
+      setTimeout(() => {
+        dt.columns.adjust();
+        dt.fixedHeader.adjust();
+      }, 100);
       
       return;
     }
@@ -580,32 +606,33 @@
       destroy:true,
       pageLength:20,
       data,
-      scrollX:true,
+      scrollX: false,
       fixedHeader:true,
-      autoWidth:false,
+      autoWidth: true,
       processing: true,
+      responsive: false,
       language: {
-        processing: '<div class="loading-message"><div class="loading-spinner"></div><p>努力加载中,请等待片刻。。。</p></div>'
+        processing: '<div class="loading-message"><div class="loading-spinner"></p>努力加载中,请等待片刻。。。</p></div>'
       },
       columns:[
         { data:'product', render:(v,t,r)=>{
             const name = v || r.landing_path || '';
             return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
-          }},
-        { data:'device', render: v => v || '' },
-        { data:'network', render: v => v || '' },
-        { data:'campaign', render: v => v || '' },
-        { data:'clicks', render: v => v ?? 0 },
-        { data:'impr', render: v => v ?? 0 },
-        { data:'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
-        { data:'avg_cpc', render: v => (v ?? 0).toFixed(2) },
-        { data:'cost', render: v => (v ?? 0).toFixed(2) },
-        { data:'conversions', render: v => v ?? 0 },
-        { data:'cost_per_conv', render: v => (v ?? 0).toFixed(2) },
-        { data:'all_conv', render: v => v ?? 0 },
-        { data:'conv_value', render: v => (v ?? 0).toFixed(2) },
-        { data:'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' },
-        { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%' }
+          }, width: '200px' },
+        { data:'device', render: v => v || '', width: '80px' },
+        { data:'network', render: v => v || '', width: '100px' },
+        { data:'campaign', render: v => v || '', width: '120px' },
+        { data:'clicks', render: v => v ?? 0, width: '80px' },
+        { data:'impr', render: v => v ?? 0, width: '80px' },
+        { data:'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '80px' },
+        { data:'avg_cpc', render: v => (v ?? 0).toFixed(2), width: '100px' },
+        { data:'cost', render: v => (v ?? 0).toFixed(2), width: '100px' },
+        { data:'conversions', render: v => v ?? 0, width: '80px' },
+        { data:'cost_per_conv', render: v => (v ?? 0).toFixed(2), width: '100px' },
+        { data:'all_conv', render: v => v ?? 0, width: '80px' },
+        { data:'conv_value', render: v => (v ?? 0).toFixed(2), width: '100px' },
+        { data:'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '120px' },
+        { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' }
       ]
     });
     // 默认隐藏筛选列，只作为筛选条件
@@ -617,6 +644,12 @@
     if (showDevice) dt.column(1).visible(true);
     if (showNetwork) dt.column(2).visible(true);
     if (showCampaign) dt.column(3).visible(true);
+    
+    // 强制重新计算列宽，确保对齐
+    setTimeout(() => {
+      dt.columns.adjust();
+      dt.fixedHeader.adjust();
+    }, 100);
   }
 
   $('#columnMenu').on('change','input[type=checkbox]', buildTable);
