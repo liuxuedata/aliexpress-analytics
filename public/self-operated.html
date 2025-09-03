@@ -1038,6 +1038,36 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   }
   
+  // 显示产品分析错误信息
+  function showProductAnalysisError(message) {
+    const errorMsg = document.createElement('div');
+    errorMsg.style.cssText = 'color: #ef4444; text-align: center; padding: 20px; background: #fef2f2; border-radius: 8px; margin: 20px 0; border: 1px solid #fecaca;';
+    errorMsg.textContent = message;
+    
+    const productsSection = document.getElementById('products');
+    if (productsSection) {
+      const existingError = productsSection.querySelector('.error-message');
+      if (existingError) existingError.remove();
+      errorMsg.className = 'error-message';
+      productsSection.insertBefore(errorMsg, productsSection.firstChild);
+    }
+  }
+  
+  // 显示产品数据错误信息
+  function showProductDataError(message) {
+    const errorMsg = document.createElement('div');
+    errorMsg.style.cssText = 'color: #ef4444; text-align: center; padding: 20px; background: #fef2f2; border-radius: 8px; margin: 20px 0; border: 1px solid #fecaca;';
+    errorMsg.textContent = message;
+    
+    const productsSection = document.getElementById('products');
+    if (productsSection) {
+      const existingError = productsSection.querySelector('.error-message');
+      if (existingError) existingError.remove();
+      errorMsg.className = 'error-message';
+      productsSection.insertBefore(errorMsg, productsSection.firstChild);
+    }
+  }
+  
   // 产品分析数据加载
   async function loadProductAnalysisData() {
     try {
@@ -1108,19 +1138,32 @@ document.addEventListener('DOMContentLoaded', ()=>{
   
   // 渲染运营分析图表
   function renderAnalysisCharts(data) {
+    console.log('渲染运营分析图表，数据:', data);
+    
+    // 获取日期标签 - 优先使用bucket，如果没有则使用stat_date
+    const getDateLabel = (item) => {
+      if (item.bucket && item.bucket !== 'undefined') return item.bucket;
+      if (item.stat_date && item.stat_date !== 'undefined') return item.stat_date;
+      if (item.bucket_label && item.bucket_label !== 'undefined') return item.bucket_label;
+      return '未知日期';
+    };
+    
+    const dateLabels = data.map(getDateLabel);
+    console.log('图表日期标签:', dateLabels);
+    
     // 访客趋势图
     const visitorsChart = echarts.init(document.getElementById('visitorsChart'));
     const visitorsOption = {
-      title: { text: '访客趋势', textStyle: { color: '#E5E7EB' } },
+      title: { text: '访客趋势', textStyle: { color: '#374151' } },
       tooltip: { trigger: 'axis' },
       xAxis: { 
         type: 'category', 
-        data: data.map(item => item.stat_date),
-        axisLabel: AXIS_LABEL
+        data: dateLabels,
+        axisLabel: { color: '#374151', fontSize: 12 }
       },
       yAxis: { 
         type: 'value',
-        axisLabel: AXIS_LABEL
+        axisLabel: { color: '#374151', fontSize: 12 }
       },
       series: [{
         data: data.map(item => item.visitors || 0),
@@ -1134,16 +1177,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
     // 加购趋势图
     const addCountChart = echarts.init(document.getElementById('addCountChart'));
     const addCountOption = {
-      title: { text: '加购趋势', textStyle: { color: '#E5E7EB' } },
+      title: { text: '加购趋势', textStyle: { color: '#374151' } },
       tooltip: { trigger: 'axis' },
       xAxis: { 
         type: 'category', 
-        data: data.map(item => item.stat_date),
-        axisLabel: AXIS_LABEL
+        data: dateLabels,
+        axisLabel: { color: '#374151', fontSize: 12 }
       },
       yAxis: { 
         type: 'value',
-        axisLabel: AXIS_LABEL
+        axisLabel: { color: '#374151', fontSize: 12 }
       },
       series: [{
         data: data.map(item => item.add_count || 0),
@@ -1157,17 +1200,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
     // 转化率趋势图
     const conversionChart = echarts.init(document.getElementById('conversionChart'));
     const conversionOption = {
-      title: { text: '转化率趋势', textStyle: { color: '#E5E7EB' } },
+      title: { text: '转化率趋势', textStyle: { color: '#374151' } },
       tooltip: { trigger: 'axis' },
       xAxis: { 
         type: 'category', 
-        data: data.map(item => item.stat_date),
-        axisLabel: AXIS_LABEL
+        data: dateLabels,
+        axisLabel: { color: '#374151', fontSize: 12 }
       },
       yAxis: { 
         type: 'value',
-        axisLabel: AXIS_LABEL,
-        axisLabel: { ...AXIS_LABEL, formatter: '{value}%' }
+        axisLabel: { color: '#374151', fontSize: 12, formatter: '{value}%' }
       },
       series: [{
         data: data.map(item => {
@@ -1185,16 +1227,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
     // 曝光趋势图
     const exposureChart = echarts.init(document.getElementById('exposureChart'));
     const exposureOption = {
-      title: { text: '曝光趋势', textStyle: { color: '#E5E7EB' } },
+      title: { text: '曝光趋势', textStyle: { color: '#374151' } },
       tooltip: { trigger: 'axis' },
       xAxis: { 
         type: 'category', 
-        data: data.map(item => item.stat_date),
-        axisLabel: AXIS_LABEL
+        data: dateLabels,
+        axisLabel: { color: '#374151', fontSize: 12 }
       },
       yAxis: { 
         type: 'value',
-        axisLabel: AXIS_LABEL
+        axisLabel: { color: '#374151', fontSize: 12 }
       },
       series: [{
         data: data.map(item => item.exposure || 0),
@@ -1211,11 +1253,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const productSelect = document.getElementById('productSelect');
     if (!productSelect) return;
     
+    console.log('填充产品选择器，数据:', data);
+    
     // 清空现有选项
     productSelect.innerHTML = '<option value="">选择产品</option>';
     
     // 获取唯一产品ID
     const uniqueProducts = [...new Set(data.map(item => item.product_id))];
+    console.log('唯一产品ID:', uniqueProducts);
     
     uniqueProducts.forEach(productId => {
       const option = document.createElement('option');
@@ -1228,9 +1273,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
     productSelect.addEventListener('change', function() {
       const selectedProductId = this.value;
       if (selectedProductId) {
+        console.log('选择产品:', selectedProductId);
         loadProductData(selectedProductId);
       }
     });
+    
+    // 如果有产品数据，自动选择第一个产品并加载数据
+    if (uniqueProducts.length > 0) {
+      console.log('自动选择第一个产品:', uniqueProducts[0]);
+      productSelect.value = uniqueProducts[0];
+      loadProductData(uniqueProducts[0]);
+    }
   }
   
   // 加载特定产品数据
@@ -1297,19 +1350,32 @@ document.addEventListener('DOMContentLoaded', ()=>{
   
   // 渲染产品图表
   function renderProductCharts(data) {
+    console.log('渲染产品图表，数据:', data);
+    
+    // 获取日期标签 - 优先使用bucket，如果没有则使用stat_date
+    const getDateLabel = (item) => {
+      if (item.bucket && item.bucket !== 'undefined') return item.bucket;
+      if (item.stat_date && item.stat_date !== 'undefined') return item.stat_date;
+      if (item.bucket_label && item.bucket_label !== 'undefined') return item.bucket_label;
+      return '未知日期';
+    };
+    
+    const dateLabels = data.map(getDateLabel);
+    console.log('产品图表日期标签:', dateLabels);
+    
     // 产品曝光趋势图
     const productExposureChart = echarts.init(document.getElementById('productExposureChart'));
     const productExposureOption = {
-      title: { text: '曝光趋势', textStyle: { color: '#E5E7EB' } },
+      title: { text: '曝光趋势', textStyle: { color: '#374151' } },
       tooltip: { trigger: 'axis' },
       xAxis: { 
         type: 'category', 
-        data: data.map(item => item.stat_date),
-        axisLabel: AXIS_LABEL
+        data: dateLabels,
+        axisLabel: { color: '#374151', fontSize: 12 }
       },
       yAxis: { 
         type: 'value',
-        axisLabel: AXIS_LABEL
+        axisLabel: { color: '#374151', fontSize: 12 }
       },
       series: [{
         data: data.map(item => item.exposure || 0),
@@ -1320,8 +1386,86 @@ document.addEventListener('DOMContentLoaded', ()=>{
     };
     productExposureChart.setOption(productExposureOption);
     
-    // 其他图表类似...
-    // 为了简化，这里只实现一个图表，其他可以类似实现
+    // 访客比趋势图
+    const productVisitorRateChart = echarts.init(document.getElementById('productVisitorRateChart'));
+    const productVisitorRateOption = {
+      title: { text: '访客比趋势', textStyle: { color: '#374151' } },
+      tooltip: { trigger: 'axis' },
+      xAxis: { 
+        type: 'category', 
+        data: dateLabels,
+        axisLabel: { color: '#374151', fontSize: 12 }
+      },
+      yAxis: { 
+        type: 'value',
+        axisLabel: { color: '#374151', fontSize: 12, formatter: '{value}%' }
+      },
+      series: [{
+        data: data.map(item => {
+          const exposure = item.exposure || 0;
+          const visitors = item.visitors || 0;
+          return exposure > 0 ? ((visitors / exposure) * 100).toFixed(2) : 0;
+        }),
+        type: 'line',
+        smooth: true,
+        itemStyle: { color: '#10B981' }
+      }]
+    };
+    productVisitorRateChart.setOption(productVisitorRateOption);
+    
+    // 加购比趋势图
+    const productAddRateChart = echarts.init(document.getElementById('productAddRateChart'));
+    const productAddRateOption = {
+      title: { text: '加购比趋势', textStyle: { color: '#374151' } },
+      tooltip: { trigger: 'axis' },
+      xAxis: { 
+        type: 'category', 
+        data: dateLabels,
+        axisLabel: { color: '#374151', fontSize: 12 }
+      },
+      yAxis: { 
+        type: 'value',
+        axisLabel: { color: '#374151', fontSize: 12, formatter: '{value}%' }
+      },
+      series: [{
+        data: data.map(item => {
+          const visitors = item.visitors || 0;
+          const addCount = item.add_count || 0;
+          return visitors > 0 ? ((addCount / visitors) * 100).toFixed(2) : 0;
+        }),
+        type: 'line',
+        smooth: true,
+        itemStyle: { color: '#F59E0B' }
+      }]
+    };
+    productAddRateChart.setOption(productAddRateOption);
+    
+    // 支付比趋势图
+    const productPayRateChart = echarts.init(document.getElementById('productPayRateChart'));
+    const productPayRateOption = {
+      title: { text: '支付比趋势', textStyle: { color: '#374151' } },
+      tooltip: { trigger: 'axis' },
+      xAxis: { 
+        type: 'category', 
+        data: dateLabels,
+        axisLabel: { color: '#374151', fontSize: 12 }
+      },
+      yAxis: { 
+        type: 'value',
+        axisLabel: { color: '#374151', fontSize: 12, formatter: '{value}%' }
+      },
+      series: [{
+        data: data.map(item => {
+          const addCount = item.add_count || 0;
+          const payItems = item.pay_items || 0;
+          return addCount > 0 ? ((payItems / addCount) * 100).toFixed(2) : 0;
+        }),
+        type: 'line',
+        smooth: true,
+        itemStyle: { color: '#EF4444' }
+      }]
+    };
+    productPayRateChart.setOption(productPayRateOption);
   }
   
   const userArea=document.getElementById('userArea');
