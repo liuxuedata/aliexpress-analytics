@@ -402,10 +402,46 @@
        min-width: 200px;
      }
      
-     .product-selector .time-controls .date-filter:focus {
+     .product-selector .time-controls .date-filter:focus,
+     .time-controls .date-filter:focus {
        outline: none;
        border-color: #3b82f6;
        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+     }
+     
+     /* 独立的时间控件样式 */
+     .time-controls {
+       display: flex;
+       align-items: center;
+       gap: 12px;
+       padding: 16px;
+       background: #f9fafb;
+       border-radius: 8px;
+       border: 1px solid #e5e7eb;
+     }
+     
+     .time-controls label {
+       color: #374151;
+       font-weight: 600;
+       font-size: 14px;
+       white-space: nowrap;
+     }
+     
+     .time-controls .date-filter {
+       flex: 1;
+       max-width: 200px;
+       padding: 8px 12px;
+       border: 1px solid #d1d5db;
+       border-radius: 6px;
+       font-size: 14px;
+       transition: all 0.3s ease;
+       min-width: 200px;
+     }
+     
+     .time-controls .notice {
+       color: #6b7280;
+       font-size: 12px;
+       white-space: nowrap;
      }
      
      .product-selector img {
@@ -761,7 +797,7 @@
              <!-- 产品分析 -->
        <section id="products" class="content-pad" style="display:none;">
          <div class="analysis-container">
-           <h3>产品详情分析</h3>
+           <h3 style="font-size: 20px; color: #6b7280; margin-bottom: 10px;">产品详情分析</h3>
            
            <!-- 产品基本信息 -->
            <div class="product-info-panel">
@@ -781,7 +817,7 @@
              </div>
            </div>
           
-                                 <!-- 产品选择器和时间控件 -->
+           <!-- 产品选择器 -->
             <div class="product-selector">
               <div class="controls">
                 <label>产品：</label>
@@ -793,11 +829,13 @@
                   <span>产品总数：<strong id="productTotalCount">0</strong></span>
                 </div>
               </div>
-              <div class="time-controls">
-                <label>时间周期：</label>
-                <input id="productDateFilter" class="date-filter" placeholder="选择日期范围">
-                <span class="notice">（默认显示最近7天）</span>
-              </div>
+            </div>
+            
+            <!-- 时间周期控件 - 移到第二排 -->
+            <div class="time-controls" style="margin-top: 16px;">
+              <label>时间周期：</label>
+              <input id="productDateFilter" class="date-filter" placeholder="选择日期范围">
+              <span class="notice">（默认显示最近7天）</span>
             </div>
            
                        <!-- 产品KPI - 单个产品的KPI指标 -->
