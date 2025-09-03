@@ -1571,6 +1571,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
          if (el) el.style.display = (id === hash ? '' : 'none');
        });
        
+       // 控制主KPI卡片的显示/隐藏
+       const uploadSection = document.querySelector('.upload-section');
+       if (uploadSection) {
+         if (hash === 'products') {
+           // 产品分析页面隐藏主KPI卡片
+           uploadSection.style.display = 'none';
+         } else {
+           // 其他页面显示主KPI卡片
+           uploadSection.style.display = '';
+         }
+       }
+       
        // 根据路由加载相应数据
        if (hash === 'analysis') {
          loadAnalysisData();
