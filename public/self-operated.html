@@ -1574,13 +1574,20 @@ document.addEventListener('DOMContentLoaded', ()=>{
        // 控制主KPI卡片的显示/隐藏
        const uploadSection = document.querySelector('.upload-section');
        if (uploadSection) {
+         console.log('找到upload-section，当前hash:', hash);
          if (hash === 'products') {
            // 产品分析页面隐藏主KPI卡片
+           console.log('隐藏KPI卡片');
            uploadSection.style.display = 'none';
+           console.log('KPI卡片隐藏后的display值:', uploadSection.style.display);
          } else {
            // 其他页面显示主KPI卡片
+           console.log('显示KPI卡片');
            uploadSection.style.display = '';
+           console.log('KPI卡片显示后的display值:', uploadSection.style.display);
          }
+       } else {
+         console.log('未找到upload-section元素');
        }
        
        // 根据路由加载相应数据
