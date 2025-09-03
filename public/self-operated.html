@@ -1106,15 +1106,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
 
-  // 初始化站点显示
-  updateCurrentSiteDisplay();
-  
-  // 监听 localStorage 变化
-  window.addEventListener('storage', (e) => {
-    if (e.key === 'currentSite' || e.key === 'currentSiteName') {
-      updateCurrentSiteDisplay();
-    }
-  });
+      // 初始化站点显示
+    updateCurrentSiteDisplay();
+    
+    // 初始化主页面时间控件
+    initializeMainDateFilter();
+    
+    // 监听 localStorage 变化
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'currentSite' || e.key === 'currentSiteName') {
+        updateCurrentSiteDisplay();
+      }
+    });
   
   // 平台切换处理 - 通用机制
   function handlePlatformSwitch(platform) {
@@ -1336,6 +1339,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
           onChange: function(selectedDates, dateStr) {
             if (selectedDates.length === 2) {
               console.log('产品分析时间范围变更:', dateStr);
+              // 同步主页面时间控件
+              const mainDateFilter = document.getElementById('dateFilter');
+              if (mainDateFilter) {
+                mainDateFilter.value = dateStr;
+                // 触发主页面时间变更事件
+                const event = new Event('change', { bubbles: true });
+                mainDateFilter.dispatchEvent(event);
+              }
               // 重新加载产品数据
               const currentProductId = document.getElementById('productSelect').value;
               if (currentProductId) {
@@ -1350,6 +1361,43 @@ document.addEventListener('DOMContentLoaded', ()=>{
       }
     }
   
+  // 初始化主页面时间控件
+  function initializeMainDateFilter() {
+    const mainDateFilter = document.getElementById('dateFilter');
+    if (!mainDateFilter) return;
+    
+    // 设置默认日期范围（最近7天）
+    const today = new Date();
+    const end = today.toISOString().slice(0, 10);
+    const start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    
+    // 使用flatpickr初始化日期选择器
+    if (window.flatpickr) {
+      const picker = flatpickr(mainDateFilter, {
+        mode: 'range',
+        dateFormat: 'Y-m-d',
+        defaultDate: [start, end],
+        onChange: function(selectedDates, dateStr) {
+          if (selectedDates.length === 2) {
+            console.log('主页面时间范围变更:', dateStr);
+            // 同步产品分析页面时间控件
+            const productDateFilter = document.getElementById('productDateFilter');
+            if (productDateFilter) {
+              productDateFilter.value = dateStr;
+            }
+            // 重新加载数据
+            if (typeof fetchAndRenderAll === 'function') {
+              fetchAndRenderAll();
+            }
+          }
+        }
+      });
+      
+      // 设置初始值
+      mainDateFilter.value = `${start} to ${end}`;
+    }
+  }
+  
   // 获取日期范围
   function getDateRange() {
     const input = document.getElementById('dateFilter');
@@ -1359,7 +1407,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
     const today = new Date();
     const end = today.toISOString().slice(0, 10);
-    const start = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime() - 30 * 86400000).toISOString().slice(0, 10);
+    const start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     return { start, end };
   }
   

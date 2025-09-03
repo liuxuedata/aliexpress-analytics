@@ -156,7 +156,7 @@
       }else{
         const now=new Date();
         endISO = now.toISOString().slice(0,10);
-        startISO = new Date(now.getTime()-6*86400000).toISOString().slice(0,10);
+        startISO = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0,10);
         $('#dateFilter').val(`${startISO} to ${endISO}`);
         if(window.fp) window.fp.setDate([startISO,endISO], true, 'Y-m-d');
       }
@@ -288,9 +288,16 @@
     e.target.value='';
   });
 
+  // 设置默认日期范围（最近7天）
+  const today = new Date();
+  const end = today.toISOString().slice(0, 10);
+  const start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const defaultRange = `${start} to ${end}`;
+  
   window.fp = flatpickr('#dateFilter',{
     mode:'range',
     dateFormat:'Y-m-d',
+    defaultDate: [start, end],
     onClose:(ds)=>{
       if(ds.length===2){
         const s=ds[0].toISOString().slice(0,10);
@@ -300,11 +307,17 @@
       }
     }
   });
+  
+  // 优先使用存储的日期范围，如果没有则使用默认的最近7天
   const stored = localStorage.getItem('ozonRange');
   if(stored && stored.includes(' to ')){
     $('#dateFilter').val(stored);
     window.fp.setDate(stored.split(' to '), true, 'Y-m-d');
+  } else {
+    $('#dateFilter').val(defaultRange);
+    localStorage.setItem('ozonRange', defaultRange);
   }
+  
   loadData().catch(err=>console.error(err));
 })();
 </script>
