@@ -187,22 +187,23 @@
 
     /* 新增：优化运营分析和产品分析页面的UI */
     
-    /* 分析页面容器样式 */
+    /* 分析页面容器样式 - 改为白色背景与主页面一致 */
     .analysis-container {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 16px;
+      background: white;
+      border-radius: 12px;
       padding: 24px;
       margin-bottom: 24px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e5e7eb;
     }
     
     .analysis-container h3 {
-      color: white;
+      color: #374151;
       font-size: 24px;
       font-weight: 600;
       margin: 0 0 20px 0;
       text-align: center;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      text-shadow: none;
     }
     
     /* 分析KPI卡片网格 */
@@ -214,7 +215,7 @@
     }
     
     .analysis-kpi-card {
-      background: rgba(255, 255, 255, 0.95);
+      background: white;
       border-radius: 12px;
       padding: 20px;
       text-align: center;
@@ -226,7 +227,7 @@
     .analysis-kpi-card:hover {
       transform: translateY(-4px);
       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-      border-color: rgba(255, 255, 255, 0.3);
+      border-color: rgba(59, 130, 246, 0.3);
     }
     
     .analysis-kpi-card h4 {
@@ -254,11 +255,12 @@
     }
     
     .chart-panel {
-      background: rgba(255, 255, 255, 0.95);
+      background: white;
       border-radius: 12px;
       padding: 20px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
       transition: all 0.3s ease;
+      border: 1px solid #e5e7eb;
     }
     
     .chart-panel:hover {
@@ -277,11 +279,12 @@
     
     /* 产品选择器样式 */
     .product-selector {
-      background: rgba(255, 255, 255, 0.95);
+      background: white;
       border-radius: 12px;
       padding: 20px;
       margin-bottom: 20px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e5e7eb;
     }
     
     .product-selector .controls {
@@ -983,15 +986,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
       
       console.log('开始加载运营分析数据:', { dateRange, currentSite });
       
-      // 获取当前周期数据 - 使用正确的API端点
-      const currentResponse = await fetch('/api/stats', {
+      // 获取当前周期数据 - 使用正确的API端点和参数
+      const currentResponse = await fetch('/api/ae_query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           start: dateRange.start,
           end: dateRange.end,
           granularity: 'day',
-          site: currentSite
+          site: currentSite,
+          aggregate: true
         })
       });
       
@@ -1009,21 +1013,26 @@ document.addEventListener('DOMContentLoaded', ()=>{
         renderAnalysisCharts(currentData.data);
       } else {
         console.warn('运营分析数据格式不正确:', currentData);
+        showAnalysisError('数据格式不正确，请检查API响应');
       }
     } catch (error) {
       console.error('加载运营分析数据失败:', error);
-      // 显示错误信息给用户
-      const errorMsg = document.createElement('div');
-      errorMsg.style.cssText = 'color: #ef4444; text-align: center; padding: 20px; background: #fef2f2; border-radius: 8px; margin: 20px 0;';
-      errorMsg.textContent = `加载运营分析数据失败: ${error.message}`;
-      
-      const analysisSection = document.getElementById('analysis');
-      if (analysisSection) {
-        const existingError = analysisSection.querySelector('.error-message');
-        if (existingError) existingError.remove();
-        errorMsg.className = 'error-message';
-        analysisSection.insertBefore(errorMsg, analysisSection.firstChild);
-      }
+      showAnalysisError(`加载运营分析数据失败: ${error.message}`);
+    }
+  }
+  
+  // 显示运营分析错误信息
+  function showAnalysisError(message) {
+    const errorMsg = document.createElement('div');
+    errorMsg.style.cssText = 'color: #ef4444; text-align: center; padding: 20px; background: #fef2f2; border-radius: 8px; margin: 20px 0; border: 1px solid #fecaca;';
+    errorMsg.textContent = message;
+    
+    const analysisSection = document.getElementById('analysis');
+    if (analysisSection) {
+      const existingError = analysisSection.querySelector('.error-message');
+      if (existingError) existingError.remove();
+      errorMsg.className = 'error-message';
+      analysisSection.insertBefore(errorMsg, analysisSection.firstChild);
     }
   }
   
