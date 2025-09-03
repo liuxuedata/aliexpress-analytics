@@ -981,29 +981,49 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const dateRange = getDateRange();
       const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
       
-      // 获取当前周期数据
-      const currentResponse = await fetch('/api/ae_query', {
+      console.log('开始加载运营分析数据:', { dateRange, currentSite });
+      
+      // 获取当前周期数据 - 使用正确的API端点
+      const currentResponse = await fetch('/api/stats', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           start: dateRange.start,
           end: dateRange.end,
           granularity: 'day',
-          site: currentSite,
-          aggregate: true
+          site: currentSite
         })
       });
       
+      if (!currentResponse.ok) {
+        throw new Error(`API响应错误: ${currentResponse.status} ${currentResponse.statusText}`);
+      }
+      
       const currentData = await currentResponse.json();
+      console.log('运营分析数据响应:', currentData);
       
       if (currentData.ok && currentData.data) {
         // 更新KPI卡片
         updateAnalysisKPI(currentData.data);
         // 渲染图表
         renderAnalysisCharts(currentData.data);
+      } else {
+        console.warn('运营分析数据格式不正确:', currentData);
       }
     } catch (error) {
       console.error('加载运营分析数据失败:', error);
+      // 显示错误信息给用户
+      const errorMsg = document.createElement('div');
+      errorMsg.style.cssText = 'color: #ef4444; text-align: center; padding: 20px; background: #fef2f2; border-radius: 8px; margin: 20px 0;';
+      errorMsg.textContent = `加载运营分析数据失败: ${error.message}`;
+      
+      const analysisSection = document.getElementById('analysis');
+      if (analysisSection) {
+        const existingError = analysisSection.querySelector('.error-message');
+        if (existingError) existingError.remove();
+        errorMsg.className = 'error-message';
+        analysisSection.insertBefore(errorMsg, analysisSection.firstChild);
+      }
     }
   }
   
