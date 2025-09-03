@@ -274,7 +274,8 @@
         let pe = 0, pc = 0, pp = 0;
         products.forEach(v => {
           if (v.exp > 0) pe++;
-          if (v.add > 0) pc++;
+          // 仅统计加购人数大于1的商品
+          if (v.add > 1) pc++;
           if (v.pay > 0) pp++;
         });
         
@@ -508,13 +509,15 @@
           tr.addEventListener('dblclick', (e) => {
             // 如果点击的是商品ID列，不处理
             if (e.target.cellIndex === 0) return;
-            
+
             // 获取商品ID
             const productId = row.product_id;
             if (productId) {
-              console.log('双击行数据，跳转到产品分析页:', productId);
-              // 跳转到产品分析页
-              window.open(`product-analysis.html?mode=self&pid=${productId}`, '_blank');
+              console.log('双击行数据，跳转到本页产品分析:', productId);
+              // 保存选中的产品ID供产品分析页使用
+              localStorage.setItem('selectedProductId', productId);
+              // 跳转到自运营页面的产品分析标签页
+              window.location.href = `self-operated.html#products`;
             }
           });
           

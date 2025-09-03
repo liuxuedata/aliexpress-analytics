@@ -310,13 +310,14 @@
        text-shadow: none;
      }
      
-     /* 图表容器样式优化 - 让曲线延伸到KPI框内 */
-     .chart-panel .echarts-for-react,
-     .chart-panel div[id*="Chart"] {
-       width: 100% !important;
-       height: 100% !important;
-       min-height: 300px;
-     }
+    /* 图表容器样式优化 - 让曲线延伸到KPI框内 */
+    .chart-panel .echarts-for-react,
+    .chart-panel div[id*="Chart"] {
+      width: calc(100% + 40px) !important;
+      height: calc(100% + 40px) !important;
+      margin: -20px;
+      min-height: 320px;
+    }
      
      /* 产品分析页面的图表特殊样式 */
      #products .chart-panel {
@@ -324,12 +325,12 @@
        min-height: 350px;
      }
      
-     #products .chart-panel div[id*="Chart"] {
-       min-height: 280px;
-       margin: -12px;
-       width: calc(100% + 24px) !important;
-       height: calc(100% + 24px) !important;
-     }
+    #products .chart-panel div[id*="Chart"] {
+      min-height: 300px;
+      margin: -24px;
+      width: calc(100% + 48px) !important;
+      height: calc(100% + 48px) !important;
+    }
     
     /* 产品选择器样式 */
     .product-selector {
@@ -724,10 +725,8 @@
       </section>
 
       <!-- 运营分析 -->
-      <section id="analysis" class="content-pad" style="display:none;">
-        <div class="analysis-container">
-          <h3>运营分析</h3>
-          
+      <section id="analysis" class="analysis-container" style="display:none;">
+
                      <!-- 运营分析KPI卡片 - 合并为一层 -->
            <div id="analysisKpi" class="analysis-kpi-grid">
              <div class="analysis-kpi-card">
@@ -798,12 +797,10 @@
               <div id="paidProductsComparisonChart" style="width:100%;height:300px;"></div>
             </div>
           </div>
-        </div>
       </section>
              <!-- 产品分析 -->
-       <section id="products" class="content-pad" style="display:none;">
-         <div class="analysis-container">
-           <h3 style="font-size: 20px; color: #6b7280; margin-bottom: 10px;">产品详情分析</h3>
+      <section id="products" class="analysis-container" style="display:none;">
+          <h3 style="font-size: 20px; color: #6b7280; margin-bottom: 10px;">产品详情分析</h3>
            
            <!-- 产品基本信息 -->
            <div class="product-info-panel">
@@ -836,7 +833,7 @@
             </div>
           </div>
           </div>
-            
+
             <!-- 时间周期控件 - 移到第二排 -->
             <div class="time-controls" style="margin-top: 16px;">
               <label>时间周期：</label>
@@ -902,7 +899,7 @@
               <div id="productPayRateChart" style="width:100%;height:260px;"></div>
             </div>
           </div>
-        </div>
+          </div>
       </section>
     </div>
   </main>
@@ -1372,9 +1369,15 @@ document.addEventListener('DOMContentLoaded', ()=>{
           
           // 填充产品选择器
           populateProductSelect(sortedProducts);
-          
-          // 默认选择曝光量最大的产品
-          if (sortedProducts.length > 0) {
+
+          // 如果有从列表页传递的产品ID，优先展示该产品
+          const storedPid = localStorage.getItem('selectedProductId');
+          if (storedPid && sortedProducts.some(p => p.product_id === storedPid)) {
+            document.getElementById('productSelect').value = storedPid;
+            await loadProductData(storedPid);
+            localStorage.removeItem('selectedProductId');
+          } else if (sortedProducts.length > 0) {
+            // 默认选择曝光量最大的产品
             const topProduct = sortedProducts[0];
             console.log('默认选择曝光量最大的产品:', topProduct.product_id);
             document.getElementById('productSelect').value = topProduct.product_id;
@@ -1493,7 +1496,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
      
      // 计算商品数量（去重）
      const exposedProducts = new Set(data.filter(item => item.exposure > 0).map(item => item.product_id)).size;
-     const cartedProducts = new Set(data.filter(item => item.add_people > 0).map(item => item.product_id)).size; // 使用add_people字段判断有加购商品数
+    const cartedProducts = new Set(data.filter(item => item.add_people > 1).map(item => item.product_id)).size; // 使用add_people字段判断有加购商品数
      const paidProducts = new Set(data.filter(item => item.pay_items > 0).map(item => item.product_id)).size;
     
     console.log('KPI计算结果:', {
@@ -1530,7 +1533,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
        addCount: data.reduce((sum, item) => sum + (item.add_people || 0), 0), // 使用add_people字段计算加购次数
        payItems: data.reduce((sum, item) => sum + (item.pay_items || 0), 0),
        exposedProducts: new Set(data.filter(item => item.exposure > 0).map(item => item.product_id)).size,
-       cartedProducts: new Set(data.filter(item => item.add_people > 0).map(item => item.product_id)).size, // 使用add_people字段判断有加购商品数
+      cartedProducts: new Set(data.filter(item => item.add_people > 1).map(item => item.product_id)).size, // 使用add_people字段判断有加购商品数
        paidProducts: new Set(data.filter(item => item.pay_items > 0).map(item => item.product_id)).size
      };
      
@@ -1541,7 +1544,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
        addCount: previousData.reduce((sum, item) => sum + (item.add_people || 0), 0), // 使用add_people字段计算加购次数
        payItems: previousData.reduce((sum, item) => sum + (item.pay_items || 0), 0),
        exposedProducts: new Set(previousData.filter(item => item.exposure > 0).map(item => item.product_id)).size,
-       cartedProducts: new Set(previousData.filter(item => item.add_people > 0).map(item => item.product_id)).size, // 使用add_people字段判断有加购商品数
+      cartedProducts: new Set(previousData.filter(item => item.add_people > 1).map(item => item.product_id)).size, // 使用add_people字段判断有加购商品数
        paidProducts: new Set(previousData.filter(item => item.pay_items > 0).map(item => item.product_id)).size
      } : null;
     
@@ -2117,11 +2120,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
          const productId = target.getAttribute('data-pid');
          console.log('双击产品ID:', productId);
          
-         // 跳转到产品分析页面
-         window.location.href = `self-operated.html#products?pid=${productId}`;
-       }
-     });
-   }
+        // 保存选中的产品ID并跳转到产品分析页面
+        localStorage.setItem('selectedProductId', productId);
+        window.location.href = `self-operated.html#products`;
+      }
+    });
+  }
   
   // 监听hash变化
   window.addEventListener('hashchange', handleHashRoute);
