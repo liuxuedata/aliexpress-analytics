@@ -662,29 +662,24 @@
              </div>
            </div>
           
-          <!-- 产品KPI -->
-          <div id="productKpi" class="analysis-kpi-grid">
-            <div class="analysis-kpi-card">
-              <h4>曝光量</h4>
-              <p id="productExposure">0</p>
-              <div id="productExposureComparison" class="kpi-comparison"></div>
-            </div>
-            <div class="analysis-kpi-card">
-              <h4>访客数</h4>
-              <p id="productVisitors">0</p>
-              <div id="productVisitorsComparison" class="kpi-comparison"></div>
-            </div>
-            <div class="analysis-kpi-card">
-              <h4>加购数</h4>
-              <p id="productAddCount">0</p>
-              <div id="productAddCountComparison" class="kpi-comparison"></div>
-            </div>
-            <div class="analysis-kpi-card">
-              <h4>支付数</h4>
-              <p id="productPayItems">0</p>
-              <div id="productPayItemsComparison" class="kpi-comparison"></div>
-            </div>
-          </div>
+                     <!-- 产品选择器 -->
+           <div class="product-selector">
+             <div class="controls">
+               <label>产品：</label>
+               <select id="productSelect" class="sel">
+                 <option value="">加载中...</option>
+               </select>
+               <span class="notice">（按曝光量排序）</span>
+             </div>
+           </div>
+           
+           <!-- 产品KPI - 只保留产品总数，做小一点 -->
+           <div id="productKpi" class="analysis-kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+             <div class="analysis-kpi-card" style="padding: 16px;">
+               <h4 style="font-size: 12px; margin-bottom: 8px;">产品总数</h4>
+               <p id="productTotalCount" style="font-size: 20px;">0</p>
+             </div>
+           </div>
           
           <!-- 产品趋势图表 -->
           <div id="productCharts" class="charts-grid" style="display:none;">
@@ -1130,25 +1125,57 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   }
   
-     // 产品分析数据加载 - 现在从hash参数获取产品ID
+     // 产品分析数据加载 - 加载产品列表并按曝光量排序
    async function loadProductAnalysisData() {
      try {
-       // 从hash参数获取产品ID
-       const hash = window.location.hash;
-       const pidMatch = hash.match(/[?&]pid=([^&]+)/);
-       const productId = pidMatch ? pidMatch[1] : null;
+       const dateRange = getDateRange();
+       const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
        
-       if (!productId) {
-         // 如果没有产品ID，显示提示信息
-         showProductAnalysisError('请从数据明细表双击产品ID进入产品详情页');
-         return;
+       console.log('开始加载产品分析数据:', { dateRange, currentSite });
+       
+       // 构建查询参数 - 使用GET请求而不是POST
+       const queryParams = new URLSearchParams({
+         start: dateRange.start,
+         end: dateRange.end,
+         granularity: 'day',
+         site: currentSite,
+         aggregate: 'product'  // 使用'product'获取产品级别的数据
+       });
+       
+       // 获取产品列表 - 使用GET请求
+       const productsResponse = await fetch(`/api/ae_query?${queryParams.toString()}`, {
+         method: 'GET',
+         headers: { 'Content-Type': 'application/json' }
+       });
+       
+       if (!productsResponse.ok) {
+         throw new Error(`API响应错误: ${productsResponse.status} ${productsResponse.statusText}`);
        }
        
-       console.log('加载产品分析数据，产品ID:', productId);
+       const productsData = await productsResponse.json();
+       console.log('产品列表数据响应:', productsData);
        
-       // 直接加载指定产品的数据
-       await loadProductData(productId);
-       
+       if (productsData.ok && productsData.rows) {
+         // 按曝光量排序产品
+         const sortedProducts = productsData.rows.sort((a, b) => (b.exposure || 0) - (a.exposure || 0));
+         
+         // 更新产品总数
+         document.getElementById('productTotalCount').textContent = sortedProducts.length;
+         
+         // 填充产品选择器
+         populateProductSelect(sortedProducts);
+         
+         // 默认选择曝光量最大的产品
+         if (sortedProducts.length > 0) {
+           const topProduct = sortedProducts[0];
+           console.log('默认选择曝光量最大的产品:', topProduct.product_id);
+           document.getElementById('productSelect').value = topProduct.product_id;
+           await loadProductData(topProduct.product_id);
+         }
+       } else {
+         console.warn('产品列表数据格式不正确:', productsData);
+         showProductAnalysisError('数据格式不正确，请检查API响应');
+       }
      } catch (error) {
        console.error('加载产品分析数据失败:', error);
        showProductAnalysisError(`加载产品分析数据失败: ${error.message}`);
@@ -1303,43 +1330,34 @@ document.addEventListener('DOMContentLoaded', ()=>{
     exposureChart.setOption(exposureOption);
   }
   
-  // 填充产品选择器
-  function populateProductSelect(data) {
-    const productSelect = document.getElementById('productSelect');
-    if (!productSelect) return;
-    
-    console.log('填充产品选择器，数据:', data);
-    
-    // 清空现有选项
-    productSelect.innerHTML = '<option value="">选择产品</option>';
-    
-    // 获取唯一产品ID
-    const uniqueProducts = [...new Set(data.map(item => item.product_id))];
-    console.log('唯一产品ID:', uniqueProducts);
-    
-    uniqueProducts.forEach(productId => {
-      const option = document.createElement('option');
-      option.value = productId;
-      option.textContent = `产品 ${productId}`;
-      productSelect.appendChild(option);
-    });
-    
-    // 添加产品选择事件
-    productSelect.addEventListener('change', function() {
-      const selectedProductId = this.value;
-      if (selectedProductId) {
-        console.log('选择产品:', selectedProductId);
-        loadProductData(selectedProductId);
-      }
-    });
-    
-    // 如果有产品数据，自动选择第一个产品并加载数据
-    if (uniqueProducts.length > 0) {
-      console.log('自动选择第一个产品:', uniqueProducts[0]);
-      productSelect.value = uniqueProducts[0];
-      loadProductData(uniqueProducts[0]);
-    }
-  }
+     // 填充产品选择器
+   function populateProductSelect(data) {
+     const productSelect = document.getElementById('productSelect');
+     if (!productSelect) return;
+     
+     console.log('填充产品选择器，数据:', data);
+     
+     // 清空现有选项
+     productSelect.innerHTML = '<option value="">选择产品</option>';
+     
+     // 按曝光量排序显示产品（data已经是排序后的）
+     data.forEach(item => {
+       const option = document.createElement('option');
+       option.value = item.product_id;
+       const exposure = item.exposure || 0;
+       option.textContent = `${item.product_id} (曝光: ${exposure.toLocaleString()})`;
+       productSelect.appendChild(option);
+     });
+     
+     // 添加产品选择事件
+     productSelect.addEventListener('change', function() {
+       const selectedProductId = this.value;
+       if (selectedProductId) {
+         console.log('选择产品:', selectedProductId);
+         loadProductData(selectedProductId);
+       }
+     });
+   }
   
      // 加载特定产品数据
    async function loadProductData(productId) {
@@ -1394,18 +1412,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
      }
    }
   
-  // 更新产品KPI
-  function updateProductKPI(data) {
-    const totalExposure = data.reduce((sum, item) => sum + (item.exposure || 0), 0);
-    const totalVisitors = data.reduce((sum, item) => sum + (item.visitors || 0), 0);
-    const totalAddCount = data.reduce((sum, item) => sum + (item.add_count || 0), 0);
-    const totalPayItems = data.reduce((sum, item) => sum + (item.pay_items || 0), 0);
-    
-    document.getElementById('productExposure').textContent = totalExposure.toLocaleString();
-    document.getElementById('productVisitors').textContent = totalVisitors.toLocaleString();
-    document.getElementById('productAddCount').textContent = totalAddCount.toLocaleString();
-    document.getElementById('productPayItems').textContent = totalPayItems.toLocaleString();
-  }
+     // 更新产品KPI - 现在只更新产品总数，其他数据在图表中显示
+   function updateProductKPI(data) {
+     // 产品总数已经在loadProductAnalysisData中更新
+     console.log('产品数据已加载，共', data.length, '条记录');
+   }
   
   // 渲染产品图表
   function renderProductCharts(data) {
