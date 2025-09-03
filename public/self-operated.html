@@ -736,6 +736,8 @@
                   <option value="">加载中...</option>
                 </select>
                 <span class="notice">（按曝光量排序）</span>
+                <a id="productLink" href="#" target="_blank" style="margin-left:8px;display:none;word-break:break-all;white-space:normal;flex:1 1 auto;"></a>
+                <span id="listingDate" style="margin-left:8px;"></span>
                 <div class="product-count-info">
                   <span>产品总数：<strong id="productTotalCount">0</strong></span>
                 </div>
@@ -1589,10 +1591,26 @@ document.addEventListener('DOMContentLoaded', ()=>{
           // 过滤出指定产品的数据
           const productData = data.rows.filter(item => item.product_id === productId);
           if (productData.length > 0) {
+            const dates = productData.map(item => item.day || item.date || '').filter(Boolean).sort();
+            const listingEl = document.getElementById('listingDate');
+            if (listingEl) {
+              listingEl.textContent = dates.length ? `上架日期：${dates[0]}` : '';
+            }
+            const url = `https://aliexpress.com/item/${productId}.html`;
+            const linkEl = document.getElementById('productLink');
+            if (linkEl) {
+              linkEl.href = url;
+              linkEl.textContent = url;
+              linkEl.style.display = '';
+            }
             updateProductKPI(productData);
             renderProductCharts(productData);
             document.getElementById('productCharts').style.display = 'grid';
           } else {
+            const linkEl = document.getElementById('productLink');
+            if (linkEl) linkEl.style.display = 'none';
+            const listingEl = document.getElementById('listingDate');
+            if (listingEl) listingEl.textContent = '';
             showProductDataError('未找到该产品的数据');
           }
         } else {
