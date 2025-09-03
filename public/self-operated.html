@@ -58,10 +58,12 @@
     }
     
     /* 使用全局UI系统的样式，移除旧的骨架屏样式 */
+    .loading-state {
       text-align: center;
       background: #f8fafc;
       border-radius: 8px;
       margin: 20px 0;
+      padding: 40px 20px;
     }
     
     .loading-bar {
@@ -130,59 +132,257 @@
       font-size: 12px;
     }
     
-            .legend-list a:hover {
-          text-decoration: underline;
-        }
-        
-        /* KPI对比数据样式 */
-        .kpi-comparison {
-          margin-top: 0.5rem;
-          font-size: 0.875rem;
-          font-weight: 500;
-          text-align: center;
-        }
-        
-        .kpi-comparison .text-green-600 {
-          color: #059669;
-        }
-        
-        .kpi-comparison .text-red-600 {
-          color: #dc2626;
-        }
-        
-        .kpi-comparison .text-gray-500 {
-          color: #6b7280;
-        }
-        
-        /* 状态显示样式 */
-        .status-display {
-          padding: 8px 16px;
-          border-radius: 6px;
-          font-size: 14px;
-          font-weight: 500;
-          min-width: 120px;
-          text-align: center;
-          transition: all 0.3s ease;
-        }
-        
-        .status-display.loading {
-          background: rgba(59, 130, 246, 0.1);
-          color: #1d4ed8;
-          border: 1px solid rgba(59, 130, 246, 0.2);
-        }
-        
-        .status-display.success {
-          background: rgba(34, 197, 94, 0.1);
-          color: #166534;
-          border: 1px solid rgba(34, 197, 94, 0.2);
-        }
-        
-        .status-display.error {
-          background: rgba(239, 68, 68, 0.1);
-          color: #dc2626;
-          border: 1px solid rgba(239, 68, 68, 0.2);
-        }
-      </style>
+    .legend-list a:hover {
+      text-decoration: underline;
+    }
+    
+    /* KPI对比数据样式 */
+    .kpi-comparison {
+      margin-top: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-align: center;
+    }
+    
+    .kpi-comparison .text-green-600 {
+      color: #059669;
+    }
+    
+    .kpi-comparison .text-red-600 {
+      color: #dc2626;
+    }
+    
+    .kpi-comparison .text-gray-500 {
+      color: #6b7280;
+    }
+    
+    /* 状态显示样式 */
+    .status-display {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      min-width: 120px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    
+    .status-display.loading {
+      background: rgba(59, 130, 246, 0.1);
+      color: #1d4ed8;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+    
+    .status-display.success {
+      background: rgba(34, 197, 94, 0.1);
+      color: #166534;
+      border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+    
+    .status-display.error {
+      background: rgba(239, 68, 68, 0.1);
+      color: #dc2626;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    /* 新增：优化运营分析和产品分析页面的UI */
+    
+    /* 分析页面容器样式 */
+    .analysis-container {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .analysis-container h3 {
+      color: white;
+      font-size: 24px;
+      font-weight: 600;
+      margin: 0 0 20px 0;
+      text-align: center;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* 分析KPI卡片网格 */
+    .analysis-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    
+    .analysis-kpi-card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+    
+    .analysis-kpi-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+    
+    .analysis-kpi-card h4 {
+      color: #374151;
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0 0 12px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .analysis-kpi-card p {
+      color: #1f2937;
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* 图表网格布局 */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+    }
+    
+    .chart-panel {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+    }
+    
+    .chart-panel:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    .chart-panel h3 {
+      color: #374151;
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0 0 16px 0;
+      text-align: center;
+      text-shadow: none;
+    }
+    
+    /* 产品选择器样式 */
+    .product-selector {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .product-selector .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    
+    .product-selector label {
+      font-weight: 600;
+      color: #374151;
+      min-width: 60px;
+    }
+    
+    .product-selector .sel {
+      min-width: 200px;
+      padding: 8px 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+    
+    .product-selector .sel:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .product-selector img {
+      border-radius: 8px;
+      border: 2px solid #e5e7eb;
+    }
+    
+    .product-selector a {
+      color: #3b82f6;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+    
+    .product-selector a:hover {
+      color: #2563eb;
+      text-decoration: underline;
+    }
+    
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+      .analysis-container {
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      
+      .analysis-kpi-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+      }
+      
+      .charts-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      
+      .product-selector .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .product-selector .sel {
+        min-width: auto;
+        width: 100%;
+      }
+    }
+    
+    /* 动画效果 */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .analysis-container {
+      animation: fadeInUp 0.6s ease-out;
+    }
+    
+    .analysis-kpi-card {
+      animation: fadeInUp 0.6s ease-out;
+      animation-fill-mode: both;
+    }
+    
+    .analysis-kpi-card:nth-child(1) { animation-delay: 0.1s; }
+    .analysis-kpi-card:nth-child(2) { animation-delay: 0.2s; }
+    .analysis-kpi-card:nth-child(3) { animation-delay: 0.3s; }
+    .analysis-kpi-card:nth-child(4) { animation-delay: 0.4s; }
+  </style>
 </head>
 <body class="fm">
 <div id="loginOverlay" class="login-overlay" style="display:none">
@@ -333,27 +533,27 @@
 
       <!-- 运营分析 -->
       <section id="analysis" class="content-pad" style="display:none;">
-        <div class="chart-container">
-          <h3>运营分析</h3>
+        <div class="analysis-container">
+          <h3>📊 运营分析</h3>
           
           <!-- 运营分析KPI卡片 -->
-          <div id="analysisKpi" class="kpi-grid">
-            <div class="kpi-card info">
+          <div id="analysisKpi" class="analysis-kpi-grid">
+            <div class="analysis-kpi-card">
               <h4>总曝光量</h4>
               <p id="totalExposure">0</p>
               <div id="exposureComparison" class="kpi-comparison"></div>
             </div>
-            <div class="kpi-card success">
+            <div class="analysis-kpi-card">
               <h4>总访客数</h4>
               <p id="totalVisitors">0</p>
               <div id="visitorsComparison" class="kpi-comparison"></div>
             </div>
-            <div class="kpi-card warning">
+            <div class="analysis-kpi-card">
               <h4>总浏览量</h4>
               <p id="totalViews">0</p>
               <div id="viewsComparison" class="kpi-comparison"></div>
             </div>
-            <div class="kpi-card danger">
+            <div class="analysis-kpi-card">
               <h4>总加购数</h4>
               <p id="totalAddCount">0</p>
               <div id="addCountComparison" class="kpi-comparison"></div>
@@ -361,20 +561,20 @@
           </div>
           
           <!-- 趋势图表 -->
-          <div class="grid">
-            <div class="panel">
+          <div class="charts-grid">
+            <div class="chart-panel">
               <h3>访客趋势</h3>
               <div id="visitorsChart" style="width:100%;height:300px;"></div>
             </div>
-            <div class="panel">
+            <div class="chart-panel">
               <h3>加购趋势</h3>
               <div id="addCountChart" style="width:100%;height:300px;"></div>
             </div>
-            <div class="panel">
+            <div class="chart-panel">
               <h3>转化率趋势</h3>
               <div id="conversionChart" style="width:100%;height:300px;"></div>
             </div>
-            <div class="panel">
+            <div class="chart-panel">
               <h3>曝光趋势</h3>
               <div id="exposureChart" style="width:100%;height:300px;"></div>
             </div>
@@ -383,36 +583,38 @@
       </section>
       <!-- 产品分析 -->
       <section id="products" class="content-pad" style="display:none;">
-        <div class="chart-container">
-          <h3>产品分析</h3>
+        <div class="analysis-container">
+          <h3>🔍 产品分析</h3>
           
           <!-- 产品选择器 -->
-          <div class="controls" style="margin-bottom:12px;flex-wrap:wrap;">
-            <label>产品：</label>
-            <select id="productSelect" class="sel" style="width:200px;flex:0 0 200px;"></select>
-            <img id="productImg" style="width:40px;height:40px;object-fit:cover;margin-left:8px;display:none;"/>
-            <a id="productLink" href="#" target="_blank" style="margin-left:8px;display:none;word-break:break-all;white-space:normal;flex:1 1 auto;"></a>
-            <span id="listingDate" style="margin-left:8px;"></span>
+          <div class="product-selector">
+            <div class="controls">
+              <label>产品：</label>
+              <select id="productSelect" class="sel"></select>
+              <img id="productImg" style="width:40px;height:40px;object-fit:cover;display:none;"/>
+              <a id="productLink" href="#" target="_blank" style="display:none;word-break:break-all;white-space:normal;flex:1 1 auto;"></a>
+              <span id="listingDate"></span>
+            </div>
           </div>
           
           <!-- 产品KPI -->
-          <div id="productKpi" class="kpi-grid">
-            <div class="kpi-card info">
+          <div id="productKpi" class="analysis-kpi-grid">
+            <div class="analysis-kpi-card">
               <h4>曝光量</h4>
               <p id="productExposure">0</p>
               <div id="productExposureComparison" class="kpi-comparison"></div>
             </div>
-            <div class="kpi-card success">
+            <div class="analysis-kpi-card">
               <h4>访客数</h4>
               <p id="productVisitors">0</p>
               <div id="productVisitorsComparison" class="kpi-comparison"></div>
             </div>
-            <div class="kpi-card warning">
+            <div class="analysis-kpi-card">
               <h4>加购数</h4>
               <p id="productAddCount">0</p>
               <div id="productAddCountComparison" class="kpi-comparison"></div>
             </div>
-            <div class="kpi-card danger">
+            <div class="analysis-kpi-card">
               <h4>支付数</h4>
               <p id="productPayItems">0</p>
               <div id="productPayItemsComparison" class="kpi-comparison"></div>
@@ -420,20 +622,20 @@
           </div>
           
           <!-- 产品趋势图表 -->
-          <div id="productCharts" class="grid" style="display:none;">
-            <div class="panel">
+          <div id="productCharts" class="charts-grid" style="display:none;">
+            <div class="chart-panel">
               <h3>曝光趋势</h3>
               <div id="productExposureChart" style="width:100%;height:260px;"></div>
             </div>
-            <div class="panel">
+            <div class="chart-panel">
               <h3>访客比趋势</h3>
               <div id="productVisitorRateChart" style="width:100%;height:260px;"></div>
             </div>
-            <div class="panel">
+            <div class="chart-panel">
               <h3>加购比趋势</h3>
               <div id="productAddRateChart" style="width:100%;height:260px;"></div>
             </div>
-            <div class="panel">
+            <div class="chart-panel">
               <h3>支付比趋势</h3>
               <div id="productPayRateChart" style="width:100%;height:260px;"></div>
             </div>
