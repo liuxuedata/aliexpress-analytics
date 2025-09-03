@@ -1475,20 +1475,20 @@ document.addEventListener('DOMContentLoaded', ()=>{
     return { start, end };
   }
   
-  // 更新运营分析KPI
-  function updateAnalysisKPI(data) {
-    console.log('更新运营分析KPI，数据:', data);
-    
-    // 计算新的KPI指标
-    const totalExposure = data.reduce((sum, item) => sum + (item.exposure || 0), 0);
-    const totalVisitors = data.reduce((sum, item) => sum + (item.visitors || 0), 0);
-    const totalAddCount = data.reduce((sum, item) => sum + (item.add_count || 0), 0);
-    const totalPayItems = data.reduce((sum, item) => sum + (item.pay_items || 0), 0);
-    
-    // 计算商品数量（去重）
-    const exposedProducts = new Set(data.filter(item => item.exposure > 0).map(item => item.product_id)).size;
-    const cartedProducts = new Set(data.filter(item => item.add_count > 0).map(item => item.product_id)).size;
-    const paidProducts = new Set(data.filter(item => item.pay_items > 0).map(item => item.product_id)).size;
+     // 更新运营分析KPI
+   function updateAnalysisKPI(data) {
+     console.log('更新运营分析KPI，数据:', data);
+     
+     // 计算新的KPI指标
+     const totalExposure = data.reduce((sum, item) => sum + (item.exposure || 0), 0);
+     const totalVisitors = data.reduce((sum, item) => sum + (item.visitors || 0), 0);
+     const totalAddCount = data.reduce((sum, item) => sum + (item.add_people || 0), 0); // 使用add_people字段计算加购次数
+     const totalPayItems = data.reduce((sum, item) => sum + (item.pay_items || 0), 0);
+     
+     // 计算商品数量（去重）
+     const exposedProducts = new Set(data.filter(item => item.exposure > 0).map(item => item.product_id)).size;
+     const cartedProducts = new Set(data.filter(item => item.add_people > 0).map(item => item.product_id)).size; // 使用add_people字段判断有加购商品数
+     const paidProducts = new Set(data.filter(item => item.pay_items > 0).map(item => item.product_id)).size;
     
     console.log('KPI计算结果:', {
       totalExposure,
@@ -1517,27 +1517,27 @@ document.addEventListener('DOMContentLoaded', ()=>{
     // 获取上一周期数据进行对比
     const previousData = await getPreviousPeriodData();
     
-    // 计算当前周期数据
-    const currentData = {
-      exposure: data.reduce((sum, item) => sum + (item.exposure || 0), 0),
-      visitors: data.reduce((sum, item) => sum + (item.visitors || 0), 0),
-      addCount: data.reduce((sum, item) => sum + (item.add_count || 0), 0),
-      payItems: data.reduce((sum, item) => sum + (item.pay_items || 0), 0),
-      exposedProducts: new Set(data.filter(item => item.exposure > 0).map(item => item.product_id)).size,
-      cartedProducts: new Set(data.filter(item => item.add_count > 0).map(item => item.product_id)).size,
-      paidProducts: new Set(data.filter(item => item.pay_items > 0).map(item => item.product_id)).size
-    };
-    
-    // 计算上一周期数据
-    const previousDataCalculated = previousData ? {
-      exposure: previousData.reduce((sum, item) => sum + (item.exposure || 0), 0),
-      visitors: previousData.reduce((sum, item) => sum + (item.visitors || 0), 0),
-      addCount: previousData.reduce((sum, item) => sum + (item.add_count || 0), 0),
-      payItems: previousData.reduce((sum, item) => sum + (item.pay_items || 0), 0),
-      exposedProducts: new Set(previousData.filter(item => item.exposure > 0).map(item => item.product_id)).size,
-      cartedProducts: new Set(previousData.filter(item => item.add_count > 0).map(item => item.product_id)).size,
-      paidProducts: new Set(previousData.filter(item => item.pay_items > 0).map(item => item.product_id)).size
-    } : null;
+         // 计算当前周期数据
+     const currentData = {
+       exposure: data.reduce((sum, item) => sum + (item.exposure || 0), 0),
+       visitors: data.reduce((sum, item) => sum + (item.visitors || 0), 0),
+       addCount: data.reduce((sum, item) => sum + (item.add_people || 0), 0), // 使用add_people字段计算加购次数
+       payItems: data.reduce((sum, item) => sum + (item.pay_items || 0), 0),
+       exposedProducts: new Set(data.filter(item => item.exposure > 0).map(item => item.product_id)).size,
+       cartedProducts: new Set(data.filter(item => item.add_people > 0).map(item => item.product_id)).size, // 使用add_people字段判断有加购商品数
+       paidProducts: new Set(data.filter(item => item.pay_items > 0).map(item => item.product_id)).size
+     };
+     
+     // 计算上一周期数据
+     const previousDataCalculated = previousData ? {
+       exposure: previousData.reduce((sum, item) => sum + (item.exposure || 0), 0),
+       visitors: previousData.reduce((sum, item) => sum + (item.visitors || 0), 0),
+       addCount: previousData.reduce((sum, item) => sum + (item.add_people || 0), 0), // 使用add_people字段计算加购次数
+       payItems: previousData.reduce((sum, item) => sum + (item.pay_items || 0), 0),
+       exposedProducts: new Set(previousData.filter(item => item.exposure > 0).map(item => item.product_id)).size,
+       cartedProducts: new Set(previousData.filter(item => item.add_people > 0).map(item => item.product_id)).size, // 使用add_people字段判断有加购商品数
+       paidProducts: new Set(previousData.filter(item => item.pay_items > 0).map(item => item.product_id)).size
+     } : null;
     
     // 渲染总展示数对比图
     renderComparisonChart('exposureComparisonChart', '总展示数对比', 
@@ -1715,26 +1715,25 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const currentTotalPayBuyers = data.reduce((sum, item) => sum + (item.pay_buyers || 0), 0);
       const currentTotalPayItems = data.reduce((sum, item) => sum + (item.pay_items || 0), 0);
       
-      // 计算当前周期比率
-      const currentAvgVisitorRate = currentTotalExposure > 0 ? (currentTotalVisitors / currentTotalExposure * 100).toFixed(2) : 0;
-      const currentAvgCartRate = currentTotalVisitors > 0 ? (currentTotalAddCount / currentTotalVisitors * 100).toFixed(2) : 0;
-      const currentAvgPayRate = currentTotalAddCount > 0 ? (currentTotalPayItems / currentTotalAddCount * 100).toFixed(2) : 0;
+             // 计算当前周期比率
+       const currentAvgVisitorRate = currentTotalExposure > 0 ? (currentTotalVisitors / currentTotalExposure * 100).toFixed(2) : 0;
+       const currentAvgCartRate = currentTotalVisitors > 0 ? (currentTotalAddPeople / currentTotalVisitors * 100).toFixed(2) : 0; // 使用add_people计算加购比
+       const currentAvgPayRate = currentTotalAddPeople > 0 ? (currentTotalPayItems / currentTotalAddPeople * 100).toFixed(2) : 0; // 使用add_people计算支付比
       
       // 获取上一周期数据进行对比
       const previousData = await getPreviousPeriodData();
       let comparisonData = {};
       
       if (previousData && previousData.length > 0) {
-        const previousTotalExposure = previousData.reduce((sum, item) => sum + (item.exposure || 0), 0);
-        const previousTotalVisitors = previousData.reduce((sum, item) => sum + (item.visitors || 0), 0);
-        const previousTotalAddCount = previousData.reduce((sum, item) => sum + (item.add_count || 0), 0);
-        const previousTotalPayItems = previousData.reduce((sum, item) => sum + (item.pay_items || 0), 0);
-        const previousTotalAddPeople = previousData.reduce((sum, item) => sum + (item.add_people || 0), 0);
-        const previousTotalPayBuyers = previousData.reduce((sum, item) => sum + (item.pay_buyers || 0), 0);
-        
-        const previousAvgVisitorRate = previousTotalExposure > 0 ? (previousTotalVisitors / previousTotalExposure * 100).toFixed(2) : 0;
-        const previousAvgCartRate = previousTotalVisitors > 0 ? (previousTotalAddCount / previousTotalVisitors * 100).toFixed(2) : 0;
-        const previousAvgPayRate = previousTotalAddCount > 0 ? (previousTotalPayItems / previousTotalAddCount * 100).toFixed(2) : 0;
+                 const previousTotalExposure = previousData.reduce((sum, item) => sum + (item.exposure || 0), 0);
+         const previousTotalVisitors = previousData.reduce((sum, item) => sum + (item.visitors || 0), 0);
+         const previousTotalAddPeople = previousData.reduce((sum, item) => sum + (item.add_people || 0), 0); // 使用add_people字段
+         const previousTotalPayItems = previousData.reduce((sum, item) => sum + (item.pay_items || 0), 0);
+         const previousTotalPayBuyers = previousData.reduce((sum, item) => sum + (item.pay_buyers || 0), 0);
+         
+         const previousAvgVisitorRate = previousTotalExposure > 0 ? (previousTotalVisitors / previousTotalExposure * 100).toFixed(2) : 0;
+         const previousAvgCartRate = previousTotalVisitors > 0 ? (previousTotalAddPeople / previousTotalVisitors * 100).toFixed(2) : 0; // 使用add_people计算加购比
+         const previousAvgPayRate = previousTotalAddPeople > 0 ? (previousTotalPayItems / previousTotalAddPeople * 100).toFixed(2) : 0; // 使用add_people计算支付比
         
         comparisonData = {
           avgVisitorRate: {
@@ -1985,59 +1984,59 @@ document.addEventListener('DOMContentLoaded', ()=>{
     };
     productVisitorRateChart.setOption(productVisitorRateOption);
     
-    // 加购比趋势图
-    const productAddRateChart = echarts.init(document.getElementById('productAddRateChart'));
-    const productAddRateOption = {
-      title: { text: '加购比趋势', textStyle: { color: '#374151' } },
-      tooltip: { trigger: 'axis' },
-      xAxis: { 
-        type: 'category', 
-        data: dateLabels,
-        axisLabel: { color: '#374151', fontSize: 12 }
-      },
-      yAxis: { 
-        type: 'value',
-        axisLabel: { color: '#374151', fontSize: 12, formatter: '{value}%' }
-      },
-      series: [{
-        data: data.map(item => {
-          const visitors = item.visitors || 0;
-          const addCount = item.add_count || 0;
-          return visitors > 0 ? ((addCount / visitors) * 100).toFixed(2) : 0;
-        }),
-        type: 'line',
-        smooth: true,
-        itemStyle: { color: '#F59E0B' }
-      }]
-    };
-    productAddRateChart.setOption(productAddRateOption);
+         // 加购比趋势图
+     const productAddRateChart = echarts.init(document.getElementById('productAddRateChart'));
+     const productAddRateOption = {
+       title: { text: '加购比趋势', textStyle: { color: '#374151' } },
+       tooltip: { trigger: 'axis' },
+       xAxis: { 
+         type: 'category', 
+         data: dateLabels,
+         axisLabel: { color: '#374151', fontSize: 12 }
+       },
+       yAxis: { 
+         type: 'value',
+         axisLabel: { color: '#374151', fontSize: 12, formatter: '{value}%' }
+       },
+       series: [{
+         data: data.map(item => {
+           const visitors = item.visitors || 0;
+           const addPeople = item.add_people || 0; // 使用add_people字段计算加购比
+           return visitors > 0 ? ((addPeople / visitors) * 100).toFixed(2) : 0;
+         }),
+         type: 'line',
+         smooth: true,
+         itemStyle: { color: '#F59E0B' }
+       }]
+     };
+     productAddRateChart.setOption(productAddRateOption);
     
-    // 支付比趋势图
-    const productPayRateChart = echarts.init(document.getElementById('productPayRateChart'));
-    const productPayRateOption = {
-      title: { text: '支付比趋势', textStyle: { color: '#374151' } },
-      tooltip: { trigger: 'axis' },
-      xAxis: { 
-        type: 'category', 
-        data: dateLabels,
-        axisLabel: { color: '#374151', fontSize: 12 }
-      },
-      yAxis: { 
-        type: 'value',
-        axisLabel: { color: '#374151', fontSize: 12, formatter: '{value}%' }
-      },
-      series: [{
-        data: data.map(item => {
-          const addCount = item.add_count || 0;
-          const payItems = item.pay_items || 0;
-          return addCount > 0 ? ((payItems / addCount) * 100).toFixed(2) : 0;
-        }),
-        type: 'line',
-        smooth: true,
-        itemStyle: { color: '#EF4444' }
-      }]
-    };
-    productPayRateChart.setOption(productPayRateOption);
+         // 支付比趋势图
+     const productPayRateChart = echarts.init(document.getElementById('productPayRateChart'));
+     const productPayRateOption = {
+       title: { text: '支付比趋势', textStyle: { color: '#374151' } },
+       tooltip: { trigger: 'axis' },
+       xAxis: { 
+         type: 'category', 
+         data: dateLabels,
+         axisLabel: { color: '#374151', fontSize: 12 }
+       },
+       yAxis: { 
+         type: 'value',
+         axisLabel: { color: '#374151', fontSize: 12, formatter: '{value}%' } 
+       },
+       series: [{
+         data: data.map(item => {
+           const addPeople = item.add_people || 0; // 使用add_people字段计算支付比
+           const payItems = item.pay_items || 0;
+           return addPeople > 0 ? ((payItems / addPeople) * 100).toFixed(2) : 0;
+         }),
+         type: 'line',
+         smooth: true,
+         itemStyle: { color: '#EF4444' }
+       }]
+     };
+     productPayRateChart.setOption(productPayRateOption);
   }
   
   const userArea=document.getElementById('userArea');
