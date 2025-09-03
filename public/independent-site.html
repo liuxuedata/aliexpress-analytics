@@ -149,22 +149,23 @@
       font-size: 12px;
     }
     
-    /* 分析页面容器样式 */
+    /* 分析页面容器样式 - 与自运营页面保持一致的白底模块 */
     .analysis-container {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      border-radius: 16px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
       padding: 24px;
       margin-bottom: 24px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     }
-    
+
     .analysis-container h3 {
-      color: white;
+      color: #374151;
       font-size: 24px;
       font-weight: 600;
       margin: 0 0 20px 0;
       text-align: center;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      text-shadow: none;
     }
     
     /* 分析KPI卡片网格 */
@@ -176,19 +177,39 @@
     }
     
     .analysis-kpi-card {
-      background: rgba(255, 255, 255, 0.95);
+      background: white;
       border-radius: 12px;
       padding: 20px;
       text-align: center;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
       transition: all 0.3s ease;
       border: 2px solid transparent;
+      position: relative;
+      overflow: hidden;
     }
-    
+
     .analysis-kpi-card:hover {
       transform: translateY(-4px);
       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-      border-color: rgba(255, 255, 255, 0.3);
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    /* 渐变色顶部标识 */
+    .analysis-kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b, #ef4444);
+      background-size: 200% 100%;
+      animation: gradient-shift 3s ease-in-out infinite;
+    }
+
+    @keyframes gradient-shift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
     }
     
     .analysis-kpi-card h4 {
@@ -216,11 +237,14 @@
     }
     
     .chart-panel {
-      background: rgba(255, 255, 255, 0.95);
+      background: white;
       border-radius: 12px;
       padding: 20px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
       transition: all 0.3s ease;
+      border: 1px solid #e5e7eb;
+      position: relative;
+      overflow: hidden;
     }
     
     .chart-panel:hover {
@@ -239,11 +263,12 @@
     
     /* 产品选择器样式 */
     .product-selector {
-      background: rgba(255, 255, 255, 0.95);
+      background: white;
       border-radius: 12px;
       padding: 20px;
       margin-bottom: 20px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e5e7eb;
     }
     
     .product-selector .controls {
@@ -281,11 +306,12 @@
     
     /* 网络选择器样式 */
     .network-selector {
-      background: rgba(255, 255, 255, 0.95);
+      background: white;
       border-radius: 12px;
       padding: 20px;
       margin-bottom: 20px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e5e7eb;
     }
     
     .network-selector .controls {
@@ -805,27 +831,24 @@ async function loadIndependentAnalysisData() {
       console.warn('未指定站点，无法加载运营分析数据');
       return;
     }
-    
+
     const dateRange = getDateRange();
-    
-    // 获取当前周期数据
-    const response = await fetch('/api/independent/stats', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        site: site,
-        start: dateRange.start,
-        end: dateRange.end
-      })
+    const params = new URLSearchParams({
+      site: site,
+      from: dateRange.start,
+      to: dateRange.end
     });
-    
+
+    // 获取当前周期数据
+    const response = await fetch(`/api/independent/stats?${params.toString()}`);
     const data = await response.json();
-    
-    if (data.ok && data.data) {
+
+    if (data.ok) {
+      const table = data.table || [];
       // 更新KPI卡片
-      updateIndependentAnalysisKPI(data.data);
+      updateIndependentAnalysisKPI(table);
       // 渲染图表
-      renderIndependentAnalysisCharts(data.data);
+      renderIndependentAnalysisCharts(table);
     }
   } catch (error) {
     console.error('加载独立站运营分析数据失败:', error);
@@ -840,24 +863,21 @@ async function loadIndependentProductAnalysisData() {
       console.warn('未指定站点，无法加载产品分析数据');
       return;
     }
-    
+
     const dateRange = getDateRange();
-    
-    // 获取产品列表
-    const response = await fetch('/api/independent/stats', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        site: site,
-        start: dateRange.start,
-        end: dateRange.end
-      })
+    const params = new URLSearchParams({
+      site: site,
+      from: dateRange.start,
+      to: dateRange.end,
+      aggregate: 'product'
     });
-    
+
+    // 获取产品列表
+    const response = await fetch(`/api/independent/stats?${params.toString()}`);
     const data = await response.json();
-    
-    if (data.ok && data.data) {
-      populateIndependentProductSelect(data.data);
+
+    if (data.ok) {
+      populateIndependentProductSelect(data.table || []);
     }
   } catch (error) {
     console.error('加载独立站产品分析数据失败:', error);
@@ -880,13 +900,13 @@ function getDateRange() {
 // 更新独立站运营分析KPI
 function updateIndependentAnalysisKPI(data) {
   // 计算新的KPI指标
-  const totalImpressions = data.reduce((sum, item) => sum + (item.impressions || 0), 0);
+  const totalImpressions = data.reduce((sum, item) => sum + (item.impressions || item.impr || 0), 0);
   const totalClicks = data.reduce((sum, item) => sum + (item.clicks || 0), 0);
   const totalConversions = data.reduce((sum, item) => sum + (item.conversions || 0), 0);
   const totalConvValue = data.reduce((sum, item) => sum + (item.conv_value || 0), 0);
   
   // 计算商品数量（去重）
-  const exposedProducts = new Set(data.filter(item => item.impressions > 0).map(item => item.product)).size;
+  const exposedProducts = new Set(data.filter(item => (item.impressions || item.impr || 0) > 0).map(item => item.product)).size;
   const cartedProducts = new Set(data.filter(item => item.conversions > 0).map(item => item.product)).size;
   const paidProducts = new Set(data.filter(item => item.conv_value > 0).map(item => item.product)).size;
   
@@ -920,22 +940,22 @@ async function renderIndependentAnalysisCharts(data) {
   
   // 计算当前周期数据
   const currentData = {
-    impressions: data.reduce((sum, item) => sum + (item.impressions || 0), 0),
+    impressions: data.reduce((sum, item) => sum + (item.impressions || item.impr || 0), 0),
     clicks: data.reduce((sum, item) => sum + (item.clicks || 0), 0),
     conversions: data.reduce((sum, item) => sum + (item.conversions || 0), 0),
     convValue: data.reduce((sum, item) => sum + (item.conv_value || 0), 0),
-    exposedProducts: new Set(data.filter(item => item.impressions > 0).map(item => item.product)).size,
+    exposedProducts: new Set(data.filter(item => (item.impressions || item.impr || 0) > 0).map(item => item.product)).size,
     cartedProducts: new Set(data.filter(item => item.conversions > 0).map(item => item.product)).size,
     paidProducts: new Set(data.filter(item => item.conv_value > 0).map(item => item.product)).size
   };
-  
+
   // 计算上一周期数据
   const previousDataCalculated = previousData ? {
-    impressions: previousData.reduce((sum, item) => sum + (item.impressions || 0), 0),
+    impressions: previousData.reduce((sum, item) => sum + (item.impressions || item.impr || 0), 0),
     clicks: previousData.reduce((sum, item) => sum + (item.clicks || 0), 0),
     conversions: previousData.reduce((sum, item) => sum + (item.conversions || 0), 0),
     convValue: previousData.reduce((sum, item) => sum + (item.conv_value || 0), 0),
-    exposedProducts: new Set(previousData.filter(item => item.impressions > 0).map(item => item.product)).size,
+    exposedProducts: new Set(previousData.filter(item => (item.impressions || item.impr || 0) > 0).map(item => item.product)).size,
     cartedProducts: new Set(previousData.filter(item => item.conversions > 0).map(item => item.product)).size,
     paidProducts: new Set(previousData.filter(item => item.conv_value > 0).map(item => item.product)).size
   } : null;
@@ -1035,20 +1055,18 @@ async function getIndependentPreviousPeriodData() {
     const previousStart = new Date(previousEnd);
     previousStart.setDate(previousStart.getDate() - periodDays + 1);
     
-    const response = await fetch('/api/independent/stats', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        site: currentSite,
-        start: previousStart.toISOString().slice(0, 10),
-        end: previousEnd.toISOString().slice(0, 10)
-      })
+    const params = new URLSearchParams({
+      site: currentSite,
+      from: previousStart.toISOString().slice(0, 10),
+      to: previousEnd.toISOString().slice(0, 10)
     });
-    
+
+    const response = await fetch(`/api/independent/stats?${params.toString()}`);
+
     if (response.ok) {
       const data = await response.json();
-      if (data.ok && data.data) {
-        return data.data;
+      if (data.ok) {
+        return data.table || [];
       }
     }
   } catch (error) {
@@ -1082,6 +1100,68 @@ function populateIndependentProductSelect(data) {
     if (selectedProduct) {
       loadIndependentProductData(selectedProduct);
     }
+  });
+}
+
+// 加载特定产品的分析数据
+async function loadIndependentProductData(product) {
+  try {
+    const site = document.getElementById('site').value || getParam('site');
+    if (!site) return;
+
+    const { start, end } = getDateRange();
+    const params = new URLSearchParams({ site, from: start, to: end });
+    const res = await fetch(`/api/independent/stats?${params.toString()}`);
+    const json = await res.json();
+    if (!json.ok) return;
+
+    const rows = (json.table || []).filter(item => item.product === product);
+    if (!rows.length) return;
+
+    const totalClicks = rows.reduce((s, r) => s + (r.clicks || 0), 0);
+    const totalImpr = rows.reduce((s, r) => s + (r.impr || r.impressions || 0), 0);
+    const totalConv = rows.reduce((s, r) => s + (r.conversions || 0), 0);
+    const ctr = totalImpr > 0 ? (totalClicks / totalImpr * 100).toFixed(2) : '0.00';
+
+    document.getElementById('productClicks').textContent = totalClicks.toLocaleString();
+    document.getElementById('productImpressions').textContent = totalImpr.toLocaleString();
+    document.getElementById('productCtr').textContent = ctr + '%';
+    document.getElementById('productConversions').textContent = totalConv.toLocaleString();
+
+    const byDay = {};
+    rows.forEach(r => {
+      const d = r.day;
+      if (!byDay[d]) byDay[d] = { clicks: 0, impressions: 0, conversions: 0 };
+      byDay[d].clicks += r.clicks || 0;
+      byDay[d].impressions += r.impr || r.impressions || 0;
+      byDay[d].conversions += r.conversions || 0;
+    });
+
+    const dates = Object.keys(byDay).sort();
+    const clicksSeries = dates.map(d => byDay[d].clicks);
+    const impressionsSeries = dates.map(d => byDay[d].impressions);
+    const ctrSeries = dates.map(d => byDay[d].impressions > 0 ? +(byDay[d].clicks / byDay[d].impressions * 100).toFixed(2) : 0);
+    const convSeries = dates.map(d => byDay[d].conversions);
+
+    renderLineChart('productClicksChart', '点击趋势', dates, clicksSeries);
+    renderLineChart('productImpressionsChart', '曝光趋势', dates, impressionsSeries);
+    renderLineChart('productCtrChart', 'CTR趋势', dates, ctrSeries);
+    renderLineChart('productConversionsChart', '转化趋势', dates, convSeries);
+
+    document.getElementById('productCharts').style.display = 'grid';
+  } catch (err) {
+    console.error('加载独立站产品数据失败:', err);
+  }
+}
+
+function renderLineChart(id, title, dates, data) {
+  const chart = echarts.init(document.getElementById(id));
+  chart.setOption({
+    title: { text: title, left: 'center', textStyle: { color: '#374151', fontSize: 16 } },
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: dates },
+    yAxis: { type: 'value' },
+    series: [{ name: title, type: 'line', smooth: true, data, itemStyle: { color: '#3b82f6' } }]
   });
 }
 
