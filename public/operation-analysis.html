@@ -290,12 +290,6 @@
                </div>
             </div>
             <div class="kpi-card">
-              <h4>加购商品数</h4>
-                             <div class="kpi-chart-container">
-                 <div id="cartProdChart" style="width:100%;height:160px;"></div>
-               </div>
-            </div>
-            <div class="kpi-card">
               <h4>支付商品数</h4>
                              <div class="kpi-chart-container">
                  <div id="payProdChart" style="width:100%;height:160px;"></div>
@@ -706,7 +700,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         showErrorStatus('数据加载失败，请重试');
         
         // 清空图表并显示"暂无数据"
-        ['expChart', 'uvChart', 'cartChart', 'payChart', 'expProdChart', 'cartProdChart', 'payProdChart'].forEach(id => {
+        ['expChart', 'uvChart', 'cartChart', 'payChart', 'expProdChart', 'payProdChart'].forEach(id => {
           const element = document.getElementById(id);
           if (element) {
             try {
@@ -730,7 +724,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         console.log('全托管当前站点没有数据，显示空状态');
         
         // 清空图表并显示"暂无数据"
-        ['expChart', 'uvChart', 'cartChart', 'payChart', 'expProdChart', 'cartProdChart', 'payProdChart'].forEach(id => {
+        ['expChart', 'uvChart', 'cartChart', 'payChart', 'expProdChart', 'payProdChart'].forEach(id => {
           const element = document.getElementById(id);
           if (element) {
             try {
@@ -761,13 +755,10 @@ document.addEventListener('DOMContentLoaded',()=>{
       const prevPay = sum(rowsB,'pay_buyers');
       
       const prodExp=rows=>{const set=new Set();rows.forEach(r=>{if(Number(r.search_exposure||r.exposure||r.pv||0)>0)set.add(r.product_id);});return set.size;};
-      const prodAdd=rows=>{const set=new Set();rows.forEach(r=>{if(Number(r.add_to_cart_users||0)>0)set.add(r.product_id);});return set.size;};
       const prodPay=rows=>{const set=new Set();rows.forEach(r=>{if(Number(r.pay_buyers||0)>0)set.add(r.product_id);});return set.size;};
-      
+
       const curExpProd = prodExp(rowsA);
       const prevExpProd = prodExp(rowsB);
-      const curCartProd = prodAdd(rowsA);
-      const prevCartProd = prodAdd(rowsB);
       const curPayProd = prodPay(rowsA);
       const prevPayProd = prodPay(rowsB);
       
@@ -777,12 +768,11 @@ document.addEventListener('DOMContentLoaded',()=>{
       renderBar('cartChart',{cur:curCart,prev:prevCart});
       renderBar('payChart',{cur:curPay,prev:prevPay});
       renderBar('expProdChart',{cur:curExpProd,prev:prevExpProd});
-      renderBar('cartProdChart',{cur:curCartProd,prev:prevCartProd});
       renderBar('payProdChart',{cur:curPayProd,prev:prevPayProd});
-      
+
       console.log('全托管KPI数据计算结果:', {
         curExp, prevExp, curUv, prevUv, curCart, prevCart, curPay, prevPay,
-        curExpProd, prevExpProd, curCartProd, prevCartProd, curPayProd, prevPayProd
+        curExpProd, prevExpProd, curPayProd, prevPayProd
       });
     }
 
@@ -889,7 +879,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         showErrorStatus('数据加载失败，请重试');
         
         // 清空图表并显示"暂无数据"
-        ['expChart', 'uvChart', 'cartChart', 'payChart', 'expProdChart', 'cartProdChart', 'payProdChart'].forEach(id => {
+        ['expChart', 'uvChart', 'cartChart', 'payChart', 'expProdChart', 'payProdChart'].forEach(id => {
           const element = document.getElementById(id);
           if (element) {
             try {
@@ -934,7 +924,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         console.log('当前站点没有数据，显示空状态');
         
         // 清空图表并显示"暂无数据"
-        ['expChart', 'uvChart', 'cartChart', 'payChart', 'expProdChart', 'cartProdChart', 'payProdChart'].forEach(id => {
+        ['expChart', 'uvChart', 'cartChart', 'payChart', 'expProdChart', 'payProdChart'].forEach(id => {
           const element = document.getElementById(id);
           if (element) {
             try {
@@ -974,7 +964,6 @@ document.addEventListener('DOMContentLoaded',()=>{
       const sumPay=rows=>rows.reduce((s,r)=>s+pickPay(r),0);
       
       const prodExp=(rows)=>{const set=new Set();rows.forEach(r=>{if(Number(r.exposure||0)>0)set.add(r.product_id);});return set.size;};
-      const prodAdd=(rows)=>{const set=new Set();rows.forEach(r=>{if(pickAdd(r)>0)set.add(r.product_id);});return set.size;};
       const prodPay=(rows)=>{const set=new Set();rows.forEach(r=>{if(pickPay(r)>0)set.add(r.product_id);});return set.size;};
 
       // 更新KPI卡片
@@ -988,8 +977,6 @@ document.addEventListener('DOMContentLoaded',()=>{
       const prevPay = sumPay(rowsPrev);
       const curExpProd = prodExp(rowsCur);
       const prevExpProd = prodExp(rowsPrev);
-      const curCartProd = prodAdd(rowsCur);
-      const prevCartProd = prodAdd(rowsPrev);
       const curPayProd = prodPay(rowsCur);
       const prevPayProd = prodPay(rowsPrev);
       
@@ -999,13 +986,12 @@ document.addEventListener('DOMContentLoaded',()=>{
       renderBar('cartChart',{cur:curCart,prev:prevCart});
       renderBar('payChart',{cur:curPay,prev:prevPay});
       renderBar('expProdChart',{cur:curExpProd,prev:prevExpProd});
-      renderBar('cartProdChart',{cur:curCartProd,prev:prevCartProd});
       renderBar('payProdChart',{cur:curPayProd,prev:prevPayProd});
 
       // 更新KPI总数显示（这些会在renderBar函数中自动更新）
       console.log('KPI数据计算结果:', {
         curExp, prevExp, curUv, prevUv, curCart, prevCart, curPay, prevPay,
-        curExpProd, prevExpProd, curCartProd, prevCartProd, curPayProd, prevPayProd
+        curExpProd, prevExpProd, curPayProd, prevPayProd
       });
 
       const dailyAgg=rows=>{
@@ -1231,7 +1217,6 @@ document.addEventListener('DOMContentLoaded',()=>{
         'cartChart': { current: curKPI.add_count, previous: prevKPI.add_count, title: '加购次数' },
         'payChart': { current: curKPI.pay_orders, previous: prevKPI.pay_orders, title: '支付订单数' },
         'expProdChart': { current: curKPI.products, previous: prevKPI.products, title: '曝光商品数' },
-        'cartProdChart': { current: curKPI.products, previous: prevKPI.products, title: '加购商品数' },
         'payProdChart': { current: curKPI.products, previous: prevKPI.products, title: '支付商品数' }
       };
 

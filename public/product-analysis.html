@@ -480,7 +480,15 @@ const def=`${start} to ${end}`; input.value=def; localStorage.setItem(key,def);
         qs.set('site',currentSite);
         const r=await fetch('/api/new-products?'+qs.toString());
         const j=await r.json();
-        return (j.items||[]).map(it=>it.product_id);
+        const set=new Set((j.items||[]).map(it=>it.product_id).filter(Boolean));
+        try{
+          const rows=await fetchAgg('2000-01-01',today,'day');
+          rows.forEach(r=>{if(r.product_id) set.add(r.product_id);});
+        }catch(err){
+          console.error('fetchAllProducts补充stats失败:',err);
+        }
+        console.log('fetchAllProducts合并后的产品总数:',set.size);
+        return Array.from(set);
       }catch(e){
         console.error('fetchAllProducts错误:',e);
         return [];
