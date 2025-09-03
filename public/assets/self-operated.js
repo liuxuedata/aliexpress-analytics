@@ -58,6 +58,22 @@
       super();
       this.dataTable = null;
       this.pageReadyTriggered = false;
+      
+      // 添加自动数据加载机制
+      this.autoLoadTimer = null;
+      this.setupAutoDataLoading();
+    }
+
+    // 设置自动数据加载机制
+    setupAutoDataLoading() {
+      // 等待页面完全初始化后，如果没有数据，自动触发数据加载
+      this.autoLoadTimer = setTimeout(() => {
+        if (!this.pageReadyTriggered && !this.currentData) {
+          console.log('自动数据加载机制触发：页面初始化完成但未加载数据');
+          this.validateAndFixSiteInfo();
+          this.loadData();
+        }
+      }, 2000); // 等待2秒，确保页面完全初始化
     }
 
     // 重写refreshData方法，确保能正确调用loadData
@@ -176,11 +192,18 @@
         // 渲染数据表格
         await this.renderDataTable(rowsAggA, 'day');
         
-                 // 更新状态为成功
-         this.updateStatus('数据加载完成', 'success');
-         
-         // 数据加载完成后，绑定新品筛选事件
-         this.bindNewProductsFilter();
+                         // 更新状态为成功
+        this.updateStatus('数据加载完成', 'success');
+        
+        // 清除自动加载定时器
+        if (this.autoLoadTimer) {
+          clearTimeout(this.autoLoadTimer);
+          this.autoLoadTimer = null;
+          console.log('数据加载成功，自动加载定时器已清除');
+        }
+        
+        // 数据加载完成后，绑定新品筛选事件
+        this.bindNewProductsFilter();
          
        } catch (error) {
          console.error('数据加载失败:', error);
@@ -660,6 +683,13 @@
              // 页面就绪回调
     onPageReady(pageInfo) {
       console.log('自运营页面就绪，开始加载数据:', pageInfo);
+      
+      // 清除自动加载定时器，避免重复加载
+      if (this.autoLoadTimer) {
+        clearTimeout(this.autoLoadTimer);
+        this.autoLoadTimer = null;
+        console.log('自动加载定时器已清除');
+      }
       
       // 设置当前站点信息
       this.currentSite = pageInfo.site || localStorage.getItem('currentSite') || 'ae_self_operated_a';
