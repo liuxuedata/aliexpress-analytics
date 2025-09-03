@@ -937,14 +937,27 @@ function updateIndependentAnalysisKPI(data) {
   const cartedProducts = new Set(data.filter(item => item.conversions > 0).map(item => item.product)).size;
   const paidProducts = new Set(data.filter(item => item.conv_value > 0).map(item => item.product)).size;
   
-  // 更新KPI显示
-  document.getElementById('totalImpressions').textContent = totalImpressions.toLocaleString();
-  document.getElementById('totalClicks').textContent = totalClicks.toLocaleString();
-  document.getElementById('totalConversions').textContent = totalConversions.toLocaleString();
-  document.getElementById('totalConvValue').textContent = totalConvValue.toLocaleString();
-  document.getElementById('exposedProducts').textContent = exposedProducts.toLocaleString();
-  document.getElementById('cartedProducts').textContent = cartedProducts.toLocaleString();
-  document.getElementById('paidProducts').textContent = paidProducts.toLocaleString();
+  // 更新KPI显示（若元素缺失则跳过以避免报错）
+  const impressionsEl = document.getElementById('totalImpressions');
+  if (impressionsEl) impressionsEl.textContent = totalImpressions.toLocaleString();
+
+  const clicksEl = document.getElementById('totalClicks');
+  if (clicksEl) clicksEl.textContent = totalClicks.toLocaleString();
+
+  const convEl = document.getElementById('totalConversions');
+  if (convEl) convEl.textContent = totalConversions.toLocaleString();
+
+  const convValueEl = document.getElementById('totalConvValue');
+  if (convValueEl) convValueEl.textContent = totalConvValue.toLocaleString();
+
+  const exposedEl = document.getElementById('exposedProducts');
+  if (exposedEl) exposedEl.textContent = exposedProducts.toLocaleString();
+
+  const cartedEl = document.getElementById('cartedProducts');
+  if (cartedEl) cartedEl.textContent = cartedProducts.toLocaleString();
+
+  const paidEl = document.getElementById('paidProducts');
+  if (paidEl) paidEl.textContent = paidProducts.toLocaleString();
 }
 
 // 渲染独立站运营分析对比图表
