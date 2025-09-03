@@ -689,44 +689,71 @@
           <!-- 运营分析KPI卡片 -->
           <div id="analysisKpi" class="analysis-kpi-grid">
             <div class="analysis-kpi-card">
-              <h4>总曝光量</h4>
+              <h4>总展示数</h4>
               <p id="totalExposure">0</p>
               <div id="exposureComparison" class="kpi-comparison"></div>
             </div>
             <div class="analysis-kpi-card">
-              <h4>总访客数</h4>
+              <h4>详情页访客数</h4>
               <p id="totalVisitors">0</p>
               <div id="visitorsComparison" class="kpi-comparison"></div>
             </div>
             <div class="analysis-kpi-card">
-              <h4>总浏览量</h4>
-              <p id="totalViews">0</p>
-              <div id="viewsComparison" class="kpi-comparison"></div>
-            </div>
-            <div class="analysis-kpi-card">
-              <h4>总加购数</h4>
+              <h4>加购次数</h4>
               <p id="totalAddCount">0</p>
               <div id="addCountComparison" class="kpi-comparison"></div>
             </div>
+            <div class="analysis-kpi-card">
+              <h4>订购商品数</h4>
+              <p id="totalPayItems">0</p>
+              <div id="payItemsComparison" class="kpi-comparison"></div>
+            </div>
+            <div class="analysis-kpi-card">
+              <h4>有曝光商品数</h4>
+              <p id="exposedProducts">0</p>
+              <div id="exposedProductsComparison" class="kpi-comparison"></div>
+            </div>
+            <div class="analysis-kpi-card">
+              <h4>有加购商品数</h4>
+              <p id="cartedProducts">0</p>
+              <div id="cartedProductsComparison" class="kpi-comparison"></div>
+            </div>
+            <div class="analysis-kpi-card">
+              <h4>有支付商品数</h4>
+              <p id="paidProducts">0</p>
+              <div id="paidProductsComparison" class="kpi-comparison"></div>
+            </div>
           </div>
           
-          <!-- 趋势图表 -->
+          <!-- 对比图表 -->
           <div class="charts-grid">
             <div class="chart-panel">
-              <h3>访客趋势</h3>
-              <div id="visitorsChart" style="width:100%;height:300px;"></div>
+              <h3>总展示数对比</h3>
+              <div id="exposureComparisonChart" style="width:100%;height:300px;"></div>
             </div>
             <div class="chart-panel">
-              <h3>加购趋势</h3>
-              <div id="addCountChart" style="width:100%;height:300px;"></div>
+              <h3>详情页访客数对比</h3>
+              <div id="visitorsComparisonChart" style="width:100%;height:300px;"></div>
             </div>
             <div class="chart-panel">
-              <h3>转化率趋势</h3>
-              <div id="conversionChart" style="width:100%;height:300px;"></div>
+              <h3>加购次数对比</h3>
+              <div id="addCountComparisonChart" style="width:100%;height:300px;"></div>
             </div>
             <div class="chart-panel">
-              <h3>曝光趋势</h3>
-              <div id="exposureChart" style="width:100%;height:300px;"></div>
+              <h3>订购商品数对比</h3>
+              <div id="payItemsComparisonChart" style="width:100%;height:300px;"></div>
+            </div>
+            <div class="chart-panel">
+              <h3>有曝光商品数对比</h3>
+              <div id="exposedProductsComparisonChart" style="width:100%;height:300px;"></div>
+            </div>
+            <div class="chart-panel">
+              <h3>有加购商品数对比</h3>
+              <div id="cartedProductsComparisonChart" style="width:100%;height:300px;"></div>
+            </div>
+            <div class="chart-panel">
+              <h3>有支付商品数对比</h3>
+              <div id="paidProductsComparisonChart" style="width:100%;height:300px;"></div>
             </div>
           </div>
         </div>
@@ -1414,135 +1441,143 @@ document.addEventListener('DOMContentLoaded', ()=>{
   function updateAnalysisKPI(data) {
     console.log('更新运营分析KPI，数据:', data);
     
-    // 确保使用正确的字段名
+    // 计算新的KPI指标
     const totalExposure = data.reduce((sum, item) => sum + (item.exposure || 0), 0);
     const totalVisitors = data.reduce((sum, item) => sum + (item.visitors || 0), 0);
-    const totalViews = data.reduce((sum, item) => sum + (item.views || 0), 0);
     const totalAddCount = data.reduce((sum, item) => sum + (item.add_count || 0), 0);
+    const totalPayItems = data.reduce((sum, item) => sum + (item.pay_items || 0), 0);
+    
+    // 计算商品数量（去重）
+    const exposedProducts = new Set(data.filter(item => item.exposure > 0).map(item => item.product_id)).size;
+    const cartedProducts = new Set(data.filter(item => item.add_count > 0).map(item => item.product_id)).size;
+    const paidProducts = new Set(data.filter(item => item.pay_items > 0).map(item => item.product_id)).size;
     
     console.log('KPI计算结果:', {
       totalExposure,
       totalVisitors, 
-      totalViews,
-      totalAddCount
+      totalAddCount,
+      totalPayItems,
+      exposedProducts,
+      cartedProducts,
+      paidProducts
     });
     
+    // 更新KPI显示
     document.getElementById('totalExposure').textContent = totalExposure.toLocaleString();
     document.getElementById('totalVisitors').textContent = totalVisitors.toLocaleString();
-    document.getElementById('totalViews').textContent = totalViews.toLocaleString();
     document.getElementById('totalAddCount').textContent = totalAddCount.toLocaleString();
+    document.getElementById('totalPayItems').textContent = totalPayItems.toLocaleString();
+    document.getElementById('exposedProducts').textContent = exposedProducts.toLocaleString();
+    document.getElementById('cartedProducts').textContent = cartedProducts.toLocaleString();
+    document.getElementById('paidProducts').textContent = paidProducts.toLocaleString();
   }
   
-  // 渲染运营分析图表
-  function renderAnalysisCharts(data) {
-    console.log('渲染运营分析图表，数据:', data);
+  // 渲染运营分析对比图表
+  async function renderAnalysisCharts(data) {
+    console.log('渲染运营分析对比图表，数据:', data);
     
-    // 获取日期标签 - 优先使用bucket，如果没有则使用stat_date
-    const getDateLabel = (item) => {
-      if (item.bucket && item.bucket !== 'undefined') return item.bucket;
-      if (item.stat_date && item.stat_date !== 'undefined') return item.stat_date;
-      if (item.bucket_label && item.bucket_label !== 'undefined') return item.bucket_label;
-      return '未知日期';
+    // 获取上一周期数据进行对比
+    const previousData = await getPreviousPeriodData();
+    
+    // 计算当前周期数据
+    const currentData = {
+      exposure: data.reduce((sum, item) => sum + (item.exposure || 0), 0),
+      visitors: data.reduce((sum, item) => sum + (item.visitors || 0), 0),
+      addCount: data.reduce((sum, item) => sum + (item.add_count || 0), 0),
+      payItems: data.reduce((sum, item) => sum + (item.pay_items || 0), 0),
+      exposedProducts: new Set(data.filter(item => item.exposure > 0).map(item => item.product_id)).size,
+      cartedProducts: new Set(data.filter(item => item.add_count > 0).map(item => item.product_id)).size,
+      paidProducts: new Set(data.filter(item => item.pay_items > 0).map(item => item.product_id)).size
     };
     
-    const dateLabels = data.map(getDateLabel);
-    console.log('图表日期标签:', dateLabels);
+    // 计算上一周期数据
+    const previousDataCalculated = previousData ? {
+      exposure: previousData.reduce((sum, item) => sum + (item.exposure || 0), 0),
+      visitors: previousData.reduce((sum, item) => sum + (item.visitors || 0), 0),
+      addCount: previousData.reduce((sum, item) => sum + (item.add_count || 0), 0),
+      payItems: previousData.reduce((sum, item) => sum + (item.pay_items || 0), 0),
+      exposedProducts: new Set(previousData.filter(item => item.exposure > 0).map(item => item.product_id)).size,
+      cartedProducts: new Set(previousData.filter(item => item.add_count > 0).map(item => item.product_id)).size,
+      paidProducts: new Set(previousData.filter(item => item.pay_items > 0).map(item => item.product_id)).size
+    } : null;
     
-    // 访客趋势图
-    const visitorsChart = echarts.init(document.getElementById('visitorsChart'));
-    const visitorsOption = {
-      title: { text: '访客趋势', textStyle: { color: '#374151' } },
-      tooltip: { trigger: 'axis' },
+    // 渲染总展示数对比图
+    renderComparisonChart('exposureComparisonChart', '总展示数对比', 
+      currentData.exposure, previousDataCalculated?.exposure || 0, '总展示数');
+    
+    // 渲染详情页访客数对比图
+    renderComparisonChart('visitorsComparisonChart', '详情页访客数对比', 
+      currentData.visitors, previousDataCalculated?.visitors || 0, '详情页访客数');
+    
+    // 渲染加购次数对比图
+    renderComparisonChart('addCountComparisonChart', '加购次数对比', 
+      currentData.addCount, previousDataCalculated?.addCount || 0, '加购次数');
+    
+    // 渲染订购商品数对比图
+    renderComparisonChart('payItemsComparisonChart', '订购商品数对比', 
+      currentData.payItems, previousDataCalculated?.payItems || 0, '订购商品数');
+    
+    // 渲染有曝光商品数对比图
+    renderComparisonChart('exposedProductsComparisonChart', '有曝光商品数对比', 
+      currentData.exposedProducts, previousDataCalculated?.exposedProducts || 0, '有曝光商品数');
+    
+    // 渲染有加购商品数对比图
+    renderComparisonChart('cartedProductsComparisonChart', '有加购商品数对比', 
+      currentData.cartedProducts, previousDataCalculated?.cartedProducts || 0, '有加购商品数');
+    
+    // 渲染有支付商品数对比图
+    renderComparisonChart('paidProductsComparisonChart', '有支付商品数对比', 
+      currentData.paidProducts, previousDataCalculated?.paidProducts || 0, '有支付商品数');
+  }
+  
+  // 渲染对比柱状图
+  function renderComparisonChart(chartId, title, currentValue, previousValue, label) {
+    const chart = echarts.init(document.getElementById(chartId));
+    const option = {
+      title: { 
+        text: title, 
+        textStyle: { color: '#374151', fontSize: 16 },
+        subtext: `${label}: ${currentValue.toLocaleString()}`,
+        subtextStyle: { color: '#6b7280', fontSize: 14 }
+      },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: function(params) {
+          const data = params[0];
+          return `${data.name}<br/>${data.seriesName}: ${data.value.toLocaleString()}`;
+        }
+      },
+      legend: {
+        data: ['当前周期', '上一周期'],
+        textStyle: { color: '#374151' }
+      },
       xAxis: { 
         type: 'category', 
-        data: dateLabels,
+        data: ['当前周期', '上一周期'],
         axisLabel: { color: '#374151', fontSize: 12 }
       },
       yAxis: { 
         type: 'value',
         axisLabel: { color: '#374151', fontSize: 12 }
       },
-      series: [{
-        data: data.map(item => item.visitors || 0),
-        type: 'line',
-        smooth: true,
-        itemStyle: { color: '#10B981' }
-      }]
+      series: [
+        {
+          name: '当前周期',
+          data: [currentValue, 0],
+          type: 'bar',
+          itemStyle: { color: '#3B82F6' },
+          barWidth: '40%'
+        },
+        {
+          name: '上一周期',
+          data: [0, previousValue],
+          type: 'bar',
+          itemStyle: { color: '#10B981' },
+          barWidth: '40%'
+        }
+      ]
     };
-    visitorsChart.setOption(visitorsOption);
-    
-    // 加购趋势图
-    const addCountChart = echarts.init(document.getElementById('addCountChart'));
-    const addCountOption = {
-      title: { text: '加购趋势', textStyle: { color: '#374151' } },
-      tooltip: { trigger: 'axis' },
-      xAxis: { 
-        type: 'category', 
-        data: dateLabels,
-        axisLabel: { color: '#374151', fontSize: 12 }
-      },
-      yAxis: { 
-        type: 'value',
-        axisLabel: { color: '#374151', fontSize: 12 }
-      },
-      series: [{
-        data: data.map(item => item.add_count || 0),
-        type: 'line',
-        smooth: true,
-        itemStyle: { color: '#F59E0B' }
-      }]
-    };
-    addCountChart.setOption(addCountOption);
-    
-    // 转化率趋势图
-    const conversionChart = echarts.init(document.getElementById('conversionChart'));
-    const conversionOption = {
-      title: { text: '转化率趋势', textStyle: { color: '#374151' } },
-      tooltip: { trigger: 'axis' },
-      xAxis: { 
-        type: 'category', 
-        data: dateLabels,
-        axisLabel: { color: '#374151', fontSize: 12 }
-      },
-      yAxis: { 
-        type: 'value',
-        axisLabel: { color: '#374151', fontSize: 12, formatter: '{value}%' }
-      },
-      series: [{
-        data: data.map(item => {
-          const visitors = item.visitors || 0;
-          const addCount = item.add_count || 0;
-          return visitors > 0 ? ((addCount / visitors) * 100).toFixed(2) : 0;
-        }),
-        type: 'line',
-        smooth: true,
-        itemStyle: { color: '#EF4444' }
-      }]
-    };
-    conversionChart.setOption(conversionOption);
-    
-    // 曝光趋势图
-    const exposureChart = echarts.init(document.getElementById('exposureChart'));
-    const exposureOption = {
-      title: { text: '曝光趋势', textStyle: { color: '#374151' } },
-      tooltip: { trigger: 'axis' },
-      xAxis: { 
-        type: 'category', 
-        data: dateLabels,
-        axisLabel: { color: '#374151', fontSize: 12 }
-      },
-      yAxis: { 
-        type: 'value',
-        axisLabel: { color: '#374151', fontSize: 12 }
-      },
-      series: [{
-        data: data.map(item => item.exposure || 0),
-        type: 'line',
-        smooth: true,
-        itemStyle: { color: '#3B82F6' }
-      }]
-    };
-    exposureChart.setOption(exposureOption);
+    chart.setOption(option);
   }
   
      // 填充产品选择器

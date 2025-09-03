@@ -624,44 +624,71 @@
         <!-- 运营分析KPI卡片 -->
         <div id="analysisKpi" class="analysis-kpi-grid">
           <div class="analysis-kpi-card">
-            <h4>总点击</h4>
-            <p id="totalClicks">0</p>
-            <div id="clicksComparison" class="kpi-comparison"></div>
-          </div>
-          <div class="analysis-kpi-card">
-            <h4>总曝光</h4>
+            <h4>总展示数</h4>
             <p id="totalImpressions">0</p>
             <div id="impressionsComparison" class="kpi-comparison"></div>
           </div>
           <div class="analysis-kpi-card">
-            <h4>平均CTR</h4>
-            <p id="avgCtr">0%</p>
-            <div id="ctrComparison" class="kpi-comparison"></div>
+            <h4>详情页访客数</h4>
+            <p id="totalClicks">0</p>
+            <div id="clicksComparison" class="kpi-comparison"></div>
           </div>
           <div class="analysis-kpi-card">
-            <h4>总转化</h4>
+            <h4>加购次数</h4>
             <p id="totalConversions">0</p>
             <div id="conversionsComparison" class="kpi-comparison"></div>
           </div>
+          <div class="analysis-kpi-card">
+            <h4>订购商品数</h4>
+            <p id="totalConvValue">0</p>
+            <div id="convValueComparison" class="kpi-comparison"></div>
+          </div>
+          <div class="analysis-kpi-card">
+            <h4>有曝光商品数</h4>
+            <p id="exposedProducts">0</p>
+            <div id="exposedProductsComparison" class="kpi-comparison"></div>
+          </div>
+          <div class="analysis-kpi-card">
+            <h4>有加购商品数</h4>
+            <p id="cartedProducts">0</p>
+            <div id="cartedProductsComparison" class="kpi-comparison"></div>
+          </div>
+          <div class="analysis-kpi-card">
+            <h4>有支付商品数</h4>
+            <p id="paidProducts">0</p>
+            <div id="paidProductsComparison" class="kpi-comparison"></div>
+          </div>
         </div>
         
-        <!-- 趋势图表 -->
+        <!-- 对比图表 -->
         <div class="charts-grid">
           <div class="chart-panel">
-            <h3>点击趋势</h3>
-            <div id="clicksChart" style="width:100%;height:300px;"></div>
+            <h3>总展示数对比</h3>
+            <div id="impressionsComparisonChart" style="width:100%;height:300px;"></div>
           </div>
           <div class="chart-panel">
-            <h3>曝光趋势</h3>
-            <div id="impressionsChart" style="width:100%;height:300px;"></div>
+            <h3>详情页访客数对比</h3>
+            <div id="clicksComparisonChart" style="width:100%;height:300px;"></div>
           </div>
           <div class="chart-panel">
-            <h3>CTR趋势</h3>
-            <div id="ctrChart" style="width:100%;height:300px;"></div>
+            <h3>加购次数对比</h3>
+            <div id="conversionsComparisonChart" style="width:100%;height:300px;"></div>
           </div>
           <div class="chart-panel">
-            <h3>转化趋势</h3>
-            <div id="conversionsChart" style="width:100%;height:300px;"></div>
+            <h3>订购商品数对比</h3>
+            <div id="convValueComparisonChart" style="width:100%;height:300px;"></div>
+          </div>
+          <div class="chart-panel">
+            <h3>有曝光商品数对比</h3>
+            <div id="exposedProductsComparisonChart" style="width:100%;height:300px;"></div>
+          </div>
+          <div class="chart-panel">
+            <h3>有加购商品数对比</h3>
+            <div id="cartedProductsComparisonChart" style="width:100%;height:300px;"></div>
+          </div>
+          <div class="chart-panel">
+            <h3>有支付商品数对比</h3>
+            <div id="paidProductsComparisonChart" style="width:100%;height:300px;"></div>
           </div>
         </div>
       </div>
@@ -970,43 +997,170 @@ function getDateRange() {
 
 // 更新独立站运营分析KPI
 function updateIndependentAnalysisKPI(data) {
-  const totalClicks = data.reduce((sum, item) => sum + (item.clicks || 0), 0);
+  // 计算新的KPI指标
   const totalImpressions = data.reduce((sum, item) => sum + (item.impressions || 0), 0);
+  const totalClicks = data.reduce((sum, item) => sum + (item.clicks || 0), 0);
   const totalConversions = data.reduce((sum, item) => sum + (item.conversions || 0), 0);
-  const avgCtr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) : 0;
+  const totalConvValue = data.reduce((sum, item) => sum + (item.conv_value || 0), 0);
   
-  document.getElementById('totalClicks').textContent = totalClicks.toLocaleString();
+  // 计算商品数量（去重）
+  const exposedProducts = new Set(data.filter(item => item.impressions > 0).map(item => item.product)).size;
+  const cartedProducts = new Set(data.filter(item => item.conversions > 0).map(item => item.product)).size;
+  const paidProducts = new Set(data.filter(item => item.conv_value > 0).map(item => item.product)).size;
+  
+  // 更新KPI显示
   document.getElementById('totalImpressions').textContent = totalImpressions.toLocaleString();
-  document.getElementById('avgCtr').textContent = avgCtr + '%';
+  document.getElementById('totalClicks').textContent = totalClicks.toLocaleString();
   document.getElementById('totalConversions').textContent = totalConversions.toLocaleString();
+  document.getElementById('totalConvValue').textContent = totalConvValue.toLocaleString();
+  document.getElementById('exposedProducts').textContent = exposedProducts.toLocaleString();
+  document.getElementById('cartedProducts').textContent = cartedProducts.toLocaleString();
+  document.getElementById('paidProducts').textContent = paidProducts.toLocaleString();
 }
 
-// 渲染独立站运营分析图表
-function renderIndependentAnalysisCharts(data) {
-  // 点击趋势图
-  const clicksChart = echarts.init(document.getElementById('clicksChart'));
-  const clicksOption = {
-    title: { text: '点击趋势', textStyle: { color: '#374151' } },
-    tooltip: { trigger: 'axis' },
+// 渲染独立站运营分析对比图表
+async function renderIndependentAnalysisCharts(data) {
+  // 获取上一周期数据进行对比
+  const previousData = await getIndependentPreviousPeriodData();
+  
+  // 计算当前周期数据
+  const currentData = {
+    impressions: data.reduce((sum, item) => sum + (item.impressions || 0), 0),
+    clicks: data.reduce((sum, item) => sum + (item.clicks || 0), 0),
+    conversions: data.reduce((sum, item) => sum + (item.conversions || 0), 0),
+    convValue: data.reduce((sum, item) => sum + (item.conv_value || 0), 0),
+    exposedProducts: new Set(data.filter(item => item.impressions > 0).map(item => item.product)).size,
+    cartedProducts: new Set(data.filter(item => item.conversions > 0).map(item => item.product)).size,
+    paidProducts: new Set(data.filter(item => item.conv_value > 0).map(item => item.product)).size
+  };
+  
+  // 计算上一周期数据
+  const previousDataCalculated = previousData ? {
+    impressions: previousData.reduce((sum, item) => sum + (item.impressions || 0), 0),
+    clicks: previousData.reduce((sum, item) => sum + (item.clicks || 0), 0),
+    conversions: previousData.reduce((sum, item) => sum + (item.conversions || 0), 0),
+    convValue: previousData.reduce((sum, item) => sum + (item.conv_value || 0), 0),
+    exposedProducts: new Set(previousData.filter(item => item.impressions > 0).map(item => item.product)).size,
+    cartedProducts: new Set(previousData.filter(item => item.conversions > 0).map(item => item.product)).size,
+    paidProducts: new Set(previousData.filter(item => item.conv_value > 0).map(item => item.product)).size
+  } : null;
+  
+  // 渲染总展示数对比图
+  renderIndependentComparisonChart('impressionsComparisonChart', '总展示数对比', 
+    currentData.impressions, previousDataCalculated?.impressions || 0, '总展示数');
+  
+  // 渲染详情页访客数对比图
+  renderIndependentComparisonChart('clicksComparisonChart', '详情页访客数对比', 
+    currentData.clicks, previousDataCalculated?.clicks || 0, '详情页访客数');
+  
+  // 渲染加购次数对比图
+  renderIndependentComparisonChart('conversionsComparisonChart', '加购次数对比', 
+    currentData.conversions, previousDataCalculated?.conversions || 0, '加购次数');
+  
+  // 渲染订购商品数对比图
+  renderIndependentComparisonChart('convValueComparisonChart', '订购商品数对比', 
+    currentData.convValue, previousDataCalculated?.convValue || 0, '订购商品数');
+  
+  // 渲染有曝光商品数对比图
+  renderIndependentComparisonChart('exposedProductsComparisonChart', '有曝光商品数对比', 
+    currentData.exposedProducts, previousDataCalculated?.exposedProducts || 0, '有曝光商品数');
+  
+  // 渲染有加购商品数对比图
+  renderIndependentComparisonChart('cartedProductsComparisonChart', '有加购商品数对比', 
+    currentData.cartedProducts, previousDataCalculated?.cartedProducts || 0, '有加购商品数');
+  
+  // 渲染有支付商品数对比图
+  renderIndependentComparisonChart('paidProductsComparisonChart', '有支付商品数对比', 
+    currentData.paidProducts, previousDataCalculated?.paidProducts || 0, '有支付商品数');
+}
+
+// 渲染独立站对比柱状图
+function renderIndependentComparisonChart(chartId, title, currentValue, previousValue, label) {
+  const chart = echarts.init(document.getElementById(chartId));
+  const option = {
+    title: { 
+      text: title, 
+      textStyle: { color: '#374151', fontSize: 16 },
+      subtext: `${label}: ${currentValue.toLocaleString()}`,
+      subtextStyle: { color: '#6b7280', fontSize: 14 }
+    },
+    tooltip: { 
+      trigger: 'axis',
+      formatter: function(params) {
+        const data = params[0];
+        return `${data.name}<br/>${data.seriesName}: ${data.value.toLocaleString()}`;
+      }
+    },
+    legend: {
+      data: ['当前周期', '上一周期'],
+      textStyle: { color: '#374151' }
+    },
     xAxis: { 
       type: 'category', 
-      data: data.map(item => item.date || item.stat_date),
-      axisLabel: { color: '#6b7280' }
+      data: ['当前周期', '上一周期'],
+      axisLabel: { color: '#374151', fontSize: 12 }
     },
     yAxis: { 
       type: 'value',
-      axisLabel: { color: '#6b7280' }
+      axisLabel: { color: '#374151', fontSize: 12 }
     },
-    series: [{
-      data: data.map(item => item.clicks || 0),
-      type: 'line',
-      smooth: true,
-      itemStyle: { color: '#3B82F6' }
-    }]
+    series: [
+      {
+        name: '当前周期',
+        data: [currentValue, 0],
+        type: 'bar',
+        itemStyle: { color: '#3B82F6' },
+        barWidth: '40%'
+      },
+      {
+        name: '上一周期',
+        data: [0, previousValue],
+        type: 'bar',
+        itemStyle: { color: '#10B981' },
+        barWidth: '40%'
+      }
+    ]
   };
-  clicksChart.setOption(clicksOption);
+  chart.setOption(option);
+}
+
+// 获取独立站上一周期数据
+async function getIndependentPreviousPeriodData() {
+  try {
+    const dateRange = getDateRange();
+    const currentSite = getParam('site') || 'icyberite';
+    
+    // 计算上一周期的日期范围
+    const currentStart = new Date(dateRange.start);
+    const currentEnd = new Date(dateRange.end);
+    const periodDays = Math.ceil((currentEnd - currentStart) / (1000 * 60 * 60 * 24));
+    
+    const previousEnd = new Date(currentStart);
+    previousEnd.setDate(previousEnd.getDate() - 1);
+    const previousStart = new Date(previousEnd);
+    previousStart.setDate(previousStart.getDate() - periodDays + 1);
+    
+    const response = await fetch('/api/independent/stats', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        site: currentSite,
+        start: previousStart.toISOString().slice(0, 10),
+        end: previousEnd.toISOString().slice(0, 10)
+      })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data.ok && data.data) {
+        return data.data;
+      }
+    }
+  } catch (error) {
+    console.error('获取独立站上一周期数据失败:', error);
+  }
   
-  // 其他图表类似实现...
+  return null;
 }
 
 // 填充独立站产品选择器
