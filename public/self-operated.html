@@ -247,35 +247,58 @@
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     }
     
-    /* 图表网格布局 */
-    .charts-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-      gap: 20px;
-    }
-    
-    .chart-panel {
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-      transition: all 0.3s ease;
-      border: 1px solid #e5e7eb;
-    }
-    
-    .chart-panel:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-    }
-    
-    .chart-panel h3 {
-      color: #374151;
-      font-size: 18px;
-      font-weight: 600;
-      margin: 0 0 16px 0;
-      text-align: center;
-      text-shadow: none;
-    }
+         /* 图表网格布局 */
+     .charts-grid {
+       display: grid;
+       grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+       gap: 20px;
+     }
+     
+     .chart-panel {
+       background: white;
+       border-radius: 12px;
+       padding: 20px;
+       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+       transition: all 0.3s ease;
+       border: 1px solid #e5e7eb;
+       position: relative;
+       overflow: hidden;
+     }
+     
+     .chart-panel:hover {
+       transform: translateY(-2px);
+       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+     }
+     
+     .chart-panel h3 {
+       color: #374151;
+       font-size: 18px;
+       font-weight: 600;
+       margin: 0 0 16px 0;
+       text-align: center;
+       text-shadow: none;
+     }
+     
+     /* 图表容器样式优化 - 让曲线延伸到KPI框内 */
+     .chart-panel .echarts-for-react,
+     .chart-panel div[id*="Chart"] {
+       width: 100% !important;
+       height: 100% !important;
+       min-height: 300px;
+     }
+     
+     /* 产品分析页面的图表特殊样式 */
+     #products .chart-panel {
+       padding: 24px;
+       min-height: 350px;
+     }
+     
+     #products .chart-panel div[id*="Chart"] {
+       min-height: 280px;
+       margin: -12px;
+       width: calc(100% + 24px) !important;
+       height: calc(100% + 24px) !important;
+     }
     
     /* 产品选择器样式 */
     .product-selector {
@@ -309,28 +332,42 @@
       transition: all 0.3s ease;
     }
     
-    .product-selector .sel:focus {
-      outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-    
-    .product-selector img {
-      border-radius: 8px;
-      border: 2px solid #e5e7eb;
-    }
-    
-    .product-selector a {
-      color: #3b82f6;
-      text-decoration: none;
-      font-weight: 500;
-      transition: color 0.3s ease;
-    }
-    
-    .product-selector a:hover {
-      color: #2563eb;
-      text-decoration: underline;
-    }
+         .product-selector .sel:focus {
+       outline: none;
+       border-color: #3b82f6;
+       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+     }
+     
+     .product-selector .product-count-info {
+       margin-left: auto;
+       padding: 8px 16px;
+       background: #f3f4f6;
+       border-radius: 6px;
+       font-size: 14px;
+       color: #374151;
+     }
+     
+     .product-selector .product-count-info strong {
+       color: #1f2937;
+       font-weight: 600;
+     }
+     
+     .product-selector img {
+       border-radius: 8px;
+       border: 2px solid #e5e7eb;
+     }
+     
+     .product-selector a {
+       color: #3b82f6;
+       text-decoration: none;
+       font-weight: 500;
+       transition: color 0.3s ease;
+     }
+     
+     .product-selector a:hover {
+       color: #2563eb;
+       text-decoration: underline;
+     }
     
     /* 响应式设计 */
     @media (max-width: 768px) {
@@ -662,24 +699,58 @@
              </div>
            </div>
           
-                     <!-- 产品选择器 -->
-           <div class="product-selector">
-             <div class="controls">
-               <label>产品：</label>
-               <select id="productSelect" class="sel">
-                 <option value="">加载中...</option>
-               </select>
-               <span class="notice">（按曝光量排序）</span>
-             </div>
-           </div>
+                                 <!-- 产品选择器 -->
+            <div class="product-selector">
+              <div class="controls">
+                <label>产品：</label>
+                <select id="productSelect" class="sel">
+                  <option value="">加载中...</option>
+                </select>
+                <span class="notice">（按曝光量排序）</span>
+                <div class="product-count-info">
+                  <span>产品总数：<strong id="productTotalCount">0</strong></span>
+                </div>
+              </div>
+            </div>
            
-           <!-- 产品KPI - 只保留产品总数，做小一点 -->
-           <div id="productKpi" class="analysis-kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
-             <div class="analysis-kpi-card" style="padding: 16px;">
-               <h4 style="font-size: 12px; margin-bottom: 8px;">产品总数</h4>
-               <p id="productTotalCount" style="font-size: 20px;">0</p>
-             </div>
-           </div>
+                       <!-- 产品KPI - 单个产品的KPI指标 -->
+            <div id="productKpi" class="analysis-kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+              <div class="analysis-kpi-card">
+                <h4>平均访客比</h4>
+                <p id="productAvgVisitor">0%</p>
+                <div id="productAvgVisitorComparison" class="kpi-comparison"></div>
+              </div>
+              <div class="analysis-kpi-card">
+                <h4>平均加购比</h4>
+                <p id="productAvgCart">0%</p>
+                <div id="productAvgCartComparison" class="kpi-comparison"></div>
+              </div>
+              <div class="analysis-kpi-card">
+                <h4>平均支付比</h4>
+                <p id="productAvgPay">0%</p>
+                <div id="productAvgPayComparison" class="kpi-comparison"></div>
+              </div>
+              <div class="analysis-kpi-card">
+                <h4>总曝光量</h4>
+                <p id="productTotalExposure">0</p>
+                <div id="productTotalExposureComparison" class="kpi-comparison"></div>
+              </div>
+              <div class="analysis-kpi-card">
+                <h4>总访客数</h4>
+                <p id="productTotalVisitors">0</p>
+                <div id="productTotalVisitorsComparison" class="kpi-comparison"></div>
+              </div>
+              <div class="analysis-kpi-card">
+                <h4>总加购人数</h4>
+                <p id="productTotalAddPeople">0</p>
+                <div id="productTotalAddPeopleComparison" class="kpi-comparison"></div>
+              </div>
+              <div class="analysis-kpi-card">
+                <h4>总支付买家数</h4>
+                <p id="productTotalPayBuyers">0</p>
+                <div id="productTotalPayBuyersComparison" class="kpi-comparison"></div>
+              </div>
+            </div>
           
           <!-- 产品趋势图表 -->
           <div id="productCharts" class="charts-grid" style="display:none;">
@@ -1412,11 +1483,55 @@ document.addEventListener('DOMContentLoaded', ()=>{
      }
    }
   
-     // 更新产品KPI - 现在只更新产品总数，其他数据在图表中显示
-   function updateProductKPI(data) {
-     // 产品总数已经在loadProductAnalysisData中更新
-     console.log('产品数据已加载，共', data.length, '条记录');
-   }
+           // 更新产品KPI - 计算单个产品的KPI指标
+    function updateProductKPI(data) {
+      if (!data || data.length === 0) return;
+      
+      console.log('更新产品KPI，数据:', data);
+      
+      // 计算单个产品的KPI指标
+      const totalExposure = data.reduce((sum, item) => sum + (item.exposure || 0), 0);
+      const totalVisitors = data.reduce((sum, item) => sum + (item.visitors || 0), 0);
+      const totalViews = data.reduce((sum, item) => sum + (item.views || 0), 0);
+      const totalAddPeople = data.reduce((sum, item) => sum + (item.add_people || 0), 0);
+      const totalAddCount = data.reduce((sum, item) => sum + (item.add_count || 0), 0);
+      const totalPayBuyers = data.reduce((sum, item) => sum + (item.pay_buyers || 0), 0);
+      const totalPayItems = data.reduce((sum, item) => sum + (item.pay_items || 0), 0);
+      
+      // 计算比率
+      const avgVisitorRate = totalExposure > 0 ? (totalVisitors / totalExposure * 100).toFixed(2) : 0;
+      const avgCartRate = totalVisitors > 0 ? (totalAddCount / totalVisitors * 100).toFixed(2) : 0;
+      const avgPayRate = totalAddCount > 0 ? (totalPayItems / totalAddCount * 100).toFixed(2) : 0;
+      
+      console.log('产品KPI计算结果:', {
+        avgVisitorRate,
+        avgCartRate,
+        avgPayRate,
+        totalExposure,
+        totalVisitors,
+        totalAddPeople,
+        totalPayBuyers
+      });
+      
+      // 更新KPI显示
+      document.getElementById('productAvgVisitor').textContent = avgVisitorRate + '%';
+      document.getElementById('productAvgCart').textContent = avgCartRate + '%';
+      document.getElementById('productAvgPay').textContent = avgPayRate + '%';
+      document.getElementById('productTotalExposure').textContent = totalExposure.toLocaleString();
+      document.getElementById('productTotalVisitors').textContent = totalVisitors.toLocaleString();
+      document.getElementById('productTotalAddPeople').textContent = totalAddPeople.toLocaleString();
+      document.getElementById('productTotalPayBuyers').textContent = totalPayBuyers.toLocaleString();
+      
+      // 这里可以添加对比数据的计算和显示
+      // 暂时显示占位符
+      document.getElementById('productAvgVisitorComparison').innerHTML = '<span class="text-gray-500">--</span>';
+      document.getElementById('productAvgCartComparison').innerHTML = '<span class="text-gray-500">--</span>';
+      document.getElementById('productAvgPayComparison').innerHTML = '<span class="text-gray-500">--</span>';
+      document.getElementById('productTotalExposureComparison').innerHTML = '<span class="text-gray-500">--</span>';
+      document.getElementById('productTotalVisitorsComparison').innerHTML = '<span class="text-gray-500">--</span>';
+      document.getElementById('productTotalAddPeopleComparison').innerHTML = '<span class="text-gray-500">--</span>';
+      document.getElementById('productTotalPayBuyersComparison').innerHTML = '<span class="text-gray-500">--</span>';
+    }
   
   // 渲染产品图表
   function renderProductCharts(data) {
