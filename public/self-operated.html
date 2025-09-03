@@ -214,21 +214,46 @@
       margin-bottom: 24px;
     }
     
-    .analysis-kpi-card {
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-      text-align: center;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-      transition: all 0.3s ease;
-      border: 2px solid transparent;
-    }
-    
-    .analysis-kpi-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-      border-color: rgba(59, 130, 246, 0.3);
-    }
+         .analysis-kpi-card {
+       background: white;
+       border-radius: 12px;
+       padding: 20px;
+       text-align: center;
+       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+       transition: all 0.3s ease;
+       border: 2px solid transparent;
+       position: relative;
+       overflow: hidden;
+     }
+     
+     .analysis-kpi-card:hover {
+       transform: translateY(-4px);
+       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+       border-color: rgba(59, 130, 246, 0.3);
+     }
+     
+     /* 渐变色顶部标识 */
+     .analysis-kpi-card::before {
+       content: '';
+       position: absolute;
+       top: 0;
+       left: 0;
+       right: 0;
+       height: 4px;
+       background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b, #ef4444);
+       background-size: 200% 100%;
+       animation: gradient-shift 3s ease-in-out infinite;
+     }
+     
+     @keyframes gradient-shift {
+       0%, 100% { background-position: 0% 50%; }
+       50% { background-position: 100% 50%; }
+     }
+     
+     /* 产品分析页面的KPI卡片特殊样式 */
+     #products .analysis-kpi-card::before {
+       background: linear-gradient(90deg, #8b5cf6, #06b6d4, #10b981, #f59e0b);
+     }
     
     .analysis-kpi-card h4 {
       color: #374151;
@@ -350,6 +375,37 @@
      .product-selector .product-count-info strong {
        color: #1f2937;
        font-weight: 600;
+     }
+     
+     .product-selector .time-controls {
+       margin-top: 16px;
+       padding-top: 16px;
+       border-top: 1px solid #e5e7eb;
+       display: flex;
+       align-items: center;
+       gap: 12px;
+       flex-wrap: wrap;
+     }
+     
+     .product-selector .time-controls label {
+       font-weight: 600;
+       color: #374151;
+       min-width: 80px;
+     }
+     
+     .product-selector .time-controls .date-filter {
+       padding: 8px 12px;
+       border: 2px solid #e5e7eb;
+       border-radius: 8px;
+       font-size: 14px;
+       transition: all 0.3s ease;
+       min-width: 200px;
+     }
+     
+     .product-selector .time-controls .date-filter:focus {
+       outline: none;
+       border-color: #3b82f6;
+       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
      }
      
      .product-selector img {
@@ -699,7 +755,7 @@
              </div>
            </div>
           
-                                 <!-- 产品选择器 -->
+                                 <!-- 产品选择器和时间控件 -->
             <div class="product-selector">
               <div class="controls">
                 <label>产品：</label>
@@ -710,6 +766,11 @@
                 <div class="product-count-info">
                   <span>产品总数：<strong id="productTotalCount">0</strong></span>
                 </div>
+              </div>
+              <div class="time-controls">
+                <label>时间周期：</label>
+                <input id="productDateFilter" class="date-filter" placeholder="选择日期范围">
+                <span class="notice">（默认显示最近7天）</span>
               </div>
             </div>
            
@@ -1196,62 +1257,98 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   }
   
-     // 产品分析数据加载 - 加载产品列表并按曝光量排序
-   async function loadProductAnalysisData() {
-     try {
-       const dateRange = getDateRange();
-       const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
-       
-       console.log('开始加载产品分析数据:', { dateRange, currentSite });
-       
-       // 构建查询参数 - 使用GET请求而不是POST
-       const queryParams = new URLSearchParams({
-         start: dateRange.start,
-         end: dateRange.end,
-         granularity: 'day',
-         site: currentSite,
-         aggregate: 'product'  // 使用'product'获取产品级别的数据
-       });
-       
-       // 获取产品列表 - 使用GET请求
-       const productsResponse = await fetch(`/api/ae_query?${queryParams.toString()}`, {
-         method: 'GET',
-         headers: { 'Content-Type': 'application/json' }
-       });
-       
-       if (!productsResponse.ok) {
-         throw new Error(`API响应错误: ${productsResponse.status} ${productsResponse.statusText}`);
-       }
-       
-       const productsData = await productsResponse.json();
-       console.log('产品列表数据响应:', productsData);
-       
-       if (productsData.ok && productsData.rows) {
-         // 按曝光量排序产品
-         const sortedProducts = productsData.rows.sort((a, b) => (b.exposure || 0) - (a.exposure || 0));
-         
-         // 更新产品总数
-         document.getElementById('productTotalCount').textContent = sortedProducts.length;
-         
-         // 填充产品选择器
-         populateProductSelect(sortedProducts);
-         
-         // 默认选择曝光量最大的产品
-         if (sortedProducts.length > 0) {
-           const topProduct = sortedProducts[0];
-           console.log('默认选择曝光量最大的产品:', topProduct.product_id);
-           document.getElementById('productSelect').value = topProduct.product_id;
-           await loadProductData(topProduct.product_id);
-         }
-       } else {
-         console.warn('产品列表数据格式不正确:', productsData);
-         showProductAnalysisError('数据格式不正确，请检查API响应');
-       }
-     } catch (error) {
-       console.error('加载产品分析数据失败:', error);
-       showProductAnalysisError(`加载产品分析数据失败: ${error.message}`);
-     }
-   }
+           // 产品分析数据加载 - 加载产品列表并按曝光量排序
+    async function loadProductAnalysisData() {
+      try {
+        const dateRange = getProductDateRange();
+        const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+        
+        console.log('开始加载产品分析数据:', { dateRange, currentSite });
+        
+        // 初始化产品页面的时间控件
+        initializeProductDateFilter();
+        
+        // 构建查询参数 - 使用GET请求而不是POST
+        const queryParams = new URLSearchParams({
+          start: dateRange.start,
+          end: dateRange.end,
+          granularity: 'day',
+          site: currentSite,
+          aggregate: 'product'  // 使用'product'获取产品级别的数据
+        });
+        
+        // 获取产品列表 - 使用GET请求
+        const productsResponse = await fetch(`/api/ae_query?${queryParams.toString()}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!productsResponse.ok) {
+          throw new Error(`API响应错误: ${productsResponse.status} ${productsResponse.statusText}`);
+        }
+        
+        const productsData = await productsResponse.json();
+        console.log('产品列表数据响应:', productsData);
+        
+        if (productsData.ok && productsData.rows) {
+          // 按曝光量排序产品
+          const sortedProducts = productsData.rows.sort((a, b) => (b.exposure || 0) - (a.exposure || 0));
+          
+          // 更新产品总数
+          document.getElementById('productTotalCount').textContent = sortedProducts.length;
+          
+          // 填充产品选择器
+          populateProductSelect(sortedProducts);
+          
+          // 默认选择曝光量最大的产品
+          if (sortedProducts.length > 0) {
+            const topProduct = sortedProducts[0];
+            console.log('默认选择曝光量最大的产品:', topProduct.product_id);
+            document.getElementById('productSelect').value = topProduct.product_id;
+            await loadProductData(topProduct.product_id);
+          }
+        } else {
+          console.warn('产品列表数据格式不正确:', productsData);
+          showProductAnalysisError('数据格式不正确，请检查API响应');
+        }
+      } catch (error) {
+        console.error('加载产品分析数据失败:', error);
+        showProductAnalysisError(`加载产品分析数据失败: ${error.message}`);
+      }
+    }
+    
+    // 初始化产品页面的时间控件
+    function initializeProductDateFilter() {
+      const productDateFilter = document.getElementById('productDateFilter');
+      if (!productDateFilter) return;
+      
+      // 设置默认日期范围（最近7天）
+      const today = new Date();
+      const end = today.toISOString().slice(0, 10);
+      const start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      
+      // 使用flatpickr初始化日期选择器
+      if (window.flatpickr) {
+        const picker = flatpickr(productDateFilter, {
+          mode: 'range',
+          dateFormat: 'Y-m-d',
+          defaultDate: [start, end],
+          onChange: function(selectedDates, dateStr) {
+            if (selectedDates.length === 2) {
+              console.log('产品分析时间范围变更:', dateStr);
+              // 重新加载产品数据
+              const currentProductId = document.getElementById('productSelect').value;
+              if (currentProductId) {
+                loadProductData(currentProductId);
+              }
+            }
+          }
+        });
+        
+        // 设置初始值
+        productDateFilter.value = `${start} to ${end}`;
+      }
+    }
   
   // 获取日期范围
   function getDateRange() {
@@ -1430,107 +1527,277 @@ document.addEventListener('DOMContentLoaded', ()=>{
      });
    }
   
-     // 加载特定产品数据
-   async function loadProductData(productId) {
-     try {
-       const dateRange = getDateRange();
-       const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
-       
-       console.log('开始加载产品数据:', { productId, dateRange, currentSite });
-       
-       // 更新产品基本信息
-       document.getElementById('currentProductId').textContent = productId;
-       document.getElementById('productLink').href = `https://aliexpress.com/item/${productId}.html`;
-       
-       // 构建查询参数 - 使用GET请求而不是POST
-       const queryParams = new URLSearchParams({
-         start: dateRange.start,
-         end: dateRange.end,
-         granularity: 'day',
-         site: currentSite,
-         aggregate: 'time'  // 使用'time'获取时间序列数据
-       });
-       
-       const response = await fetch(`/api/ae_query?${queryParams.toString()}`, {
-         method: 'GET',
-         headers: { 'Content-Type': 'application/json' }
-       });
-       
-       if (!response.ok) {
-         throw new Error(`API响应错误: ${response.status} ${response.statusText}`);
-       }
-       
-       const data = await response.json();
-       console.log('产品数据响应:', data);
-       
-       if (data.ok && data.rows) {  // 注意：API返回的是rows而不是data
-         // 过滤出指定产品的数据
-         const productData = data.rows.filter(item => item.product_id === productId);
-         if (productData.length > 0) {
-           updateProductKPI(productData);
-           renderProductCharts(productData);
-           document.getElementById('productCharts').style.display = 'grid';
-         } else {
-           showProductDataError('未找到该产品的数据');
-         }
-       } else {
-         console.warn('产品数据格式不正确:', data);
-         showProductDataError('数据格式不正确，请检查API响应');
-       }
-     } catch (error) {
-       console.error('加载产品数据失败:', error);
-       showProductDataError(`加载产品数据失败: ${error.message}`);
-     }
-   }
+           // 加载特定产品数据
+    async function loadProductData(productId) {
+      try {
+        const dateRange = getProductDateRange();
+        const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+        
+        console.log('开始加载产品数据:', { productId, dateRange, currentSite });
+        
+        // 更新产品基本信息
+        document.getElementById('currentProductId').textContent = productId;
+        document.getElementById('productLink').href = `https://aliexpress.com/item/${productId}.html`;
+        
+        // 构建查询参数 - 使用GET请求而不是POST
+        const queryParams = new URLSearchParams({
+          start: dateRange.start,
+          end: dateRange.end,
+          granularity: 'day',
+          site: currentSite,
+          aggregate: 'time'  // 使用'time'获取时间序列数据
+        });
+        
+        const response = await fetch(`/api/ae_query?${queryParams.toString()}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`API响应错误: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('产品数据响应:', data);
+        
+        if (data.ok && data.rows) {  // 注意：API返回的是rows而不是data
+          // 过滤出指定产品的数据
+          const productData = data.rows.filter(item => item.product_id === productId);
+          if (productData.length > 0) {
+            updateProductKPI(productData);
+            renderProductCharts(productData);
+            document.getElementById('productCharts').style.display = 'grid';
+          } else {
+            showProductDataError('未找到该产品的数据');
+          }
+        } else {
+          console.warn('产品数据格式不正确:', data);
+          showProductDataError('数据格式不正确，请检查API响应');
+        }
+      } catch (error) {
+        console.error('加载产品数据失败:', error);
+        showProductDataError(`加载产品数据失败: ${error.message}`);
+      }
+    }
   
-           // 更新产品KPI - 计算单个产品的KPI指标
-    function updateProductKPI(data) {
+           // 更新产品KPI - 计算单个产品的KPI指标，包含与上一周期的对比
+    async function updateProductKPI(data) {
       if (!data || data.length === 0) return;
       
       console.log('更新产品KPI，数据:', data);
       
-      // 计算单个产品的KPI指标
-      const totalExposure = data.reduce((sum, item) => sum + (item.exposure || 0), 0);
-      const totalVisitors = data.reduce((sum, item) => sum + (item.visitors || 0), 0);
-      const totalViews = data.reduce((sum, item) => sum + (item.views || 0), 0);
-      const totalAddPeople = data.reduce((sum, item) => sum + (item.add_people || 0), 0);
-      const totalAddCount = data.reduce((sum, item) => sum + (item.add_count || 0), 0);
-      const totalPayBuyers = data.reduce((sum, item) => sum + (item.pay_buyers || 0), 0);
-      const totalPayItems = data.reduce((sum, item) => sum + (item.pay_items || 0), 0);
+      // 计算当前周期的KPI指标
+      const currentTotalExposure = data.reduce((sum, item) => sum + (item.exposure || 0), 0);
+      const currentTotalVisitors = data.reduce((sum, item) => sum + (item.visitors || 0), 0);
+      const currentTotalViews = data.reduce((sum, item) => sum + (item.views || 0), 0);
+      const currentTotalAddPeople = data.reduce((sum, item) => sum + (item.add_people || 0), 0);
+      const currentTotalAddCount = data.reduce((sum, item) => sum + (item.add_count || 0), 0);
+      const currentTotalPayBuyers = data.reduce((sum, item) => sum + (item.pay_buyers || 0), 0);
+      const currentTotalPayItems = data.reduce((sum, item) => sum + (item.pay_items || 0), 0);
       
-      // 计算比率
-      const avgVisitorRate = totalExposure > 0 ? (totalVisitors / totalExposure * 100).toFixed(2) : 0;
-      const avgCartRate = totalVisitors > 0 ? (totalAddCount / totalVisitors * 100).toFixed(2) : 0;
-      const avgPayRate = totalAddCount > 0 ? (totalPayItems / totalAddCount * 100).toFixed(2) : 0;
+      // 计算当前周期比率
+      const currentAvgVisitorRate = currentTotalExposure > 0 ? (currentTotalVisitors / currentTotalExposure * 100).toFixed(2) : 0;
+      const currentAvgCartRate = currentTotalVisitors > 0 ? (currentTotalAddCount / currentTotalVisitors * 100).toFixed(2) : 0;
+      const currentAvgPayRate = currentTotalAddCount > 0 ? (currentTotalPayItems / currentTotalAddCount * 100).toFixed(2) : 0;
+      
+      // 获取上一周期数据进行对比
+      const previousData = await getPreviousPeriodData();
+      let comparisonData = {};
+      
+      if (previousData && previousData.length > 0) {
+        const previousTotalExposure = previousData.reduce((sum, item) => sum + (item.exposure || 0), 0);
+        const previousTotalVisitors = previousData.reduce((sum, item) => sum + (item.visitors || 0), 0);
+        const previousTotalAddCount = previousData.reduce((sum, item) => sum + (item.add_count || 0), 0);
+        const previousTotalPayItems = previousData.reduce((sum, item) => sum + (item.pay_items || 0), 0);
+        const previousTotalAddPeople = previousData.reduce((sum, item) => sum + (item.add_people || 0), 0);
+        const previousTotalPayBuyers = previousData.reduce((sum, item) => sum + (item.pay_buyers || 0), 0);
+        
+        const previousAvgVisitorRate = previousTotalExposure > 0 ? (previousTotalVisitors / previousTotalExposure * 100).toFixed(2) : 0;
+        const previousAvgCartRate = previousTotalVisitors > 0 ? (previousTotalAddCount / previousTotalVisitors * 100).toFixed(2) : 0;
+        const previousAvgPayRate = previousTotalAddCount > 0 ? (previousTotalPayItems / previousTotalAddCount * 100).toFixed(2) : 0;
+        
+        comparisonData = {
+          avgVisitorRate: {
+            current: parseFloat(currentAvgVisitorRate),
+            previous: parseFloat(previousAvgVisitorRate),
+            change: parseFloat(currentAvgVisitorRate) - parseFloat(previousAvgVisitorRate)
+          },
+          avgCartRate: {
+            current: parseFloat(currentAvgCartRate),
+            previous: parseFloat(previousAvgCartRate),
+            change: parseFloat(currentAvgCartRate) - parseFloat(previousAvgCartRate)
+          },
+          avgPayRate: {
+            current: parseFloat(currentAvgPayRate),
+            previous: parseFloat(previousAvgPayRate),
+            change: parseFloat(currentAvgPayRate) - parseFloat(previousAvgPayRate)
+          },
+          totalExposure: {
+            current: currentTotalExposure,
+            previous: previousTotalExposure,
+            change: currentTotalExposure - previousTotalExposure
+          },
+          totalVisitors: {
+            current: currentTotalVisitors,
+            previous: previousTotalVisitors,
+            change: currentTotalVisitors - previousTotalVisitors
+          },
+          totalAddPeople: {
+            current: currentTotalAddPeople,
+            previous: previousTotalAddPeople,
+            change: currentTotalAddPeople - previousTotalAddPeople
+          },
+          totalPayBuyers: {
+            current: currentTotalPayBuyers,
+            previous: previousTotalPayBuyers,
+            change: currentTotalPayBuyers - previousTotalPayBuyers
+          }
+        };
+      }
       
       console.log('产品KPI计算结果:', {
-        avgVisitorRate,
-        avgCartRate,
-        avgPayRate,
-        totalExposure,
-        totalVisitors,
-        totalAddPeople,
-        totalPayBuyers
+        currentAvgVisitorRate,
+        currentAvgCartRate,
+        currentAvgPayRate,
+        currentTotalExposure,
+        currentTotalVisitors,
+        currentTotalAddPeople,
+        currentTotalPayBuyers,
+        comparisonData
       });
       
       // 更新KPI显示
-      document.getElementById('productAvgVisitor').textContent = avgVisitorRate + '%';
-      document.getElementById('productAvgCart').textContent = avgCartRate + '%';
-      document.getElementById('productAvgPay').textContent = avgPayRate + '%';
-      document.getElementById('productTotalExposure').textContent = totalExposure.toLocaleString();
-      document.getElementById('productTotalVisitors').textContent = totalVisitors.toLocaleString();
-      document.getElementById('productTotalAddPeople').textContent = totalAddPeople.toLocaleString();
-      document.getElementById('productTotalPayBuyers').textContent = totalPayBuyers.toLocaleString();
+      document.getElementById('productAvgVisitor').textContent = currentAvgVisitorRate + '%';
+      document.getElementById('productAvgCart').textContent = currentAvgCartRate + '%';
+      document.getElementById('productAvgPay').textContent = currentAvgPayRate + '%';
+      document.getElementById('productTotalExposure').textContent = currentTotalExposure.toLocaleString();
+      document.getElementById('productTotalVisitors').textContent = currentTotalVisitors.toLocaleString();
+      document.getElementById('productTotalAddPeople').textContent = currentTotalAddPeople.toLocaleString();
+      document.getElementById('productTotalPayBuyers').textContent = currentTotalPayBuyers.toLocaleString();
       
-      // 这里可以添加对比数据的计算和显示
-      // 暂时显示占位符
-      document.getElementById('productAvgVisitorComparison').innerHTML = '<span class="text-gray-500">--</span>';
-      document.getElementById('productAvgCartComparison').innerHTML = '<span class="text-gray-500">--</span>';
-      document.getElementById('productAvgPayComparison').innerHTML = '<span class="text-gray-500">--</span>';
-      document.getElementById('productTotalExposureComparison').innerHTML = '<span class="text-gray-500">--</span>';
-      document.getElementById('productTotalVisitorsComparison').innerHTML = '<span class="text-gray-500">--</span>';
-      document.getElementById('productTotalAddPeopleComparison').innerHTML = '<span class="text-gray-500">--</span>';
-      document.getElementById('productTotalPayBuyersComparison').innerHTML = '<span class="text-gray-500">--</span>';
+      // 更新对比数据显示
+      updateProductComparisonDisplay(comparisonData);
+    }
+    
+    // 更新产品对比数据显示
+    function updateProductComparisonDisplay(comparisonData) {
+      if (!comparisonData || Object.keys(comparisonData).length === 0) {
+        // 如果没有对比数据，显示占位符
+        document.getElementById('productAvgVisitorComparison').innerHTML = '<span class="text-gray-500">--</span>';
+        document.getElementById('productAvgCartComparison').innerHTML = '<span class="text-gray-500">--</span>';
+        document.getElementById('productAvgPayComparison').innerHTML = '<span class="text-gray-500">--</span>';
+        document.getElementById('productTotalExposureComparison').innerHTML = '<span class="text-gray-500">--</span>';
+        document.getElementById('productTotalVisitorsComparison').innerHTML = '<span class="text-gray-500">--</span>';
+        document.getElementById('productTotalAddPeopleComparison').innerHTML = '<span class="text-gray-500">--</span>';
+        document.getElementById('productTotalPayBuyersComparison').innerHTML = '<span class="text-gray-500">--</span>';
+        return;
+      }
+      
+      // 更新平均访客比对比
+      const visitorChange = comparisonData.avgVisitorRate.change;
+      const visitorSymbol = visitorChange > 0 ? '↑' : visitorChange < 0 ? '↓' : '';
+      const visitorColor = visitorChange > 0 ? 'text-green-600' : visitorChange < 0 ? 'text-red-600' : 'text-gray-500';
+      document.getElementById('productAvgVisitorComparison').innerHTML = 
+        `<span class="${visitorColor}">${visitorSymbol} ${Math.abs(visitorChange).toFixed(2)}%</span>`;
+      
+      // 更新平均加购比对比
+      const cartChange = comparisonData.avgCartRate.change;
+      const cartSymbol = cartChange > 0 ? '↑' : cartChange < 0 ? '↓' : '';
+      const cartColor = cartChange > 0 ? 'text-green-600' : cartChange < 0 ? 'text-red-600' : 'text-gray-500';
+      document.getElementById('productAvgCartComparison').innerHTML = 
+        `<span class="${cartColor}">${cartSymbol} ${Math.abs(cartChange).toFixed(2)}%</span>`;
+      
+      // 更新平均支付比对比
+      const payChange = comparisonData.avgPayRate.change;
+      const paySymbol = payChange > 0 ? '↑' : payChange < 0 ? '↓' : '';
+      const payColor = payChange > 0 ? 'text-green-600' : payChange < 0 ? 'text-red-600' : 'text-gray-500';
+      document.getElementById('productAvgPayComparison').innerHTML = 
+        `<span class="${payColor}">${cartSymbol} ${Math.abs(payChange).toFixed(2)}%</span>`;
+      
+      // 更新总曝光量对比
+      const exposureChange = comparisonData.totalExposure.change;
+      const exposureSymbol = exposureChange > 0 ? '↑' : exposureChange < 0 ? '↓' : '';
+      const exposureColor = exposureChange > 0 ? 'text-green-600' : exposureChange < 0 ? 'text-red-600' : 'text-gray-500';
+      document.getElementById('productTotalExposureComparison').innerHTML = 
+        `<span class="${exposureColor}">${exposureSymbol} ${Math.abs(exposureChange).toLocaleString()}</span>`;
+      
+      // 更新总访客数对比
+      const visitorsChange = comparisonData.totalVisitors.change;
+      const visitorsSymbol = visitorsChange > 0 ? '↑' : visitorsChange < 0 ? '↓' : '';
+      const visitorsColor = visitorsChange > 0 ? 'text-green-600' : visitorsChange < 0 ? 'text-red-600' : 'text-gray-500';
+      document.getElementById('productTotalVisitorsComparison').innerHTML = 
+        `<span class="${visitorsColor}">${visitorsSymbol} ${Math.abs(visitorsChange).toLocaleString()}</span>`;
+      
+      // 更新总加购人数对比
+      const addPeopleChange = comparisonData.totalAddPeople.change;
+      const addPeopleSymbol = addPeopleChange > 0 ? '↑' : addPeopleChange < 0 ? '↓' : '';
+      const addPeopleColor = addPeopleChange > 0 ? 'text-green-600' : addPeopleChange < 0 ? 'text-red-600' : 'text-gray-500';
+      document.getElementById('productTotalAddPeopleComparison').innerHTML = 
+        `<span class="${addPeopleColor}">${addPeopleSymbol} ${Math.abs(addPeopleChange).toLocaleString()}</span>`;
+      
+      // 更新总支付买家数对比
+      const payBuyersChange = comparisonData.totalPayBuyers.change;
+      const payBuyersSymbol = payBuyersChange > 0 ? '↑' : payBuyersChange < 0 ? '↓' : '';
+      const payBuyersColor = payBuyersChange > 0 ? 'text-green-600' : payBuyersChange < 0 ? 'text-red-600' : 'text-gray-500';
+      document.getElementById('productTotalPayBuyersComparison').innerHTML = 
+        `<span class="${payBuyersColor}">${payBuyersSymbol} ${Math.abs(payBuyersChange).toLocaleString()}</span>`;
+    }
+    
+    // 获取上一周期数据
+    async function getPreviousPeriodData() {
+      try {
+        const dateRange = getProductDateRange();
+        const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+        
+        // 计算上一周期的日期范围
+        const currentStart = new Date(dateRange.start);
+        const currentEnd = new Date(dateRange.end);
+        const periodDays = Math.ceil((currentEnd - currentStart) / (1000 * 60 * 60 * 24));
+        
+        const previousEnd = new Date(currentStart);
+        previousEnd.setDate(previousEnd.getDate() - 1);
+        const previousStart = new Date(previousEnd);
+        previousStart.setDate(previousStart.getDate() - periodDays + 1);
+        
+        const queryParams = new URLSearchParams({
+          start: previousStart.toISOString().slice(0, 10),
+          end: previousEnd.toISOString().slice(0, 10),
+          granularity: 'day',
+          site: currentSite,
+          aggregate: 'time'
+        });
+        
+        const response = await fetch(`/api/ae_query?${queryParams.toString()}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.ok && data.rows) {
+            return data.rows;
+          }
+        }
+      } catch (error) {
+        console.error('获取上一周期数据失败:', error);
+      }
+      
+      return null;
+    }
+    
+    // 获取产品分析页面的日期范围
+    function getProductDateRange() {
+      const input = document.getElementById('productDateFilter');
+      if (input && input.value && input.value.includes(' to ')) {
+        const [start, end] = input.value.split(' to ');
+        return { start, end };
+      }
+      
+      // 默认显示最近7天
+      const today = new Date();
+      const end = today.toISOString().slice(0, 10);
+      const start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      return { start, end };
     }
   
   // 渲染产品图表
