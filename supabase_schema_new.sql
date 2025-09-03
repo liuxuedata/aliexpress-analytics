@@ -1,3 +1,5 @@
+git commit --allow-empty -m "trigger vercel preview for <your-branch>"
+git push origin <your-branch>
 -- Supabase: 速卖通自运营日度表（主键：site + product_id + stat_date）
 -- 适用于全新环境部署
 

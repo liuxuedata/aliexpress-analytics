@@ -93,8 +93,8 @@
     </div>
     <ul class="sub-nav">
       <li><a href="#" class="active" data-target="detail"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/><line x1="15" y1="9" x2="15" y2="21"/></svg>详细数据</a></li>
-      <li><a href="operation-analysis.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 3h7v7"/></svg>运营分析</a></li>
-      <li><a href="product-analysis.html"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3v8h8"/></svg>产品分析</a></li>
+      <li><a href="#analysis" data-target="analysis"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 3h7v7"/></svg>运营分析</a></li>
+      <li><a href="#products" data-target="products"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3v8h8"/></svg>产品分析</a></li>
     </ul>
   </nav>
 
@@ -171,13 +171,33 @@
   </div>
 </section>
 
-<section id="product" class="content-pad" style="display:none;">
+<section id="products" class="content-pad" style="display:none;">
   <div class="panel">
     <div class="kpi-ctrl">
       <label>选择商品</label>
       <select id="productSelect"></select>
     </div>
-    <div id="productKpi" class="kpi-row"></div>
+    <div id="productKpi" class="kpi-grid"></div>
+  </div>
+  
+  <!-- 产品趋势图表 -->
+  <div id="productCharts" class="grid grid-2" style="display:none;">
+    <div class="panel">
+      <h3>曝光趋势</h3>
+      <div id="productExposureChart" style="width:100%;height:300px;"></div>
+    </div>
+    <div class="panel">
+      <h3>访客趋势</h3>
+      <div id="productVisitorChart" style="width:100%;height:300px;"></div>
+    </div>
+    <div class="panel">
+      <h3>加购趋势</h3>
+      <div id="productAddChart" style="width:100%;height:300px;"></div>
+    </div>
+    <div class="panel">
+      <h3>支付趋势</h3>
+      <div id="productPayChart" style="width:100%;height:300px;"></div>
+    </div>
   </div>
 </section>
 
@@ -383,20 +403,195 @@
       card('加购人数', cur.add, prev.add, false, 'warning'),
       card('支付买家数', cur.pay, prev.pay, false, 'danger')
     ].join(''));
+    
+    // 显示产品图表
+    $('#productCharts').show();
+  }
+  
+  // 渲染产品趋势图表
+  function renderProductCharts(pid, rowsA) {
+    const productData = rowsA.filter(x => String(x.product_id) === String(pid));
+    
+    if (productData.length === 0) return;
+    
+    // 按日期分组数据
+    const dateGroups = {};
+    productData.forEach(row => {
+      const date = row.stat_date || row.period_end || 'Unknown';
+      if (!dateGroups[date]) {
+        dateGroups[date] = {
+          exposure: 0,
+          visitors: 0,
+          addToCart: 0,
+          pay: 0
+        };
+      }
+      dateGroups[date].exposure += (row.search_exposure || 0);
+      dateGroups[date].visitors += (row.uv || 0);
+      dateGroups[date].addToCart += (row.add_to_cart_users || 0);
+      dateGroups[date].pay += (row.pay_buyers || 0);
+    });
+    
+    const dates = Object.keys(dateGroups).sort();
+    
+    // 曝光趋势图
+    const exposureChart = echarts.init(document.getElementById('productExposureChart'));
+    const exposureOption = {
+      title: { text: '曝光趋势', textStyle: { color: '#374151' } },
+      tooltip: { trigger: 'axis' },
+      xAxis: { 
+        type: 'category', 
+        data: dates,
+        axisLabel: { color: '#6b7280' }
+      },
+      yAxis: { 
+        type: 'value',
+        axisLabel: { color: '#6b7280' }
+      },
+      series: [{
+        data: dates.map(date => dateGroups[date].exposure),
+        type: 'line',
+        smooth: true,
+        itemStyle: { color: '#10B981' }
+      }]
+    };
+    exposureChart.setOption(exposureOption);
+    
+    // 访客趋势图
+    const visitorChart = echarts.init(document.getElementById('productVisitorChart'));
+    const visitorOption = {
+      title: { text: '访客趋势', textStyle: { color: '#374151' } },
+      tooltip: { trigger: 'axis' },
+      xAxis: { 
+        type: 'category', 
+        data: dates,
+        axisLabel: { color: '#6b7280' }
+      },
+      yAxis: { 
+        type: 'value',
+        axisLabel: { color: '#6b7280' }
+      },
+      series: [{
+        data: dates.map(date => dateGroups[date].visitors),
+        type: 'line',
+        smooth: true,
+        itemStyle: { color: '#3B82F6' }
+      }]
+    };
+    visitorChart.setOption(visitorOption);
+    
+    // 加购趋势图
+    const addChart = echarts.init(document.getElementById('productAddChart'));
+    const addOption = {
+      title: { text: '加购趋势', textStyle: { color: '#374151' } },
+      tooltip: { trigger: 'axis' },
+      xAxis: { 
+        type: 'category', 
+        data: dates,
+        axisLabel: { color: '#6b7280' }
+      },
+      yAxis: { 
+        type: 'value',
+        axisLabel: { color: '#6b7280' }
+      },
+      series: [{
+        data: dates.map(date => dateGroups[date].addToCart),
+        type: 'line',
+        smooth: true,
+        itemStyle: { color: '#F59E0B' }
+      }]
+    };
+    addChart.setOption(addOption);
+    
+    // 支付趋势图
+    const payChart = echarts.init(document.getElementById('productPayChart'));
+    const payOption = {
+      title: { text: '支付趋势', textStyle: { color: '#374151' } },
+      tooltip: { trigger: 'axis' },
+      xAxis: { 
+        type: 'category', 
+        data: dates,
+        axisLabel: { color: '#6b7280' }
+      },
+      yAxis: { 
+        type: 'value',
+        axisLabel: { color: '#6b7280' }
+      },
+      series: [{
+        data: dates.map(date => dateGroups[date].pay),
+        type: 'line',
+        smooth: true,
+        itemStyle: { color: '#EF4444' }
+      }]
+    };
+    payChart.setOption(payOption);
   }
 
   loadPeriods().then(loadData);
 })();
 
-  // ---- Tabs switch ----
-  $(document).on('click', '.tabs .tab', function(){
-    $('.tabs .tab').removeClass('active');
-    $(this).addClass('active');
-    const tab = $(this).data('tab');
-    $('#detail, #analysis').hide();
-    $('#'+tab).show();
-    setTimeout(()=>{ if(tab==='analysis'){ ratioChart && ratioChart.resize(); topChart && topChart.resize(); }}, 30);
+  // Hash路由处理
+  function handleHashRoute() {
+    const hash = window.location.hash.slice(1) || 'detail';
+    const targetLink = document.querySelector(`[data-target="${hash}"]`);
+    
+    if (targetLink) {
+      // 更新导航状态
+      document.querySelectorAll('.sub-nav a').forEach(x => x.classList.remove('active'));
+      targetLink.classList.add('active');
+      
+      // 显示对应内容
+      ['detail', 'analysis', 'products'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = (id === hash ? '' : 'none');
+      });
+      
+      // 根据路由加载相应数据
+      if (hash === 'analysis') {
+        // 运营分析图表已经在loadData中渲染，这里只需要resize
+        setTimeout(() => {
+          if (window.ratioChart) window.ratioChart.resize();
+          if (window.topChart) window.topChart.resize();
+        }, 30);
+      } else if (hash === 'products') {
+        // 产品分析数据已经在loadData中加载，这里只需要显示图表
+        if (window._rowsA && window._rowsA.length > 0) {
+          const selectedProduct = $('#productSelect').val();
+          if (selectedProduct) {
+            updateProductKpi(selectedProduct, window._rowsA, window._rowsB);
+            renderProductCharts(selectedProduct, window._rowsA);
+          }
+        }
+      }
+    }
+  }
+  
+  // 监听hash变化
+  window.addEventListener('hashchange', handleHashRoute);
+  
+  // 初始化hash路由
+  handleHashRoute();
+  
+  // 导航点击处理
+  document.querySelectorAll('.sub-nav a').forEach(a => {
+    a.addEventListener('click', e => {
+      const target = a.dataset.target;
+      if (target) {
+        e.preventDefault();
+        window.location.hash = target;
+      }
+    });
   });
+  
+  // 移除旧的tab切换逻辑
+  // $(document).on('click', '.tabs .tab', function(){
+  //   $('.tabs .tab').removeClass('active');
+  //   $(this).addClass('active');
+  //   const tab = $(this).data('tab');
+  //   $('#detail, #analysis').hide();
+  //   $('#'+tab).show();
+  //   setTimeout(()=>{ if(tab==='analysis'){ ratioChart && ratioChart.resize(); topChart && topChart.resize(); }}, 30);
+  // });
 
   // ---- Analysis charts ----
   let ratioChart=null, topChart=null;
