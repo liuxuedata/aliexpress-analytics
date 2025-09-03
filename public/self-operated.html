@@ -986,17 +986,19 @@ document.addEventListener('DOMContentLoaded', ()=>{
       
       console.log('开始加载运营分析数据:', { dateRange, currentSite });
       
-      // 获取当前周期数据 - 使用正确的API端点和参数
-      const currentResponse = await fetch('/api/ae_query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          start: dateRange.start,
-          end: dateRange.end,
-          granularity: 'day',
-          site: currentSite,
-          aggregate: true
-        })
+      // 构建查询参数 - 使用GET请求而不是POST
+      const queryParams = new URLSearchParams({
+        start: dateRange.start,
+        end: dateRange.end,
+        granularity: 'day',
+        site: currentSite,
+        aggregate: 'time'  // 使用'time'而不是true
+      });
+      
+      // 获取当前周期数据 - 使用GET请求
+      const currentResponse = await fetch(`/api/ae_query?${queryParams.toString()}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
       });
       
       if (!currentResponse.ok) {
@@ -1006,11 +1008,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const currentData = await currentResponse.json();
       console.log('运营分析数据响应:', currentData);
       
-      if (currentData.ok && currentData.data) {
+      if (currentData.ok && currentData.rows) {  // 注意：API返回的是rows而不是data
         // 更新KPI卡片
-        updateAnalysisKPI(currentData.data);
+        updateAnalysisKPI(currentData.rows);
         // 渲染图表
-        renderAnalysisCharts(currentData.data);
+        renderAnalysisCharts(currentData.rows);
       } else {
         console.warn('运营分析数据格式不正确:', currentData);
         showAnalysisError('数据格式不正确，请检查API响应');
@@ -1042,26 +1044,39 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const dateRange = getDateRange();
       const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
       
-      // 获取产品列表
-      const productsResponse = await fetch('/api/ae_query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          start: dateRange.start,
-          end: dateRange.end,
-          granularity: 'day',
-          site: currentSite,
-          aggregate: false
-        })
+      console.log('开始加载产品分析数据:', { dateRange, currentSite });
+      
+      // 构建查询参数 - 使用GET请求而不是POST
+      const queryParams = new URLSearchParams({
+        start: dateRange.start,
+        end: dateRange.end,
+        granularity: 'day',
+        site: currentSite,
+        aggregate: 'product'  // 使用'product'获取产品级别的数据
       });
       
-      const productsData = await productsResponse.json();
+      // 获取产品列表 - 使用GET请求
+      const productsResponse = await fetch(`/api/ae_query?${queryParams.toString()}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
       
-      if (productsData.ok && productsData.data) {
-        populateProductSelect(productsData.data);
+      if (!productsResponse.ok) {
+        throw new Error(`API响应错误: ${productsResponse.status} ${productsResponse.statusText}`);
+      }
+      
+      const productsData = await productsResponse.json();
+      console.log('产品分析数据响应:', productsData);
+      
+      if (productsData.ok && productsData.rows) {  // 注意：API返回的是rows而不是data
+        populateProductSelect(productsData.rows);
+      } else {
+        console.warn('产品分析数据格式不正确:', productsData);
+        showProductAnalysisError('数据格式不正确，请检查API响应');
       }
     } catch (error) {
       console.error('加载产品分析数据失败:', error);
+      showProductAnalysisError(`加载产品分析数据失败: ${error.message}`);
     }
   }
   
@@ -1224,28 +1239,46 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const dateRange = getDateRange();
       const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
       
-      const response = await fetch('/api/ae_query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          start: dateRange.start,
-          end: dateRange.end,
-          granularity: 'day',
-          site: currentSite,
-          product_id: productId,
-          aggregate: false
-        })
+      console.log('开始加载产品数据:', { productId, dateRange, currentSite });
+      
+      // 构建查询参数 - 使用GET请求而不是POST
+      const queryParams = new URLSearchParams({
+        start: dateRange.start,
+        end: dateRange.end,
+        granularity: 'day',
+        site: currentSite,
+        aggregate: 'time'  // 使用'time'获取时间序列数据
       });
       
-      const data = await response.json();
+      const response = await fetch(`/api/ae_query?${queryParams.toString()}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
       
-      if (data.ok && data.data) {
-        updateProductKPI(data.data);
-        renderProductCharts(data.data);
-        document.getElementById('productCharts').style.display = 'grid';
+      if (!response.ok) {
+        throw new Error(`API响应错误: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('产品数据响应:', data);
+      
+      if (data.ok && data.rows) {  // 注意：API返回的是rows而不是data
+        // 过滤出指定产品的数据
+        const productData = data.rows.filter(item => item.product_id === productId);
+        if (productData.length > 0) {
+          updateProductKPI(productData);
+          renderProductCharts(productData);
+          document.getElementById('productCharts').style.display = 'grid';
+        } else {
+          showProductDataError('未找到该产品的数据');
+        }
+      } else {
+        console.warn('产品数据格式不正确:', data);
+        showProductDataError('数据格式不正确，请检查API响应');
       }
     } catch (error) {
       console.error('加载产品数据失败:', error);
+      showProductDataError(`加载产品数据失败: ${error.message}`);
     }
   }
   
