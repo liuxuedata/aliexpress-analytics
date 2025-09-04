@@ -812,16 +812,7 @@ $('#fileInput').on('change', function(e) {
       const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
       const currentSiteName = localStorage.getItem('currentSiteName') || 'A站';
       
-      // 站点名称映射：将显示名称映射到数据库中的name字段值
-      const siteNameMapping = {
-        '自运营robot站': 'A站',
-        'Poolslab运动娱乐': 'Poolslab Store'
-      };
-      
-      // 获取实际用于数据库的站点名称
-      const dbSiteName = siteNameMapping[currentSiteName] || currentSiteName;
-      
-      console.log('上传数据到站点:', { currentSite, currentSiteName, dbSiteName });
+      console.log('上传数据到站点:', { currentSite, currentSiteName });
       
       const rows = sheet.slice(1).filter(r => r && r.length).map(r => {
         const pid = String(r[idx.product_id]).trim();
@@ -832,7 +823,7 @@ $('#fileInput').on('change', function(e) {
         // 将"12.3%"型点击率转成 12.3
         const pct = (x) => { const n = String(x ?? '').trim(); if (!n) return 0; return toNum(n.replace('%','')); };
         const row = {
-          site: dbSiteName, // 使用数据库中的站点名称
+          site: currentSite, // 使用站点ID，如 'ae_self_operated_poolslab_store'
           product_id: pid, stat_date: sd,
           exposure:  idx.exposure  === -1 ? 0 : toNum(r[idx.exposure]),
           visitors,

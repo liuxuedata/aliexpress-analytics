@@ -191,11 +191,17 @@
 
     // 获取聚合数据（使用正确的自运营API接口）
     async fetchAggregatedData(startISO, endISO, granularity) {
+      // 获取当前站点信息
+      const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+      const currentSiteName = localStorage.getItem('currentSiteName') || '自运营robot站';
+      
+      console.log('查询数据，站点信息:', { currentSite, currentSiteName });
+      
       const params = new URLSearchParams({
         start: startISO,
         end: endISO,
         granularity: granularity,
-        site: this.currentSite || 'ae_self_operated_a',
+        site: currentSite, // 使用站点ID，如 'ae_self_operated_poolslab_store'
         aggregate: 'product'
       });
 
