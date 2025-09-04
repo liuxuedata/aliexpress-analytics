@@ -341,7 +341,6 @@
       this.updateKPI('avgVisitor', cur.vr.toFixed(2) + '%');
       this.updateKPI('avgCart', cur.cr.toFixed(2) + '%');
       this.updateKPI('avgPay', cur.pr.toFixed(2) + '%');
-      this.updateKPI('totalProducts', cur.total);
       this.updateKPI('exposedProducts', cur.pe);
       this.updateKPI('cartedProducts', cur.pc);
       this.updateKPI('purchasedProducts', cur.pp);
@@ -351,7 +350,6 @@
        setDelta('avgVisitorComparison', cur.vr - prev.vr, true);
        setDelta('avgCartComparison', cur.cr - prev.cr, true);
        setDelta('avgPayComparison', cur.pr - prev.pr, true);
-       setDelta('totalProductsComparison', cur.total - prev.total, false);
        setDelta('exposedProductsComparison', cur.pe - prev.pe, false);
        setDelta('cartedProductsComparison', cur.pc - prev.pc, false);
        setDelta('purchasedProductsComparison', cur.pp - prev.pp, false);
@@ -364,7 +362,6 @@
         avgVisitor: cur.vr.toFixed(2) + '%',
         avgCart: cur.cr.toFixed(2) + '%',
         avgPay: cur.pr.toFixed(2) + '%',
-        totalProducts: cur.total,
         exposedProducts: cur.pe,
         cartedProducts: cur.pc,
         purchasedProducts: cur.pp

@@ -572,11 +572,6 @@
           <p id="avgPay">0%</p>
           <div id="avgPayComparison" class="kpi-comparison"></div>
         </div>
-        <div class="kpi-card success">
-          <h4>商品总数</h4>
-          <p id="totalProducts">0</p>
-          <div id="totalProductsComparison" class="kpi-comparison"></div>
-        </div>
         <div class="kpi-card info">
           <h4>曝光商品数</h4>
           <p id="exposedProducts">0</p>
@@ -1532,7 +1527,15 @@ document.addEventListener('DOMContentLoaded', ()=>{
         series:[{ type:'bar', data:vals, barMaxWidth:24, itemStyle:{ color:'#3B82F6' } }],
         grid:{ left:40, right:20, top:30, bottom:60 }
       };
-      initResponsiveChart(elId, option);
+      const chart = initResponsiveChart(elId, option);
+      chart.off('dblclick');
+      chart.on('dblclick', params => {
+        const pid = params.name;
+        if(pid){
+          localStorage.setItem('selectedProductId', pid);
+          window.location.href = 'self-operated.html#products';
+        }
+      });
     }
 
     topByRate(list, 'exposure', 'visitors', 'analysisVrBar', 50);
