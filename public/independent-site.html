@@ -592,24 +592,28 @@
         <!-- 运营分析KPI卡片 -->
         <div id="analysisKpi" class="analysis-kpi-grid">
           <div class="analysis-kpi-card">
-            <h4>产品展示总数</h4>
-            <p id="totalImpressions">0</p>
-            <div id="impressionsComparison" class="kpi-comparison"></div>
+            <h4>平均点击率</h4>
+            <p id="avgCtr">0%</p>
           </div>
           <div class="analysis-kpi-card">
-            <h4>点击总数</h4>
-            <p id="totalClicks">0</p>
-            <div id="clicksComparison" class="kpi-comparison"></div>
+            <h4>平均转化率</h4>
+            <p id="avgConvRate">0%</p>
           </div>
           <div class="analysis-kpi-card">
-            <h4>转化数</h4>
-            <p id="totalConversions">0</p>
-            <div id="conversionsComparison" class="kpi-comparison"></div>
+            <h4>曝光商品总数</h4>
+            <p id="exposureProducts">0</p>
           </div>
           <div class="analysis-kpi-card">
-            <h4>有点击商品数</h4>
+            <h4>点击商品总数</h4>
             <p id="clickedProducts">0</p>
-            <div id="clickedProductsComparison" class="kpi-comparison"></div>
+          </div>
+          <div class="analysis-kpi-card">
+            <h4>转化商品总数</h4>
+            <p id="convertedProducts">0</p>
+          </div>
+          <div class="analysis-kpi-card">
+            <h4>本周期新品数</h4>
+            <p id="newProducts">0</p>
           </div>
         </div>
         
@@ -800,28 +804,25 @@ function getDateRange() {
 
 // 更新独立站运营分析KPI
 function updateIndependentAnalysisKPI(data, kpis = {}) {
-  // 计算新的KPI指标
-  const totalImpressions = data.reduce((sum, item) => sum + (item.impressions || item.impr || 0), 0);
-  const totalClicks = data.reduce((sum, item) => sum + (item.clicks || 0), 0);
-  const totalConversions = data.reduce((sum, item) => sum + (item.conversions || 0), 0);
+  const pct = v => `${Number(v || 0).toFixed(2)}%`;
 
-  // 计算商品数量（优先使用接口返回的聚合值）
-  const clickedProducts = kpis.click_product_count != null
-    ? kpis.click_product_count
-    : new Set(data.filter(item => (item.clicks || 0) > 0).map(item => item.product)).size;
+  const avgCtrEl = document.getElementById('avgCtr');
+  if (avgCtrEl) avgCtrEl.textContent = pct(kpis.avg_ctr);
 
-  // 更新KPI显示（若元素缺失则跳过以避免报错）
-  const impressionsEl = document.getElementById('totalImpressions');
-  if (impressionsEl) impressionsEl.textContent = totalImpressions.toLocaleString();
+  const avgConvEl = document.getElementById('avgConvRate');
+  if (avgConvEl) avgConvEl.textContent = pct(kpis.avg_conv_rate);
 
-  const clicksEl = document.getElementById('totalClicks');
-  if (clicksEl) clicksEl.textContent = totalClicks.toLocaleString();
+  const exposureEl = document.getElementById('exposureProducts');
+  if (exposureEl) exposureEl.textContent = (kpis.exposure_product_count || 0).toLocaleString();
 
-  const convEl = document.getElementById('totalConversions');
-  if (convEl) convEl.textContent = totalConversions.toLocaleString();
+  const clickEl = document.getElementById('clickedProducts');
+  if (clickEl) clickEl.textContent = (kpis.click_product_count || 0).toLocaleString();
 
-  const clickedEl = document.getElementById('clickedProducts');
-  if (clickedEl) clickedEl.textContent = clickedProducts.toLocaleString();
+  const convEl = document.getElementById('convertedProducts');
+  if (convEl) convEl.textContent = (kpis.conversion_product_count || 0).toLocaleString();
+
+  const newEl = document.getElementById('newProducts');
+  if (newEl) newEl.textContent = (kpis.new_product_count || 0).toLocaleString();
 }
 
 // 渲染独立站运营分析对比图表
@@ -1037,12 +1038,14 @@ async function loadIndependentProductData(landingPath, landingUrl, firstSeen) {
     const totalImpressions = rows.reduce((sum, r) => sum + (r.impr || r.impressions || 0), 0);
     const totalClicks = rows.reduce((sum, r) => sum + (r.clicks || 0), 0);
     const totalConversions = rows.reduce((sum, r) => sum + (r.conversions || 0), 0);
+    const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions * 100).toFixed(2) : '0.00';
     const kpiWrap = document.getElementById('productKpi');
     if (kpiWrap) {
       kpiWrap.innerHTML = `
         <div class="analysis-kpi-card"><h4>曝光总数</h4><p>${totalImpressions.toLocaleString()}</p></div>
         <div class="analysis-kpi-card"><h4>点击总数</h4><p>${totalClicks.toLocaleString()}</p></div>
-        <div class="analysis-kpi-card"><h4>转化总数</h4><p>${totalConversions.toLocaleString()}</p></div>`;
+        <div class="analysis-kpi-card"><h4>转化总数</h4><p>${totalConversions.toLocaleString()}</p></div>
+        <div class="analysis-kpi-card"><h4>CTR</h4><p>${ctr}%</p></div>`;
       kpiWrap.style.display = 'grid';
     }
 
