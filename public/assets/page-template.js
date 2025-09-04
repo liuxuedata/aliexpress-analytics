@@ -22,7 +22,7 @@
     // 默认日期范围
     DEFAULT_DATE_RANGE: {
       start: '2025-07-01',
-      days: 30
+      days: 7
     },
     
     // API端点

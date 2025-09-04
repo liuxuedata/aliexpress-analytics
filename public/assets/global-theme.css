@@ -120,6 +120,24 @@ body {
   line-height: 1;
 }
 
+.kpi-card .kpi-comparison {
+  margin-top: var(--space-2);
+  font-size: 0.875rem;
+}
+
+.kpi-card .delta {
+  font-weight: 700;
+  margin-left: var(--space-1);
+}
+
+.kpi-card .delta.up {
+  color: var(--brand-green);
+}
+
+.kpi-card .delta.down {
+  color: var(--brand-red);
+}
+
 /* KPI卡片变体 */
 .kpi-card.success::before {
   background: linear-gradient(90deg, var(--brand-green), var(--brand-green-dark));

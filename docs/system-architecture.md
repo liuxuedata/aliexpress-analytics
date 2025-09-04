@@ -14,11 +14,9 @@ public/
 │   ├── site-nav.js          # 站点导航管理
 │   ├── self-operated.js     # 自运营页面专用逻辑
 │   └── independent-site.js  # 独立站页面专用逻辑
-├── self-operated.html        # 自运营页面（原index.html）
-├── independent-site.html     # 独立站页面
-├── managed.html             # 全托管页面
-├── operation-analysis.html  # 运营分析页面
-├── product-analysis.html    # 产品分析页面
+├── self-operated.html        # 自运营页面（#analysis / #products）
+├── independent-site.html     # 独立站页面（?site=... #analysis / #products）
+├── managed.html              # 全托管页面（#analysis / #products）
 └── [其他平台页面]
 ```
 
