@@ -149,22 +149,23 @@
       font-size: 12px;
     }
     
-    /* 分析页面容器样式 */
+    /* 分析页面容器样式 - 与自运营页面保持一致的白底模块 */
     .analysis-container {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      border-radius: 16px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
       padding: 24px;
       margin-bottom: 24px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     }
-    
+
     .analysis-container h3 {
-      color: white;
+      color: #374151;
       font-size: 24px;
       font-weight: 600;
       margin: 0 0 20px 0;
       text-align: center;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      text-shadow: none;
     }
     
     /* 分析KPI卡片网格 */
@@ -176,19 +177,39 @@
     }
     
     .analysis-kpi-card {
-      background: rgba(255, 255, 255, 0.95);
+      background: white;
       border-radius: 12px;
       padding: 20px;
       text-align: center;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
       transition: all 0.3s ease;
       border: 2px solid transparent;
+      position: relative;
+      overflow: hidden;
     }
-    
+
     .analysis-kpi-card:hover {
       transform: translateY(-4px);
       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-      border-color: rgba(255, 255, 255, 0.3);
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    /* 渐变色顶部标识 */
+    .analysis-kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b, #ef4444);
+      background-size: 200% 100%;
+      animation: gradient-shift 3s ease-in-out infinite;
+    }
+
+    @keyframes gradient-shift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
     }
     
     .analysis-kpi-card h4 {
@@ -216,11 +237,14 @@
     }
     
     .chart-panel {
-      background: rgba(255, 255, 255, 0.95);
+      background: white;
       border-radius: 12px;
       padding: 20px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
       transition: all 0.3s ease;
+      border: 1px solid #e5e7eb;
+      position: relative;
+      overflow: hidden;
     }
     
     .chart-panel:hover {
@@ -239,11 +263,12 @@
     
     /* 产品选择器样式 */
     .product-selector {
-      background: rgba(255, 255, 255, 0.95);
+      background: white;
       border-radius: 12px;
       padding: 20px;
       margin-bottom: 20px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e5e7eb;
     }
     
     .product-selector .controls {
@@ -281,11 +306,12 @@
     
     /* 网络选择器样式 */
     .network-selector {
-      background: rgba(255, 255, 255, 0.95);
+      background: white;
       border-radius: 12px;
       padding: 20px;
       margin-bottom: 20px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e5e7eb;
     }
     
     .network-selector .controls {
@@ -624,17 +650,17 @@
         <!-- 运营分析KPI卡片 -->
         <div id="analysisKpi" class="analysis-kpi-grid">
           <div class="analysis-kpi-card">
-            <h4>总展示数</h4>
+            <h4>产品展示总数</h4>
             <p id="totalImpressions">0</p>
             <div id="impressionsComparison" class="kpi-comparison"></div>
           </div>
           <div class="analysis-kpi-card">
-            <h4>详情页访客数</h4>
+            <h4>点击总数</h4>
             <p id="totalClicks">0</p>
             <div id="clicksComparison" class="kpi-comparison"></div>
           </div>
           <div class="analysis-kpi-card">
-            <h4>加购次数</h4>
+            <h4>转化数</h4>
             <p id="totalConversions">0</p>
             <div id="conversionsComparison" class="kpi-comparison"></div>
           </div>
@@ -644,14 +670,9 @@
             <div id="convValueComparison" class="kpi-comparison"></div>
           </div>
           <div class="analysis-kpi-card">
-            <h4>有曝光商品数</h4>
-            <p id="exposedProducts">0</p>
-            <div id="exposedProductsComparison" class="kpi-comparison"></div>
-          </div>
-          <div class="analysis-kpi-card">
-            <h4>有加购商品数</h4>
-            <p id="cartedProducts">0</p>
-            <div id="cartedProductsComparison" class="kpi-comparison"></div>
+            <h4>有点击商品数</h4>
+            <p id="clickedProducts">0</p>
+            <div id="clickedProductsComparison" class="kpi-comparison"></div>
           </div>
           <div class="analysis-kpi-card">
             <h4>有支付商品数</h4>
@@ -663,15 +684,15 @@
         <!-- 对比图表 -->
         <div class="charts-grid">
           <div class="chart-panel">
-            <h3>总展示数对比</h3>
+            <h3>产品展示总数对比</h3>
             <div id="impressionsComparisonChart" style="width:100%;height:300px;"></div>
           </div>
           <div class="chart-panel">
-            <h3>详情页访客数对比</h3>
-            <div id="clicksComparisonChart" style="width:100%;height:300px;"></div>
+            <h3>CTR 对比</h3>
+            <div id="ctrComparisonChart" style="width:100%;height:300px;"></div>
           </div>
           <div class="chart-panel">
-            <h3>加购次数对比</h3>
+            <h3>转化次数对比</h3>
             <div id="conversionsComparisonChart" style="width:100%;height:300px;"></div>
           </div>
           <div class="chart-panel">
@@ -679,12 +700,8 @@
             <div id="convValueComparisonChart" style="width:100%;height:300px;"></div>
           </div>
           <div class="chart-panel">
-            <h3>有曝光商品数对比</h3>
-            <div id="exposedProductsComparisonChart" style="width:100%;height:300px;"></div>
-          </div>
-          <div class="chart-panel">
-            <h3>有加购商品数对比</h3>
-            <div id="cartedProductsComparisonChart" style="width:100%;height:300px;"></div>
+            <h3>有点击商品数对比</h3>
+            <div id="clickedProductsComparisonChart" style="width:100%;height:300px;"></div>
           </div>
           <div class="chart-panel">
             <h3>有支付商品数对比</h3>
@@ -725,79 +742,17 @@
     <!-- 产品分析 -->
     <section id="products" class="content-pad" style="display:none;">
       <div class="analysis-container">
-        <h3>🔍 产品详情分析</h3>
-        
+        <h3>🔍 产品分析</h3>
+
         <!-- 时间控件 -->
         <div class="time-controls-panel">
           <div class="time-controls">
             <label>时间周期：</label>
             <input id="productDateFilter" class="date-filter" placeholder="选择日期范围">
-            <span class="notice">（与数据明细页时间周期同步）</span>
+            <span class="notice">（默认显示最近7天）</span>
           </div>
         </div>
-        
-        <!-- 产品选择器 -->
-        <div class="product-selector">
-          <div class="controls">
-            <label>产品：</label>
-            <select id="productSelect" class="sel">
-              <option value="">选择产品</option>
-            </select>
-            <span class="notice">（按点击量排序）</span>
-          </div>
-        </div>
-        
-        <!-- 产品KPI -->
-        <div id="productKpi" class="analysis-kpi-grid">
-          <div class="analysis-kpi-card">
-            <h4>总点击</h4>
-            <p id="productTotalClicks">0</p>
-            <div id="productClicksComparison" class="kpi-comparison"></div>
-          </div>
-          <div class="analysis-kpi-card">
-            <h4>总曝光</h4>
-            <p id="productTotalImpressions">0</p>
-            <div id="productImpressionsComparison" class="kpi-comparison"></div>
-          </div>
-          <div class="analysis-kpi-card">
-            <h4>平均CTR</h4>
-            <p id="productAvgCtr">0%</p>
-            <div id="productCtrComparison" class="kpi-comparison"></div>
-          </div>
-          <div class="analysis-kpi-card">
-            <h4>总转化</h4>
-            <p id="productTotalConversions">0</p>
-            <div id="productConversionsComparison" class="kpi-comparison"></div>
-          </div>
-        </div>
-        
-        <!-- 产品趋势图表 -->
-        <div id="productCharts" class="charts-grid" style="display:none;">
-          <div class="chart-panel">
-            <h3>点击趋势</h3>
-            <div id="productClicksChart" style="width:100%;height:260px;"></div>
-          </div>
-          <div class="chart-panel">
-            <h3>曝光趋势</h3>
-            <div id="productImpressionsChart" style="width:100%;height:260px;"></div>
-          </div>
-          <div class="chart-panel">
-            <h3>CTR趋势</h3>
-            <div id="productCtrChart" style="width:100%;height:260px;"></div>
-          </div>
-          <div class="chart-panel">
-            <h3>转化趋势</h3>
-            <div id="productConversionsChart" style="width:100%;height:260px;"></div>
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- 产品分析 -->
-    <section id="products" class="content-pad" style="display:none;">
-      <div class="analysis-container">
-        <h3>🔍 产品分析</h3>
-        
         <!-- 产品选择器 -->
         <div class="product-selector">
           <div class="controls">
@@ -865,54 +820,7 @@
   </main>
 </div>
 
-<script>
-// Hash路由处理
-function handleHashRoute() {
-  const hash = window.location.hash.slice(1) || 'detail';
-  const targetLink = document.querySelector(`[data-target="${hash}"]`);
-  
-  if (targetLink) {
-    // 更新导航状态
-    document.querySelectorAll('.sub-nav a').forEach(x => x.classList.remove('active'));
-    targetLink.classList.add('active');
-    
-    // 显示对应内容
-    ['detail', 'analysis', 'products'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = (id === hash ? '' : 'none');
-    });
-    
-    // 根据路由加载相应数据
-    if (hash === 'analysis') {
-      loadIndependentAnalysisData();
-    } else if (hash === 'products') {
-      loadIndependentProductAnalysisData();
-    }
-  }
-}
-
-// 监听hash变化
-window.addEventListener('hashchange', handleHashRoute);
-
-// 初始化hash路由
-handleHashRoute();
-
-// 导航点击处理
-document.querySelectorAll('.sub-nav a').forEach(a => {
-  a.addEventListener('click', e => {
-    const target = a.dataset.target;
-    if (target) {
-      e.preventDefault();
-      window.location.hash = target;
-    }
-  });
-});
-      
-      setTimeout(()=> window.dispatchEvent(new Event('resize')), 0);
-    }
-  });
-})();
-</script>
+<!-- Hash 路由脚本移动至文末以确保依赖函数已定义 -->
 
 <script>
 // 独立站运营分析数据加载
@@ -923,27 +831,24 @@ async function loadIndependentAnalysisData() {
       console.warn('未指定站点，无法加载运营分析数据');
       return;
     }
-    
+
     const dateRange = getDateRange();
-    
-    // 获取当前周期数据
-    const response = await fetch('/api/independent/stats', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        site: site,
-        start: dateRange.start,
-        end: dateRange.end
-      })
+    const params = new URLSearchParams({
+      site: site,
+      from: dateRange.start,
+      to: dateRange.end
     });
-    
+
+    // 获取当前周期数据
+    const response = await fetch(`/api/independent/stats?${params.toString()}`);
     const data = await response.json();
-    
-    if (data.ok && data.data) {
+
+    if (data.ok) {
+      const table = data.table || [];
       // 更新KPI卡片
-      updateIndependentAnalysisKPI(data.data);
+      updateIndependentAnalysisKPI(table);
       // 渲染图表
-      renderIndependentAnalysisCharts(data.data);
+      renderIndependentAnalysisCharts(table);
     }
   } catch (error) {
     console.error('加载独立站运营分析数据失败:', error);
@@ -958,24 +863,21 @@ async function loadIndependentProductAnalysisData() {
       console.warn('未指定站点，无法加载产品分析数据');
       return;
     }
-    
+
     const dateRange = getDateRange();
-    
-    // 获取产品列表
-    const response = await fetch('/api/independent/stats', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        site: site,
-        start: dateRange.start,
-        end: dateRange.end
-      })
+    const params = new URLSearchParams({
+      site: site,
+      from: dateRange.start,
+      to: dateRange.end,
+      aggregate: 'product'
     });
-    
+
+    // 获取产品列表
+    const response = await fetch(`/api/independent/stats?${params.toString()}`);
     const data = await response.json();
-    
-    if (data.ok && data.data) {
-      populateIndependentProductSelect(data.data);
+
+    if (data.ok) {
+      populateIndependentProductSelect(data.table || []);
     }
   } catch (error) {
     console.error('加载独立站产品分析数据失败:', error);
@@ -991,31 +893,43 @@ function getDateRange() {
   }
   const today = new Date();
   const end = today.toISOString().slice(0, 10);
-  const start = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime() - 30 * 86400000).toISOString().slice(0, 10);
+  const start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  if (input) {
+    input.value = `${start} to ${end}`;
+  }
   return { start, end };
 }
 
 // 更新独立站运营分析KPI
 function updateIndependentAnalysisKPI(data) {
   // 计算新的KPI指标
-  const totalImpressions = data.reduce((sum, item) => sum + (item.impressions || 0), 0);
+  const totalImpressions = data.reduce((sum, item) => sum + (item.impressions || item.impr || 0), 0);
   const totalClicks = data.reduce((sum, item) => sum + (item.clicks || 0), 0);
   const totalConversions = data.reduce((sum, item) => sum + (item.conversions || 0), 0);
   const totalConvValue = data.reduce((sum, item) => sum + (item.conv_value || 0), 0);
   
   // 计算商品数量（去重）
-  const exposedProducts = new Set(data.filter(item => item.impressions > 0).map(item => item.product)).size;
-  const cartedProducts = new Set(data.filter(item => item.conversions > 0).map(item => item.product)).size;
+  const clickedProducts = new Set(data.filter(item => (item.clicks || 0) > 0).map(item => item.product)).size;
   const paidProducts = new Set(data.filter(item => item.conv_value > 0).map(item => item.product)).size;
   
-  // 更新KPI显示
-  document.getElementById('totalImpressions').textContent = totalImpressions.toLocaleString();
-  document.getElementById('totalClicks').textContent = totalClicks.toLocaleString();
-  document.getElementById('totalConversions').textContent = totalConversions.toLocaleString();
-  document.getElementById('totalConvValue').textContent = totalConvValue.toLocaleString();
-  document.getElementById('exposedProducts').textContent = exposedProducts.toLocaleString();
-  document.getElementById('cartedProducts').textContent = cartedProducts.toLocaleString();
-  document.getElementById('paidProducts').textContent = paidProducts.toLocaleString();
+  // 更新KPI显示（若元素缺失则跳过以避免报错）
+  const impressionsEl = document.getElementById('totalImpressions');
+  if (impressionsEl) impressionsEl.textContent = totalImpressions.toLocaleString();
+
+  const clicksEl = document.getElementById('totalClicks');
+  if (clicksEl) clicksEl.textContent = totalClicks.toLocaleString();
+
+  const convEl = document.getElementById('totalConversions');
+  if (convEl) convEl.textContent = totalConversions.toLocaleString();
+
+  const convValueEl = document.getElementById('totalConvValue');
+  if (convValueEl) convValueEl.textContent = totalConvValue.toLocaleString();
+
+  const clickedEl = document.getElementById('clickedProducts');
+  if (clickedEl) clickedEl.textContent = clickedProducts.toLocaleString();
+
+  const paidEl = document.getElementById('paidProducts');
+  if (paidEl) paidEl.textContent = paidProducts.toLocaleString();
 }
 
 // 渲染独立站运营分析对比图表
@@ -1025,52 +939,54 @@ async function renderIndependentAnalysisCharts(data) {
   
   // 计算当前周期数据
   const currentData = {
-    impressions: data.reduce((sum, item) => sum + (item.impressions || 0), 0),
+    impressions: data.reduce((sum, item) => sum + (item.impressions || item.impr || 0), 0),
     clicks: data.reduce((sum, item) => sum + (item.clicks || 0), 0),
     conversions: data.reduce((sum, item) => sum + (item.conversions || 0), 0),
     convValue: data.reduce((sum, item) => sum + (item.conv_value || 0), 0),
-    exposedProducts: new Set(data.filter(item => item.impressions > 0).map(item => item.product)).size,
-    cartedProducts: new Set(data.filter(item => item.conversions > 0).map(item => item.product)).size,
+    ctr: 0,
+    clickedProducts: new Set(data.filter(item => (item.clicks || 0) > 0).map(item => item.product)).size,
     paidProducts: new Set(data.filter(item => item.conv_value > 0).map(item => item.product)).size
   };
-  
+  currentData.ctr = currentData.impressions > 0 ? currentData.clicks / currentData.impressions * 100 : 0;
+
   // 计算上一周期数据
   const previousDataCalculated = previousData ? {
-    impressions: previousData.reduce((sum, item) => sum + (item.impressions || 0), 0),
+    impressions: previousData.reduce((sum, item) => sum + (item.impressions || item.impr || 0), 0),
     clicks: previousData.reduce((sum, item) => sum + (item.clicks || 0), 0),
     conversions: previousData.reduce((sum, item) => sum + (item.conversions || 0), 0),
     convValue: previousData.reduce((sum, item) => sum + (item.conv_value || 0), 0),
-    exposedProducts: new Set(previousData.filter(item => item.impressions > 0).map(item => item.product)).size,
-    cartedProducts: new Set(previousData.filter(item => item.conversions > 0).map(item => item.product)).size,
+    ctr: 0,
+    clickedProducts: new Set(previousData.filter(item => (item.clicks || 0) > 0).map(item => item.product)).size,
     paidProducts: new Set(previousData.filter(item => item.conv_value > 0).map(item => item.product)).size
   } : null;
+  if (previousDataCalculated) {
+    previousDataCalculated.ctr = previousDataCalculated.impressions > 0
+      ? previousDataCalculated.clicks / previousDataCalculated.impressions * 100
+      : 0;
+  }
   
-  // 渲染总展示数对比图
-  renderIndependentComparisonChart('impressionsComparisonChart', '总展示数对比', 
-    currentData.impressions, previousDataCalculated?.impressions || 0, '总展示数');
-  
-  // 渲染详情页访客数对比图
-  renderIndependentComparisonChart('clicksComparisonChart', '详情页访客数对比', 
-    currentData.clicks, previousDataCalculated?.clicks || 0, '详情页访客数');
-  
-  // 渲染加购次数对比图
-  renderIndependentComparisonChart('conversionsComparisonChart', '加购次数对比', 
-    currentData.conversions, previousDataCalculated?.conversions || 0, '加购次数');
-  
+  // 渲染产品展示总数对比图
+  renderIndependentComparisonChart('impressionsComparisonChart', '产品展示总数对比',
+    currentData.impressions, previousDataCalculated?.impressions || 0, '产品展示总数');
+
+  // 渲染 CTR 对比图
+  renderIndependentComparisonChart('ctrComparisonChart', 'CTR 对比',
+    currentData.ctr, previousDataCalculated?.ctr || 0, 'CTR (%)');
+
+  // 渲染转化次数对比图
+  renderIndependentComparisonChart('conversionsComparisonChart', '转化次数对比',
+    currentData.conversions, previousDataCalculated?.conversions || 0, '转化次数');
+
   // 渲染订购商品数对比图
-  renderIndependentComparisonChart('convValueComparisonChart', '订购商品数对比', 
+  renderIndependentComparisonChart('convValueComparisonChart', '订购商品数对比',
     currentData.convValue, previousDataCalculated?.convValue || 0, '订购商品数');
-  
-  // 渲染有曝光商品数对比图
-  renderIndependentComparisonChart('exposedProductsComparisonChart', '有曝光商品数对比', 
-    currentData.exposedProducts, previousDataCalculated?.exposedProducts || 0, '有曝光商品数');
-  
-  // 渲染有加购商品数对比图
-  renderIndependentComparisonChart('cartedProductsComparisonChart', '有加购商品数对比', 
-    currentData.cartedProducts, previousDataCalculated?.cartedProducts || 0, '有加购商品数');
-  
+
+  // 渲染有点击商品数对比图
+  renderIndependentComparisonChart('clickedProductsComparisonChart', '有点击商品数对比',
+    currentData.clickedProducts, previousDataCalculated?.clickedProducts || 0, '有点击商品数');
+
   // 渲染有支付商品数对比图
-  renderIndependentComparisonChart('paidProductsComparisonChart', '有支付商品数对比', 
+  renderIndependentComparisonChart('paidProductsComparisonChart', '有支付商品数对比',
     currentData.paidProducts, previousDataCalculated?.paidProducts || 0, '有支付商品数');
 }
 
@@ -1140,20 +1056,18 @@ async function getIndependentPreviousPeriodData() {
     const previousStart = new Date(previousEnd);
     previousStart.setDate(previousStart.getDate() - periodDays + 1);
     
-    const response = await fetch('/api/independent/stats', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        site: currentSite,
-        start: previousStart.toISOString().slice(0, 10),
-        end: previousEnd.toISOString().slice(0, 10)
-      })
+    const params = new URLSearchParams({
+      site: currentSite,
+      from: previousStart.toISOString().slice(0, 10),
+      to: previousEnd.toISOString().slice(0, 10)
     });
-    
+
+    const response = await fetch(`/api/independent/stats?${params.toString()}`);
+
     if (response.ok) {
       const data = await response.json();
-      if (data.ok && data.data) {
-        return data.data;
+      if (data.ok) {
+        return data.table || [];
       }
     }
   } catch (error) {
@@ -1187,6 +1101,68 @@ function populateIndependentProductSelect(data) {
     if (selectedProduct) {
       loadIndependentProductData(selectedProduct);
     }
+  });
+}
+
+// 加载特定产品的分析数据
+async function loadIndependentProductData(product) {
+  try {
+    const site = document.getElementById('site').value || getParam('site');
+    if (!site) return;
+
+    const { start, end } = getDateRange();
+    const params = new URLSearchParams({ site, from: start, to: end });
+    const res = await fetch(`/api/independent/stats?${params.toString()}`);
+    const json = await res.json();
+    if (!json.ok) return;
+
+    const rows = (json.table || []).filter(item => item.product === product);
+    if (!rows.length) return;
+
+    const totalClicks = rows.reduce((s, r) => s + (r.clicks || 0), 0);
+    const totalImpr = rows.reduce((s, r) => s + (r.impr || r.impressions || 0), 0);
+    const totalConv = rows.reduce((s, r) => s + (r.conversions || 0), 0);
+    const ctr = totalImpr > 0 ? (totalClicks / totalImpr * 100).toFixed(2) : '0.00';
+
+    document.getElementById('productClicks').textContent = totalClicks.toLocaleString();
+    document.getElementById('productImpressions').textContent = totalImpr.toLocaleString();
+    document.getElementById('productCtr').textContent = ctr + '%';
+    document.getElementById('productConversions').textContent = totalConv.toLocaleString();
+
+    const byDay = {};
+    rows.forEach(r => {
+      const d = r.day;
+      if (!byDay[d]) byDay[d] = { clicks: 0, impressions: 0, conversions: 0 };
+      byDay[d].clicks += r.clicks || 0;
+      byDay[d].impressions += r.impr || r.impressions || 0;
+      byDay[d].conversions += r.conversions || 0;
+    });
+
+    const dates = Object.keys(byDay).sort();
+    const clicksSeries = dates.map(d => byDay[d].clicks);
+    const impressionsSeries = dates.map(d => byDay[d].impressions);
+    const ctrSeries = dates.map(d => byDay[d].impressions > 0 ? +(byDay[d].clicks / byDay[d].impressions * 100).toFixed(2) : 0);
+    const convSeries = dates.map(d => byDay[d].conversions);
+
+    renderLineChart('productClicksChart', '点击趋势', dates, clicksSeries);
+    renderLineChart('productImpressionsChart', '曝光趋势', dates, impressionsSeries);
+    renderLineChart('productCtrChart', 'CTR趋势', dates, ctrSeries);
+    renderLineChart('productConversionsChart', '转化趋势', dates, convSeries);
+
+    document.getElementById('productCharts').style.display = 'grid';
+  } catch (err) {
+    console.error('加载独立站产品数据失败:', err);
+  }
+}
+
+function renderLineChart(id, title, dates, data) {
+  const chart = echarts.init(document.getElementById(id));
+  chart.setOption({
+    title: { text: title, left: 'center', textStyle: { color: '#374151', fontSize: 16 } },
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: dates },
+    yAxis: { type: 'value' },
+    series: [{ name: title, type: 'line', smooth: true, data, itemStyle: { color: '#3b82f6' } }]
   });
 }
 
@@ -1983,6 +1959,46 @@ function populateIndependentProductSelect(data) {
     }
   }, 1000);
 })();
+</script>
+
+<script>
+// 延迟执行Hash路由逻辑，确保数据加载函数已定义
+document.addEventListener('DOMContentLoaded', () => {
+  function handleHashRoute() {
+    const hash = window.location.hash.slice(1) || 'detail';
+    const link = document.querySelector(`[data-target="${hash}"]`);
+    if (link) {
+      document.querySelectorAll('.sub-nav a').forEach(x => x.classList.remove('active'));
+      link.classList.add('active');
+
+      ['detail', 'analysis', 'products'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = (id === hash ? '' : 'none');
+      });
+
+      if (hash === 'analysis') {
+        loadIndependentAnalysisData();
+      } else if (hash === 'products') {
+        loadIndependentProductAnalysisData();
+      }
+
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
+    }
+  }
+
+  window.addEventListener('hashchange', handleHashRoute);
+  handleHashRoute();
+
+  document.querySelectorAll('.sub-nav a').forEach(a => {
+    a.addEventListener('click', e => {
+      const target = a.dataset.target;
+      if (target) {
+        e.preventDefault();
+        window.location.hash = target;
+      }
+    });
+  });
+});
 </script>
 
 <script src="assets/login.js"></script>

@@ -30,6 +30,13 @@
    - `/api/ae_upsert`（`product_id, stat_date` 去重）
    - `/api/stats`、`/api/ingest` 等查询/上传 API 保持参数与返回结构不变
 
+### 页面路由结构
+- 自运营：`/self-operated.html#analysis`、`/self-operated.html#products`
+- 全托管：`/managed.html#analysis`、`/managed.html#products`
+- 独立站：`/independent-site.html?site=<name>#analysis`、`/independent-site.html?site=<name>#products`
+- 旧的 `operation-analysis.html` 与 `product-analysis.html` 页面已删除
+- 所有站点的运营分析与产品分析页在无用户选择时默认展示最近 7 天的数据范围
+
 ---
 
 ## 模板参考（新增说明）

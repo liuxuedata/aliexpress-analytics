@@ -141,7 +141,6 @@
                 <th>支付件数</th>
                 <th>支付订单数</th>
                 <th>支付买家数</th>
-                <th>产品详情</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -285,8 +284,7 @@
       x.add_to_cart_qty || 0,
       x.pay_items || 0,
       x.pay_orders || 0,
-      x.pay_buyers || 0,
-      '<a href="product-analysis.html?mode=fm&pid='+ (x.product_id||'') +'" target="_blank">详情</a>'
+      x.pay_buyers || 0
     ];
   }
 
@@ -334,17 +332,9 @@
         scrollY:'60vh',
         scrollCollapse:true,
         autoWidth:false,
-        columnDefs:[{ targets:-1, orderable:false }],
         drawCallback:function(){
           populateProductNames(document.getElementById('report'));
         }
-      });
-      $('#report tbody').off('dblclick').on('dblclick','td',function(){
-        const col = state.table.cell(this).index().column;
-        const last = state.table.columns().count()-1;
-        if(col===0 || col===last) return;
-        const pid = $(this).closest('tr').find('a[data-pid]').data('pid');
-        if(pid) window.open('product-analysis.html?mode=fm&pid='+pid, '_blank');
       });
 
       renderAnalysis(window._rowsA, window._rowsB);
