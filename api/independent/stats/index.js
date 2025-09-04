@@ -108,6 +108,19 @@ module.exports = async (req, res) => {
       }
     }
 
+    // total distinct products ever seen for this site
+    let productTotal = 0;
+    try {
+      const { count: totalCount, error: totalErr } = await supabase
+        .from('independent_first_seen')
+        .select('landing_path', { count: 'exact', head: true })
+        .eq('site', site);
+      if (totalErr) throw totalErr;
+      productTotal = totalCount || 0;
+    } catch (e) {
+      console.error('independent_first_seen count failed', e.message);
+    }
+
     table = (table || []).map(r => {
       const firstSeen = firstSeenMap.get(r.landing_path) || null;
       return {
@@ -301,6 +314,7 @@ module.exports = async (req, res) => {
       click_product_count: clickSet.size,
       conversion_product_count: convSet.size,
       new_product_count: Array.from(firstSeenMap.values()).filter(d => d >= fromDate && d <= toDate).length,
+      product_total: productTotal,
       new_impr: newImpr,
       new_clicks: newClicks,
       new_conversions: newConv

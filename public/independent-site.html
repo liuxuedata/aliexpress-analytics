@@ -782,12 +782,26 @@ async function loadIndependentProductAnalysisData() {
       aggregate: 'product'
     });
 
-    // 获取产品列表
-    const response = await fetch(`/api/independent/stats?${params.toString()}`);
-    const data = await response.json();
+    const [statsRes, newRes] = await Promise.all([
+      fetch(`/api/independent/stats?${params.toString()}`),
+      fetch(`/api/new-products?platform=indep&site=${site}&from=2000-01-01&to=${dateRange.end}&limit=100000`)
+    ]);
+
+    const data = await statsRes.json();
+    const newData = await newRes.json();
+
+    let firstMap = {};
+    if (newData?.items) {
+      newData.items.forEach(it => {
+        try {
+          const u = new URL(it.product_id);
+          firstMap[u.pathname] = it.first_seen;
+        } catch (_) {}
+      });
+    }
 
     if (data.ok) {
-      populateIndependentProductSelect(data.table || []);
+      populateIndependentProductSelect(data.table || [], firstMap);
     }
   } catch (error) {
     console.error('加载独立站产品分析数据失败:', error);
@@ -969,14 +983,12 @@ async function getIndependentPreviousPeriodData(inputId = 'dateFilter') {
 }
 
 // 填充独立站产品选择器
-function populateIndependentProductSelect(data) {
+function populateIndependentProductSelect(data, firstMap = {}) {
   const productSelect = document.getElementById('productSelect');
   if (!productSelect) return;
 
-  // 清空现有选项
   productSelect.innerHTML = '<option value="">选择产品</option>';
 
-  // 按曝光量排序的唯一 landing page
   const seen = new Set();
   const list = [];
   data.forEach(item => {
@@ -987,7 +999,7 @@ function populateIndependentProductSelect(data) {
       path: key,
       name: item.product || key,
       url: item.landing_url || '',
-      firstSeen: item.first_seen_date || '',
+      firstSeen: firstMap[key] || item.first_seen_date || '',
       impr: item.impr || 0
     });
   });
@@ -1002,8 +1014,7 @@ function populateIndependentProductSelect(data) {
     productSelect.appendChild(option);
   });
 
-  // 产品选择事件
-  productSelect.addEventListener('change', function() {
+  productSelect.onchange = function() {
     const opt = this.selectedOptions[0];
     if (opt && opt.value) {
       loadIndependentProductData(opt.value, opt.dataset.url, opt.dataset.firstSeen);
@@ -1017,8 +1028,8 @@ function populateIndependentProductSelect(data) {
       const chartWrap = document.getElementById('productCharts');
       if (chartWrap) chartWrap.style.display = 'none';
     }
-  });
-  // URL 指定产品优先
+  };
+
   const productParam = getParam('product');
   if (productParam) {
     const opt = Array.from(productSelect.options).find(o => o.value === productParam);
@@ -1029,7 +1040,6 @@ function populateIndependentProductSelect(data) {
     }
   }
 
-  // 默认选择曝光量最高的产品
   if (list.length) {
     const first = list[0];
     productSelect.value = first.path;
