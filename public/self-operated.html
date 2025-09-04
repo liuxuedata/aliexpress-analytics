@@ -1056,9 +1056,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
   window.handlePlatformSwitch = handlePlatformSwitch;
   
   // 运营分析数据加载
-  async function loadAnalysisData() {
+  async function loadAnalysisData(range) {
     try {
-      const { start, end } = getDateRange();
+      const { start, end } = range;
       const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
 
       console.log('开始加载运营分析数据:', { start, end, currentSite });
@@ -1168,20 +1168,20 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
            // 产品分析数据加载 - 加载产品列表并按曝光量排序
-    async function loadProductAnalysisData() {
+    async function loadProductAnalysisData(range) {
       try {
-        const dateRange = getDateRange();
+        const { start, end } = range;
         const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
-        
-        console.log('开始加载产品分析数据:', { dateRange, currentSite });
-        
+
+        console.log('开始加载产品分析数据:', { range, currentSite });
+
         // 初始化产品页面的时间控件
         initializeProductDateFilter();
-        
+
         // 构建查询参数 - 使用GET请求而不是POST
         const queryParams = new URLSearchParams({
-          start: dateRange.start,
-          end: dateRange.end,
+          start,
+          end,
           granularity: 'day',
           site: currentSite,
           aggregate: 'product'
@@ -1224,14 +1224,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
           const storedPid = localStorage.getItem('selectedProductId');
           if (storedPid && sortedProducts.some(p => p.product_id === storedPid)) {
             document.getElementById('productSelect').value = storedPid;
-            await loadProductData(storedPid);
+            await loadProductData(storedPid, range);
             localStorage.removeItem('selectedProductId');
           } else if (sortedProducts.length > 0) {
             // 默认选择曝光量最大的产品
             const topProduct = sortedProducts[0];
             console.log('默认选择曝光量最大的产品:', topProduct.product_id);
             document.getElementById('productSelect').value = topProduct.product_id;
-            await loadProductData(topProduct.product_id);
+            await loadProductData(topProduct.product_id, range);
           }
         } else {
           console.warn('产品列表数据格式不正确:', productsData);
@@ -1245,8 +1245,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
     // 根据当前时间范围重新加载运营与产品分析数据
     async function fetchAndRenderAll() {
-      await loadAnalysisData();
-      await loadProductAnalysisData();
+      const range = getDateRange();
+      await loadAnalysisData(range);
+      await loadProductAnalysisData(range);
+      const currentProductId = document.getElementById('productSelect')?.value;
+      if (currentProductId) {
+        await loadProductData(currentProductId, range);
+      }
     }
 
     // 初始化产品页面的时间控件
@@ -1277,9 +1282,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
               const currentProductId = document.getElementById('productSelect').value;
               if (typeof fetchAndRenderAll === 'function') {
                 await fetchAndRenderAll();
-              }
-              if (currentProductId) {
-                await loadProductData(currentProductId);
               }
             }
           }
@@ -1474,23 +1476,23 @@ document.addEventListener('DOMContentLoaded', ()=>{
        const selectedProductId = this.value;
        if (selectedProductId) {
          console.log('选择产品:', selectedProductId);
-         loadProductData(selectedProductId);
+         loadProductData(selectedProductId, getDateRange());
        }
      });
    }
   
            // 加载特定产品数据
-    async function loadProductData(productId) {
+    async function loadProductData(productId, range) {
       try {
-        const dateRange = getDateRange();
+        const { start, end } = range || getDateRange();
         const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
-        
-        console.log('开始加载产品数据:', { productId, dateRange, currentSite });
-        
+
+        console.log('开始加载产品数据:', { productId, range: { start, end }, currentSite });
+
         // 构建查询参数 - 使用GET请求而不是POST
         const queryParams = new URLSearchParams({
-          start: dateRange.start,
-          end: dateRange.end,
+          start,
+          end,
           granularity: 'day',
           site: currentSite,
           aggregate: 'time'  // 使用'time'获取时间序列数据
@@ -1989,9 +1991,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
        
        // 根据路由加载相应数据
        if (hash === 'analysis') {
-         loadAnalysisData();
+         loadAnalysisData(getDateRange());
        } else if (hash === 'products') {
-         loadProductAnalysisData();
+         loadProductAnalysisData(getDateRange());
        }
      }
    }
