@@ -406,7 +406,6 @@
       card('平均访客到加购转化率', +(k.avg_visit_to_atc||0), +(p.avg_visit_to_atc||0), true, 'info'),
       card('平均加购到支付转化率', +(k.avg_atc_to_pay||0), +(p.avg_atc_to_pay||0), true, 'success'),
       card('平均访客比', +(k.avg_visit_rate||0), +(p.avg_visit_rate||0), true, 'success'),
-      card('产品总数', +(k.product_count||0), +(p.product_count||0), false, 'success'),
       card('曝光商品数', +(k.exp_product_count||0), +(p.exp_product_count||0), false, 'info'),
       card('有加购的产品数', +(k.atc_product_count||0), +(p.atc_product_count||0), false, 'warning'),
       card('有支付的产品数', +(k.pay_product_count||0), +(p.pay_product_count||0), false, 'danger')
@@ -469,7 +468,12 @@
     ids.forEach(id=> $sel.append(`<option value="${id}" data-pid="${id}">${id}</option>`));
     populateProductNames($sel[0]);
     $sel.on('change', ()=> { const pid = $sel.val(); updateProductMeta(pid); renderProductCharts(pid); });
-    const firstId = ids[0];
+    const storedPid = localStorage.getItem('selectedProductId');
+    let firstId = ids[0];
+    if(storedPid && ids.includes(storedPid)){
+      firstId = storedPid;
+      localStorage.removeItem('selectedProductId');
+    }
     $sel.val(firstId);
     updateProductMeta(firstId);
     renderProductCharts(firstId);
@@ -758,7 +762,15 @@
       series:[{type:'bar',data:vals,barMaxWidth:24,itemStyle:{color:COLOR_A}}],
       grid:{left:40,right:20,top:30,bottom:60}
     };
-    initResponsiveChart(el, option);
+    const chart = initResponsiveChart(el, option);
+    chart.off('dblclick');
+    chart.on('dblclick', params => {
+      const pid = params.name;
+      if(pid){
+        localStorage.setItem('selectedProductId', pid);
+        window.location.href = 'managed.html#products';
+      }
+    });
   }
   topByRate(rowsA,'search_exposure','uv','vrBar',50);
   topByRate(rowsA,'add_to_cart_users','pay_buyers','payBar',5);
