@@ -823,10 +823,22 @@
 <!-- Hash 路由脚本移动至文末以确保依赖函数已定义 -->
 
 <script>
+// 站点参数统一为完整域名
+function normalizeSite(site) {
+  const map = {
+    'poolsvacuum': 'poolsvacuum.com',
+    'independent_poolsvacuum': 'poolsvacuum.com',
+    'icyberite': 'icyberite.com',
+    'independent_icyberite': 'icyberite.com'
+  };
+  return map[site] || site || '';
+}
+
 // 独立站运营分析数据加载
 async function loadIndependentAnalysisData() {
   try {
-    const site = document.getElementById('site').value || getParam('site');
+    const rawSite = document.getElementById('site').value || getParam('site');
+    const site = normalizeSite(rawSite);
     if (!site) {
       console.warn('未指定站点，无法加载运营分析数据');
       return;
@@ -858,7 +870,8 @@ async function loadIndependentAnalysisData() {
 // 独立站产品分析数据加载
 async function loadIndependentProductAnalysisData() {
   try {
-    const site = document.getElementById('site').value || getParam('site');
+    const rawSite = document.getElementById('site').value || getParam('site');
+    const site = normalizeSite(rawSite);
     if (!site) {
       console.warn('未指定站点，无法加载产品分析数据');
       return;
@@ -889,14 +902,22 @@ function getDateRange() {
   const input = document.getElementById('dateFilter');
   if (input && input.value && input.value.includes(' to ')) {
     const [start, end] = input.value.split(' to ');
+    // 同步到各分析页面的时间选择器
+    const analysisInput = document.getElementById('analysisDateFilter');
+    if (analysisInput) analysisInput.value = input.value;
+    const productInput = document.getElementById('productDateFilter');
+    if (productInput) productInput.value = input.value;
     return { start, end };
   }
   const today = new Date();
   const end = today.toISOString().slice(0, 10);
   const start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  if (input) {
-    input.value = `${start} to ${end}`;
-  }
+  const def = `${start} to ${end}`;
+  if (input) input.value = def;
+  const analysisInput = document.getElementById('analysisDateFilter');
+  if (analysisInput) analysisInput.value = def;
+  const productInput = document.getElementById('productDateFilter');
+  if (productInput) productInput.value = def;
   return { start, end };
 }
 
@@ -1044,7 +1065,7 @@ function renderIndependentComparisonChart(chartId, title, currentValue, previous
 async function getIndependentPreviousPeriodData() {
   try {
     const dateRange = getDateRange();
-    const currentSite = getParam('site') || 'icyberite';
+    const currentSite = normalizeSite(getParam('site')) || 'icyberite.com';
     
     // 计算上一周期的日期范围
     const currentStart = new Date(dateRange.start);
@@ -1107,7 +1128,8 @@ function populateIndependentProductSelect(data) {
 // 加载特定产品的分析数据
 async function loadIndependentProductData(product) {
   try {
-    const site = document.getElementById('site').value || getParam('site');
+    const rawSite = document.getElementById('site').value || getParam('site');
+    const site = normalizeSite(rawSite);
     if (!site) return;
 
     const { start, end } = getDateRange();
@@ -1417,17 +1439,13 @@ function renderLineChart(id, title, dates, data) {
       // 重新获取最新的localStorage值
       const latestSiteId = localStorage.getItem('currentIndepSite');
       const latestSiteName = localStorage.getItem('currentIndepSiteName');
-      
+
       if (latestSiteName) {
-        currentSiteEl.textContent = latestSiteName;
-        console.log('独立站页面更新站点名称:', latestSiteName);
+        const display = normalizeSite(latestSiteName);
+        currentSiteEl.textContent = display;
+        console.log('独立站页面更新站点名称:', display);
       } else if (latestSiteId) {
-        // 根据站点ID显示名称
-        const siteNameMap = {
-          'independent_icyberite': 'icyberite.com',
-          'independent_poolsvacuum': 'poolsvacuum.com'
-        };
-        const displayName = siteNameMap[latestSiteId] || '独立站';
+        const displayName = normalizeSite(latestSiteId) || '独立站';
         currentSiteEl.textContent = displayName;
         console.log('独立站页面更新站点名称:', displayName);
       } else {
@@ -1435,8 +1453,9 @@ function renderLineChart(id, title, dates, data) {
         const urlParams = new URLSearchParams(window.location.search);
         const siteParam = urlParams.get('site');
         if (siteParam) {
-          currentSiteEl.textContent = siteParam;
-          console.log('独立站页面从URL参数获取站点名称:', siteParam);
+          const display = normalizeSite(siteParam);
+          currentSiteEl.textContent = display;
+          console.log('独立站页面从URL参数获取站点名称:', display);
         } else {
           currentSiteEl.textContent = 'poolsvacuum.com';
           console.log('独立站页面使用默认名称: poolsvacuum.com');
@@ -1449,26 +1468,22 @@ function renderLineChart(id, title, dates, data) {
   function getCurrentSiteForAPI() {
     const currentIndepSiteId = localStorage.getItem('currentIndepSite');
     const currentIndepSiteName = localStorage.getItem('currentIndepSiteName');
-    
+
     // 如果有站点名称，使用站点名称（这是数据库中的site字段值）
     if (currentIndepSiteName) {
-      return currentIndepSiteName;
+      return normalizeSite(currentIndepSiteName);
     }
-    
+
     // 如果有站点ID，根据ID映射到站点名称
     if (currentIndepSiteId) {
-      const siteNameMap = {
-        'independent_icyberite': 'icyberite.com',
-        'independent_poolsvacuum': 'poolsvacuum.com'
-      };
-      return siteNameMap[currentIndepSiteId] || 'poolsvacuum.com';
+      return normalizeSite(currentIndepSiteId) || 'poolsvacuum.com';
     }
-    
+
     // 从URL参数获取
     const urlParams = new URLSearchParams(window.location.search);
     const siteParam = urlParams.get('site');
     if (siteParam) {
-      return siteParam;
+      return normalizeSite(siteParam);
     }
     
     // 默认值
@@ -1476,7 +1491,7 @@ function renderLineChart(id, title, dates, data) {
   }
   
   // 默认站点取 url 参数、当前选中的站点或从示例取
-  siteInput.value = getParam('site') || getCurrentSiteForAPI();
+  siteInput.value = normalizeSite(getParam('site')) || getCurrentSiteForAPI();
   
   // 初始化站点名称显示
   updateSiteDisplay();
@@ -1519,6 +1534,7 @@ function renderLineChart(id, title, dates, data) {
   const start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0,10);
   const def = `${start} to ${end}`;
   $('#dateFilter').val(def);
+  window.fp = fp;
   
   // 同步时间控件到其他页面
   function syncTimeControlsToOtherPages(selectedDates) {
