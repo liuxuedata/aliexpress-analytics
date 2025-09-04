@@ -89,22 +89,24 @@ async function handleFile(filePath, filename, siteId) {
     const cell = String(c||'').trim().toLowerCase();
     console.log('检查单元格:', cell);
     // 支持标准Facebook Ads格式
-    if (cell === 'campaign name' || cell === 'adset name' || cell === 'date' || 
-        cell === 'campaign_name' || cell === 'adset_name' || 
+    if (cell === 'campaign name' || cell === 'adset name' || cell === 'date' ||
+        cell === 'campaign_name' || cell === 'adset_name' ||
         cell === 'campaign' || cell === 'adset' ||
-        cell.includes('campaign') || cell.includes('adset') || cell.includes('date')) {
+        cell.includes('campaign') || cell.includes('adset') || cell.includes('date') ||
+        cell.includes('广告系列') || cell.includes('广告组') || cell.includes('日期')) {
       console.log('找到标准Facebook Ads列:', cell);
       return true;
     }
     // 支持icyberite特定格式 - 根据图三的字段名
-    if (cell === 'campaign' || cell === 'ad set' || cell === 'adset' || 
+    if (cell === 'campaign' || cell === 'ad set' || cell === 'adset' ||
         cell === 'date' || cell === 'day' || cell === 'start date' ||
         cell === 'impressions' || cell === 'clicks' || cell === 'spend' ||
         cell === 'cost' || cell === 'ctr' || cell === 'cpc' || cell === 'cpm' ||
         // icyberite特有字段
         cell === 'reach' || cell === 'frequency' || cell === 'landing page' ||
         cell === 'website url' || cell === 'url' || cell === 'conversions' ||
-        cell === 'conversion value' || cell === 'purchases' || cell === 'add to cart') {
+        cell === 'conversion value' || cell === 'purchases' || cell === 'add to cart' ||
+        cell.includes('落地页') || cell.includes('网址')) {
       console.log('找到icyberite列:', cell);
       return true;
     }
@@ -121,7 +123,9 @@ async function handleFile(filePath, filename, siteId) {
              cell.includes('conversion') || cell.includes('spend') || cell.includes('reach') ||
              cell.includes('frequency') || cell.includes('cpm') || cell.includes('ctr') ||
              cell.includes('cpc') || cell.includes('value') || cell.includes('purchase') ||
-             cell.includes('landing') || cell.includes('website') || cell.includes('url');
+             cell.includes('landing') || cell.includes('website') || cell.includes('url') ||
+             cell.includes('广告') || cell.includes('日期') || cell.includes('转化') ||
+             cell.includes('落地') || cell.includes('网址');
     }));
   }
   
@@ -147,9 +151,9 @@ async function handleFile(filePath, filename, siteId) {
   };
 
   // Facebook Ads specific column mappings - 支持多种格式
-  const campaignCol = col('campaign name', 'campaign', 'campaign_name');
-  const adsetCol = col('adset name', 'adset', 'ad set', 'adset_name', 'ad_set_name');
-  const dateCol = col('date', 'day', 'start date', 'startdate');
+  const campaignCol = col('campaign name', 'campaign', 'campaign_name', '广告系列名称', '广告系列', '广告活动', '广告活动名称');
+  const adsetCol = col('adset name', 'adset', 'ad set', 'adset_name', 'ad_set_name', '广告组名称', '广告组');
+  const dateCol = col('date', 'day', 'start date', 'startdate', '日期', '开始日期');
   const impressionsCol = col('impressions', 'imp', 'impression');
   const clicksCol = col('clicks', 'link clicks', 'click', 'all clicks');
   const spendCol = col('spend', 'amount spent', 'cost', 'amountspent');
@@ -158,15 +162,15 @@ async function handleFile(filePath, filename, siteId) {
   const ctrCol = col('ctr', 'link click-through rate', 'clickthroughrate', 'click through rate');
   const reachCol = col('reach');
   const frequencyCol = col('frequency');
-  const landingUrlCol = col('landing page', 'website url', 'url', 'landingpage', 'websiteurl');
+  const landingUrlCol = col('landing page', 'website url', 'url', 'landingpage', 'websiteurl', '落地页', '网站网址', '网址');
   // icyberite特有字段
-  const conversionsCol = col('conversions', 'conversion', 'conversion_value');
-  const conversionValueCol = col('conversion value', 'conversionvalue', 'value', 'conversion_value', 'conversion_value_usd');
-  const purchasesCol = col('purchases', 'purchase', 'purchase_value');
-  const addToCartCol = col('add to cart', 'addtocart', 'add to cart conversions');
+  const conversionsCol = col('conversions', 'conversion', 'conversion_value', '转化', '转化次数');
+  const conversionValueCol = col('conversion value', 'conversionvalue', 'value', 'conversion_value', 'conversion_value_usd', '转化价值');
+  const purchasesCol = col('purchases', 'purchase', 'purchase_value', '购买', '购买次数');
+  const addToCartCol = col('add to cart', 'addtocart', 'add to cart conversions', '加到购物车', '加购');
 
   if (campaignCol === -1 || dateCol === -1) {
-    throw new Error('Required columns not found. Need at least "Campaign name" and "Date".');
+    throw new Error('Required columns not found. Need at least "Campaign name" (广告系列名称) and "Date" (日期).');
   }
 
   const processed = [];
