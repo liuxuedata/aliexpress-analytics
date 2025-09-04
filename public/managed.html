@@ -469,10 +469,12 @@
     ids.forEach(id=> $sel.append(`<option value="${id}" data-pid="${id}">${id}</option>`));
     populateProductNames($sel[0]);
     $sel.on('change', ()=> { const pid = $sel.val(); updateProductMeta(pid); renderProductCharts(pid); });
-    const firstId = ids[0];
+    const storedPid = localStorage.getItem('selectedProductId');
+    const firstId = storedPid && ids.includes(storedPid) ? storedPid : ids[0];
     $sel.val(firstId);
     updateProductMeta(firstId);
     renderProductCharts(firstId);
+    if(storedPid) localStorage.removeItem('selectedProductId');
   }
 
   function updateProductMeta(pid){
@@ -758,7 +760,16 @@
       series:[{type:'bar',data:vals,barMaxWidth:24,itemStyle:{color:COLOR_A}}],
       grid:{left:40,right:20,top:30,bottom:60}
     };
-    initResponsiveChart(el, option);
+    const chart = initResponsiveChart(el, option);
+    if(chart){
+      chart.on('dblclick', params => {
+        const pid = params.name;
+        if(pid){
+          localStorage.setItem('selectedProductId', pid);
+          window.location.href = 'managed.html#products';
+        }
+      });
+    }
   }
   topByRate(rowsA,'search_exposure','uv','vrBar',50);
   topByRate(rowsA,'add_to_cart_users','pay_buyers','payBar',5);

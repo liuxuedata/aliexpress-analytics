@@ -67,15 +67,16 @@ module.exports = async function handler(req,res){
         const prodSet=new Set();
         const cartProds=new Set();
         const payProds=new Set();
+        const displayProds=new Set();
         for(const r of rows){
           const id=idOf(r);
           prodSet.add(id);
-          const e=Number(r.voronka_prodazh_pokazy_vsego)||0; sums.exposure+=e;
+          const e=Number(r.voronka_prodazh_pokazy_vsego)||0; sums.exposure+=e; if(e>0) displayProds.add(id);
           const u=Number(r.uv)||0; sums.uv+=u;
           const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; sums.cart+=c; if(c>0) cartProds.add(id);
           const p=Number(r.voronka_prodazh_zakazano_tovarov)||0; sums.pay+=p; if(p>0) payProds.add(id);
         }
-        return {sums, prodSet, cartProds, payProds, rows};
+        return {sums, prodSet, cartProds, payProds, displayProds, rows};
       }
       const cur=agg(curResp.data||[]);
       const prev=agg(prevResp.data||[]);
@@ -113,6 +114,7 @@ module.exports = async function handler(req,res){
           visitor_rate:{current:visitorRate, previous:visitorRatePrev},
           cart_rate:{current:cartRate, previous:cartRatePrev},
           pay_rate:{current:payRate, previous:payRatePrev},
+          display_product_total:{current:cur.displayProds.size, previous:prev.displayProds.size},
           product_total:{current:allCurSet.size, previous:allPrevSet.size},
           cart_product_total:{current:cur.cartProds.size, previous:prev.cartProds.size},
           pay_product_total:{current:cur.payProds.size, previous:prev.payProds.size},
@@ -154,15 +156,16 @@ module.exports = async function handler(req,res){
       const prodSet=new Set();
       const cartProds=new Set();
       const payProds=new Set();
+      const displayProds=new Set();
       for(const r of rows){
         const id=idOf(r);
         prodSet.add(id);
-        const e=Number(r.voronka_prodazh_pokazy_vsego)||0; sums.exposure+=e;
+        const e=Number(r.voronka_prodazh_pokazy_vsego)||0; sums.exposure+=e; if(e>0) displayProds.add(id);
         const u=Number(r.uv)||0; sums.uv+=u;
         const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; sums.cart+=c; if(c>0) cartProds.add(id);
         const p=Number(r.voronka_prodazh_zakazano_tovarov)||0; sums.pay+=p; if(p>0) payProds.add(id);
       }
-      return {sums, prodSet, cartProds, payProds, rows};
+      return {sums, prodSet, cartProds, payProds, displayProds, rows};
     }
     const cur=agg(curResp.data||[]);
     const prev=agg(prevResp.data||[]);
@@ -203,6 +206,7 @@ module.exports = async function handler(req,res){
         visitor_rate:{current:visitorRate, previous:visitorRatePrev},
         cart_rate:{current:cartRate, previous:cartRatePrev},
         pay_rate:{current:payRate, previous:payRatePrev},
+        display_product_total:{current:cur.displayProds.size, previous:prev.displayProds.size},
         product_total:{current:allCurSet.size, previous:allPrevSet.size},
         cart_product_total:{current:cur.cartProds.size, previous:prev.cartProds.size},
         pay_product_total:{current:cur.payProds.size, previous:prev.payProds.size},
