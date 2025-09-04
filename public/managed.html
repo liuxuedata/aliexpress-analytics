@@ -40,6 +40,15 @@
 /* Force hide any old period controls if they still exist */
 #kpi-new-self-ctrl, #kpi-new-managed-ctrl, .kpi .kpi-ctrl { display: none !important; }</style>
 <style>#analysis .panel{border:none;box-shadow:none;padding:0}</style>
+<style>
+/* Responsive layout for managed product analysis controls and KPI cards */
+#productMeta{display:flex;flex-wrap:wrap;gap:.5rem}
+#productMeta .meta-field{flex:1 1 260px;display:flex;align-items:center;gap:.5rem;min-width:200px}
+#productMeta select,#productMeta a,#productMeta input{flex:1 1 auto;min-width:0}
+#productMeta a{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#productKPI{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.75rem}
+#productKPI .kpi-card{display:flex;width:100%}
+</style>
 </head>
 <body class="fm">
 <div id="loginOverlay" class="login-overlay">
@@ -173,16 +182,20 @@
 
 <section id="products" class="content-pad" style="display:none;">
   <div class="panel">
-    <div class="kpi-ctrl">
-      <button type="button" id="productPeriodPrev">上一周</button>
-      <label>周末日：</label>
-      <input type="date" id="productPeriodEnd">
-      <button type="button" id="productPeriodNext">下一周</button>
-      <span class="hint">选择周末日（自动对齐周日）</span>
-      <label>选择商品</label>
-      <select id="productSelect"></select>
-      <a id="productLink" class="mini-link" target="_blank" style="display:none;">产品链接</a>
-      <span id="productFirstSeen" style="display:none; margin-left:8px;"></span>
+    <div class="kpi-ctrl" id="productMeta">
+      <div class="meta-field">
+        <label>选择商品</label>
+        <select id="productSelect"></select>
+        <a id="productLink" class="mini-link" target="_blank" style="display:none;"></a>
+        <span id="productFirstSeen" style="display:none; margin-left:8px;"></span>
+      </div>
+      <div class="meta-field">
+        <button type="button" id="productPeriodPrev">上一周</button>
+        <label>周末日：</label>
+        <input type="date" id="productPeriodEnd">
+        <button type="button" id="productPeriodNext">下一周</button>
+        <span class="hint">选择周末日（自动对齐周日）</span>
+      </div>
     </div>
   </div>
 
@@ -440,7 +453,8 @@
   }
 
   function updateProductMeta(pid){
-    $('#productLink').attr('href', `https://aliexpress.com/item/${pid}.html`).show();
+    const url = `https://aliexpress.com/item/${pid}.html`;
+    $('#productLink').attr('href', url).text(url).show();
     const first = productFirstSeen[pid];
     if (first){
       $('#productFirstSeen').text('上架日期：'+first).show();
