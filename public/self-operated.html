@@ -620,24 +620,23 @@
       <!-- 运营分析 -->
       <section id="analysis" class="analysis-container" style="display:none;">
 
-        <!-- 运营分析访客/加购/支付比趋势 -->
-        <div id="analysisKpi" class="analysis-kpi-grid">
-          <div class="analysis-kpi-card">
-            <h4>访客比</h4>
-            <div id="visitorRateChart" style="width:100%;height:240px;"></div>
+        <div class="grid grid-2">
+          <div class="panel">
+            <h3>转化漏斗</h3>
+            <div id="funnel" style="width:100%;height:320px;"></div>
           </div>
-          <div class="analysis-kpi-card">
-            <h4>加购比</h4>
-            <div id="cartRateChart" style="width:100%;height:240px;"></div>
+          <div class="panel">
+            <h3>周期对比（曝光 / 加购件数 / 支付订单数）</h3>
+            <div id="sumCompareBar" style="width:100%;height:320px;"></div>
           </div>
-          <div class="analysis-kpi-card">
-            <h4>支付比</h4>
-            <div id="payRateChart" style="width:100%;height:240px;"></div>
+          <div class="panel">
+            <h3>Top10 访客比（UV/曝光）</h3>
+            <div id="vrBar" style="width:100%;height:320px;"></div>
           </div>
-        </div>
-        <div class="panel" style="margin-top:16px;">
-          <h3>关键指标对比</h3>
-          <div id="analysisCompareBar" style="width:100%;height:320px;"></div>
+          <div class="panel">
+            <h3>Top10 加购→支付 转化率</h3>
+            <div id="payBar" style="width:100%;height:320px;"></div>
+          </div>
         </div>
       </section>
 
@@ -1095,8 +1094,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
       console.log('运营分析数据响应:', currentData, prevData);
 
       if (currentData.ok && currentData.rows && prevData.ok && prevData.rows) {
-        renderAnalysisCharts(currentData.rows, prevData.rows);
-        renderSummaryBarChart(currentData.rows, prevData.rows);
+        renderFunnelChart(currentData.rows, prevData.rows);
+        renderPeriodCompareChart(currentData.rows, prevData.rows);
+        renderTopRateCharts(currentData.rows);
       } else {
         console.warn('运营分析数据格式不正确:', currentData, prevData);
         showAnalysisError('数据格式不正确，请检查API响应');
@@ -1355,45 +1355,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
       prevEnd: prevEnd.toISOString().slice(0, 10)
     };
   }
-  // 渲染运营分析访客比、加购比、支付比趋势图
-  function renderAnalysisCharts(currentRows, previousRows) {
-    console.log('渲染运营分析对比图表，数据:', currentRows, previousRows);
-
-    function extractRates(rs) {
-      if (!rs) return { dates: [], vr: [], cr: [], pr: [] };
-      const sorted = [...rs].sort((a, b) => {
-        const da = a.day || a.date || a.bucket || a.stat_date || '';
-        const db = b.day || b.date || b.bucket || b.stat_date || '';
-        return da.localeCompare(db);
-      });
-      const dates = sorted.map(r => r.day || r.date || r.bucket || r.stat_date || '');
-      const vr = sorted.map(r => {
-        const exposure = r.exposure || 0;
-        const visitors = r.visitors || 0;
-        return exposure > 0 ? (visitors / exposure * 100) : 0;
-      });
-      const cr = sorted.map(r => {
-        const visitors = r.visitors || 0;
-        const add = r.add_people || 0;
-        return visitors > 0 ? (add / visitors * 100) : 0;
-      });
-      const pr = sorted.map(r => {
-        const add = r.add_people || 0;
-        const pay = r.pay_buyers || 0;
-        return add > 0 ? (pay / add * 100) : 0;
-      });
-      return { dates, vr, cr, pr };
-    }
-
-    const current = extractRates(currentRows);
-    const prev = extractRates(previousRows);
-    const align = arr => current.dates.map((_, i) => arr[i] ?? null);
-
-    renderRateChart('visitorRateChart', current.dates, current.vr, align(prev.vr));
-    renderRateChart('cartRateChart', current.dates, current.cr, align(prev.cr));
-    renderRateChart('payRateChart', current.dates, current.pr, align(prev.pr));
-  }
-
   // 初始化并使图表自适应容器
   function initResponsiveChart(id, option) {
     const el = typeof id === 'string' ? document.getElementById(id) : id;
@@ -1413,43 +1374,74 @@ document.addEventListener('DOMContentLoaded', ()=>{
     return chart;
   }
 
-  // 渲染折线图
-  function renderRateChart(id, dates, currentSeries, prevSeries) {
+  // 渲染转化漏斗
+  function renderFunnelChart(rowsA, rowsB) {
+    const sum = rows => rows.reduce((a, x) => {
+      a.exp += x.exposure || 0;
+      a.uv += x.visitors || 0;
+      a.atc += x.add_people || 0;
+      a.pay += x.pay_buyers || 0;
+      return a;
+    }, {exp:0, uv:0, atc:0, pay:0});
+    const A = sum(rowsA), B = sum(rowsB);
     const option = {
-      tooltip: { trigger: 'axis', valueFormatter: v => `${v.toFixed(2)}%` },
-      legend: { data: ['当前周期', '上一周期'], textStyle: { color: '#374151' } },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-      xAxis: { type: 'category', data: dates, axisLabel: { color: '#374151' } },
-      yAxis: { type: 'value', axisLabel: { formatter: v => v.toFixed(2) + '%', color: '#374151' } },
-      series: [
-        { name: '当前周期', type: 'line', data: currentSeries },
-        { name: '上一周期', type: 'line', data: prevSeries }
+      tooltip:{trigger:'item',formatter:'{a} - {b}: {c}'},
+      legend:{data:['本期','上期'],textStyle:{color:'#374151'}},
+      series:[
+        {name:'本期',type:'funnel',left:'5%',width:'40%',sort:'none',label:{color:'#374151'},
+         data:[{name:'曝光',value:A.exp},{name:'访客',value:A.uv},{name:'加购人数',value:A.atc},{name:'支付买家数',value:A.pay}]},
+        {name:'上期',type:'funnel',left:'55%',width:'40%',sort:'none',label:{color:'#374151'},
+         data:[{name:'曝光',value:B.exp},{name:'访客',value:B.uv},{name:'加购人数',value:B.atc},{name:'支付买家数',value:B.pay}]}
       ]
     };
-    initResponsiveChart(id, option);
+    initResponsiveChart('funnel', option);
   }
 
-  function renderSummaryBarChart(currentRows, previousRows) {
-    const sum = rows => ({
-      exp: rows.reduce((t, r) => t + (r.exposure || 0), 0),
-      uv: rows.reduce((t, r) => t + (r.visitors || 0), 0),
-      add: rows.reduce((t, r) => t + (r.add_people || 0), 0),
-      pay: rows.reduce((t, r) => t + (r.pay_buyers || 0), 0)
-    });
-    const cur = sum(currentRows);
-    const prev = sum(previousRows);
-    const cats = ['总展示数','访客数','加购次数','支付次数'];
+  // 渲染周期对比柱状图
+  function renderPeriodCompareChart(rowsA, rowsB) {
+    const sum = rows => rows.reduce((a, x) => {
+      a.exp += x.exposure || 0;
+      a.atc_qty += x.add_count || 0;
+      a.pay_orders += x.pay_orders || 0;
+      return a;
+    }, {exp:0, atc_qty:0, pay_orders:0});
+    const A = sum(rowsA), B = sum(rowsB);
     const option = {
-      tooltip:{ trigger:'axis', axisPointer:{ type:'shadow' } },
-      legend:{ data:['本期','上期'], textStyle:{ color:'#374151' } },
-      xAxis:{ type:'category', data: cats, axisLabel:{ color:'#374151' } },
-      yAxis:{ type:'value', axisLabel:{ color:'#374151' } },
+      tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+      legend:{data:['本期','上期'],textStyle:{color:'#374151'}},
+      xAxis:{type:'category',data:['曝光','加购件数','支付订单数'],axisLabel:{color:'#374151'}},
+      yAxis:{type:'value',axisLabel:{color:'#374151'}},
       series:[
-        { name:'本期', type:'bar', data:[cur.exp, cur.uv, cur.add, cur.pay], label:{show:true, position:'top'} },
-        { name:'上期', type:'bar', data:[prev.exp, prev.uv, prev.add, prev.pay], label:{show:true, position:'top'} }
-      ]
+        {name:'本期',type:'bar',data:[A.exp,A.atc_qty,A.pay_orders],barMaxWidth:28,label:{show:true,position:'top'}},
+        {name:'上期',type:'bar',data:[B.exp,B.atc_qty,B.pay_orders],barMaxWidth:28,label:{show:true,position:'top'}}
+      ],
+      grid:{left:40,right:20,top:30,bottom:40}
     };
-    initResponsiveChart('analysisCompareBar', option);
+    initResponsiveChart('sumCompareBar', option);
+  }
+
+  // 渲染Top10比率柱状图
+  function renderTopRateCharts(rows) {
+    function topByRate(denKey, numKey, elId, minDen){
+      const list = rows.map(x=>{
+        const den = Number(x[denKey]||0);
+        const num = Number(x[numKey]||0);
+        const rate = den>0 ? num/den : 0;
+        return {id:String(x.product_id||''), rate, den};
+      }).filter(o=>o.den>=(minDen||1)).sort((a,b)=>b.rate-a.rate).slice(0,10);
+      const names = list.map(o=>o.id);
+      const vals = list.map(o=>Number((o.rate*100).toFixed(2)));
+      const option = {
+        tooltip:{trigger:'axis',axisPointer:{type:'shadow'},formatter:p=>p[0].name+': '+p[0].value+'%'},
+        xAxis:{type:'category',data:names,axisLabel:{color:'#374151',rotate:45}},
+        yAxis:{type:'value',axisLabel:{color:'#374151',formatter:'{value}%'}},
+        series:[{type:'bar',data:vals,barMaxWidth:24,itemStyle:{color:'#3b82f6'}}],
+        grid:{left:40,right:20,top:30,bottom:60}
+      };
+      initResponsiveChart(elId, option);
+    }
+    topByRate('exposure','visitors','vrBar',50);
+    topByRate('add_people','pay_buyers','payBar',5);
   }
 
      // 填充产品选择器
