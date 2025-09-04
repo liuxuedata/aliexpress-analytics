@@ -418,19 +418,44 @@
       if (!j.ok) throw new Error(j.msg||'fetch error');
       const rows = j.rows||[];
       const map = {};
+      let last = first ? new Date(first) : null;
       rows.forEach(row => {
-        const d = row.period_end || row.stat_date || 'Unknown';
+        const d = row.period_end || row.stat_date;
+        if (!d) return;
         if (!map[d]) map[d] = { exp:0, uv:0, add:0, pay:0 };
         map[d].exp += +row.search_exposure || 0;
         map[d].uv += +row.uv || 0;
         map[d].add += +row.add_to_cart_users || 0;
         map[d].pay += +row.pay_buyers || 0;
+        const dt = new Date(d);
+        if (!last || dt > last) last = dt;
       });
-      const dates = Object.keys(map).sort();
-      const expData = dates.map(d=>map[d].exp);
-      const uvData = dates.map(d=>map[d].uv);
-      const addData = dates.map(d=>map[d].add);
-      const payData = dates.map(d=>map[d].pay);
+      let dates = Object.keys(map).sort();
+      const expData = [];
+      const uvData = [];
+      const addData = [];
+      const payData = [];
+      if (first && last){
+        const start = new Date(first);
+        dates = [];
+        for (let d = new Date(start); d <= last; d.setDate(d.getDate()+7)){
+          const s = d.toISOString().slice(0,10);
+          dates.push(s);
+          const m = map[s] || { exp:0, uv:0, add:0, pay:0 };
+          expData.push(m.exp);
+          uvData.push(m.uv);
+          addData.push(m.add);
+          payData.push(m.pay);
+        }
+      } else {
+        dates.forEach(d => {
+          const m = map[d];
+          expData.push(m.exp);
+          uvData.push(m.uv);
+          addData.push(m.add);
+          payData.push(m.pay);
+        });
+      }
       const opt = (data,color)=>({ tooltip:{trigger:'axis'}, xAxis:{type:'category',data:dates,axisLabel:{color:'#6b7280'}}, yAxis:{type:'value',axisLabel:{color:'#6b7280'}}, series:[{data, type:'line', smooth:true, itemStyle:{color}}] });
       initResponsiveChart('productExposureChart', opt(expData,'#10B981'));
       initResponsiveChart('productVisitorChart', opt(uvData,'#3B82F6'));
