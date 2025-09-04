@@ -1018,6 +1018,16 @@ function populateIndependentProductSelect(data) {
       if (chartWrap) chartWrap.style.display = 'none';
     }
   });
+  // URL 指定产品优先
+  const productParam = getParam('product');
+  if (productParam) {
+    const opt = Array.from(productSelect.options).find(o => o.value === productParam);
+    if (opt) {
+      productSelect.value = opt.value;
+      loadIndependentProductData(opt.value, opt.dataset.url, opt.dataset.firstSeen);
+      return;
+    }
+  }
 
   // 默认选择曝光量最高的产品
   if (list.length) {
@@ -1303,16 +1313,27 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       dt.column(1).visible(false); // 设备列
       dt.column(2).visible(false); // 网络列
       dt.column(3).visible(false); // Campaign列
-      
+
       // 强制重新计算列宽，确保对齐
       setTimeout(() => {
         dt.columns.adjust();
         dt.fixedHeader.adjust();
       }, 100);
-      
+      // 双击行跳转到产品分析
+      $('#report tbody').off('dblclick').on('dblclick', 'tr', function() {
+        const row = dt.row(this).data();
+        if (!row) return;
+        const params = new URLSearchParams(window.location.search);
+        if (!params.get('site')) {
+          params.set('site', getCurrentSiteForAPI());
+        }
+        params.set('product', row.landing_path);
+        window.location.href = `independent-site.html?${params.toString()}#products`;
+      });
+
       return;
     }
-    
+
     let data = rawTable;
     const net = networkSel.value;
     const camp = campaignSel.value;
@@ -1362,12 +1383,23 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     if (showDevice) dt.column(1).visible(true);
     if (showNetwork) dt.column(2).visible(true);
     if (showCampaign) dt.column(3).visible(true);
-    
+
     // 强制重新计算列宽，确保对齐
     setTimeout(() => {
       dt.columns.adjust();
       dt.fixedHeader.adjust();
     }, 100);
+    // 双击行跳转到产品分析
+    $('#report tbody').off('dblclick').on('dblclick', 'tr', function() {
+      const row = dt.row(this).data();
+      if (!row) return;
+      const params = new URLSearchParams(window.location.search);
+      if (!params.get('site')) {
+        params.set('site', getCurrentSiteForAPI());
+      }
+      params.set('product', row.landing_path);
+      window.location.href = `independent-site.html?${params.toString()}#products`;
+    });
   }
 
   $('#columnMenu').on('change','input[type=checkbox]', buildTable);
