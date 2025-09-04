@@ -1532,7 +1532,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
         series:[{ type:'bar', data:vals, barMaxWidth:24, itemStyle:{ color:'#3B82F6' } }],
         grid:{ left:40, right:20, top:30, bottom:60 }
       };
-      initResponsiveChart(elId, option);
+      const chart = initResponsiveChart(elId, option);
+      if(chart){
+        chart.on('dblclick', params => {
+          const pid = params.name;
+          if(pid){
+            localStorage.setItem('selectedProductId', pid);
+            window.location.href = 'self-operated.html#products';
+          }
+        });
+      }
     }
 
     topByRate(list, 'exposure', 'visitors', 'analysisVrBar', 50);
