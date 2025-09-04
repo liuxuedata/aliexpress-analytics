@@ -11,7 +11,7 @@
   const defaultSites = {
     ae_self_operated: [
       { id: 'ae_self_operated_a', name: '自运营robot站', display_name: '自运营robot站' },
-      { id: 'ae_self_operated_poolslab', name: 'poolslab', display_name: 'Poolslab运动娱乐' }
+      { id: 'ae_self_operated_poolslab_store', name: 'poolslab', display_name: 'Poolslab运动娱乐' }
     ],
     independent: [
       { id: 'independent_poolsvacuum', name: 'poolsvacuum', display_name: 'poolsvacuum.com' },
@@ -24,7 +24,7 @@
     if (platform === 'ae_self_operated') {
       const siteMap = {
         'ae_self_operated_a': '自运营robot站',
-        'ae_self_operated_poolslab': 'Poolslab运动娱乐'
+        'ae_self_operated_poolslab_store': 'Poolslab运动娱乐'
       };
       return siteMap[siteId] || `自运营 ${siteId}`;
     } else if (platform === 'independent') {
