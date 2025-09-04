@@ -65,6 +65,9 @@
       console.log('SelfOperatedPageManager.refreshData() 被调用');
       try {
         await this.loadData();
+        if (typeof window.fetchAndRenderAll === 'function') {
+          await window.fetchAndRenderAll();
+        }
       } catch (error) {
         console.error('数据刷新失败:', error);
         this.showError('数据刷新失败，请重试');
@@ -118,15 +121,18 @@
         const endISO = to;
         
         // 计算对比周期
+        const todayISO = new Date().toISOString().slice(0,10);
         const { prevStart, prevEnd, days } = this.periodShift(startISO, endISO);
         
         console.log('当前周期:', startISO, 'to', endISO);
         console.log('对比周期:', prevStart, 'to', prevEnd);
         
-        // 使用Promise.all并行获取数据，避免多次调用
-        const [rowsAggA, rowsAggB] = await Promise.all([
+        // 使用Promise.all并行获取数据，并获取累积商品总数
+        const [rowsAggA, rowsAggB, totalCur, totalPrev] = await Promise.all([
           this.fetchAggregatedData(startISO, endISO, 'day'),
-          this.fetchAggregatedData(prevStart, prevEnd, 'day')
+          this.fetchAggregatedData(prevStart, prevEnd, 'day'),
+          this.fetchProductTotal(todayISO),
+          this.fetchProductTotal(prevEnd)
         ]);
         
         console.log('成功获取数据:', {
@@ -138,7 +144,7 @@
         this.currentData = rowsAggA;
         
         // 一次性计算所有KPI
-        this.computeCards(rowsAggA, rowsAggB);
+        this.computeCards(rowsAggA, rowsAggB, totalCur, totalPrev);
         
         // 渲染数据表格
         await this.renderDataTable(rowsAggA, 'day');
@@ -168,12 +174,11 @@
         return result;
       }
       
-      // 返回默认日期范围
+      // 返回默认日期范围（最近7天）
       const today = new Date();
       const to = today.toISOString().slice(0, 10);
-      // 如果今天是2024年或更早，使用2025-07-01作为开始日期
-      const from = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime() - 30 * 86400000).toISOString().slice(0, 10);
-      
+      const from = new Date(today.getTime() - 6 * 86400000).toISOString().slice(0, 10);
+
       // 更新日期选择器的值
       if (input) {
         input.value = `${from} to ${to}`;
@@ -222,6 +227,17 @@
       }
     }
 
+    // 获取平台至今商品总数
+    async fetchProductTotal(toISO) {
+      const qs = new URLSearchParams({ platform:'self', from:'2000-01-01', to: toISO, limit:5000, site: this.currentSite || 'ae_self_operated_a' });
+      try {
+        const r = await fetch('/api/new-products?'+qs.toString());
+        const j = await r.json();
+        if (j.ok) return (j.items||[]).length;
+      } catch (e) { console.error('fetchProductTotal', e); }
+      return 0;
+    }
+
     // 计算对比周期（与index.html保持一致）
     periodShift(startISO, endISO) {
       const start = new Date(startISO + 'T00:00:00');
@@ -234,9 +250,9 @@
     }
     
     // 计算KPI卡片（修复字段名和计算逻辑）
-    computeCards(rows, prevRows) {
+    computeCards(rows, prevRows, totalCur, totalPrev) {
       function summarize(rs) {
-        if (!rs.length) return {vr:0,cr:0,pr:0,total:0,pc:0,pp:0};
+        if (!rs.length) return {vr:0,cr:0,pr:0,total:0,pe:0,pc:0,pp:0};
         
         // 调试：输出前几条数据的字段
         if (rs.length > 0) {
@@ -284,9 +300,9 @@
         const cr = sum.visitors > 0 ? ((sum.add_people / sum.visitors) * 100) : 0;  // 使用 add_people
         const pr = sum.add_people > 0 ? ((sum.pay_buyers / sum.add_people) * 100) : 0;  // 使用 add_people 和 pay_buyers
         
-        console.log('KPI计算调试 - 计算结果:', { vr, cr, pr, total: products.size, pc, pp });
-        
-        return {vr, cr, pr, total: products.size, pc, pp, newProducts: 0}; // 暂时返回0，后续计算
+        console.log('KPI计算调试 - 计算结果:', { vr, cr, pr, total: products.size, pe, pc, pp });
+
+        return {vr, cr, pr, total: products.size, pe, pc, pp, newProducts: 0}; // 暂时返回0，后续计算
       }
       
       function setDelta(id, diff, isPercent) {
@@ -302,6 +318,8 @@
       
       const cur = summarize(rows);
       const prev = summarize(prevRows || []);
+      cur.total = totalCur || 0;
+      prev.total = totalPrev || 0;
       
       // 计算本周期新品数：当前周期有但对比周期没有的商品
       const currentProductIds = new Set(rows.map(r => r.product_id));
@@ -324,6 +342,7 @@
       this.updateKPI('avgCart', cur.cr.toFixed(2) + '%');
       this.updateKPI('avgPay', cur.pr.toFixed(2) + '%');
       this.updateKPI('totalProducts', cur.total);
+      this.updateKPI('exposedProducts', cur.pe);
       this.updateKPI('cartedProducts', cur.pc);
       this.updateKPI('purchasedProducts', cur.pp);
       this.updateKPI('newProducts', newProducts); // 添加新品数KPI
@@ -333,6 +352,7 @@
        setDelta('avgCartComparison', cur.cr - prev.cr, true);
        setDelta('avgPayComparison', cur.pr - prev.pr, true);
        setDelta('totalProductsComparison', cur.total - prev.total, false);
+       setDelta('exposedProductsComparison', cur.pe - prev.pe, false);
        setDelta('cartedProductsComparison', cur.pc - prev.pc, false);
        setDelta('purchasedProductsComparison', cur.pp - prev.pp, false);
        
@@ -345,6 +365,7 @@
         avgCart: cur.cr.toFixed(2) + '%',
         avgPay: cur.pr.toFixed(2) + '%',
         totalProducts: cur.total,
+        exposedProducts: cur.pe,
         cartedProducts: cur.pc,
         purchasedProducts: cur.pp
       });
@@ -468,18 +489,27 @@
             `<a href="https://www.aliexpress.com/item/${productId}.html" target="_blank" class="product-link">${productId}</a>` : 
             '';
           
+          // 计算比率，优先使用 add_people
+          const addPeople = row.add_people || 0;
+          const visitors = row.visitors || 0;
+          const exposure = row.exposure || 0;
+          const payItems = row.pay_items || 0;
+          const visitorRatio = exposure > 0 ? (visitors / exposure) * 100 : 0;
+          const addToCartRatio = visitors > 0 ? (addPeople / visitors) * 100 : 0;
+          const paymentRatio = addPeople > 0 ? (payItems / addPeople) * 100 : 0;
+
           // 调试：输出前3行的详细数据
           if (index < 3) {
             console.log(`行${index + 1}数据字段:`, {
               product_id: row.product_id,
               bucket: row.bucket,
-              visitor_ratio: row.visitor_ratio,
-              add_to_cart_ratio: row.add_to_cart_ratio,
-              payment_ratio: row.payment_ratio,
+              visitor_ratio: visitorRatio,
+              add_to_cart_ratio: addToCartRatio,
+              payment_ratio: paymentRatio,
               exposure: row.exposure,
               visitors: row.visitors,
               views: row.views,
-              add_count: row.add_count,
+              add_people: row.add_people,
               order_items: row.order_items,
               pay_items: row.pay_items,
               pay_buyers: row.pay_buyers,
@@ -487,17 +517,17 @@
               avg_stay_seconds: row.avg_stay_seconds
             });
           }
-          
+
           tr.innerHTML = `
             <td style="text-align: left;">${productLink}</td>
             <td style="text-align: center;">${row.bucket || this.formatDateRange(row.start_date, row.end_date)}</td>
-            <td style="text-align: center;">${this.formatPercentage(row.visitor_ratio)}</td>
-            <td style="text-align: center;">${this.formatPercentage(row.add_to_cart_ratio)}</td>
-            <td style="text-align: center;">${this.formatPercentage(row.payment_ratio)}</td>
+            <td style="text-align: center;">${this.formatPercentage(visitorRatio)}</td>
+            <td style="text-align: center;">${this.formatPercentage(addToCartRatio)}</td>
+            <td style="text-align: center;">${this.formatPercentage(paymentRatio)}</td>
             <td style="text-align: center;">${this.formatNumber(row.exposure || 0)}</td>
             <td style="text-align: center;">${this.formatNumber(row.visitors || 0)}</td>
             <td style="text-align: center;">${this.formatNumber(row.views || 0)}</td>
-            <td style="text-align: center;">${this.formatNumber(row.add_count || 0)}</td>
+            <td style="text-align: center;">${this.formatNumber(addPeople)}</td>
             <td style="text-align: center;">${this.formatNumber(row.order_items || 0)}</td>
             <td style="text-align: center;">${this.formatNumber(row.pay_items || 0)}</td>
             <td style="text-align: center;">${this.formatNumber(row.pay_buyers || 0)}</td>

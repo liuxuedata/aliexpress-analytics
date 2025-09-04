@@ -176,10 +176,10 @@ export default async function handler(req, res) {
       if (aggregate === 'product') {
         // 访客比 = 总访客数 / 总曝光数
         visitor_ratio = x.exposure > 0 ? (x.visitors / x.exposure) * 100 : null;
-        // 加购比 = 总加购数 / 总访客数
-        add_to_cart_ratio = x.visitors > 0 ? (x.add_count / x.visitors) * 100 : null;
-        // 支付比 = 总支付数 / 总加购数
-        payment_ratio = x.add_count > 0 ? (x.pay_items / x.add_count) * 100 : null;
+        // 加购比 = 总加购人数 / 总访客数
+        add_to_cart_ratio = x.visitors > 0 ? (x.add_people / x.visitors) * 100 : null;
+        // 支付比 = 总支付件数 / 总加购人数
+        payment_ratio = x.add_people > 0 ? (x.pay_items / x.add_people) * 100 : null;
       }
       
       return {
