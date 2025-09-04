@@ -413,9 +413,8 @@
   function renderProductCompare(cur, prev){
     const el = document.getElementById('productCompareBar');
     if (!el) return;
-    const chart = echarts.init(el);
     const cats = ['总展示数','详情页访客数','加购次数','订购次数'];
-    chart.setOption({
+    const option = {
       tooltip:{ trigger:'axis', axisPointer:{ type:'shadow' } },
       legend:{ data:['本期','上期'] },
       xAxis:{ type:'category', data: cats },
@@ -424,7 +423,8 @@
         { name:'本期', type:'bar', data:[cur.exp, cur.uv, cur.addQty, cur.payOrders], label:{show:true, position:'top'} },
         { name:'上期', type:'bar', data:[prev.exp, prev.uv, prev.addQty, prev.payOrders], label:{show:true, position:'top'} }
       ]
-    });
+    };
+    initResponsiveChart(el, option);
   }
 
 function renderProductCharts(pid, rowsA) {
@@ -453,16 +453,15 @@ function renderProductCharts(pid, rowsA) {
     const dates = Object.keys(dateGroups).sort();
     
     // 曝光趋势图
-    const exposureChart = echarts.init(document.getElementById('productExposureChart'));
     const exposureOption = {
       title: { text: '曝光趋势', textStyle: { color: '#374151' } },
       tooltip: { trigger: 'axis' },
-      xAxis: { 
-        type: 'category', 
+      xAxis: {
+        type: 'category',
         data: dates,
         axisLabel: { color: '#6b7280' }
       },
-      yAxis: { 
+      yAxis: {
         type: 'value',
         axisLabel: { color: '#6b7280' }
       },
@@ -473,19 +472,18 @@ function renderProductCharts(pid, rowsA) {
         itemStyle: { color: '#10B981' }
       }]
     };
-    exposureChart.setOption(exposureOption);
+    initResponsiveChart('productExposureChart', exposureOption);
     
     // 访客趋势图
-    const visitorChart = echarts.init(document.getElementById('productVisitorChart'));
     const visitorOption = {
       title: { text: '访客趋势', textStyle: { color: '#374151' } },
       tooltip: { trigger: 'axis' },
-      xAxis: { 
-        type: 'category', 
+      xAxis: {
+        type: 'category',
         data: dates,
         axisLabel: { color: '#6b7280' }
       },
-      yAxis: { 
+      yAxis: {
         type: 'value',
         axisLabel: { color: '#6b7280' }
       },
@@ -496,19 +494,18 @@ function renderProductCharts(pid, rowsA) {
         itemStyle: { color: '#3B82F6' }
       }]
     };
-    visitorChart.setOption(visitorOption);
+    initResponsiveChart('productVisitorChart', visitorOption);
     
     // 加购趋势图
-    const addChart = echarts.init(document.getElementById('productAddChart'));
     const addOption = {
       title: { text: '加购趋势', textStyle: { color: '#374151' } },
       tooltip: { trigger: 'axis' },
-      xAxis: { 
-        type: 'category', 
+      xAxis: {
+        type: 'category',
         data: dates,
         axisLabel: { color: '#6b7280' }
       },
-      yAxis: { 
+      yAxis: {
         type: 'value',
         axisLabel: { color: '#6b7280' }
       },
@@ -519,19 +516,18 @@ function renderProductCharts(pid, rowsA) {
         itemStyle: { color: '#F59E0B' }
       }]
     };
-    addChart.setOption(addOption);
+    initResponsiveChart('productAddChart', addOption);
     
     // 支付趋势图
-    const payChart = echarts.init(document.getElementById('productPayChart'));
     const payOption = {
       title: { text: '支付趋势', textStyle: { color: '#374151' } },
       tooltip: { trigger: 'axis' },
-      xAxis: { 
-        type: 'category', 
+      xAxis: {
+        type: 'category',
         data: dates,
         axisLabel: { color: '#6b7280' }
       },
-      yAxis: { 
+      yAxis: {
         type: 'value',
         axisLabel: { color: '#6b7280' }
       },
@@ -542,7 +538,7 @@ function renderProductCharts(pid, rowsA) {
         itemStyle: { color: '#EF4444' }
       }]
     };
-    payChart.setOption(payOption);
+    initResponsiveChart('productPayChart', payOption);
   }
 
   loadPeriods().then(loadData);
@@ -612,6 +608,23 @@ function renderProductCharts(pid, rowsA) {
   // });
 
   // ---- Analysis charts ----
+  // 初始化并使图表自适应容器宽度
+  function initResponsiveChart(id, option){
+    const el = typeof id === 'string' ? document.getElementById(id) : id;
+    if(!el) return null;
+    let chart = echarts.getInstanceByDom(el);
+    if(!chart){
+      chart = echarts.init(el);
+      const resize = () => chart.resize();
+      window.addEventListener('resize', resize);
+      if (window.ResizeObserver) new ResizeObserver(resize).observe(el);
+    } else {
+      chart.clear();
+    }
+    if(option) chart.setOption(option, true);
+    chart.resize();
+    return chart;
+  }
   let ratioChart=null, topChart=null;
   function renderAnalysis(rowsA, rowsB){
   if (!Array.isArray(rowsA)) rowsA = []; if (!Array.isArray(rowsB)) rowsB = [];
@@ -648,9 +661,9 @@ function renderProductCharts(pid, rowsA) {
 
   // Dual funnel
   try{
-    const el = document.getElementById('funnel'); if (el){
-      const chart = echarts.init(el, null, {backgroundColor:'transparent'});
-      chart.setOption({
+    const el = document.getElementById('funnel');
+    if (el){
+      const option = {
         tooltip:{trigger:'item',formatter:'{a} - {b}: {c}'},
         legend:{ data:[nameA,nameB], textStyle:{color:'#374151'} },
         series:[
@@ -659,16 +672,16 @@ function renderProductCharts(pid, rowsA) {
           { name:nameB, type:'funnel', left:'55%', width:'40%', sort:'none', label:{color:'#374151'}, itemStyle:{color:COLOR_B},
             data:[{name:'曝光',value:B.exp},{name:'访客',value:B.uv},{name:'加购人数',value:B.atc_users},{name:'支付买家数',value:B.pay_buyers}]}
         ]
-      });
-      window.addEventListener('resize', ()=>chart.resize());
+      };
+      initResponsiveChart(el, option);
     }
   }catch(e){ console.warn(e); }
 
   // Grouped sum comparison
   try{
-    const el = document.getElementById('sumCompareBar'); if (el){
-      const chart = echarts.init(el, null, {backgroundColor:'transparent'});
-      chart.setOption({
+    const el = document.getElementById('sumCompareBar');
+    if (el){
+      const option = {
         tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
         legend:{ data:[nameA,nameB], textStyle:{color:'#374151'} },
         xAxis:{ type:'category', data:['总展示数','详情页访客数','加购次数','订购次数','有加购商品数'], axisLabel:{color:'#374151'} },
@@ -678,8 +691,8 @@ function renderProductCharts(pid, rowsA) {
           { name:nameB, type:'bar', data:[B.exp, B.uv, B.atc_qty, B.pay_orders, B.atc_products], barMaxWidth:28, label:{show:true, position:'top'}, itemStyle:{color:COLOR_B} }
         ],
         grid:{ left:40, right:20, top:30, bottom:40 }
-      });
-      window.addEventListener('resize', ()=>chart.resize());
+      };
+      initResponsiveChart(el, option);
     }
   }catch(e){ console.warn(e); }
 
@@ -692,15 +705,14 @@ function renderProductCharts(pid, rowsA) {
     }).filter(o=>o.den>=(minDen||1)).sort((a,b)=>b.rate-a.rate).slice(0,10);
     const names = list.map(o=>o.id), vals = list.map(o=>Number((o.rate*100).toFixed(2)));
     const el = document.getElementById(elId); if (!el) return;
-    const chart = echarts.init(el, null, {backgroundColor:'transparent'});
-    chart.setOption({
+    const option = {
       tooltip:{trigger:'axis',axisPointer:{type:'shadow'},formatter:(p)=> p[0].name+': '+p[0].value+'%'},
       xAxis:{type:'category',data:names,axisLabel:{color:'#374151',rotate:45}},
       yAxis:{type:'value',axisLabel:{color:'#374151',formatter:'{value}%'}},
       series:[{type:'bar',data:vals,barMaxWidth:24,itemStyle:{color:COLOR_A}}],
       grid:{left:40,right:20,top:30,bottom:60}
-    });
-    window.addEventListener('resize', ()=>chart.resize());
+    };
+    initResponsiveChart(el, option);
   }
   topByRate(rowsA,'search_exposure','uv','vrBar',50);
   topByRate(rowsA,'add_to_cart_users','pay_buyers','payBar',5);
@@ -744,7 +756,14 @@ function renderProductCharts(pid, rowsA) {
 
   async function fetchNew(periodISO){
     const qs = new URLSearchParams({ platform:'managed' });
-    if (periodISO){ qs.set('from', periodISO); qs.set('to', periodISO); }
+    if (periodISO){
+      const end = periodISO;
+      const startDate = new Date(end+'T00:00:00Z');
+      startDate.setUTCDate(startDate.getUTCDate()-6);
+      const start = startDate.toISOString().slice(0,10);
+      qs.set('from', start);
+      qs.set('to', end);
+    }
     const r = await fetch('/api/new-products?'+qs.toString());
     const j = await r.json();
     if (!j.ok) throw new Error(j.msg||'fetch error');
@@ -893,7 +912,14 @@ function renderProductCharts(pid, rowsA) {
   }
   async function fetchNew(periodISO){
     const qs = new URLSearchParams({ platform:'managed' });
-    if (periodISO) { qs.set('from', periodISO); qs.set('to', periodISO); }
+    if (periodISO){
+      const end = periodISO;
+      const startDate = new Date(end+'T00:00:00Z');
+      startDate.setUTCDate(startDate.getUTCDate()-6);
+      const start = startDate.toISOString().slice(0,10);
+      qs.set('from', start);
+      qs.set('to', end);
+    }
     const r = await fetch('/api/new-products?'+qs.toString());
     const j = await r.json();
     if (!j.ok) throw new Error(j.msg||'fetch error');
@@ -1043,7 +1069,14 @@ function renderProductCharts(pid, rowsA) {
   }
   async function fetchNew(periodISO){
     const qs = new URLSearchParams({ platform:'managed' });
-    if (periodISO) { qs.set('from', periodISO); qs.set('to', periodISO); }
+    if (periodISO){
+      const end = periodISO;
+      const startDate = new Date(end+'T00:00:00Z');
+      startDate.setUTCDate(startDate.getUTCDate()-6);
+      const start = startDate.toISOString().slice(0,10);
+      qs.set('from', start);
+      qs.set('to', end);
+    }
     const r = await fetch('/api/new-products?'+qs.toString());
     const j = await r.json();
     if (!j.ok) throw new Error(j.msg||'fetch error');
