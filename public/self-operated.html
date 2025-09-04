@@ -661,7 +661,6 @@
           <div class="controls">
             <label>时间周期：</label>
             <input id="productDateFilter" class="date-filter" placeholder="选择日期范围">
-            <span class="notice">（默认显示最近7天）</span>
             <label style="margin-left:8px;">产品：</label>
             <select id="productSelect" class="sel">
               <option value="">加载中...</option>
@@ -1276,39 +1275,25 @@ document.addEventListener('DOMContentLoaded', ()=>{
     // 初始化产品页面的时间控件
     function initializeProductDateFilter() {
       const productDateFilter = document.getElementById('productDateFilter');
-      if (!productDateFilter) return;
-      
-      // 设置默认日期范围（最近7天）
-      const today = new Date();
-      const end = today.toISOString().slice(0, 10);
-      const start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-      
-      // 使用flatpickr初始化日期选择器
-      if (window.flatpickr) {
-        const picker = flatpickr(productDateFilter, {
-          mode: 'range',
-          dateFormat: 'Y-m-d',
-          defaultDate: [start, end],
-          onChange: async function(selectedDates, dateStr) {
-            if (selectedDates.length === 2) {
-              console.log('产品分析时间范围变更:', dateStr);
-              // 同步主页面时间控件
-              const mainDateFilter = document.getElementById('dateFilter');
-              if (mainDateFilter) {
-                mainDateFilter.value = dateStr;
-              }
-              // 重新加载产品数据
-              const currentProductId = document.getElementById('productSelect').value;
-              if (typeof fetchAndRenderAll === 'function') {
-                await fetchAndRenderAll();
-              }
+      if (!productDateFilter || !window.flatpickr) return;
+      if (productDateFilter._flatpickr) return;
+
+      flatpickr(productDateFilter, {
+        mode: 'range',
+        dateFormat: 'Y-m-d',
+        onChange: async function(selectedDates, dateStr) {
+          if (selectedDates.length === 2) {
+            console.log('产品分析时间范围变更:', dateStr);
+            const mainDateFilter = document.getElementById('dateFilter');
+            if (mainDateFilter) {
+              mainDateFilter.value = dateStr;
+            }
+            if (typeof fetchAndRenderAll === 'function') {
+              await fetchAndRenderAll();
             }
           }
-        });
-        
-        // 设置初始值
-        productDateFilter.value = `${start} to ${end}`;
-      }
+        }
+      });
     }
   
   // 初始化主页面时间控件
@@ -1590,7 +1575,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
         const productDateFilter = document.getElementById('productDateFilter');
         if (productDateFilter) {
-          productDateFilter.value = `${start} to ${end}`;
+          if (productDateFilter._flatpickr) {
+            productDateFilter._flatpickr.setDate([start, end]);
+          } else {
+            productDateFilter.value = `${start} to ${end}`;
+          }
         }
 
         const queryParams = new URLSearchParams({
@@ -1828,12 +1817,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const [start, end] = input.value.split(' to ');
         return { start, end };
       }
-      
-      // 默认显示最近7天
-      const today = new Date();
-      const end = today.toISOString().slice(0, 10);
-      const start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-      return { start, end };
+      return null;
     }
   
   // 渲染产品图表
