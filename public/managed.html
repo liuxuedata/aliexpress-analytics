@@ -176,15 +176,11 @@
     <div class="kpi-ctrl">
       <label>选择商品</label>
       <select id="productSelect"></select>
+      <a id="productLink" class="mini-link" target="_blank" style="display:none;">产品链接</a>
+      <span id="productFirstSeen" style="display:none; margin-left:8px;"></span>
     </div>
-    <div id="productKpi" class="kpi-grid"></div>
-  </div>
-  <div class="panel" id="productComparePanel" style="display:none;">
-    <h3>指标对比</h3>
-    <div id="productCompareBar" style="width:100%;height:320px;"></div>
   </div>
 
-  
   <!-- 产品趋势图表 -->
   <div id="productCharts" class="grid grid-2" style="display:none;">
     <div class="panel">
@@ -344,7 +340,6 @@
       });
 
       renderAnalysis(window._rowsA, window._rowsB);
-      renderProduct(window._rowsA, window._rowsB);
       setStatus('加载完成');
     }catch(err){
       console.error(err);
@@ -374,174 +369,80 @@
     ].join(''));
   }
 
-  function renderProduct(rowsA, rowsB){
-    const ids = Array.from(new Set((rowsA||[]).map(x=>x.product_id))).filter(Boolean);
+  const productFirstSeen = {};
+
+  async function loadProductFirstSeen(){
+    try{
+      const today = new Date().toISOString().slice(0,10);
+      const qs = new URLSearchParams({ platform:'managed', from:'2000-01-01', to: today, limit:5000 });
+      const r = await fetch('/api/new-products?'+qs.toString());
+      const j = await r.json();
+      if (j.ok){
+        (j.items||[]).forEach(it => { productFirstSeen[it.product_id] = it.first_seen; });
+      }
+    }catch(e){ console.error('loadProductFirstSeen', e); }
+  }
+
+  function initProductSection(){
+    const ids = Object.keys(productFirstSeen).sort();
     const $sel = $('#productSelect').off('change').empty();
-    if (!ids.length){ $('#productKpi').empty(); return; }
+    if (!ids.length){ $('#productCharts').hide(); return; }
     ids.forEach(id=> $sel.append(`<option value="${id}" data-pid="${id}">${id}</option>`));
     populateProductNames($sel[0]);
-    $sel.on('change', ()=> { updateProductKpi($sel.val(), rowsA, rowsB); renderProductCharts($sel.val(), rowsA); });
-    updateProductKpi(ids[0], rowsA, rowsB);
-    renderProductCharts(ids[0], rowsA);
+    $sel.on('change', ()=> { const pid = $sel.val(); updateProductMeta(pid); renderProductCharts(pid); });
+    const firstId = ids[0];
+    $sel.val(firstId);
+    updateProductMeta(firstId);
+    renderProductCharts(firstId);
   }
 
-  function updateProductKpi(pid, rowsA, rowsB){
-    const filterA = (rowsA||[]).filter(x=>String(x.product_id)===String(pid));
-    const filterB = (rowsB||[]).filter(x=>String(x.product_id)===String(pid));
-    const sum = rows => rows.reduce((a,x)=>({
-      exp: a.exp + (+x.search_exposure||0),
-      uv: a.uv + (+x.uv||0),
-      addUsers: a.addUsers + (+x.add_to_cart_users||0),
-      addQty: a.addQty + (+x.add_to_cart_qty||0),
-      payBuyers: a.payBuyers + (+x.pay_buyers||0),
-      payOrders: a.payOrders + (+x.pay_orders||0)
-    }), {exp:0,uv:0,addUsers:0,addQty:0,payBuyers:0,payOrders:0});
-    const cur = sum(filterA);
-    const prev = sum(filterB);
-    $('#productKpi').html([
-      card('曝光量', cur.exp, prev.exp, false, 'success'),
-      card('访客数', cur.uv, prev.uv, false, 'info'),
-      card('加购人数', cur.addUsers, prev.addUsers, false, 'warning'),
-      card('支付买家数', cur.payBuyers, prev.payBuyers, false, 'danger')
-    ].join(''));
-    renderProductCompare(cur, prev);
-    $('#productComparePanel').show();
-    $('#productCharts').show();
-  }
-  
-  // 渲染产品趋势图表
-  function renderProductCompare(cur, prev){
-    const el = document.getElementById('productCompareBar');
-    if (!el) return;
-    const cats = ['总展示数','详情页访客数','加购次数','订购次数'];
-    const option = {
-      tooltip:{ trigger:'axis', axisPointer:{ type:'shadow' } },
-      legend:{ data:['本期','上期'] },
-      xAxis:{ type:'category', data: cats },
-      yAxis:{ type:'value' },
-      series:[
-        { name:'本期', type:'bar', data:[cur.exp, cur.uv, cur.addQty, cur.payOrders], label:{show:true, position:'top'} },
-        { name:'上期', type:'bar', data:[prev.exp, prev.uv, prev.addQty, prev.payOrders], label:{show:true, position:'top'} }
-      ]
-    };
-    initResponsiveChart(el, option);
+  function updateProductMeta(pid){
+    $('#productLink').attr('href', `https://aliexpress.com/item/${pid}.html`).show();
+    const first = productFirstSeen[pid];
+    if (first){
+      $('#productFirstSeen').text('上架日期：'+first).show();
+    } else {
+      $('#productFirstSeen').hide();
+    }
   }
 
-function renderProductCharts(pid, rowsA) {
-    const productData = rowsA.filter(x => String(x.product_id) === String(pid));
-    
-    if (productData.length === 0) return;
-    
-    // 按日期分组数据
-    const dateGroups = {};
-    productData.forEach(row => {
-      const date = row.stat_date || row.period_end || 'Unknown';
-      if (!dateGroups[date]) {
-        dateGroups[date] = {
-          exposure: 0,
-          visitors: 0,
-          addToCart: 0,
-          pay: 0
-        };
-      }
-      dateGroups[date].exposure += (row.search_exposure || 0);
-      dateGroups[date].visitors += (row.uv || 0);
-      dateGroups[date].addToCart += (row.add_to_cart_users || 0);
-      dateGroups[date].pay += (row.pay_buyers || 0);
-    });
-    
-    const dates = Object.keys(dateGroups).sort();
-    
-    // 曝光趋势图
-    const exposureOption = {
-      title: { text: '曝光趋势', textStyle: { color: '#374151' } },
-      tooltip: { trigger: 'axis' },
-      xAxis: {
-        type: 'category',
-        data: dates,
-        axisLabel: { color: '#6b7280' }
-      },
-      yAxis: {
-        type: 'value',
-        axisLabel: { color: '#6b7280' }
-      },
-      series: [{
-        data: dates.map(date => dateGroups[date].exposure),
-        type: 'line',
-        smooth: true,
-        itemStyle: { color: '#10B981' }
-      }]
-    };
-    initResponsiveChart('productExposureChart', exposureOption);
-    
-    // 访客趋势图
-    const visitorOption = {
-      title: { text: '访客趋势', textStyle: { color: '#374151' } },
-      tooltip: { trigger: 'axis' },
-      xAxis: {
-        type: 'category',
-        data: dates,
-        axisLabel: { color: '#6b7280' }
-      },
-      yAxis: {
-        type: 'value',
-        axisLabel: { color: '#6b7280' }
-      },
-      series: [{
-        data: dates.map(date => dateGroups[date].visitors),
-        type: 'line',
-        smooth: true,
-        itemStyle: { color: '#3B82F6' }
-      }]
-    };
-    initResponsiveChart('productVisitorChart', visitorOption);
-    
-    // 加购趋势图
-    const addOption = {
-      title: { text: '加购趋势', textStyle: { color: '#374151' } },
-      tooltip: { trigger: 'axis' },
-      xAxis: {
-        type: 'category',
-        data: dates,
-        axisLabel: { color: '#6b7280' }
-      },
-      yAxis: {
-        type: 'value',
-        axisLabel: { color: '#6b7280' }
-      },
-      series: [{
-        data: dates.map(date => dateGroups[date].addToCart),
-        type: 'line',
-        smooth: true,
-        itemStyle: { color: '#F59E0B' }
-      }]
-    };
-    initResponsiveChart('productAddChart', addOption);
-    
-    // 支付趋势图
-    const payOption = {
-      title: { text: '支付趋势', textStyle: { color: '#374151' } },
-      tooltip: { trigger: 'axis' },
-      xAxis: {
-        type: 'category',
-        data: dates,
-        axisLabel: { color: '#6b7280' }
-      },
-      yAxis: {
-        type: 'value',
-        axisLabel: { color: '#6b7280' }
-      },
-      series: [{
-        data: dates.map(date => dateGroups[date].pay),
-        type: 'line',
-        smooth: true,
-        itemStyle: { color: '#EF4444' }
-      }]
-    };
-    initResponsiveChart('productPayChart', payOption);
+  async function renderProductCharts(pid){
+    if (!pid) return;
+    const first = productFirstSeen[pid];
+    const qs = new URLSearchParams({ granularity:'week', product_id: pid, limit:5000 });
+    if (first) qs.set('from', first);
+    showLoading();
+    try{
+      const r = await fetch('/api/stats?'+qs.toString());
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.msg||'fetch error');
+      const rows = j.rows||[];
+      const map = {};
+      rows.forEach(row => {
+        const d = row.period_end || row.stat_date || 'Unknown';
+        if (!map[d]) map[d] = { exp:0, uv:0, add:0, pay:0 };
+        map[d].exp += +row.search_exposure || 0;
+        map[d].uv += +row.uv || 0;
+        map[d].add += +row.add_to_cart_users || 0;
+        map[d].pay += +row.pay_buyers || 0;
+      });
+      const dates = Object.keys(map).sort();
+      const expData = dates.map(d=>map[d].exp);
+      const uvData = dates.map(d=>map[d].uv);
+      const addData = dates.map(d=>map[d].add);
+      const payData = dates.map(d=>map[d].pay);
+      const opt = (data,color)=>({ tooltip:{trigger:'axis'}, xAxis:{type:'category',data:dates,axisLabel:{color:'#6b7280'}}, yAxis:{type:'value',axisLabel:{color:'#6b7280'}}, series:[{data, type:'line', smooth:true, itemStyle:{color}}] });
+      initResponsiveChart('productExposureChart', opt(expData,'#10B981'));
+      initResponsiveChart('productVisitorChart', opt(uvData,'#3B82F6'));
+      initResponsiveChart('productAddChart', opt(addData,'#F59E0B'));
+      initResponsiveChart('productPayChart', opt(payData,'#EF4444'));
+      $('#productCharts').show();
+    }catch(e){ console.error(e); }
+    finally { hideLoading(); }
   }
 
   loadPeriods().then(loadData);
+  loadProductFirstSeen().then(initProductSection);
 })();
 
   // Hash路由处理
@@ -568,14 +469,8 @@ function renderProductCharts(pid, rowsA) {
           if (window.topChart) window.topChart.resize();
         }, 30);
       } else if (hash === 'products') {
-        // 产品分析数据已经在loadData中加载，这里只需要显示图表
-        if (window._rowsA && window._rowsA.length > 0) {
-          const selectedProduct = $('#productSelect').val();
-          if (selectedProduct) {
-            updateProductKpi(selectedProduct, window._rowsA, window._rowsB);
-            renderProductCharts(selectedProduct, window._rowsA);
-          }
-        }
+        const pid = $('#productSelect').val();
+        if (pid) { updateProductMeta(pid); renderProductCharts(pid); }
       }
     }
   }
