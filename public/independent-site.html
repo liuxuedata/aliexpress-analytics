@@ -541,6 +541,7 @@
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="assets/site-nav.js"></script>
+  <script src="assets/loading.js"></script>
 </head>
 <body class="fm">
 <div id="loginOverlay" class="login-overlay" style="display:none">
@@ -812,6 +813,7 @@ function normalizeSite(site) {
 // 独立站运营分析数据加载
 async function loadIndependentAnalysisData() {
   try {
+    showLoading();
     const rawSite = document.getElementById('site').value || getParam('site');
     const site = normalizeSite(rawSite);
     if (!site) {
@@ -831,20 +833,23 @@ async function loadIndependentAnalysisData() {
     const data = await response.json();
 
     if (data.ok) {
-      const table = data.table || [];
+      const { table = [], kpis } = data;
       // 更新KPI卡片
-      updateIndependentAnalysisKPI(table);
+      updateIndependentAnalysisKPI(table, kpis);
       // 渲染图表
-      renderIndependentAnalysisCharts(table);
+      await renderIndependentAnalysisCharts(table, kpis);
     }
   } catch (error) {
     console.error('加载独立站运营分析数据失败:', error);
+  } finally {
+    hideLoading();
   }
 }
 
 // 独立站产品分析数据加载
 async function loadIndependentProductAnalysisData() {
   try {
+    showLoading();
     const rawSite = document.getElementById('site').value || getParam('site');
     const site = normalizeSite(rawSite);
     if (!site) {
@@ -869,6 +874,8 @@ async function loadIndependentProductAnalysisData() {
     }
   } catch (error) {
     console.error('加载独立站产品分析数据失败:', error);
+  } finally {
+    hideLoading();
   }
 }
 
@@ -893,15 +900,17 @@ function getDateRange() {
 }
 
 // 更新独立站运营分析KPI
-function updateIndependentAnalysisKPI(data) {
+function updateIndependentAnalysisKPI(data, kpis = {}) {
   // 计算新的KPI指标
   const totalImpressions = data.reduce((sum, item) => sum + (item.impressions || item.impr || 0), 0);
   const totalClicks = data.reduce((sum, item) => sum + (item.clicks || 0), 0);
   const totalConversions = data.reduce((sum, item) => sum + (item.conversions || 0), 0);
 
-  // 计算商品数量（去重）
-  const clickedProducts = new Set(data.filter(item => (item.clicks || 0) > 0).map(item => item.product)).size;
-  
+  // 计算商品数量（优先使用接口返回的聚合值）
+  const clickedProducts = kpis.click_product_count != null
+    ? kpis.click_product_count
+    : new Set(data.filter(item => (item.clicks || 0) > 0).map(item => item.product)).size;
+
   // 更新KPI显示（若元素缺失则跳过以避免报错）
   const impressionsEl = document.getElementById('totalImpressions');
   if (impressionsEl) impressionsEl.textContent = totalImpressions.toLocaleString();
@@ -917,95 +926,96 @@ function updateIndependentAnalysisKPI(data) {
 }
 
 // 渲染独立站运营分析对比图表
-async function renderIndependentAnalysisCharts(data) {
+async function renderIndependentAnalysisCharts(data, kpis = {}) {
   // 获取上一周期数据进行对比
   const previousData = await getIndependentPreviousPeriodData();
-  
+
   // 计算当前周期数据
   const currentData = {
     impressions: data.reduce((sum, item) => sum + (item.impressions || item.impr || 0), 0),
     clicks: data.reduce((sum, item) => sum + (item.clicks || 0), 0),
     conversions: data.reduce((sum, item) => sum + (item.conversions || 0), 0),
     ctr: 0,
-    clickedProducts: new Set(data.filter(item => (item.clicks || 0) > 0).map(item => item.product)).size
+    clickedProducts: kpis.click_product_count != null
+      ? kpis.click_product_count
+      : new Set(data.filter(item => (item.clicks || 0) > 0).map(item => item.product)).size
   };
   currentData.ctr = currentData.impressions > 0 ? currentData.clicks / currentData.impressions * 100 : 0;
 
   // 计算上一周期数据
   const previousDataCalculated = previousData ? {
-    impressions: previousData.reduce((sum, item) => sum + (item.impressions || item.impr || 0), 0),
-    clicks: previousData.reduce((sum, item) => sum + (item.clicks || 0), 0),
-    conversions: previousData.reduce((sum, item) => sum + (item.conversions || 0), 0),
+    impressions: previousData.table.reduce((sum, item) => sum + (item.impressions || item.impr || 0), 0),
+    clicks: previousData.table.reduce((sum, item) => sum + (item.clicks || 0), 0),
+    conversions: previousData.table.reduce((sum, item) => sum + (item.conversions || 0), 0),
     ctr: 0,
-    clickedProducts: new Set(previousData.filter(item => (item.clicks || 0) > 0).map(item => item.product)).size
+    clickedProducts: previousData.kpis?.click_product_count != null
+      ? previousData.kpis.click_product_count
+      : new Set(previousData.table.filter(item => (item.clicks || 0) > 0).map(item => item.product)).size
   } : null;
   if (previousDataCalculated) {
     previousDataCalculated.ctr = previousDataCalculated.impressions > 0
       ? previousDataCalculated.clicks / previousDataCalculated.impressions * 100
       : 0;
   }
-  
+
   // 渲染产品展示总数对比图
-  renderIndependentComparisonChart('impressionsComparisonChart', '产品展示总数对比',
+  renderIndependentComparisonChart('impressionsComparisonChart',
     currentData.impressions, previousDataCalculated?.impressions || 0, '产品展示总数');
 
   // 渲染 CTR 对比图
-  renderIndependentComparisonChart('ctrComparisonChart', 'CTR 对比',
+  renderIndependentComparisonChart('ctrComparisonChart',
     currentData.ctr, previousDataCalculated?.ctr || 0, 'CTR (%)');
 
   // 渲染转化次数对比图
-  renderIndependentComparisonChart('conversionsComparisonChart', '转化次数对比',
+  renderIndependentComparisonChart('conversionsComparisonChart',
     currentData.conversions, previousDataCalculated?.conversions || 0, '转化次数');
 
   // 渲染有点击商品数对比图
-  renderIndependentComparisonChart('clickedProductsComparisonChart', '有点击商品数对比',
+  renderIndependentComparisonChart('clickedProductsComparisonChart',
     currentData.clickedProducts, previousDataCalculated?.clickedProducts || 0, '有点击商品数');
 }
 
 // 渲染独立站对比柱状图
-function renderIndependentComparisonChart(chartId, title, currentValue, previousValue, label) {
+function renderIndependentComparisonChart(chartId, currentValue, previousValue, label) {
   const chart = echarts.init(document.getElementById(chartId));
+  const formatVal = v => label.includes('CTR') ? v.toFixed(2) + '%' : v.toLocaleString();
   const option = {
-    title: { 
-      text: title, 
-      textStyle: { color: '#374151', fontSize: 16 },
-      subtext: `${label}: ${currentValue.toLocaleString()}`,
-      subtextStyle: { color: '#6b7280', fontSize: 14 }
-    },
-    tooltip: { 
+    tooltip: {
       trigger: 'axis',
       formatter: function(params) {
         const data = params[0];
-        return `${data.name}<br/>${data.seriesName}: ${data.value.toLocaleString()}`;
+        return `${data.seriesName}: ${formatVal(data.value)}`;
       }
     },
     legend: {
       data: ['当前周期', '上一周期'],
       textStyle: { color: '#374151' }
     },
-    xAxis: { 
-      type: 'category', 
+    xAxis: {
+      type: 'category',
       data: ['当前周期', '上一周期'],
       axisLabel: { color: '#374151', fontSize: 12 }
     },
-    yAxis: { 
+    yAxis: {
       type: 'value',
       axisLabel: { color: '#374151', fontSize: 12 }
     },
     series: [
       {
         name: '当前周期',
-        data: [currentValue, 0],
+        data: [currentValue, null],
         type: 'bar',
         itemStyle: { color: '#3B82F6' },
-        barWidth: '40%'
+        barWidth: '40%',
+        label: { show: true, position: 'top', formatter: p => formatVal(p.value) }
       },
       {
         name: '上一周期',
-        data: [0, previousValue],
+        data: [null, previousValue],
         type: 'bar',
         itemStyle: { color: '#10B981' },
-        barWidth: '40%'
+        barWidth: '40%',
+        label: { show: true, position: 'top', formatter: p => formatVal(p.value) }
       }
     ]
   };
@@ -1039,13 +1049,13 @@ async function getIndependentPreviousPeriodData() {
     if (response.ok) {
       const data = await response.json();
       if (data.ok) {
-        return data.table || [];
+        return data;
       }
     }
   } catch (error) {
     console.error('获取独立站上一周期数据失败:', error);
   }
-  
+
   return null;
 }
 
@@ -1079,6 +1089,7 @@ function populateIndependentProductSelect(data) {
 // 加载特定产品的分析数据
 async function loadIndependentProductData(product) {
   try {
+    showLoading();
     const rawSite = document.getElementById('site').value || getParam('site');
     const site = normalizeSite(rawSite);
     if (!site) return;
@@ -1125,6 +1136,8 @@ async function loadIndependentProductData(product) {
     document.getElementById('productCharts').style.display = 'grid';
   } catch (err) {
     console.error('加载独立站产品数据失败:', err);
+  } finally {
+    hideLoading();
   }
 }
 
