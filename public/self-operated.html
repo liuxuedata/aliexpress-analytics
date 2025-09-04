@@ -838,7 +838,12 @@ $('#fileInput').on('change', function(e) {
       const dmap=new Map(); rows.forEach(r=>dmap.set(r.product_id+'__'+r.stat_date,r)); const deduped=Array.from(dmap.values());
 
       $('#progress').text(`入库中（${deduped.length} 条）…`);
-      const resp = await fetch('/api/ae_upsert', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ rows: deduped }) });
+      const site = (window.selfOperatedManager && window.selfOperatedManager.currentSite) || 'ae_self_operated_a';
+      const resp = await fetch('/api/ae_upsert?site=' + encodeURIComponent(site), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows: deduped })
+      });
       const txt = await resp.text(); let j; try { j = JSON.parse(txt); } catch(e) { throw new Error('Upsert API响应不是JSON：' + txt.slice(0,200)); }
       if (!resp.ok || !j.ok) throw new Error(j.error || '入库失败');
       $('#progress').text('入库完成 ✔'); $('#refreshBtn').click();

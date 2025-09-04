@@ -144,14 +144,19 @@ export default async function handler(req, res) {
     const isDry = (req.query?.dry_run === '1' || req.query?.dry === '1');
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const rowsIn = Array.isArray(body) ? body : (body?.rows ?? []);
+    const site = req.query.site || body.site || rowsIn[0]?.site;
     if (!Array.isArray(rowsIn) || rowsIn.length === 0) {
       return res.status(400).json({ error: 'Invalid body, expected array of rows' });
+    }
+    if (!site) {
+      return res.status(400).json({ error: 'Missing site parameter' });
     }
 
     const map = new Map();
     for (const raw of rowsIn) {
       const row = normalize(raw);
       if (!row.product_id || !row.stat_date) continue;
+      row.site = site;
       map.set(row.product_id + '__' + row.stat_date, row);
     }
     const rows = Array.from(map.values());
