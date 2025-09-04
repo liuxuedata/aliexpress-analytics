@@ -113,7 +113,6 @@
       <div class="upload-top">
         <div style="font-size:28px;font-weight:800;">速卖通全托管数据分析</div>
         <div class="controls">
-          <span style="margin-right:8px;">产品总数：<strong id="totalProductCount">0</strong></span>
           <label class="badge">时间粒度</label>
           <label><input type="radio" name="gran" value="week" checked> 周</label>
           <label><input type="radio" name="gran" value="month"> 月</label>
@@ -356,8 +355,6 @@
       jb.kpis = jb.kpis || {};
       ja.kpis.product_count = curCount;
       jb.kpis.product_count = prevCount;
-      const totalEl = document.getElementById('totalProductCount');
-      if (totalEl) totalEl.textContent = curCount;
       renderKPI(ja.kpis || {}, jb.kpis || {});
       window._kpiA = ja.kpis || {};
       window._rowsA = (ja.rows||[]);
@@ -406,6 +403,7 @@
   function renderKPI(k, p){
     p = p || {};
     $('#kpi').html([
+      card('商品总数', +(k.product_count||0), +(p.product_count||0), false, 'info'),
       card('平均访客到加购转化率', +(k.avg_visit_to_atc||0), +(p.avg_visit_to_atc||0), true, 'info'),
       card('平均加购到支付转化率', +(k.avg_atc_to_pay||0), +(p.avg_atc_to_pay||0), true, 'success'),
       card('平均访客比', +(k.avg_visit_rate||0), +(p.avg_visit_rate||0), true, 'success'),
