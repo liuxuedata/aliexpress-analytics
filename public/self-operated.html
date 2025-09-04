@@ -381,19 +381,7 @@
       white-space: nowrap;
     }
 
-    .product-selector .product-count-info {
-      margin-left: auto;
-      padding: 8px 16px;
-      background: #f3f4f6;
-      border-radius: 6px;
-      font-size: 14px;
-       color: #374151;
-     }
-     
-     .product-selector .product-count-info strong {
-       color: #1f2937;
-       font-weight: 600;
-     }
+    
      
     /* 移除独立时间控件样式 */
      
@@ -541,6 +529,7 @@
     <div class="upload-section">
       <div class="upload-top">
         <div class="controls">
+          <span style="margin-right:8px;">产品总数：<strong id="totalProductCount">0</strong></span>
           <span>粒度：</span>
           <span class="sel" style="background:#1f2937;color:#fff;border-color:#334155;cursor:not-allowed">按日</span>
           <input type="hidden" id="granularity" value="day">
@@ -673,9 +662,6 @@
             <span class="notice">（按曝光量排序）</span>
             <a id="productLink" href="#" target="_blank" style="margin-left:8px;display:none;word-break:break-all;white-space:normal;flex:1 1 auto;"></a>
             <span id="listingDate" style="margin-left:8px;"></span>
-            <div class="product-count-info">
-              <span>产品总数：<strong id="productTotalCount">0</strong></span>
-            </div>
           </div>
         </div>
            
@@ -1011,9 +997,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
       // 初始化站点显示
     updateCurrentSiteDisplay();
-    
+
     // 初始化主页面时间控件
     initializeMainDateFilter();
+
+    // 加载产品总数并显示在页面左上角
+    const siteId = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+    fetchAllProducts(siteId)
+      .then(list => {
+        const totalEl = document.getElementById('totalProductCount');
+        if (totalEl) totalEl.textContent = list.length;
+      })
+      .catch(err => console.error('加载产品总数失败', err));
     
     // 监听 localStorage 变化
     window.addEventListener('storage', (e) => {
@@ -1172,8 +1167,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   }
 
+  let allProductsCache = null;
   // 获取所有历史产品列表
   async function fetchAllProducts(site) {
+    if (allProductsCache) return allProductsCache;
     const today = new Date().toISOString().slice(0, 10);
     const qs = new URLSearchParams({
       platform: 'self',
@@ -1185,7 +1182,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const resp = await fetch('/api/new-products?' + qs.toString());
     const data = await resp.json();
     if (!resp.ok || !data.ok) throw new Error(data.msg || '获取全部产品失败');
-    return data.items || data.rows || [];
+    allProductsCache = data.items || data.rows || [];
+    return allProductsCache;
   }
 
            // 产品分析数据加载 - 加载产品列表并按曝光量排序
@@ -1238,7 +1236,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
           const sortedProducts = mergedProducts.sort((a, b) => (b.exposure || 0) - (a.exposure || 0));
 
           // 更新产品总数
-          document.getElementById('productTotalCount').textContent = mergedProducts.length;
+          const totalEl = document.getElementById('totalProductCount');
+          if (totalEl) totalEl.textContent = mergedProducts.length;
 
           // 填充产品选择器
           populateProductSelect(sortedProducts);
