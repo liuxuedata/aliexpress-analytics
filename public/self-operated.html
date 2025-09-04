@@ -315,26 +315,23 @@
        text-shadow: none;
      }
      
-    /* 图表容器样式优化 - 让曲线延伸到KPI框内 */
+    /* 图表容器样式优化 - 使曲线自适应卡片宽度 */
     .chart-panel .echarts-for-react,
     .chart-panel div[id*="Chart"] {
-      width: calc(100% + 40px) !important;
-      height: calc(100% + 40px) !important;
-      margin: -20px;
-      min-height: 320px;
+      width: 100% !important;
+      margin: 0;
     }
-     
+
      /* 产品分析页面的图表特殊样式 */
      #products .chart-panel {
        padding: 24px;
        min-height: 350px;
      }
-     
+
     #products .chart-panel div[id*="Chart"] {
       min-height: 300px;
-      margin: -24px;
-      width: calc(100% + 48px) !important;
-      height: calc(100% + 48px) !important;
+      margin: 0;
+      width: 100% !important;
     }
     
     /* 产品选择器样式 */
@@ -1404,9 +1401,22 @@ document.addEventListener('DOMContentLoaded', ()=>{
     renderRateChart('payRateChart', current.dates, current.pr, align(prev.pr));
   }
 
+  // 初始化并使图表自适应容器
+  function initResponsiveChart(id, option) {
+    const el = typeof id === 'string' ? document.getElementById(id) : id;
+    const chart = echarts.init(el);
+    chart.setOption(option);
+    const resize = () => chart.resize();
+    window.addEventListener('resize', resize);
+    if (window.ResizeObserver) {
+      new ResizeObserver(resize).observe(el);
+    }
+    resize();
+    return chart;
+  }
+
   // 渲染折线图
   function renderRateChart(id, dates, currentSeries, prevSeries) {
-    const chart = echarts.init(document.getElementById(id));
     const option = {
       tooltip: { trigger: 'axis', valueFormatter: v => `${v.toFixed(2)}%` },
       legend: { data: ['当前周期', '上一周期'], textStyle: { color: '#374151' } },
@@ -1418,8 +1428,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         { name: '上一周期', type: 'line', data: prevSeries }
       ]
     };
-    chart.setOption(option);
-    window.addEventListener('resize', () => chart.resize());
+    initResponsiveChart(id, option);
   }
 
      // 填充产品选择器
@@ -1499,7 +1508,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
             const previousProductData = await getPreviousProductData(productId);
             updateProductKPI(productData, previousProductData);
             renderProductCharts(productData, previousProductData);
-            document.getElementById('productCharts').style.display = 'grid';
           } else {
             const linkEl = document.getElementById('productLink');
             if (linkEl) linkEl.style.display = 'none';
@@ -1776,7 +1784,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // 渲染产品图表
   function renderProductCharts(data, previousData = []) {
     console.log('渲染产品图表，数据:', data, previousData);
-    
+
+    // 显示图表容器以确保宽度正确
+    const chartsContainer = document.getElementById('productCharts');
+    chartsContainer.style.display = 'grid';
+
     // 获取日期标签 - 优先使用bucket，如果没有则使用stat_date
     const getDateLabel = (item) => {
       if (item.bucket && item.bucket !== 'undefined') return item.bucket;
@@ -1784,13 +1796,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if (item.bucket_label && item.bucket_label !== 'undefined') return item.bucket_label;
       return '未知日期';
     };
-    
+
     const dateLabels = data.map(getDateLabel);
-    const prevLabels = previousData.map(getDateLabel);
     console.log('产品图表日期标签:', dateLabels);
-    
+
     // 产品曝光趋势图
-    const productExposureChart = echarts.init(document.getElementById('productExposureChart'));
     const productExposureOption = {
       title: { text: '曝光趋势', textStyle: { color: '#374151' } },
       tooltip: { trigger: 'axis' },
@@ -1821,12 +1831,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
         }
       ]
     };
-    productExposureChart.setOption(productExposureOption);
-    productExposureChart.resize();
-    window.addEventListener('resize', () => productExposureChart.resize());
-    
+    initResponsiveChart('productExposureChart', productExposureOption);
+
     // 访客比趋势图
-    const productVisitorRateChart = echarts.init(document.getElementById('productVisitorRateChart'));
     const productVisitorRateOption = {
       title: { text: '访客比趋势', textStyle: { color: '#374151' } },
       tooltip: { trigger: 'axis' },
@@ -1865,13 +1872,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
         }
       ]
     };
-    productVisitorRateChart.setOption(productVisitorRateOption);
-    productVisitorRateChart.resize();
-    window.addEventListener('resize', () => productVisitorRateChart.resize());
-    
-         // 加购比趋势图
-     const productAddRateChart = echarts.init(document.getElementById('productAddRateChart'));
-     const productAddRateOption = {
+    initResponsiveChart('productVisitorRateChart', productVisitorRateOption);
+
+    // 加购比趋势图
+    const productAddRateOption = {
        title: { text: '加购比趋势', textStyle: { color: '#374151' } },
        tooltip: { trigger: 'axis' },
        legend: { data: ['本周期', '上一周期'], textStyle: { color: '#374151' } },
@@ -1909,13 +1913,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
          }
        ]
      };
-     productAddRateChart.setOption(productAddRateOption);
-     productAddRateChart.resize();
-     window.addEventListener('resize', () => productAddRateChart.resize());
-    
-         // 支付比趋势图
-     const productPayRateChart = echarts.init(document.getElementById('productPayRateChart'));
-     const productPayRateOption = {
+     initResponsiveChart('productAddRateChart', productAddRateOption);
+
+    // 支付比趋势图
+    const productPayRateOption = {
        title: { text: '支付比趋势', textStyle: { color: '#374151' } },
        tooltip: { trigger: 'axis' },
        legend: { data: ['本周期', '上一周期'], textStyle: { color: '#374151' } },
@@ -1953,9 +1954,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
          }
        ]
      };
-     productPayRateChart.setOption(productPayRateOption);
-     productPayRateChart.resize();
-     window.addEventListener('resize', () => productPayRateChart.resize());
+     initResponsiveChart('productPayRateChart', productPayRateOption);
   }
   
   const userArea=document.getElementById('userArea');
