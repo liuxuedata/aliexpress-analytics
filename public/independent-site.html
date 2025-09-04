@@ -560,8 +560,8 @@
 
   <main class="main mx-auto max-w-container px-6">
     <div class="content">
-    <!-- 控件 -->
-    <section class="content-pad">
+    <!-- 控件（仅明细页使用） -->
+    <section id="topControls" class="content-pad">
       <div class="panel">
         <div class="controls">
           <label>站点：</label>
@@ -589,6 +589,13 @@
     <!-- 运营分析 -->
     <section id="analysis" class="content-pad" style="display:none;">
       <div class="analysis-container">
+        <h3>📈 运营分析</h3>
+        <div class="time-controls-panel">
+          <div class="time-controls">
+            <label>日期：</label>
+            <input id="analysisDate" class="date-filter" placeholder="选择日期范围">
+          </div>
+        </div>
         <!-- 运营分析KPI卡片 -->
         <div id="analysisKpi" class="analysis-kpi-grid">
           <div class="analysis-kpi-card">
@@ -669,6 +676,8 @@
         <!-- 产品选择 -->
         <div class="time-controls-panel">
           <div class="time-controls" style="flex-wrap:nowrap;gap:12px;">
+            <label>日期：</label>
+            <input id="productDate" class="date-filter" placeholder="选择日期范围">
             <label>产品：</label>
             <select id="productSelect" class="sel" style="width:200px;max-width:200px;white-space:nowrap;"></select>
             <a id="productLink" href="#" target="_blank" style="display:none;margin-left:8px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></a>
@@ -729,7 +738,7 @@ async function loadIndependentAnalysisData() {
       return;
     }
 
-    const dateRange = getDateRange();
+    const dateRange = getDateRange('analysisDate');
     const params = new URLSearchParams({
       site: site,
       from: dateRange.start,
@@ -765,7 +774,7 @@ async function loadIndependentProductAnalysisData() {
       return;
     }
 
-    const dateRange = getDateRange();
+    const dateRange = getDateRange('productDate');
     const params = new URLSearchParams({
       site: site,
       from: dateRange.start,
@@ -788,8 +797,8 @@ async function loadIndependentProductAnalysisData() {
 }
 
 // 获取日期范围
-function getDateRange() {
-  const input = document.getElementById('dateFilter');
+function getDateRange(inputId = 'dateFilter') {
+  const input = document.getElementById(inputId);
   if (input && input.value && input.value.includes(' to ')) {
     const [start, end] = input.value.split(' to ');
     return { start, end };
@@ -828,7 +837,7 @@ function updateIndependentAnalysisKPI(data, kpis = {}) {
 // 渲染独立站运营分析对比图表
 async function renderIndependentAnalysisCharts(data, kpis = {}) {
   // 获取上一周期数据进行对比
-  const previousData = await getIndependentPreviousPeriodData();
+  const previousData = await getIndependentPreviousPeriodData('analysisDate');
 
   // 计算当前周期数据
   const currentData = {
@@ -923,9 +932,9 @@ function renderIndependentComparisonChart(chartId, currentValue, previousValue, 
 }
 
 // 获取独立站上一周期数据
-async function getIndependentPreviousPeriodData() {
+async function getIndependentPreviousPeriodData(inputId = 'dateFilter') {
   try {
-    const dateRange = getDateRange();
+    const dateRange = getDateRange(inputId);
     const currentSite = normalizeSite(getParam('site')) || 'icyberite.com';
     
     // 计算上一周期的日期范围
@@ -1026,7 +1035,7 @@ async function loadIndependentProductData(landingPath, landingUrl, firstSeen) {
     const site = normalizeSite(rawSite);
     if (!site) return;
 
-    const { start, end } = getDateRange();
+    const { start, end } = getDateRange('productDate');
     const params = new URLSearchParams({ site, from: start, to: end });
     const res = await fetch(`/api/independent/stats?${params.toString()}`);
     const json = await res.json();
@@ -1067,7 +1076,7 @@ async function loadIndependentProductData(landingPath, landingUrl, firstSeen) {
       byDay[d].conversions += r.conversions || 0;
     });
     // 获取上一周期数据
-    const prev = await getIndependentPreviousPeriodData();
+    const prev = await getIndependentPreviousPeriodData('productDate');
     const prevRows = (prev?.table || []).filter(item => item.landing_path === landingPath);
     const prevByDay = {};
     prevRows.forEach(r => {
@@ -1452,24 +1461,30 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     }
   }, 1000);
   
-  // 初始化统一的时间控件
-  const fp = flatpickr('#dateFilter', { 
-    mode: 'range', 
-    dateFormat: 'Y-m-d', 
-    onClose: (ds) => {
-      if (ds.length === 2) {
-        load();
+  // 初始化日期控件
+  function initDatePicker(id, onChange) {
+    const fp = flatpickr(`#${id}`, {
+      mode: 'range',
+      dateFormat: 'Y-m-d',
+      onClose: (ds) => {
+        if (ds.length === 2 && onChange) {
+          onChange();
+        }
       }
-    }
-  });
-  
-  // 设置默认日期范围（最近7天）
-  const today = new Date();
-  const end = today.toISOString().slice(0,10);
-  const start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0,10);
-  const def = `${start} to ${end}`;
-  $('#dateFilter').val(def);
-  window.fp = fp;
+    });
+    const today = new Date();
+    const end = today.toISOString().slice(0,10);
+    const start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0,10);
+    fp.setDate([start, end]);
+    const input = document.getElementById(id);
+    if (input) input.value = `${start} to ${end}`;
+    return fp;
+  }
+
+  initDatePicker('dateFilter', load);
+  initDatePicker('analysisDate', loadIndependentAnalysisData);
+  initDatePicker('productDate', loadIndependentProductAnalysisData);
+
   function parseDateRange() {
     const input = document.getElementById('dateFilter');
     if (input && input.value && input.value.includes(' to ')) {
@@ -1832,6 +1847,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const kpiBlock = document.getElementById('kpi');
       if (kpiBlock) kpiBlock.style.display = (hash === 'detail') ? '' : 'none';
+      const topControls = document.getElementById('topControls');
+      if (topControls) topControls.style.display = (hash === 'detail') ? '' : 'none';
 
       if (hash === 'analysis') {
         loadIndependentAnalysisData();
