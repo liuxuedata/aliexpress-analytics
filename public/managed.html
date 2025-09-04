@@ -11,10 +11,12 @@
   <link rel="stylesheet" href="assets/login.css">
   <link rel="stylesheet" href="assets/theme.css?v=20250812-deep">
   <link rel="stylesheet" href="assets/global-theme.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/fixedheader/3.3.2/js/dataTables.fixedHeader.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script type="module" src="assets/chart.defaults.js"></script>
   <script src="assets/product-meta.js"></script>
   <script src="assets/loading.js"></script>
@@ -174,6 +176,8 @@
 <section id="products" class="content-pad" style="display:none;">
   <div class="panel">
     <div class="kpi-ctrl">
+      <label>时间周期</label>
+      <input id="productDateRange" class="date-filter" placeholder="选择日期范围">
       <label>选择商品</label>
       <select id="productSelect"></select>
       <a id="productLink" class="mini-link" target="_blank" style="display:none;">产品链接</a>
@@ -374,6 +378,37 @@
 
   const productFirstSeen = {};
 
+  function getProductRange(){
+    const val = $('#productDateRange').val();
+    if (val && val.includes(' to ')) {
+      const [from, to] = val.split(' to ');
+      return {from, to};
+    }
+    const end = new Date();
+    const to = end.toISOString().slice(0,10);
+    const start = new Date(end.getTime() - 6*86400000);
+    const from = start.toISOString().slice(0,10);
+    return {from, to};
+  }
+
+  function initProductDatePicker(){
+    const input = document.getElementById('productDateRange');
+    if (!input || typeof flatpickr === 'undefined') return;
+    const {from, to} = getProductRange();
+    flatpickr(input, {
+      mode: 'range',
+      dateFormat: 'Y-m-d',
+      defaultDate: [from, to],
+      onClose: (dates)=>{
+        if(dates.length===2){
+          const pid = $('#productSelect').val();
+          if(pid) renderProductCharts(pid);
+        }
+      }
+    });
+    input.value = `${from} to ${to}`;
+  }
+
   async function loadProductFirstSeen(){
     try{
       const today = new Date().toISOString().slice(0,10);
@@ -465,9 +500,10 @@
 
   async function renderProductCharts(pid){
     if (!pid) return;
-    const first = productFirstSeen[pid];
+    const {from, to} = getProductRange();
     const qs = new URLSearchParams({ granularity:'week', product_id: pid, limit:5000 });
-    if (first) qs.set('from', first);
+    if (from) qs.set('from', from);
+    if (to) qs.set('to', to);
     showLoading();
     try{
       const r = await fetch('/api/stats?'+qs.toString());
@@ -475,7 +511,6 @@
       if (!j.ok) throw new Error(j.msg||'fetch error');
       const rows = j.rows||[];
       const map = {};
-      let last = first ? new Date(first) : null;
       rows.forEach(row => {
         const d = row.period_end || row.stat_date;
         if (!d) return;
@@ -484,34 +519,18 @@
         map[d].uv += +row.uv || 0;
         map[d].add += +row.add_to_cart_users || 0;
         map[d].pay += +row.pay_buyers || 0;
-        const dt = new Date(d);
-        if (!last || dt > last) last = dt;
       });
-      let dates = Object.keys(map).sort();
-      const expData = [];
-      const uvData = [];
-      const addData = [];
-      const payData = [];
-      if (first && last){
-        const start = new Date(first);
-        dates = [];
-        for (let d = new Date(start); d <= last; d.setDate(d.getDate()+7)){
-          const s = d.toISOString().slice(0,10);
-          dates.push(s);
-          const m = map[s] || { exp:0, uv:0, add:0, pay:0 };
-          expData.push(m.exp);
-          uvData.push(m.uv);
-          addData.push(m.add);
-          payData.push(m.pay);
-        }
-      } else {
-        dates.forEach(d => {
-          const m = map[d];
-          expData.push(m.exp);
-          uvData.push(m.uv);
-          addData.push(m.add);
-          payData.push(m.pay);
-        });
+      const expData = [], uvData = [], addData = [], payData = [], dates = [];
+      const startDate = from ? new Date(from) : (rows[0] ? new Date(rows[0].period_end || rows[0].stat_date) : new Date());
+      const endDate = to ? new Date(to) : new Date();
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate()+7)){
+        const s = d.toISOString().slice(0,10);
+        dates.push(s);
+        const m = map[s] || { exp:0, uv:0, add:0, pay:0 };
+        expData.push(m.exp);
+        uvData.push(m.uv);
+        addData.push(m.add);
+        payData.push(m.pay);
       }
 
       renderProductKPIs(dates, expData, uvData, addData, payData);
@@ -526,7 +545,7 @@
   }
 
   loadPeriods().then(loadData);
-  loadProductFirstSeen().then(initProductSection);
+  loadProductFirstSeen().then(()=>{ initProductDatePicker(); initProductSection(); });
 })();
 
   // Hash路由处理
@@ -547,6 +566,8 @@
 
       const kpiEl = document.getElementById('kpi');
       if (kpiEl) kpiEl.style.display = (hash === 'products') ? 'none' : '';
+      const upEl = document.querySelector('.upload-section');
+      if (upEl) upEl.style.display = (hash === 'products') ? 'none' : '';
 
       // 根据路由加载相应数据
       if (hash === 'analysis') {
