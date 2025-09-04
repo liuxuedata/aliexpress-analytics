@@ -1261,12 +1261,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
           console.warn('产品列表数据格式不正确:', productsData);
           showProductAnalysisError('数据格式不正确，请检查API响应');
         }
-      } catch (error) {
+    } catch (error) {
         console.error('加载产品分析数据失败:', error);
         showProductAnalysisError(`加载产品分析数据失败: ${error.message}`);
       }
     }
-    
+
+    // 根据当前时间范围重新加载运营与产品分析数据
+    async function fetchAndRenderAll() {
+      await loadAnalysisData();
+      await loadProductAnalysisData();
+    }
+
     // 初始化产品页面的时间控件
     function initializeProductDateFilter() {
       const productDateFilter = document.getElementById('productDateFilter');
