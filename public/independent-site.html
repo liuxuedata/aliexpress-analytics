@@ -662,75 +662,33 @@
       <div class="analysis-container">
         <h3>🔍 产品分析</h3>
 
-        <!-- 时间控件 -->
+        <!-- 时间与产品选择 -->
         <div class="time-controls-panel">
-          <div class="time-controls">
+          <div class="time-controls" style="flex-wrap:wrap;gap:12px;">
             <label>时间周期：</label>
             <input id="productDateFilter" class="date-filter" placeholder="选择日期范围">
-            <span class="notice">（默认显示最近7天）</span>
-          </div>
-        </div>
-
-        <!-- 产品选择器 -->
-        <div class="product-selector">
-          <div class="controls">
-            <label>产品：</label>
-            <select id="productSelect" class="sel"></select>
-            <a id="productLink" href="#" target="_blank" style="margin-left:8px;display:none;word-break:break-all;white-space:normal;"></a>
+            <label style="margin-left:12px;">产品：</label>
+            <select id="productSelect" class="sel" style="min-width:200px;"></select>
+            <a id="productLink" href="#" target="_blank" style="display:none;margin-left:8px;word-break:break-all;"></a>
             <span id="productListingDate" style="margin-left:8px;"></span>
           </div>
         </div>
-        
-        <!-- 网络选择器 -->
-        <div class="network-selector">
-          <div class="controls">
-            <label>网络：</label>
-            <select id="analysisNetworkSel" class="sel">
-              <option value="">全部网络</option>
-            </select>
-          </div>
-        </div>
-        
-        <!-- 产品KPI -->
-        <div id="productKpi" class="analysis-kpi-grid">
-          <div class="analysis-kpi-card">
-            <h4>点击</h4>
-            <p id="productClicks">0</p>
-            <div id="productClicksComparison" class="kpi-comparison"></div>
-          </div>
-          <div class="analysis-kpi-card">
-            <h4>曝光</h4>
-            <p id="productImpressions">0</p>
-            <div id="productImpressionsComparison" class="kpi-comparison"></div>
-          </div>
-          <div class="analysis-kpi-card">
-            <h4>CTR</h4>
-            <p id="productCtr">0%</p>
-            <div id="productCtrComparison" class="kpi-comparison"></div>
-          </div>
-          <div class="analysis-kpi-card">
-            <h4>转化</h4>
-            <p id="productConversions">0</p>
-            <div id="productConversionsComparison" class="kpi-comparison"></div>
-          </div>
-        </div>
+
+        <!-- 产品KPI（隐藏） -->
+        <div id="productKpi" class="analysis-kpi-grid" style="display:none;"></div>
         
         <!-- 产品趋势图表 -->
         <div id="productCharts" class="charts-grid" style="display:none;">
-          <div class="chart-panel">
-            <h3>点击趋势</h3>
+          <div>
             <div id="productClicksChart" style="width:100%;height:260px;"></div>
           </div>
-          <div class="chart-panel">
-            <h3>曝光趋势</h3>
+          <div>
             <div id="productImpressionsChart" style="width:100%;height:260px;"></div>
           </div>
-          <div class="chart-panel">
-            <h3>CTR趋势</h3>
+          <div>
             <div id="productCtrChart" style="width:100%;height:260px;"></div>
           </div>
-          <div class="chart-panel">
-            <h3>转化趋势</h3>
+          <div>
             <div id="productConversionsChart" style="width:100%;height:260px;"></div>
           </div>
         </div>
@@ -1041,7 +999,7 @@ function populateIndependentProductSelect(data) {
     productSelect.appendChild(option);
   });
 
-  // 添加产品选择事件
+  // 产品选择事件
   productSelect.addEventListener('change', function() {
     const opt = this.selectedOptions[0];
     if (opt && opt.value) {
@@ -1053,6 +1011,13 @@ function populateIndependentProductSelect(data) {
       if (dateEl) dateEl.textContent = '';
     }
   });
+
+  // 默认选择曝光量最高的产品
+  if (list.length) {
+    const first = list[0];
+    productSelect.value = first.path;
+    loadIndependentProductData(first.path, first.url, first.firstSeen);
+  }
 }
 
 // 加载特定产品的分析数据
@@ -1081,16 +1046,6 @@ async function loadIndependentProductData(landingPath, landingUrl, firstSeen) {
     const dateEl = document.getElementById('productListingDate');
     if (dateEl) dateEl.textContent = firstSeen ? `上架日期：${firstSeen}` : '';
 
-    const totalClicks = rows.reduce((s, r) => s + (r.clicks || 0), 0);
-    const totalImpr = rows.reduce((s, r) => s + (r.impr || r.impressions || 0), 0);
-    const totalConv = rows.reduce((s, r) => s + (r.conversions || 0), 0);
-    const ctr = totalImpr > 0 ? (totalClicks / totalImpr * 100).toFixed(2) : '0.00';
-
-    document.getElementById('productClicks').textContent = totalClicks.toLocaleString();
-    document.getElementById('productImpressions').textContent = totalImpr.toLocaleString();
-    document.getElementById('productCtr').textContent = ctr + '%';
-    document.getElementById('productConversions').textContent = totalConv.toLocaleString();
-
     const byDay = {};
     rows.forEach(r => {
       const d = r.day;
@@ -1099,17 +1054,48 @@ async function loadIndependentProductData(landingPath, landingUrl, firstSeen) {
       byDay[d].impressions += r.impr || r.impressions || 0;
       byDay[d].conversions += r.conversions || 0;
     });
+    // 获取上一周期数据
+    const prev = await getIndependentPreviousPeriodData();
+    const prevRows = (prev?.table || []).filter(item => item.landing_path === landingPath);
+    const prevByDay = {};
+    prevRows.forEach(r => {
+      const d = r.day;
+      if (!prevByDay[d]) prevByDay[d] = { clicks: 0, impressions: 0, conversions: 0 };
+      prevByDay[d].clicks += r.clicks || 0;
+      prevByDay[d].impressions += r.impr || r.impressions || 0;
+      prevByDay[d].conversions += r.conversions || 0;
+    });
 
-    const dates = Object.keys(byDay).sort();
-    const clicksSeries = dates.map(d => byDay[d].clicks);
-    const impressionsSeries = dates.map(d => byDay[d].impressions);
-    const ctrSeries = dates.map(d => byDay[d].impressions > 0 ? +(byDay[d].clicks / byDay[d].impressions * 100).toFixed(2) : 0);
-    const convSeries = dates.map(d => byDay[d].conversions);
+    // 构造当前与上一周期日期序列
+    const periodDays = Math.round((new Date(end) - new Date(start)) / (1000*60*60*24)) + 1;
+    const dates = [];
+    const currSeries = { clicks: [], impressions: [], ctr: [], conv: [] };
+    const prevSeries = { clicks: [], impressions: [], ctr: [], conv: [] };
+    for (let i = 0; i < periodDays; i++) {
+      const currDate = new Date(start);
+      currDate.setDate(currDate.getDate() + i);
+      const currKey = currDate.toISOString().slice(0,10);
+      dates.push(currKey);
+      const curr = byDay[currKey] || { clicks:0, impressions:0, conversions:0 };
+      currSeries.clicks.push(curr.clicks);
+      currSeries.impressions.push(curr.impressions);
+      currSeries.ctr.push(curr.impressions>0 ? +(curr.clicks/curr.impressions*100).toFixed(2) : 0);
+      currSeries.conv.push(curr.conversions);
 
-    renderLineChart('productClicksChart', '点击趋势', dates, clicksSeries);
-    renderLineChart('productImpressionsChart', '曝光趋势', dates, impressionsSeries);
-    renderLineChart('productCtrChart', 'CTR趋势', dates, ctrSeries);
-    renderLineChart('productConversionsChart', '转化趋势', dates, convSeries);
+      const prevDate = new Date(start);
+      prevDate.setDate(prevDate.getDate() - periodDays + i);
+      const prevKey = prevDate.toISOString().slice(0,10);
+      const prevDay = prevByDay[prevKey] || { clicks:0, impressions:0, conversions:0 };
+      prevSeries.clicks.push(prevDay.clicks);
+      prevSeries.impressions.push(prevDay.impressions);
+      prevSeries.ctr.push(prevDay.impressions>0 ? +(prevDay.clicks/prevDay.impressions*100).toFixed(2) : 0);
+      prevSeries.conv.push(prevDay.conversions);
+    }
+
+    renderComparisonLineChart('productClicksChart', '点击趋势', dates, currSeries.clicks, prevSeries.clicks);
+    renderComparisonLineChart('productImpressionsChart', '曝光趋势', dates, currSeries.impressions, prevSeries.impressions);
+    renderComparisonLineChart('productCtrChart', 'CTR趋势', dates, currSeries.ctr, prevSeries.ctr);
+    renderComparisonLineChart('productConversionsChart', '转化趋势', dates, currSeries.conv, prevSeries.conv);
 
     document.getElementById('productCharts').style.display = 'grid';
   } catch (err) {
@@ -1119,14 +1105,18 @@ async function loadIndependentProductData(landingPath, landingUrl, firstSeen) {
   }
 }
 
-function renderLineChart(id, title, dates, data) {
+function renderComparisonLineChart(id, title, dates, current, previous) {
   const chart = echarts.init(document.getElementById(id));
   chart.setOption({
     title: { text: title, left: 'center', textStyle: { color: '#374151', fontSize: 16 } },
     tooltip: { trigger: 'axis' },
+    legend: { data: ['当前周期','上一周期'] },
     xAxis: { type: 'category', data: dates },
     yAxis: { type: 'value' },
-    series: [{ name: title, type: 'line', smooth: true, data, itemStyle: { color: '#3b82f6' } }]
+    series: [
+      { name: '当前周期', type: 'line', smooth: true, data: current, itemStyle: { color: '#3b82f6' } },
+      { name: '上一周期', type: 'line', smooth: true, data: previous, itemStyle: { color: '#9ca3af' } }
+    ]
   });
 }
 

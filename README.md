@@ -34,10 +34,10 @@
 - 自运营：`/self-operated.html#analysis`、`/self-operated.html#products`
 - 全托管：`/managed.html#analysis`、`/managed.html#products`
 - 独立站：`/independent-site.html?site=<name>#analysis`、`/independent-site.html?site=<name>#products`
-- 旧的 `operation-analysis.html` 与 `product-analysis.html` 页面已删除
-- 所有站点的运营分析与产品分析页在无用户选择时默认展示最近 7 天的数据范围
-- 自运营运营分析页仅展示访客比、加购比、支付比，并附带上一周期趋势对比
-- 独立站产品分析以 landing page 作为产品维度，选中后会显示对应链接与首次上架日期
+  - 旧的 `operation-analysis.html` 与 `product-analysis.html` 页面已删除
+  - 所有站点的运营分析与产品分析页在无用户选择时默认展示最近 7 天的数据范围
+  - 自运营运营分析页仅展示访客比、加购比、支付比，并附带上一周期趋势对比
+  - 独立站产品分析以 landing page 作为产品维度，默认展示本周期曝光量最高的产品，只提供趋势对比图并隐藏顶部 KPI 卡片，选中后会显示对应链接与首次上架日期
 
 ---
 
