@@ -235,7 +235,24 @@
 
     // 获取平台至今商品总数
     async fetchProductTotal(toISO) {
-      const qs = new URLSearchParams({ platform:'self', from:'2000-01-01', to: toISO, limit:5000, site: this.currentSite || 'ae_self_operated_a' });
+      // 强制从localStorage获取最新的站点信息，确保使用正确的站点ID
+      const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+      const currentSiteName = localStorage.getItem('currentSiteName') || '自运营robot站';
+      
+      console.log('查询商品总数，站点信息:', { currentSite, currentSiteName });
+      console.log('localStorage中的站点信息:', {
+        currentSite: localStorage.getItem('currentSite'),
+        currentSiteName: localStorage.getItem('currentSiteName')
+      });
+      
+      const qs = new URLSearchParams({ 
+        platform:'self', 
+        from:'2000-01-01', 
+        to: toISO, 
+        limit:5000, 
+        site: currentSite // 使用站点ID，如 'ae_self_operated_poolslab_store'
+      });
+      
       try {
         const r = await fetch('/api/new-products?'+qs.toString());
         const j = await r.json();
