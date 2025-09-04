@@ -181,6 +181,8 @@
     </div>
   </div>
 
+  <div id="productKPI" class="kpi-row" style="display:none;"></div>
+
   <!-- 产品趋势图表 -->
   <div id="productCharts" class="grid grid-2" style="display:none;">
     <div class="panel">
@@ -315,6 +317,7 @@
       if (!ja.ok) throw new Error(ja.msg||'查询失败');
 
       renderKPI(ja.kpis || {}, jb.kpis || {});
+      window._kpiA = ja.kpis || {};
       window._rowsA = (ja.rows||[]);
       window._rowsB = (jb.rows||[]);
       window._periodA = period || '';
@@ -406,6 +409,60 @@
     }
   }
 
+  function renderProductKPIs(dates, expData, uvData, addData, payData){
+    const len = dates.length;
+    if (!len){ $('#productKPI').hide(); return; }
+    const curExp = expData[len-1] || 0;
+    const prevExp = expData[len-2] || 0;
+    const curUv = uvData[len-1] || 0;
+    const prevUv = uvData[len-2] || 0;
+    const curAdd = addData[len-1] || 0;
+    const prevAdd = addData[len-2] || 0;
+    const curPay = payData[len-1] || 0;
+    const prevPay = payData[len-2] || 0;
+
+    const avgVisitRate = curExp>0 ? curUv/curExp*100 : 0;
+    const prevVisitRate = prevExp>0 ? prevUv/prevExp*100 : 0;
+    const avgAddRate = curUv>0 ? curAdd/curUv*100 : 0;
+    const prevAddRate = prevUv>0 ? prevAdd/prevUv*100 : 0;
+    const avgPayRate = curAdd>0 ? curPay/curAdd*100 : 0;
+    const prevPayRate = prevAdd>0 ? prevPay/prevAdd*100 : 0;
+
+    const siteTotals = (window._rowsA||[]).reduce((a,r)=>{
+      a.exp += +r.search_exposure || 0;
+      a.uv += +r.uv || 0;
+      a.add += +r.add_to_cart_users || 0;
+      a.pay += +r.pay_buyers || 0;
+      return a;
+    },{exp:0,uv:0,add:0,pay:0});
+    const g = window._kpiA || {};
+
+    const ratioCard = (title, cur, prev, avg)=>{
+      const diff = prev? ( (cur-prev)/prev*100 ):0;
+      const arrow = diff>=0?'↑':'↓';
+      const cls = diff>=0?'up':'down';
+      const avgText = avg!==undefined ? `${cur>=avg?'高于':'低于'}平均 ${avg.toFixed(2)}%` : '';
+      return `<div class="kpi-card info"><h4>${title}</h4><p>${cur.toFixed(2)}%</p><div class="kpi-comparison"><span class="delta ${cls}">${arrow} ${Math.abs(diff).toFixed(2)}%</span> <span class="avg-text">${avgText}</span></div></div>`;
+    };
+    const totalCard = (title, cur, prev, total)=>{
+      const diff = cur - prev;
+      const arrow = diff>=0?'↑':'↓';
+      const cls = diff>=0?'up':'down';
+      const share = total? (cur/total*100).toFixed(2)+'%':'0%';
+      return `<div class="kpi-card info"><h4>${title}</h4><p>${cur}</p><div class="kpi-comparison"><span class="delta ${cls}">${arrow} ${Math.abs(diff)}</span> <span class="avg-text">占比 ${share}</span></div></div>`;
+    };
+
+    $('#productKPI').html([
+      ratioCard('平均访客比', avgVisitRate, prevVisitRate, g.avg_visit_rate),
+      ratioCard('平均加购比', avgAddRate, prevAddRate, g.avg_visit_to_atc),
+      ratioCard('平均支付比', avgPayRate, prevPayRate, g.avg_atc_to_pay),
+      totalCard('总曝光量', curExp, prevExp, siteTotals.exp),
+      totalCard('总访客数', curUv, prevUv, siteTotals.uv),
+      totalCard('总加购人数', curAdd, prevAdd, siteTotals.add),
+      totalCard('总支付买家数', curPay, prevPay, siteTotals.pay)
+    ].join('')).show();
+  }
+
   async function renderProductCharts(pid){
     if (!pid) return;
     const first = productFirstSeen[pid];
@@ -456,6 +513,8 @@
           payData.push(m.pay);
         });
       }
+
+      renderProductKPIs(dates, expData, uvData, addData, payData);
       const opt = (data,color)=>({ tooltip:{trigger:'axis'}, xAxis:{type:'category',data:dates,axisLabel:{color:'#6b7280'}}, yAxis:{type:'value',axisLabel:{color:'#6b7280'}}, series:[{data, type:'line', smooth:true, itemStyle:{color}}] });
       initResponsiveChart('productExposureChart', opt(expData,'#10B981'));
       initResponsiveChart('productVisitorChart', opt(uvData,'#3B82F6'));
