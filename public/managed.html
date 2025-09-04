@@ -544,7 +544,10 @@
         const el = document.getElementById(id);
         if (el) el.style.display = (id === hash ? '' : 'none');
       });
-      
+
+      const kpiEl = document.getElementById('kpi');
+      if (kpiEl) kpiEl.style.display = (hash === 'products') ? 'none' : '';
+
       // 根据路由加载相应数据
       if (hash === 'analysis') {
         // 运营分析图表已经在loadData中渲染，这里只需要resize
