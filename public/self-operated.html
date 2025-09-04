@@ -1174,8 +1174,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const qs = new URLSearchParams({
       platform: 'self',
       site,
-      from: '2025-07-01',
-      to: today
+      from: '2024-01-01',
+      to: today,
+      limit: 5000
     });
     const resp = await fetch('/api/new-products?' + qs.toString());
     const data = await resp.json();
@@ -1211,6 +1212,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
           }),
           fetchAllProducts(currentSite)
         ]);
+        window.allProductsData = allProducts;
 
         if (!productsResponse.ok) {
           throw new Error(`API响应错误: ${productsResponse.status} ${productsResponse.statusText}`);
@@ -1224,6 +1226,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
           const statsMap = new Map(productsData.rows.map(r => [r.product_id, r]));
           const mergedProducts = allProducts.map(p => ({
             product_id: p.product_id,
+            first_seen: p.first_seen,
             exposure: statsMap.get(p.product_id)?.exposure || 0
           }));
 
@@ -1240,14 +1243,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
           const storedPid = localStorage.getItem('selectedProductId');
           if (storedPid && sortedProducts.some(p => p.product_id === storedPid)) {
             document.getElementById('productSelect').value = storedPid;
-            await loadProductData(storedPid, range);
+            await loadProductData(storedPid);
             localStorage.removeItem('selectedProductId');
           } else if (sortedProducts.length > 0) {
             // 默认选择曝光量最大的产品
             const topProduct = sortedProducts[0];
             console.log('默认选择曝光量最大的产品:', topProduct.product_id);
             document.getElementById('productSelect').value = topProduct.product_id;
-            await loadProductData(topProduct.product_id, range);
+            await loadProductData(topProduct.product_id);
           }
         } else {
           console.warn('产品列表数据格式不正确:', productsData);
@@ -1356,6 +1359,26 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const end = today.toISOString().slice(0, 10);
     const start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     return { start, end };
+  }
+
+  function fillMissingWeeks(start, end, rows) {
+    const map = new Map((rows || []).map(r => [r.bucket, r]));
+    const result = [];
+    const s = new Date(start + 'T00:00:00Z');
+    const sd = (s.getUTCDay() + 6) % 7;
+    s.setUTCDate(s.getUTCDate() - sd);
+    const e = new Date(end + 'T00:00:00Z');
+    const ed = (e.getUTCDay() + 6) % 7;
+    e.setUTCDate(e.getUTCDate() - ed);
+    for (let d = new Date(s); d <= e; d.setUTCDate(d.getUTCDate() + 7)) {
+      const key = d.toISOString().slice(0, 10);
+      if (map.has(key)) {
+        result.push(map.get(key));
+      } else {
+        result.push({ bucket: key, exposure: 0, visitors: 0, add_people: 0, pay_items: 0, pay_buyers: 0 });
+      }
+    }
+    return result;
   }
 
   function getPreviousRange(start, end) {
@@ -1546,72 +1569,61 @@ document.addEventListener('DOMContentLoaded', ()=>{
      });
      
      // 添加产品选择事件
-     productSelect.addEventListener('change', function() {
+        productSelect.addEventListener('change', function() {
        const selectedProductId = this.value;
        if (selectedProductId) {
          console.log('选择产品:', selectedProductId);
-         loadProductData(selectedProductId, getDateRange());
+         loadProductData(selectedProductId);
        }
      });
    }
   
            // 加载特定产品数据
-    async function loadProductData(productId, range) {
+    async function loadProductData(productId) {
       try {
-        const { start, end } = range || getDateRange();
         const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+        const all = window.allProductsData || [];
+        const info = all.find(p => p.product_id === productId);
+        const start = info?.first_seen ? info.first_seen.slice(0, 10) : '2024-01-01';
+        const end = new Date().toISOString().slice(0, 10);
+        console.log('开始加载产品数据:', { productId, start, end, currentSite });
 
-        console.log('开始加载产品数据:', { productId, range: { start, end }, currentSite });
+        const productDateFilter = document.getElementById('productDateFilter');
+        if (productDateFilter) {
+          productDateFilter.value = `${start} to ${end}`;
+        }
 
-        // 构建查询参数 - 使用GET请求而不是POST
         const queryParams = new URLSearchParams({
           start,
           end,
-          granularity: 'day',
+          granularity: 'week',
           site: currentSite,
-          aggregate: 'time'  // 使用'time'获取时间序列数据
+          aggregate: 'time'
         });
-        
         const response = await fetch(`/api/ae_query?${queryParams.toString()}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
         });
-        
-        if (!response.ok) {
-          throw new Error(`API响应错误: ${response.status} ${response.statusText}`);
-        }
-        
+        if (!response.ok) throw new Error(`API响应错误: ${response.status} ${response.statusText}`);
         const data = await response.json();
-        console.log('产品数据响应:', data);
-        
-        if (data.ok && data.rows) {  // 注意：API返回的是rows而不是data
-          // 过滤出指定产品的数据
+        if (data.ok && data.rows) {
           const productData = data.rows.filter(item => item.product_id === productId);
-          if (productData.length > 0) {
-            const dates = productData.map(item => item.day || item.date || '').filter(Boolean).sort();
-            const listingEl = document.getElementById('listingDate');
-            if (listingEl) {
-              listingEl.textContent = dates.length ? `上架日期：${dates[0]}` : '';
-            }
+          const filledData = fillMissingWeeks(start, end, productData);
+          const prev = await getPreviousProductData(productId, start, end);
+          const prevFilled = fillMissingWeeks(prev.start, prev.end, prev.rows);
+
+          const listingEl = document.getElementById('listingDate');
+          if (listingEl) listingEl.textContent = `上架日期：${start}`;
+          const linkEl = document.getElementById('productLink');
+          if (linkEl) {
             const url = `https://aliexpress.com/item/${productId}.html`;
-            const linkEl = document.getElementById('productLink');
-            if (linkEl) {
-              linkEl.href = url;
-              linkEl.textContent = url;
-              linkEl.style.display = '';
-            }
-            const previousProductData = await getPreviousProductData(productId);
-            updateProductKPI(productData, previousProductData);
-            renderProductCharts(productData, previousProductData);
-          } else {
-            const linkEl = document.getElementById('productLink');
-            if (linkEl) linkEl.style.display = 'none';
-            const listingEl = document.getElementById('listingDate');
-            if (listingEl) listingEl.textContent = '';
-            showProductDataError('未找到该产品的数据');
+            linkEl.href = url;
+            linkEl.textContent = url;
+            linkEl.style.display = '';
           }
+          updateProductKPI(filledData, prevFilled);
+          renderProductCharts(filledData, prevFilled);
         } else {
-          console.warn('产品数据格式不正确:', data);
           showProductDataError('数据格式不正确，请检查API响应');
         }
       } catch (error) {
@@ -1781,43 +1793,32 @@ document.addEventListener('DOMContentLoaded', ()=>{
     
 
   // 获取指定产品的上一周期数据
-  async function getPreviousProductData(productId) {
+  async function getPreviousProductData(productId, start, end) {
+    const { prevStart, prevEnd } = selfOperatedManager.periodShift(start, end);
     try {
-      const { start, end } = getProductDateRange();
       const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
-
-      const currentStart = new Date(start);
-      const currentEnd = new Date(end);
-      const periodDays = Math.ceil((currentEnd - currentStart) / (1000 * 60 * 60 * 24));
-
-      const previousEnd = new Date(currentStart);
-      previousEnd.setDate(previousEnd.getDate() - 1);
-      const previousStart = new Date(previousEnd);
-      previousStart.setDate(previousStart.getDate() - periodDays + 1);
-
       const queryParams = new URLSearchParams({
-        start: previousStart.toISOString().slice(0, 10),
-        end: previousEnd.toISOString().slice(0, 10),
-        granularity: 'day',
+        start: prevStart,
+        end: prevEnd,
+        granularity: 'week',
         site: currentSite,
         aggregate: 'time'
       });
-
       const response = await fetch(`/api/ae_query?${queryParams.toString()}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
-
       if (response.ok) {
         const data = await response.json();
         if (data.ok && data.rows) {
-          return data.rows.filter(item => item.product_id === productId);
+          const rows = data.rows.filter(item => item.product_id === productId);
+          return { rows, start: prevStart, end: prevEnd };
         }
       }
     } catch (error) {
       console.error('获取上一周期产品数据失败:', error);
     }
-    return null;
+    return { rows: [], start: prevStart, end: prevEnd };
   }
     
     // 获取产品分析页面的日期范围
