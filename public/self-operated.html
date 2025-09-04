@@ -529,7 +529,6 @@
     <div class="upload-section">
       <div class="upload-top">
         <div class="controls">
-          <span style="margin-right:8px;">产品总数：<strong id="totalProductCount">0</strong></span>
           <span>粒度：</span>
           <span class="sel" style="background:#1f2937;color:#fff;border-color:#334155;cursor:not-allowed">按日</span>
           <input type="hidden" id="granularity" value="day">
@@ -1001,15 +1000,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
     // 初始化主页面时间控件
     initializeMainDateFilter();
 
-    // 加载产品总数并显示在页面左上角
-    const siteId = localStorage.getItem('currentSite') || 'ae_self_operated_a';
-    fetchAllProducts(siteId)
-      .then(list => {
-        const totalEl = document.getElementById('totalProductCount');
-        if (totalEl) totalEl.textContent = list.length;
-      })
-      .catch(err => console.error('加载产品总数失败', err));
-    
     // 监听 localStorage 变化
     window.addEventListener('storage', (e) => {
       if (e.key === 'currentSite' || e.key === 'currentSiteName') {
@@ -1234,10 +1224,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
           // 按曝光量排序产品
           const sortedProducts = mergedProducts.sort((a, b) => (b.exposure || 0) - (a.exposure || 0));
-
-          // 更新产品总数
-          const totalEl = document.getElementById('totalProductCount');
-          if (totalEl) totalEl.textContent = mergedProducts.length;
 
           // 填充产品选择器
           populateProductSelect(sortedProducts);
@@ -1528,10 +1514,20 @@ document.addEventListener('DOMContentLoaded', ()=>{
         tooltip:{ trigger:'axis', axisPointer:{ type:'shadow' }, formatter:p=> p[0].name+': '+p[0].value+'%' },
         xAxis:{ type:'category', data:names, axisLabel:{ color:'#374151', rotate:45 } },
         yAxis:{ type:'value', axisLabel:{ color:'#374151', formatter:'{value}%' } },
-        series:[{ type:'bar', data:vals, barMaxWidth:24, itemStyle:{ color:'#3B82F6' } }],
+        series:[{ type:'bar', data:vals, barMaxWidth:24, itemStyle:{ color:'#3B82F6' }, cursor:'pointer' }],
         grid:{ left:40, right:20, top:30, bottom:60 }
       };
-      initResponsiveChart(elId, option);
+      const chart = initResponsiveChart(elId, option);
+      if (chart) {
+        chart.off('dblclick');
+        chart.on('dblclick', params => {
+          const pid = params.name;
+          if (pid) {
+            localStorage.setItem('selectedProductId', pid);
+            window.location.href = 'self-operated.html#products';
+          }
+        });
+      }
     }
 
     topByRate(list, 'exposure', 'visitors', 'analysisVrBar', 50);

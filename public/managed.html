@@ -469,7 +469,12 @@
     ids.forEach(id=> $sel.append(`<option value="${id}" data-pid="${id}">${id}</option>`));
     populateProductNames($sel[0]);
     $sel.on('change', ()=> { const pid = $sel.val(); updateProductMeta(pid); renderProductCharts(pid); });
-    const firstId = ids[0];
+    let firstId = ids[0];
+    const stored = localStorage.getItem('managedSelectedProductId');
+    if (stored && ids.includes(stored)) {
+      firstId = stored;
+      localStorage.removeItem('managedSelectedProductId');
+    }
     $sel.val(firstId);
     updateProductMeta(firstId);
     renderProductCharts(firstId);
@@ -755,10 +760,20 @@
       tooltip:{trigger:'axis',axisPointer:{type:'shadow'},formatter:(p)=> p[0].name+': '+p[0].value+'%'},
       xAxis:{type:'category',data:names,axisLabel:{color:'#374151',rotate:45}},
       yAxis:{type:'value',axisLabel:{color:'#374151',formatter:'{value}%'}},
-      series:[{type:'bar',data:vals,barMaxWidth:24,itemStyle:{color:COLOR_A}}],
+      series:[{type:'bar',data:vals,barMaxWidth:24,itemStyle:{color:COLOR_A},cursor:'pointer'}],
       grid:{left:40,right:20,top:30,bottom:60}
     };
-    initResponsiveChart(el, option);
+    const chart = initResponsiveChart(el, option);
+    if (chart) {
+      chart.off('dblclick');
+      chart.on('dblclick', params => {
+        const pid = params.name;
+        if (pid) {
+          localStorage.setItem('managedSelectedProductId', pid);
+          window.location.href = 'managed.html#products';
+        }
+      });
+    }
   }
   topByRate(rowsA,'search_exposure','uv','vrBar',50);
   topByRate(rowsA,'add_to_cart_users','pay_buyers','payBar',5);
