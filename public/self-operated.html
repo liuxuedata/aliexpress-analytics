@@ -846,7 +846,12 @@ $('#fileInput').on('change', function(e) {
       });
       const txt = await resp.text(); let j; try { j = JSON.parse(txt); } catch(e) { throw new Error('Upsert API响应不是JSON：' + txt.slice(0,200)); }
       if (!resp.ok || !j.ok) throw new Error(j.error || '入库失败');
-      $('#progress').text('入库完成 ✔'); $('#refreshBtn').click();
+      $('#progress').text('入库完成 ✔');
+      if (window.selfOperatedManager && typeof window.selfOperatedManager.refreshData === 'function') {
+        await window.selfOperatedManager.refreshData();
+      } else {
+        $('#refreshBtn').click();
+      }
     } catch(err) {
       console.error(err); alert('处理失败：' + (err.message || err)); $('#progress').text('');
     }
@@ -2115,7 +2120,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const refreshBtn = document.getElementById('refreshBtn');
   if (refreshBtn){
     refreshBtn.addEventListener('click', ()=>{
-      if (typeof fetchAndRenderAll === 'function') {
+      if (window.selfOperatedManager && typeof window.selfOperatedManager.refreshData === 'function') {
+        window.selfOperatedManager.refreshData();
+      } else if (typeof fetchAndRenderAll === 'function') {
         fetchAndRenderAll();
       }
     });
