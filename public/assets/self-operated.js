@@ -76,20 +76,26 @@
 
     // 更新页面标题显示当前站点名称
     updatePageTitle() {
+      // 强制从localStorage获取最新的站点信息，确保页面标题正确
+      const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+      const currentSiteName = localStorage.getItem('currentSiteName') || '自运营robot站';
+      
+      console.log('更新页面标题，站点信息:', { currentSite, currentSiteName });
+      
       const siteSubtitleEl = document.getElementById('siteSubtitle');
       const pageTitleEl = document.getElementById('pageTitle');
       
-      if (this.currentSiteName) {
+      if (currentSiteName) {
         // 根据站点名称生成合适的标题
-        let siteDisplayName = this.currentSiteName;
+        let siteDisplayName = currentSiteName;
         
         // 如果是poolslab相关站点，显示更友好的名称
-        if (this.currentSiteName.includes('poolslab')) {
+        if (currentSiteName.includes('poolslab') || currentSite === 'ae_self_operated_poolslab_store') {
           siteDisplayName = 'Poolslab运动娱乐';
-        } else if (this.currentSiteName.includes('icyberite')) {
+        } else if (currentSiteName.includes('icyberite')) {
           siteDisplayName = 'Icyberite科技';
-        } else if (this.currentSiteName.includes('ae_self_operated')) {
-          siteDisplayName = '自运营站点';
+        } else if (currentSiteName.includes('ae_self_operated') || currentSite === 'ae_self_operated_a') {
+          siteDisplayName = '自运营Robot站';
         }
         
         // 更新页面副标题
@@ -151,6 +157,9 @@
         
                  // 更新状态为成功
          this.updateStatus('数据加载完成', 'success');
+         
+         // 数据加载完成后，更新页面标题（确保显示正确的站点名称）
+         this.updatePageTitle();
          
          // 数据加载完成后，绑定新品筛选事件
          this.bindNewProductsFilter();
