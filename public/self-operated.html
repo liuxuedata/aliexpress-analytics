@@ -548,6 +548,12 @@
           <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
           <div id="statusDisplay" class="status-display">数据加载完成</div>
         </div>
+        <div id="uploadControls">
+          <label for="fileInput" class="btn">上传数据</label>
+          <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none">
+          <button id="refreshBtn" class="btn">刷新</button>
+          <span id="progress" class="notice"></span>
+        </div>
       </div>
       <div class="divider"></div>
       <div class="kpi-grid">
@@ -1077,7 +1083,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       
       if (currentData.ok && currentData.rows) {  // 注意：API返回的是rows而不是data
         // 渲染访客比、加购比、支付比趋势图
-        renderAnalysisCharts(currentData.rows);
+        await renderAnalysisCharts(currentData.rows);
       } else {
         console.warn('运营分析数据格式不正确:', currentData);
         showAnalysisError('数据格式不正确，请检查API响应');
@@ -2007,8 +2013,25 @@ document.addEventListener('DOMContentLoaded', ()=>{
      // 初始化hash路由
    handleHashRoute();
    
-   // 添加双击产品跳转功能
-   addProductDoubleClickHandler();
+  // 添加双击产品跳转功能
+  addProductDoubleClickHandler();
+
+  const uploadControls = document.getElementById('uploadControls');
+  function toggleUploadControls(){
+    const hash = location.hash.replace('#','') || 'detail';
+    if (uploadControls) uploadControls.style.display = hash === 'detail' ? '' : 'none';
+  }
+  window.addEventListener('hashchange', toggleUploadControls);
+  toggleUploadControls();
+
+  const refreshBtn = document.getElementById('refreshBtn');
+  if (refreshBtn){
+    refreshBtn.addEventListener('click', ()=>{
+      if (typeof fetchAndRenderAll === 'function') {
+        fetchAndRenderAll();
+      }
+    });
+  }
    
    // 导航点击处理
    document.querySelectorAll('.sub-nav a').forEach(a => {
