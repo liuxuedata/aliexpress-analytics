@@ -662,12 +662,10 @@
       <div class="analysis-container">
         <h3>🔍 产品分析</h3>
 
-        <!-- 时间与产品选择 -->
+        <!-- 产品选择 -->
         <div class="time-controls-panel">
           <div class="time-controls" style="flex-wrap:nowrap;gap:12px;">
-            <label>时间周期：</label>
-            <input id="productDateFilter" class="date-filter" placeholder="选择日期范围">
-            <label style="margin-left:12px;">产品：</label>
+            <label>产品：</label>
             <select id="productSelect" class="sel" style="width:200px;max-width:200px;white-space:nowrap;"></select>
             <a id="productLink" href="#" target="_blank" style="display:none;margin-left:8px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></a>
             <span id="productListingDate" style="margin-left:8px;"></span>
@@ -790,9 +788,6 @@ function getDateRange() {
   const input = document.getElementById('dateFilter');
   if (input && input.value && input.value.includes(' to ')) {
     const [start, end] = input.value.split(' to ');
-    // 同步到其他分析页面的时间选择器
-    const productInput = document.getElementById('productDateFilter');
-    if (productInput) productInput.value = input.value;
     return { start, end };
   }
   const today = new Date();
@@ -800,8 +795,6 @@ function getDateRange() {
   const start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const def = `${start} to ${end}`;
   if (input) input.value = def;
-  const productInput = document.getElementById('productDateFilter');
-  if (productInput) productInput.value = def;
   return { start, end };
 }
 
@@ -1009,6 +1002,10 @@ function populateIndependentProductSelect(data) {
       if (linkEl) linkEl.style.display = 'none';
       const dateEl = document.getElementById('productListingDate');
       if (dateEl) dateEl.textContent = '';
+      const kpiEl = document.getElementById('productKpi');
+      if (kpiEl) { kpiEl.style.display = 'none'; kpiEl.innerHTML = ''; }
+      const chartWrap = document.getElementById('productCharts');
+      if (chartWrap) chartWrap.style.display = 'none';
     }
   });
 
@@ -1036,6 +1033,18 @@ async function loadIndependentProductData(landingPath, landingUrl, firstSeen) {
 
     const rows = (json.table || []).filter(item => item.landing_path === landingPath);
     if (!rows.length) return;
+
+    const totalImpressions = rows.reduce((sum, r) => sum + (r.impr || r.impressions || 0), 0);
+    const totalClicks = rows.reduce((sum, r) => sum + (r.clicks || 0), 0);
+    const totalConversions = rows.reduce((sum, r) => sum + (r.conversions || 0), 0);
+    const kpiWrap = document.getElementById('productKpi');
+    if (kpiWrap) {
+      kpiWrap.innerHTML = `
+        <div class="analysis-kpi-card"><h4>曝光总数</h4><p>${totalImpressions.toLocaleString()}</p></div>
+        <div class="analysis-kpi-card"><h4>点击总数</h4><p>${totalClicks.toLocaleString()}</p></div>
+        <div class="analysis-kpi-card"><h4>转化总数</h4><p>${totalConversions.toLocaleString()}</p></div>`;
+      kpiWrap.style.display = 'grid';
+    }
 
     const linkEl = document.getElementById('productLink');
     if (linkEl && landingUrl) {
@@ -1444,13 +1453,11 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
   const fp = flatpickr('#dateFilter', { 
     mode: 'range', 
     dateFormat: 'Y-m-d', 
-    onClose: (ds) => { 
+    onClose: (ds) => {
       if (ds.length === 2) {
-        // 同步其他页面的时间控件
-        syncTimeControlsToOtherPages(ds);
-        load(); 
+        load();
       }
-    } 
+    }
   });
   
   // 设置默认日期范围（最近7天）
@@ -1460,56 +1467,6 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
   const def = `${start} to ${end}`;
   $('#dateFilter').val(def);
   window.fp = fp;
-  
-  // 同步时间控件到其他页面
-  function syncTimeControlsToOtherPages(selectedDates) {
-    const dateStr = `${selectedDates[0].toISOString().slice(0,10)} to ${selectedDates[1].toISOString().slice(0,10)}`;
-    
-    // 同步到产品分析页面
-    const productDateFilter = document.getElementById('productDateFilter');
-    if (productDateFilter) {
-      productDateFilter.value = dateStr;
-    }
-  }
-  
-  // 初始化其他页面的时间控件
-  function initializeOtherPageTimeControls() {
-    const mainDateFilter = document.getElementById('dateFilter');
-    if (!mainDateFilter || !mainDateFilter.value) return;
-    
-    const dateStr = mainDateFilter.value;
-    
-    // 初始化产品分析页面时间控件
-    const productDateFilter = document.getElementById('productDateFilter');
-    if (productDateFilter) {
-      if (window.flatpickr) {
-        flatpickr(productDateFilter, {
-          mode: 'range',
-          dateFormat: 'Y-m-d',
-          onClose: (ds) => {
-            if (ds.length === 2) {
-              const newDateStr = `${ds[0].toISOString().slice(0,10)} to ${ds[1].toISOString().slice(0,10)}`;
-              // 同步到主页面
-              mainDateFilter.value = newDateStr;
-              if (window.fp) {
-                window.fp.setDate(newDateStr.split(' to '), true, 'Y-m-d');
-              }
-              // 重新加载数据
-              load();
-            }
-          }
-        });
-      }
-      productDateFilter.value = dateStr;
-    }
-  }
-  
-  // 页面加载完成后初始化时间控件
-  document.addEventListener('DOMContentLoaded', function() {
-    // 延迟初始化，确保主时间控件已经设置
-    setTimeout(initializeOtherPageTimeControls, 100);
-  });
-
   function parseDateRange() {
     const input = document.getElementById('dateFilter');
     if (input && input.value && input.value.includes(' to ')) {
@@ -1869,6 +1826,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const el = document.getElementById(id);
         if (el) el.style.display = (id === hash ? '' : 'none');
       });
+
+      const kpiBlock = document.getElementById('kpi');
+      if (kpiBlock) kpiBlock.style.display = (hash === 'detail') ? '' : 'none';
 
       if (hash === 'analysis') {
         loadIndependentAnalysisData();
