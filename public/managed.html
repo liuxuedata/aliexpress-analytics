@@ -26,19 +26,20 @@
 .kpi-ctrl button:hover{background:#f8fafc}
 .kpi-ctrl input[type="date"]{border:1px solid #e5e7eb;border-radius:8px;padding:.25rem .5rem}
 .kpi-ctrl .hint{font-size:12px;color:#64748b}
-.stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
-.stat-card.clickable,.kpi .card.clickable{cursor:pointer}
+.stat-card .mini-link,.kpi-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
+.stat-card.clickable,.kpi-card.clickable,.kpi .card.clickable{cursor:pointer}
 </style>
 <style>/* KPI basic helpers (no extra period controls) */
-.stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
-.stat-card.clickable,.kpi .card.clickable{cursor:pointer}
+.stat-card .mini-link,.kpi-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
+.stat-card.clickable,.kpi-card.clickable,.kpi .card.clickable{cursor:pointer}
 .kpi-row{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin:.25rem 0 .75rem}</style>
 <style>/* KPI basic helpers */
-.stat-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
-.stat-card.clickable,.kpi .card.clickable{cursor:pointer}
+.stat-card .mini-link,.kpi-card .mini-link,.kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none}
+.stat-card.clickable,.kpi-card.clickable,.kpi .card.clickable{cursor:pointer}
 .kpi-row{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin:.25rem 0 .75rem}
 /* Force hide any old period controls if they still exist */
 #kpi-new-self-ctrl, #kpi-new-managed-ctrl, .kpi .kpi-ctrl { display: none !important; }</style>
+<style>#analysis .panel{border:none;box-shadow:none;padding:0}</style>
 </head>
 <body class="fm">
 <div id="loginOverlay" class="login-overlay">
@@ -141,7 +142,6 @@
                 <th>支付件数</th>
                 <th>支付订单数</th>
                 <th>支付买家数</th>
-                <th>产品详情</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -176,10 +176,11 @@
     <div class="kpi-ctrl">
       <label>选择商品</label>
       <select id="productSelect"></select>
+      <a id="productLink" class="mini-link" target="_blank" style="display:none;">产品链接</a>
+      <span id="productFirstSeen" style="display:none; margin-left:8px;"></span>
     </div>
-    <div id="productKpi" class="kpi-grid"></div>
   </div>
-  
+
   <!-- 产品趋势图表 -->
   <div id="productCharts" class="grid grid-2" style="display:none;">
     <div class="panel">
@@ -285,8 +286,7 @@
       x.add_to_cart_qty || 0,
       x.pay_items || 0,
       x.pay_orders || 0,
-      x.pay_buyers || 0,
-      '<a href="product-analysis.html?mode=fm&pid='+ (x.product_id||'') +'" target="_blank">详情</a>'
+      x.pay_buyers || 0
     ];
   }
 
@@ -334,21 +334,12 @@
         scrollY:'60vh',
         scrollCollapse:true,
         autoWidth:false,
-        columnDefs:[{ targets:-1, orderable:false }],
         drawCallback:function(){
           populateProductNames(document.getElementById('report'));
         }
       });
-      $('#report tbody').off('dblclick').on('dblclick','td',function(){
-        const col = state.table.cell(this).index().column;
-        const last = state.table.columns().count()-1;
-        if(col===0 || col===last) return;
-        const pid = $(this).closest('tr').find('a[data-pid]').data('pid');
-        if(pid) window.open('product-analysis.html?mode=fm&pid='+pid, '_blank');
-      });
 
       renderAnalysis(window._rowsA, window._rowsB);
-      renderProduct(window._rowsA, window._rowsB);
       setStatus('加载完成');
     }catch(err){
       console.error(err);
@@ -378,156 +369,105 @@
     ].join(''));
   }
 
-  function renderProduct(rowsA, rowsB){
-    const ids = Array.from(new Set((rowsA||[]).map(x=>x.product_id))).filter(Boolean);
-    const $sel = $('#productSelect').off('change').empty();
-    if (!ids.length){ $('#productKpi').empty(); return; }
-    ids.forEach(id=> $sel.append(`<option value="${id}" data-pid="${id}">${id}</option>`));
-    populateProductNames($sel[0]);
-    $sel.on('change', ()=> updateProductKpi($sel.val(), rowsA, rowsB));
-    updateProductKpi(ids[0], rowsA, rowsB);
+  const productFirstSeen = {};
+
+  async function loadProductFirstSeen(){
+    try{
+      const today = new Date().toISOString().slice(0,10);
+      const qs = new URLSearchParams({ platform:'managed', from:'2000-01-01', to: today, limit:5000 });
+      const r = await fetch('/api/new-products?'+qs.toString());
+      const j = await r.json();
+      if (j.ok){
+        (j.items||[]).forEach(it => { productFirstSeen[it.product_id] = it.first_seen; });
+      }
+    }catch(e){ console.error('loadProductFirstSeen', e); }
   }
 
-  function updateProductKpi(pid, rowsA, rowsB){
-    const sum = rows => rows.reduce((a,x)=>({
-      exp:a.exp + (+x.search_exposure||0),
-      uv: a.uv + (+x.uv||0),
-      add:a.add + (+x.add_to_cart_users||0),
-      pay:a.pay + (+x.pay_buyers||0)
-    }), {exp:0,uv:0,add:0,pay:0});
-    const cur = sum((rowsA||[]).filter(x=>String(x.product_id)===String(pid)));
-    const prev = sum((rowsB||[]).filter(x=>String(x.product_id)===String(pid)));
-    $('#productKpi').html([
-      card('曝光量', cur.exp, prev.exp, false, 'success'),
-      card('访客数', cur.uv, prev.uv, false, 'info'),
-      card('加购人数', cur.add, prev.add, false, 'warning'),
-      card('支付买家数', cur.pay, prev.pay, false, 'danger')
-    ].join(''));
-    
-    // 显示产品图表
-    $('#productCharts').show();
+  function initProductSection(){
+    const ids = Object.keys(productFirstSeen).sort();
+    const $sel = $('#productSelect').off('change').empty();
+    if (!ids.length){ $('#productCharts').hide(); return; }
+    ids.forEach(id=> $sel.append(`<option value="${id}" data-pid="${id}">${id}</option>`));
+    populateProductNames($sel[0]);
+    $sel.on('change', ()=> { const pid = $sel.val(); updateProductMeta(pid); renderProductCharts(pid); });
+    const firstId = ids[0];
+    $sel.val(firstId);
+    updateProductMeta(firstId);
+    renderProductCharts(firstId);
   }
-  
-  // 渲染产品趋势图表
-  function renderProductCharts(pid, rowsA) {
-    const productData = rowsA.filter(x => String(x.product_id) === String(pid));
-    
-    if (productData.length === 0) return;
-    
-    // 按日期分组数据
-    const dateGroups = {};
-    productData.forEach(row => {
-      const date = row.stat_date || row.period_end || 'Unknown';
-      if (!dateGroups[date]) {
-        dateGroups[date] = {
-          exposure: 0,
-          visitors: 0,
-          addToCart: 0,
-          pay: 0
-        };
+
+  function updateProductMeta(pid){
+    $('#productLink').attr('href', `https://aliexpress.com/item/${pid}.html`).show();
+    const first = productFirstSeen[pid];
+    if (first){
+      $('#productFirstSeen').text('上架日期：'+first).show();
+    } else {
+      $('#productFirstSeen').hide();
+    }
+  }
+
+  async function renderProductCharts(pid){
+    if (!pid) return;
+    const first = productFirstSeen[pid];
+    const qs = new URLSearchParams({ granularity:'week', product_id: pid, limit:5000 });
+    if (first) qs.set('from', first);
+    showLoading();
+    try{
+      const r = await fetch('/api/stats?'+qs.toString());
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.msg||'fetch error');
+      const rows = j.rows||[];
+      const map = {};
+      let last = first ? new Date(first) : null;
+      rows.forEach(row => {
+        const d = row.period_end || row.stat_date;
+        if (!d) return;
+        if (!map[d]) map[d] = { exp:0, uv:0, add:0, pay:0 };
+        map[d].exp += +row.search_exposure || 0;
+        map[d].uv += +row.uv || 0;
+        map[d].add += +row.add_to_cart_users || 0;
+        map[d].pay += +row.pay_buyers || 0;
+        const dt = new Date(d);
+        if (!last || dt > last) last = dt;
+      });
+      let dates = Object.keys(map).sort();
+      const expData = [];
+      const uvData = [];
+      const addData = [];
+      const payData = [];
+      if (first && last){
+        const start = new Date(first);
+        dates = [];
+        for (let d = new Date(start); d <= last; d.setDate(d.getDate()+7)){
+          const s = d.toISOString().slice(0,10);
+          dates.push(s);
+          const m = map[s] || { exp:0, uv:0, add:0, pay:0 };
+          expData.push(m.exp);
+          uvData.push(m.uv);
+          addData.push(m.add);
+          payData.push(m.pay);
+        }
+      } else {
+        dates.forEach(d => {
+          const m = map[d];
+          expData.push(m.exp);
+          uvData.push(m.uv);
+          addData.push(m.add);
+          payData.push(m.pay);
+        });
       }
-      dateGroups[date].exposure += (row.search_exposure || 0);
-      dateGroups[date].visitors += (row.uv || 0);
-      dateGroups[date].addToCart += (row.add_to_cart_users || 0);
-      dateGroups[date].pay += (row.pay_buyers || 0);
-    });
-    
-    const dates = Object.keys(dateGroups).sort();
-    
-    // 曝光趋势图
-    const exposureChart = echarts.init(document.getElementById('productExposureChart'));
-    const exposureOption = {
-      title: { text: '曝光趋势', textStyle: { color: '#374151' } },
-      tooltip: { trigger: 'axis' },
-      xAxis: { 
-        type: 'category', 
-        data: dates,
-        axisLabel: { color: '#6b7280' }
-      },
-      yAxis: { 
-        type: 'value',
-        axisLabel: { color: '#6b7280' }
-      },
-      series: [{
-        data: dates.map(date => dateGroups[date].exposure),
-        type: 'line',
-        smooth: true,
-        itemStyle: { color: '#10B981' }
-      }]
-    };
-    exposureChart.setOption(exposureOption);
-    
-    // 访客趋势图
-    const visitorChart = echarts.init(document.getElementById('productVisitorChart'));
-    const visitorOption = {
-      title: { text: '访客趋势', textStyle: { color: '#374151' } },
-      tooltip: { trigger: 'axis' },
-      xAxis: { 
-        type: 'category', 
-        data: dates,
-        axisLabel: { color: '#6b7280' }
-      },
-      yAxis: { 
-        type: 'value',
-        axisLabel: { color: '#6b7280' }
-      },
-      series: [{
-        data: dates.map(date => dateGroups[date].visitors),
-        type: 'line',
-        smooth: true,
-        itemStyle: { color: '#3B82F6' }
-      }]
-    };
-    visitorChart.setOption(visitorOption);
-    
-    // 加购趋势图
-    const addChart = echarts.init(document.getElementById('productAddChart'));
-    const addOption = {
-      title: { text: '加购趋势', textStyle: { color: '#374151' } },
-      tooltip: { trigger: 'axis' },
-      xAxis: { 
-        type: 'category', 
-        data: dates,
-        axisLabel: { color: '#6b7280' }
-      },
-      yAxis: { 
-        type: 'value',
-        axisLabel: { color: '#6b7280' }
-      },
-      series: [{
-        data: dates.map(date => dateGroups[date].addToCart),
-        type: 'line',
-        smooth: true,
-        itemStyle: { color: '#F59E0B' }
-      }]
-    };
-    addChart.setOption(addOption);
-    
-    // 支付趋势图
-    const payChart = echarts.init(document.getElementById('productPayChart'));
-    const payOption = {
-      title: { text: '支付趋势', textStyle: { color: '#374151' } },
-      tooltip: { trigger: 'axis' },
-      xAxis: { 
-        type: 'category', 
-        data: dates,
-        axisLabel: { color: '#6b7280' }
-      },
-      yAxis: { 
-        type: 'value',
-        axisLabel: { color: '#6b7280' }
-      },
-      series: [{
-        data: dates.map(date => dateGroups[date].pay),
-        type: 'line',
-        smooth: true,
-        itemStyle: { color: '#EF4444' }
-      }]
-    };
-    payChart.setOption(payOption);
+      const opt = (data,color)=>({ tooltip:{trigger:'axis'}, xAxis:{type:'category',data:dates,axisLabel:{color:'#6b7280'}}, yAxis:{type:'value',axisLabel:{color:'#6b7280'}}, series:[{data, type:'line', smooth:true, itemStyle:{color}}] });
+      initResponsiveChart('productExposureChart', opt(expData,'#10B981'));
+      initResponsiveChart('productVisitorChart', opt(uvData,'#3B82F6'));
+      initResponsiveChart('productAddChart', opt(addData,'#F59E0B'));
+      initResponsiveChart('productPayChart', opt(payData,'#EF4444'));
+      $('#productCharts').show();
+    }catch(e){ console.error(e); }
+    finally { hideLoading(); }
   }
 
   loadPeriods().then(loadData);
+  loadProductFirstSeen().then(initProductSection);
 })();
 
   // Hash路由处理
@@ -554,14 +494,8 @@
           if (window.topChart) window.topChart.resize();
         }, 30);
       } else if (hash === 'products') {
-        // 产品分析数据已经在loadData中加载，这里只需要显示图表
-        if (window._rowsA && window._rowsA.length > 0) {
-          const selectedProduct = $('#productSelect').val();
-          if (selectedProduct) {
-            updateProductKpi(selectedProduct, window._rowsA, window._rowsB);
-            renderProductCharts(selectedProduct, window._rowsA);
-          }
-        }
+        const pid = $('#productSelect').val();
+        if (pid) { updateProductMeta(pid); renderProductCharts(pid); }
       }
     }
   }
@@ -594,6 +528,23 @@
   // });
 
   // ---- Analysis charts ----
+  // 初始化并使图表自适应容器宽度
+  function initResponsiveChart(id, option){
+    const el = typeof id === 'string' ? document.getElementById(id) : id;
+    if(!el) return null;
+    let chart = echarts.getInstanceByDom(el);
+    if(!chart){
+      chart = echarts.init(el);
+      const resize = () => chart.resize();
+      window.addEventListener('resize', resize);
+      if (window.ResizeObserver) new ResizeObserver(resize).observe(el);
+    } else {
+      chart.clear();
+    }
+    if(option) chart.setOption(option, true);
+    chart.resize();
+    return chart;
+  }
   let ratioChart=null, topChart=null;
   function renderAnalysis(rowsA, rowsB){
   if (!Array.isArray(rowsA)) rowsA = []; if (!Array.isArray(rowsB)) rowsB = [];
@@ -601,22 +552,38 @@
   const nameA = window._periodA || '当前周期', nameB = window._periodB || '上一周期';
   const toNum=v=>{ if(v===null||v===undefined) return 0; const n=Number(String(v).replace(/,/g,'')); return isNaN(n)?0:n; };
 
-  const sum = rows => rows.reduce((a,x)=>({ 
-    exp:a.exp+toNum(x.search_exposure||0),
-    uv:a.uv+toNum(x.uv||0),
-    atc_users:a.atc_users+toNum(x.add_to_cart_users||0),
-    atc_qty:a.atc_qty+toNum(x.add_to_cart_qty||0),
-    pay_buyers:a.pay_buyers+toNum(x.pay_buyers||0),
-    pay_orders:a.pay_orders+toNum(x.pay_orders||0)
-  }), {exp:0,uv:0,atc_users:0,atc_qty:0,pay_buyers:0,pay_orders:0});
+  const sum = rows => {
+    const set = new Set();
+    const acc = rows.reduce((a,x)=>{
+      const exp = toNum(x.search_exposure||0);
+      const uv = toNum(x.uv||0);
+      const atcQty = toNum(x.add_to_cart_qty||0);
+      const payOrders = toNum(x.pay_orders||0);
+      return {
+        exp: a.exp + exp,
+        uv: a.uv + uv,
+        atc_users: a.atc_users + toNum(x.add_to_cart_users||0),
+        atc_qty: a.atc_qty + atcQty,
+        pay_buyers: a.pay_buyers + toNum(x.pay_buyers||0),
+        pay_orders: a.pay_orders + payOrders
+      };
+    }, {exp:0,uv:0,atc_users:0,atc_qty:0,pay_buyers:0,pay_orders:0});
+    rows.forEach(r => {
+      if (toNum(r.add_to_cart_qty||0) > 0) {
+        set.add(r.product_id);
+      }
+    });
+    acc.atc_products = set.size;
+    return acc;
+  };
 
   const A = sum(rowsA), B = sum(rowsB);
 
   // Dual funnel
   try{
-    const el = document.getElementById('funnel'); if (el){
-      const chart = echarts.init(el, null, {backgroundColor:'transparent'});
-      chart.setOption({
+    const el = document.getElementById('funnel');
+    if (el){
+      const option = {
         tooltip:{trigger:'item',formatter:'{a} - {b}: {c}'},
         legend:{ data:[nameA,nameB], textStyle:{color:'#374151'} },
         series:[
@@ -625,27 +592,27 @@
           { name:nameB, type:'funnel', left:'55%', width:'40%', sort:'none', label:{color:'#374151'}, itemStyle:{color:COLOR_B},
             data:[{name:'曝光',value:B.exp},{name:'访客',value:B.uv},{name:'加购人数',value:B.atc_users},{name:'支付买家数',value:B.pay_buyers}]}
         ]
-      });
-      window.addEventListener('resize', ()=>chart.resize());
+      };
+      initResponsiveChart(el, option);
     }
   }catch(e){ console.warn(e); }
 
   // Grouped sum comparison
   try{
-    const el = document.getElementById('sumCompareBar'); if (el){
-      const chart = echarts.init(el, null, {backgroundColor:'transparent'});
-      chart.setOption({
+    const el = document.getElementById('sumCompareBar');
+    if (el){
+      const option = {
         tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
         legend:{ data:[nameA,nameB], textStyle:{color:'#374151'} },
-        xAxis:{ type:'category', data:['曝光量','加购数(件)','支付数(订单)'], axisLabel:{color:'#374151'} },
+        xAxis:{ type:'category', data:['总展示数','详情页访客数','加购次数','订购次数','有加购商品数'], axisLabel:{color:'#374151'} },
         yAxis:{ type:'value', axisLabel:{color:'#374151'} },
         series:[
-          { name:nameA, type:'bar', data:[A.exp, A.atc_qty, A.pay_orders], barMaxWidth:28, itemStyle:{color:COLOR_A} },
-          { name:nameB, type:'bar', data:[B.exp, B.atc_qty, B.pay_orders], barMaxWidth:28, itemStyle:{color:COLOR_B} }
+          { name:nameA, type:'bar', data:[A.exp, A.uv, A.atc_qty, A.pay_orders, A.atc_products], barMaxWidth:28, label:{show:true, position:'top'}, itemStyle:{color:COLOR_A} },
+          { name:nameB, type:'bar', data:[B.exp, B.uv, B.atc_qty, B.pay_orders, B.atc_products], barMaxWidth:28, label:{show:true, position:'top'}, itemStyle:{color:COLOR_B} }
         ],
         grid:{ left:40, right:20, top:30, bottom:40 }
-      });
-      window.addEventListener('resize', ()=>chart.resize());
+      };
+      initResponsiveChart(el, option);
     }
   }catch(e){ console.warn(e); }
 
@@ -658,15 +625,14 @@
     }).filter(o=>o.den>=(minDen||1)).sort((a,b)=>b.rate-a.rate).slice(0,10);
     const names = list.map(o=>o.id), vals = list.map(o=>Number((o.rate*100).toFixed(2)));
     const el = document.getElementById(elId); if (!el) return;
-    const chart = echarts.init(el, null, {backgroundColor:'transparent'});
-    chart.setOption({
+    const option = {
       tooltip:{trigger:'axis',axisPointer:{type:'shadow'},formatter:(p)=> p[0].name+': '+p[0].value+'%'},
       xAxis:{type:'category',data:names,axisLabel:{color:'#374151',rotate:45}},
       yAxis:{type:'value',axisLabel:{color:'#374151',formatter:'{value}%'}},
       series:[{type:'bar',data:vals,barMaxWidth:24,itemStyle:{color:COLOR_A}}],
       grid:{left:40,right:20,top:30,bottom:60}
-    });
-    window.addEventListener('resize', ()=>chart.resize());
+    };
+    initResponsiveChart(el, option);
   }
   topByRate(rowsA,'search_exposure','uv','vrBar',50);
   topByRate(rowsA,'add_to_cart_users','pay_buyers','payBar',5);
@@ -709,8 +675,15 @@
   }
 
   async function fetchNew(periodISO){
-    const qs = new URLSearchParams({ platform:'managed', site:'managed_stats' });
-    if (periodISO){ qs.set('from', periodISO); qs.set('to', periodISO); }
+    const qs = new URLSearchParams({ platform:'managed' });
+    if (periodISO){
+      const end = periodISO;
+      const startDate = new Date(end+'T00:00:00Z');
+      startDate.setUTCDate(startDate.getUTCDate()-6);
+      const start = startDate.toISOString().slice(0,10);
+      qs.set('from', start);
+      qs.set('to', end);
+    }
     const r = await fetch('/api/new-products?'+qs.toString());
     const j = await r.json();
     if (!j.ok) throw new Error(j.msg||'fetch error');
@@ -722,7 +695,7 @@
     if (!kpiWrap) return {};
     let card = document.getElementById('kpi-new-managed-card');
     if (!card){
-      const html = '<div id="kpi-new-managed-card" class="stat-card clickable" title="点击只看本周期新品">'
+      const html = '<div id="kpi-new-managed-card" class="kpi-card info clickable" title="点击只看本周期新品">'
                  +   '<h4>本周期新品数</h4>'
                  +   '<p><span id="kpi-new-managed-count">--</span>'
                  +   '<a id="kpi-new-managed-clear" class="mini-link">清除筛选</a></p>'
@@ -859,7 +832,14 @@
   }
   async function fetchNew(periodISO){
     const qs = new URLSearchParams({ platform:'managed' });
-    if (periodISO) { qs.set('from', periodISO); qs.set('to', periodISO); }
+    if (periodISO){
+      const end = periodISO;
+      const startDate = new Date(end+'T00:00:00Z');
+      startDate.setUTCDate(startDate.getUTCDate()-6);
+      const start = startDate.toISOString().slice(0,10);
+      qs.set('from', start);
+      qs.set('to', end);
+    }
     const r = await fetch('/api/new-products?'+qs.toString());
     const j = await r.json();
     if (!j.ok) throw new Error(j.msg||'fetch error');
@@ -885,7 +865,7 @@
     }
     let card = document.getElementById('kpi-new-managed-card');
     if (!card){
-      const html = '<div id="kpi-new-managed-card" class="stat-card clickable" title="点击只看该周新品">'
+      const html = '<div id="kpi-new-managed-card" class="kpi-card info clickable" title="点击只看该周新品">'
                  +   '<h4>本周期新品数</h4>'
                  +   '<p><span id="kpi-new-managed-count">--</span>'
                  +   '<a id="kpi-new-managed-clear" class="mini-link">清除筛选</a></p>'
@@ -1009,7 +989,14 @@
   }
   async function fetchNew(periodISO){
     const qs = new URLSearchParams({ platform:'managed' });
-    if (periodISO) { qs.set('from', periodISO); qs.set('to', periodISO); }
+    if (periodISO){
+      const end = periodISO;
+      const startDate = new Date(end+'T00:00:00Z');
+      startDate.setUTCDate(startDate.getUTCDate()-6);
+      const start = startDate.toISOString().slice(0,10);
+      qs.set('from', start);
+      qs.set('to', end);
+    }
     const r = await fetch('/api/new-products?'+qs.toString());
     const j = await r.json();
     if (!j.ok) throw new Error(j.msg||'fetch error');
@@ -1032,7 +1019,7 @@
     }
     let card = document.getElementById('kpi-new-managed-card');
     if (!card){
-      const html = '<div id="kpi-new-managed-card" class="stat-card clickable" title="点击只看该周新品">'
+      const html = '<div id="kpi-new-managed-card" class="kpi-card info clickable" title="点击只看该周新品">'
                  +   '<h4>本周期新品数</h4>'
                  +   '<p><span id="kpi-new-managed-count">--</span>'
                  +   '<a id="kpi-new-managed-clear" class="mini-link">清除筛选</a></p>'
