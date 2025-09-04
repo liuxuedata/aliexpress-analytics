@@ -205,7 +205,7 @@ body {
   padding: var(--space-4);
   border-bottom: 1px solid var(--primary-100);
   color: var(--primary-800);
-  font-size: 0.875rem;
+  font-size: 1rem;
 }
 
 .data-table tbody tr:hover {
