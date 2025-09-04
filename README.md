@@ -35,6 +35,7 @@
 - 全托管：`/managed.html#analysis`、`/managed.html#products`
 - 独立站：`/independent-site.html?site=<name>#analysis`、`/independent-site.html?site=<name>#products`
 - 旧的 `operation-analysis.html` 与 `product-analysis.html` 页面已删除
+- 所有站点的运营分析与产品分析页在无用户选择时默认展示最近 7 天的数据范围
 
 ---
 

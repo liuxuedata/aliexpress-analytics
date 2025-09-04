@@ -945,8 +945,7 @@ $('#fileInput').on('change', function(e) {
     }
     const today = new Date();
     const to = today.toISOString().slice(0,10);
-    // 如果今天是2024年或更早，使用2025-07-01作为开始日期
-const from = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime()-30*86400000).toISOString().slice(0,10);
+    const from = new Date(today.getTime() - 6 * 86400000).toISOString().slice(0,10);
     return { from, to };
   }
   function ensureCard(){
@@ -1539,6 +1538,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
       ]
     };
     chart.setOption(option);
+    chart.resize();
+    window.addEventListener('resize', () => chart.resize());
   }
   
      // 填充产品选择器
@@ -1941,6 +1942,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
       ]
     };
     productExposureChart.setOption(productExposureOption);
+    productExposureChart.resize();
+    window.addEventListener('resize', () => productExposureChart.resize());
     
     // 访客比趋势图
     const productVisitorRateChart = echarts.init(document.getElementById('productVisitorRateChart'));
@@ -1983,6 +1986,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
       ]
     };
     productVisitorRateChart.setOption(productVisitorRateOption);
+    productVisitorRateChart.resize();
+    window.addEventListener('resize', () => productVisitorRateChart.resize());
     
          // 加购比趋势图
      const productAddRateChart = echarts.init(document.getElementById('productAddRateChart'));
@@ -2025,6 +2030,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
        ]
      };
      productAddRateChart.setOption(productAddRateOption);
+     productAddRateChart.resize();
+     window.addEventListener('resize', () => productAddRateChart.resize());
     
          // 支付比趋势图
      const productPayRateChart = echarts.init(document.getElementById('productPayRateChart'));
@@ -2067,6 +2074,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
        ]
      };
      productPayRateChart.setOption(productPayRateOption);
+     productPayRateChart.resize();
+     window.addEventListener('resize', () => productPayRateChart.resize());
   }
   
   const userArea=document.getElementById('userArea');
