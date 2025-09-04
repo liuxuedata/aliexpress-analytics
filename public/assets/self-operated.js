@@ -121,15 +121,18 @@
         const endISO = to;
         
         // 计算对比周期
+        const todayISO = new Date().toISOString().slice(0,10);
         const { prevStart, prevEnd, days } = this.periodShift(startISO, endISO);
         
         console.log('当前周期:', startISO, 'to', endISO);
         console.log('对比周期:', prevStart, 'to', prevEnd);
         
-        // 使用Promise.all并行获取数据，避免多次调用
-        const [rowsAggA, rowsAggB] = await Promise.all([
+        // 使用Promise.all并行获取数据，并获取累积商品总数
+        const [rowsAggA, rowsAggB, totalCur, totalPrev] = await Promise.all([
           this.fetchAggregatedData(startISO, endISO, 'day'),
-          this.fetchAggregatedData(prevStart, prevEnd, 'day')
+          this.fetchAggregatedData(prevStart, prevEnd, 'day'),
+          this.fetchProductTotal(todayISO),
+          this.fetchProductTotal(prevEnd)
         ]);
         
         console.log('成功获取数据:', {
@@ -141,7 +144,7 @@
         this.currentData = rowsAggA;
         
         // 一次性计算所有KPI
-        this.computeCards(rowsAggA, rowsAggB);
+        this.computeCards(rowsAggA, rowsAggB, totalCur, totalPrev);
         
         // 渲染数据表格
         await this.renderDataTable(rowsAggA, 'day');
@@ -224,6 +227,17 @@
       }
     }
 
+    // 获取平台至今商品总数
+    async fetchProductTotal(toISO) {
+      const qs = new URLSearchParams({ platform:'self', from:'2000-01-01', to: toISO, limit:5000, site: this.currentSite || 'ae_self_operated_a' });
+      try {
+        const r = await fetch('/api/new-products?'+qs.toString());
+        const j = await r.json();
+        if (j.ok) return (j.items||[]).length;
+      } catch (e) { console.error('fetchProductTotal', e); }
+      return 0;
+    }
+
     // 计算对比周期（与index.html保持一致）
     periodShift(startISO, endISO) {
       const start = new Date(startISO + 'T00:00:00');
@@ -236,7 +250,7 @@
     }
     
     // 计算KPI卡片（修复字段名和计算逻辑）
-    computeCards(rows, prevRows) {
+    computeCards(rows, prevRows, totalCur, totalPrev) {
       function summarize(rs) {
         if (!rs.length) return {vr:0,cr:0,pr:0,total:0,pc:0,pp:0};
         
@@ -304,6 +318,8 @@
       
       const cur = summarize(rows);
       const prev = summarize(prevRows || []);
+      cur.total = totalCur || 0;
+      prev.total = totalPrev || 0;
       
       // 计算本周期新品数：当前周期有但对比周期没有的商品
       const currentProductIds = new Set(rows.map(r => r.product_id));

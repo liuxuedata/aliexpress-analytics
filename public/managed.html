@@ -350,6 +350,15 @@
       const jb = rb ? await rb.json() : { ok:true, rows:[] };
       if (!ja.ok) throw new Error(ja.msg||'查询失败');
 
+      const today = new Date().toISOString().slice(0,10);
+      const [curCount, prevCount] = await Promise.all([
+        fetch('/api/new-products?' + new URLSearchParams({ platform:'managed', from:'2000-01-01', to: today, limit:5000 })).then(r=>r.json()).then(j=> j.ok ? (j.items||[]).length : 0).catch(()=>0),
+        prev ? fetch('/api/new-products?' + new URLSearchParams({ platform:'managed', from:'2000-01-01', to: prev, limit:5000 })).then(r=>r.json()).then(j=> j.ok ? (j.items||[]).length : 0).catch(()=>0) : Promise.resolve(0)
+      ]);
+      ja.kpis = ja.kpis || {};
+      jb.kpis = jb.kpis || {};
+      ja.kpis.product_count = curCount;
+      jb.kpis.product_count = prevCount;
       renderKPI(ja.kpis || {}, jb.kpis || {});
       window._kpiA = ja.kpis || {};
       window._rowsA = (ja.rows||[]);
