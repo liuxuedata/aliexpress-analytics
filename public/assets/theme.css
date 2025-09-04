@@ -169,7 +169,7 @@ body{
 input[type="file"]{ display:none }
 
 .grid{ display:grid; gap:16px }
-.grid-2{ grid-template-columns:repeat(auto-fit,minmax(320px,1fr)) }
+.grid-2{ grid-template-columns:repeat(2,1fr) }
 
 /* Divider */
 .divider{ height:1px; background:var(--panel-border); margin:8px 0 12px }
@@ -177,6 +177,7 @@ input[type="file"]{ display:none }
 /* Table containers */
 .table-section{ background:transparent; padding:15px }
 .table-wrapper{ overflow:auto }
+table.dataTable{ width:100% !important; }
 
 /* compact table: smaller text and tighter cells */
 table.dataTable,

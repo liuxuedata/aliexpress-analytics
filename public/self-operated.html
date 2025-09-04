@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title id="pageTitle">跨境电商数据分析平台 - 自运营Robot站</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg" sizes="64x64">
   <!-- libs -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css">
@@ -206,19 +207,19 @@
       text-shadow: none;
     }
     
-         /* 分析KPI卡片网格 */
-     .analysis-kpi-grid {
-       display: grid;
-       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-       gap: 16px;
-       margin-bottom: 24px;
-     }
-     
-     /* 运营分析KPI卡片特殊样式 - 合并两层为一层 */
-     #analysis .analysis-kpi-grid {
-       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-       gap: 12px;
-     }
+    /* 分析KPI卡片网格 */
+    .analysis-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    /* 运营分析KPI卡片特殊样式 - 两列布局 */
+    #analysis .analysis-kpi-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
     
          .analysis-kpi-card {
        background: white;
@@ -280,10 +281,15 @@
     
          /* 图表网格布局 */
      .charts-grid {
-       display: grid;
-       grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-       gap: 20px;
-     }
+     display: grid;
+     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+     gap: 20px;
+    }
+
+    /* 产品趋势图：每行展示两个图表 */
+    #productCharts {
+      grid-template-columns: repeat(2, 1fr);
+    }
      
      .chart-panel {
        background: white;
@@ -310,26 +316,23 @@
        text-shadow: none;
      }
      
-    /* 图表容器样式优化 - 让曲线延伸到KPI框内 */
+    /* 图表容器样式优化 - 使曲线自适应卡片宽度 */
     .chart-panel .echarts-for-react,
     .chart-panel div[id*="Chart"] {
-      width: calc(100% + 40px) !important;
-      height: calc(100% + 40px) !important;
-      margin: -20px;
-      min-height: 320px;
+      width: 100% !important;
+      margin: 0;
     }
-     
+
      /* 产品分析页面的图表特殊样式 */
      #products .chart-panel {
        padding: 24px;
        min-height: 350px;
      }
-     
+
     #products .chart-panel div[id*="Chart"] {
       min-height: 300px;
-      margin: -24px;
-      width: calc(100% + 48px) !important;
-      height: calc(100% + 48px) !important;
+      margin: 0;
+      width: 100% !important;
     }
     
     /* 产品选择器样式 */
@@ -355,27 +358,35 @@
       min-width: 60px;
     }
     
+    .product-selector .date-filter,
     .product-selector .sel {
       min-width: 200px;
       padding: 8px 12px;
-      border: 2px solid #e5e7eb;
-      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
       font-size: 14px;
       transition: all 0.3s ease;
     }
-    
-         .product-selector .sel:focus {
-       outline: none;
-       border-color: #3b82f6;
-       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-     }
+
+    .product-selector .date-filter:focus,
+    .product-selector .sel:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
      
-     .product-selector .product-count-info {
-       margin-left: auto;
-       padding: 8px 16px;
-       background: #f3f4f6;
-       border-radius: 6px;
-       font-size: 14px;
+    .product-selector .notice {
+      color: #6b7280;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .product-selector .product-count-info {
+      margin-left: auto;
+      padding: 8px 16px;
+      background: #f3f4f6;
+      border-radius: 6px;
+      font-size: 14px;
        color: #374151;
      }
      
@@ -384,72 +395,7 @@
        font-weight: 600;
      }
      
-     .product-selector .time-controls {
-       margin-top: 16px;
-       padding-top: 16px;
-       border-top: 1px solid #e5e7eb;
-       display: flex;
-       align-items: center;
-       gap: 12px;
-       flex-wrap: wrap;
-     }
-     
-     .product-selector .time-controls label {
-       font-weight: 600;
-       color: #374151;
-       min-width: 80px;
-     }
-     
-     .product-selector .time-controls .date-filter {
-       padding: 8px 12px;
-       border: 2px solid #e5e7eb;
-       border-radius: 8px;
-       font-size: 14px;
-       transition: all 0.3s ease;
-       min-width: 200px;
-     }
-     
-     .product-selector .time-controls .date-filter:focus,
-     .time-controls .date-filter:focus {
-       outline: none;
-       border-color: #3b82f6;
-       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-     }
-     
-     /* 独立的时间控件样式 */
-     .time-controls {
-       display: flex;
-       align-items: center;
-       gap: 12px;
-       padding: 16px;
-       background: #f9fafb;
-       border-radius: 8px;
-       border: 1px solid #e5e7eb;
-     }
-     
-     .time-controls label {
-       color: #374151;
-       font-weight: 600;
-       font-size: 14px;
-       white-space: nowrap;
-     }
-     
-     .time-controls .date-filter {
-       flex: 1;
-       max-width: 200px;
-       padding: 8px 12px;
-       border: 1px solid #d1d5db;
-       border-radius: 6px;
-       font-size: 14px;
-       transition: all 0.3s ease;
-       min-width: 200px;
-     }
-     
-     .time-controls .notice {
-       color: #6b7280;
-       font-size: 12px;
-       white-space: nowrap;
-     }
+    /* 移除独立时间控件样式 */
      
      .product-selector img {
        border-radius: 8px;
@@ -522,60 +468,7 @@
      .analysis-kpi-card:nth-child(3) { animation-delay: 0.3s; }
      .analysis-kpi-card:nth-child(4) { animation-delay: 0.4s; }
      
-     /* 新增：优化产品详情分析页面的UI */
-     .product-info-panel {
-       background: #f9fafb;
-       border-radius: 12px;
-       padding: 20px;
-       margin-bottom: 24px;
-       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-       border: 1px solid #e5e7eb;
-     }
-     
-     .product-header {
-       display: flex;
-       justify-content: space-around;
-       align-items: center;
-       gap: 20px;
-       flex-wrap: wrap;
-     }
-     
-     .product-id, .product-link, .product-listing-date {
-       text-align: center;
-       flex: 1;
-       min-width: 150px;
-     }
-     
-     .product-id h4, .product-link h4, .product-listing-date h4 {
-       color: #374151;
-       font-size: 14px;
-       font-weight: 600;
-       margin-bottom: 8px;
-     }
-     
-     .product-id p, .product-listing-date p {
-       color: #1f2937;
-       font-size: 24px;
-       font-weight: 700;
-       margin: 0;
-       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-     }
-     
-     .product-link-btn {
-       background: #3b82f6;
-       color: white;
-       padding: 10px 20px;
-       border-radius: 8px;
-       font-size: 16px;
-       font-weight: 600;
-       text-decoration: none;
-       transition: background-color 0.3s ease;
-       display: inline-block;
-     }
-     
-     .product-link-btn:hover {
-       background: #2563eb;
-     }
+     /* 产品详情分析部分已移除 */
   </style>
 </head>
 <body class="fm">
@@ -648,18 +541,18 @@
     <div class="upload-section">
       <div class="upload-top">
         <div class="controls">
-          <label for="fileInput" class="upload-btn">选择文件</label>
-          <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
-          <span class="notice">（上传→服务端入库→可视化与明细展示）</span>
-          <span id="progress" class="progress"></span>
-        </div>
-        <div class="controls">
           <span>粒度：</span>
           <span class="sel" style="background:#1f2937;color:#fff;border-color:#334155;cursor:not-allowed">按日</span>
           <input type="hidden" id="granularity" value="day">
           <span>日期：</span>
           <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
           <div id="statusDisplay" class="status-display">数据加载完成</div>
+        </div>
+        <div id="uploadControls">
+          <label for="fileInput" class="btn">上传数据</label>
+          <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none">
+          <button id="refreshBtn" class="btn">刷新</button>
+          <span id="progress" class="notice"></span>
         </div>
       </div>
       <div class="divider"></div>
@@ -727,119 +620,60 @@
       <!-- 运营分析 -->
       <section id="analysis" class="analysis-container" style="display:none;">
 
-                     <!-- 运营分析KPI卡片 - 合并为一层 -->
-           <div id="analysisKpi" class="analysis-kpi-grid">
-             <div class="analysis-kpi-card">
-               <h4>总展示数</h4>
-               <p id="totalExposure">0</p>
-               <div id="exposureComparison" class="kpi-comparison"></div>
-             </div>
-             <div class="analysis-kpi-card">
-               <h4>详情页访客数</h4>
-               <p id="totalVisitors">0</p>
-               <div id="visitorsComparison" class="kpi-comparison"></div>
-             </div>
-             <div class="analysis-kpi-card">
-               <h4>加购次数</h4>
-               <p id="totalAddCount">0</p>
-               <div id="addCountComparison" class="kpi-comparison"></div>
-             </div>
-             <div class="analysis-kpi-card">
-               <h4>订购商品数</h4>
-               <p id="totalPayItems">0</p>
-               <div id="payItemsComparison" class="kpi-comparison"></div>
-             </div>
-             <div class="analysis-kpi-card">
-               <h4>有曝光商品数</h4>
-               <p id="exposedProducts">0</p>
-               <div id="exposedProductsComparison" class="kpi-comparison"></div>
-             </div>
-             <div class="analysis-kpi-card">
-               <h4>有加购商品数</h4>
-               <p id="cartedProducts">0</p>
-               <div id="cartedProductsComparison" class="kpi-comparison"></div>
-             </div>
-             <div class="analysis-kpi-card">
-               <h4>有支付商品数</h4>
-               <p id="paidProducts">0</p>
-               <div id="paidProductsComparison" class="kpi-comparison"></div>
-             </div>
-           </div>
-          
-          <!-- 对比图表 -->
-          <div class="charts-grid">
-            <div class="chart-panel">
-              <h3>总展示数对比</h3>
-              <div id="exposureComparisonChart" style="width:100%;height:300px;"></div>
-            </div>
-            <div class="chart-panel">
-              <h3>详情页访客数对比</h3>
-              <div id="visitorsComparisonChart" style="width:100%;height:300px;"></div>
-            </div>
-            <div class="chart-panel">
-              <h3>加购次数对比</h3>
-              <div id="addCountComparisonChart" style="width:100%;height:300px;"></div>
-            </div>
-            <div class="chart-panel">
-              <h3>订购商品数对比</h3>
-              <div id="payItemsComparisonChart" style="width:100%;height:300px;"></div>
-            </div>
-            <div class="chart-panel">
-              <h3>有曝光商品数对比</h3>
-              <div id="exposedProductsComparisonChart" style="width:100%;height:300px;"></div>
-            </div>
-            <div class="chart-panel">
-              <h3>有加购商品数对比</h3>
-              <div id="cartedProductsComparisonChart" style="width:100%;height:300px;"></div>
-            </div>
-            <div class="chart-panel">
-              <h3>有支付商品数对比</h3>
-              <div id="paidProductsComparisonChart" style="width:100%;height:300px;"></div>
-            </div>
+        <!-- 运营分析访客/加购/支付比趋势 -->
+        <div id="analysisKpi" class="analysis-kpi-grid">
+          <div class="analysis-kpi-card">
+            <h4>访客比</h4>
+            <div id="visitorRateChart" style="width:100%;height:240px;"></div>
           </div>
+          <div class="analysis-kpi-card">
+            <h4>加购比</h4>
+            <div id="cartRateChart" style="width:100%;height:240px;"></div>
+          </div>
+          <div class="analysis-kpi-card">
+            <h4>支付比</h4>
+            <div id="payRateChart" style="width:100%;height:240px;"></div>
+          </div>
+        </div>
+        <div class="grid grid-2" style="margin-top:16px;">
+          <div class="panel">
+            <h3>转化漏斗</h3>
+            <div id="funnel" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>周期对比（曝光 / 加购件数 / 支付订单数）</h3>
+            <div id="sumCompareBar" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>Top10 访客比（UV/曝光）</h3>
+            <div id="vrBar" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>Top10 加购→支付 转化率</h3>
+            <div id="payBar" style="width:100%;height:320px;"></div>
+          </div>
+        </div>
       </section>
-             <!-- 产品分析 -->
-      <section id="products" class="analysis-container" style="display:none;">
-          <h3 style="font-size: 20px; color: #6b7280; margin-bottom: 10px;">产品详情分析</h3>
-           
-           <!-- 产品基本信息 -->
-           <div class="product-info-panel">
-             <div class="product-header">
-               <div class="product-id">
-                 <h4>产品ID</h4>
-                 <p id="currentProductId">--</p>
-               </div>
-               <div class="product-link">
-                 <h4>产品链接</h4>
-                 <a id="productLink" href="#" target="_blank" class="product-link-btn">查看产品</a>
-               </div>
-               <div class="product-listing-date">
-                 <h4>上架时间</h4>
-                 <p id="productListingDate">2025-07-03</p>
-               </div>
-             </div>
-           </div>
-          
-           <!-- 产品选择器 -->
-            <div class="product-selector">
-              <div class="controls">
-                <label>产品：</label>
-                <select id="productSelect" class="sel">
-                  <option value="">加载中...</option>
-              </select>
-                <span class="notice">（按曝光量排序）</span>
-                <div class="product-count-info">
-                  <span>产品总数：<strong id="productTotalCount">0</strong></span>
-            </div>
-          </div>
-          </div>
 
-            <!-- 时间周期控件 - 移到第二排 -->
-            <div class="time-controls" style="margin-top: 16px;">
-              <label>时间周期：</label>
-              <input id="productDateFilter" class="date-filter" placeholder="选择日期范围">
-              <span class="notice">（默认显示最近7天）</span>
+      <!-- 产品分析 -->
+      <section id="products" class="analysis-container" style="display:none;">
+        <div class="product-selector">
+          <div class="controls">
+            <label>时间周期：</label>
+            <input id="productDateFilter" class="date-filter" placeholder="选择日期范围">
+            <span class="notice">（默认显示最近7天）</span>
+            <label style="margin-left:8px;">产品：</label>
+            <select id="productSelect" class="sel">
+              <option value="">加载中...</option>
+            </select>
+            <span class="notice">（按曝光量排序）</span>
+            <a id="productLink" href="#" target="_blank" style="margin-left:8px;display:none;word-break:break-all;white-space:normal;flex:1 1 auto;"></a>
+            <span id="listingDate" style="margin-left:8px;"></span>
+            <div class="product-count-info">
+              <span>产品总数：<strong id="productTotalCount">0</strong></span>
             </div>
+          </div>
+        </div>
            
                        <!-- 产品KPI - 单个产品的KPI指标 -->
             <div id="productKpi" class="analysis-kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
@@ -898,7 +732,6 @@
               <h3>支付比趋势</h3>
               <div id="productPayRateChart" style="width:100%;height:260px;"></div>
             </div>
-          </div>
           </div>
       </section>
     </div>
@@ -1047,8 +880,7 @@ $('#fileInput').on('change', function(e) {
     }
     const today = new Date();
     const to = today.toISOString().slice(0,10);
-    // 如果今天是2024年或更早，使用2025-07-01作为开始日期
-const from = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime()-30*86400000).toISOString().slice(0,10);
+    const from = new Date(today.getTime() - 6 * 86400000).toISOString().slice(0,10);
     return { from, to };
   }
   function ensureCard(){
@@ -1238,42 +1070,51 @@ document.addEventListener('DOMContentLoaded', ()=>{
   window.handlePlatformSwitch = handlePlatformSwitch;
   
   // 运营分析数据加载
-  async function loadAnalysisData() {
+  async function loadAnalysisData(range) {
     try {
-      const dateRange = getDateRange();
+      const { start, end } = range;
       const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
-      
-      console.log('开始加载运营分析数据:', { dateRange, currentSite });
-      
-      // 构建查询参数 - 使用GET请求而不是POST
-      const queryParams = new URLSearchParams({
-        start: dateRange.start,
-        end: dateRange.end,
+
+      console.log('开始加载运营分析数据:', { start, end, currentSite });
+
+      const { prevStart, prevEnd } = getPreviousRange(start, end);
+
+      const currentParams = new URLSearchParams({
+        start,
+        end,
         granularity: 'day',
         site: currentSite,
-        aggregate: 'time'  // 使用'time'而不是true
+        aggregate: 'time'
       });
-      
-      // 获取当前周期数据 - 使用GET请求
-      const currentResponse = await fetch(`/api/ae_query?${queryParams.toString()}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+
+      const prevParams = new URLSearchParams({
+        start: prevStart,
+        end: prevEnd,
+        granularity: 'day',
+        site: currentSite,
+        aggregate: 'time'
       });
-      
-      if (!currentResponse.ok) {
-        throw new Error(`API响应错误: ${currentResponse.status} ${currentResponse.statusText}`);
+
+      const [currentResponse, prevResponse] = await Promise.all([
+        fetch(`/api/ae_query?${currentParams.toString()}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } }),
+        fetch(`/api/ae_query?${prevParams.toString()}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
+      ]);
+
+      if (!currentResponse.ok || !prevResponse.ok) {
+        throw new Error(`API响应错误: ${currentResponse.status}/${prevResponse.status}`);
       }
-      
+
       const currentData = await currentResponse.json();
-      console.log('运营分析数据响应:', currentData);
-      
-      if (currentData.ok && currentData.rows) {  // 注意：API返回的是rows而不是data
-        // 更新KPI卡片
-        updateAnalysisKPI(currentData.rows);
-        // 渲染图表
-        renderAnalysisCharts(currentData.rows);
+      const prevData = await prevResponse.json();
+      console.log('运营分析数据响应:', currentData, prevData);
+
+      if (currentData.ok && currentData.rows && prevData.ok && prevData.rows) {
+        renderAnalysisCharts(currentData.rows, prevData.rows);
+        renderPeriodCompareChart(currentData.rows, prevData.rows);
+        renderFunnelChart(currentData.rows, prevData.rows);
+        renderTopCharts(currentData.rows);
       } else {
-        console.warn('运营分析数据格式不正确:', currentData);
+        console.warn('运营分析数据格式不正确:', currentData, prevData);
         showAnalysisError('数据格式不正确，请检查API响应');
       }
     } catch (error) {
@@ -1326,47 +1167,72 @@ document.addEventListener('DOMContentLoaded', ()=>{
       productsSection.insertBefore(errorMsg, productsSection.firstChild);
     }
   }
-  
+
+  // 获取所有历史产品列表
+  async function fetchAllProducts(site) {
+    const today = new Date().toISOString().slice(0, 10);
+    const qs = new URLSearchParams({
+      platform: 'self',
+      site,
+      from: '2025-07-01',
+      to: today
+    });
+    const resp = await fetch('/api/new-products?' + qs.toString());
+    const data = await resp.json();
+    if (!resp.ok || !data.ok) throw new Error(data.msg || '获取全部产品失败');
+    return data.items || data.rows || [];
+  }
+
            // 产品分析数据加载 - 加载产品列表并按曝光量排序
-    async function loadProductAnalysisData() {
+    async function loadProductAnalysisData(range) {
       try {
-        const dateRange = getProductDateRange();
+        const { start, end } = range;
         const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
-        
-        console.log('开始加载产品分析数据:', { dateRange, currentSite });
-        
+
+        console.log('开始加载产品分析数据:', { range, currentSite });
+
         // 初始化产品页面的时间控件
         initializeProductDateFilter();
-        
+
         // 构建查询参数 - 使用GET请求而不是POST
         const queryParams = new URLSearchParams({
-          start: dateRange.start,
-          end: dateRange.end,
+          start,
+          end,
           granularity: 'day',
           site: currentSite,
-          aggregate: 'product'  // 使用'product'获取产品级别的数据
+          aggregate: 'product'
         });
-        
-        // 获取产品列表 - 使用GET请求
-        const productsResponse = await fetch(`/api/ae_query?${queryParams.toString()}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
+
+        // 并行获取统计数据和全部产品
+        const [productsResponse, allProducts] = await Promise.all([
+          fetch(`/api/ae_query?${queryParams.toString()}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+          }),
+          fetchAllProducts(currentSite)
+        ]);
+
         if (!productsResponse.ok) {
           throw new Error(`API响应错误: ${productsResponse.status} ${productsResponse.statusText}`);
         }
-        
+
         const productsData = await productsResponse.json();
         console.log('产品列表数据响应:', productsData);
-        
+
         if (productsData.ok && productsData.rows) {
+          // 合并统计数据与历史产品列表
+          const statsMap = new Map(productsData.rows.map(r => [r.product_id, r]));
+          const mergedProducts = allProducts.map(p => ({
+            product_id: p.product_id,
+            exposure: statsMap.get(p.product_id)?.exposure || 0
+          }));
+
           // 按曝光量排序产品
-          const sortedProducts = productsData.rows.sort((a, b) => (b.exposure || 0) - (a.exposure || 0));
-          
+          const sortedProducts = mergedProducts.sort((a, b) => (b.exposure || 0) - (a.exposure || 0));
+
           // 更新产品总数
-          document.getElementById('productTotalCount').textContent = sortedProducts.length;
-          
+          document.getElementById('productTotalCount').textContent = mergedProducts.length;
+
           // 填充产品选择器
           populateProductSelect(sortedProducts);
 
@@ -1374,25 +1240,36 @@ document.addEventListener('DOMContentLoaded', ()=>{
           const storedPid = localStorage.getItem('selectedProductId');
           if (storedPid && sortedProducts.some(p => p.product_id === storedPid)) {
             document.getElementById('productSelect').value = storedPid;
-            await loadProductData(storedPid);
+            await loadProductData(storedPid, range);
             localStorage.removeItem('selectedProductId');
           } else if (sortedProducts.length > 0) {
             // 默认选择曝光量最大的产品
             const topProduct = sortedProducts[0];
             console.log('默认选择曝光量最大的产品:', topProduct.product_id);
             document.getElementById('productSelect').value = topProduct.product_id;
-            await loadProductData(topProduct.product_id);
+            await loadProductData(topProduct.product_id, range);
           }
         } else {
           console.warn('产品列表数据格式不正确:', productsData);
           showProductAnalysisError('数据格式不正确，请检查API响应');
         }
-      } catch (error) {
+    } catch (error) {
         console.error('加载产品分析数据失败:', error);
         showProductAnalysisError(`加载产品分析数据失败: ${error.message}`);
       }
     }
-    
+
+    // 根据当前时间范围重新加载运营与产品分析数据
+    async function fetchAndRenderAll() {
+      const range = getDateRange();
+      await loadAnalysisData(range);
+      await loadProductAnalysisData(range);
+      const currentProductId = document.getElementById('productSelect')?.value;
+      if (currentProductId) {
+        await loadProductData(currentProductId, range);
+      }
+    }
+
     // 初始化产品页面的时间控件
     function initializeProductDateFilter() {
       const productDateFilter = document.getElementById('productDateFilter');
@@ -1409,21 +1286,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
           mode: 'range',
           dateFormat: 'Y-m-d',
           defaultDate: [start, end],
-          onChange: function(selectedDates, dateStr) {
+          onChange: async function(selectedDates, dateStr) {
             if (selectedDates.length === 2) {
               console.log('产品分析时间范围变更:', dateStr);
               // 同步主页面时间控件
               const mainDateFilter = document.getElementById('dateFilter');
               if (mainDateFilter) {
                 mainDateFilter.value = dateStr;
-                // 触发主页面时间变更事件
-                const event = new Event('change', { bubbles: true });
-                mainDateFilter.dispatchEvent(event);
               }
               // 重新加载产品数据
               const currentProductId = document.getElementById('productSelect').value;
-              if (currentProductId) {
-                loadProductData(currentProductId);
+              if (typeof fetchAndRenderAll === 'function') {
+                await fetchAndRenderAll();
               }
             }
           }
@@ -1450,7 +1324,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         mode: 'range',
         dateFormat: 'Y-m-d',
         defaultDate: [start, end],
-        onChange: function(selectedDates, dateStr) {
+        onChange: async function(selectedDates, dateStr) {
           if (selectedDates.length === 2) {
             console.log('主页面时间范围变更:', dateStr);
             // 同步产品分析页面时间控件
@@ -1460,7 +1334,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
             }
             // 重新加载数据
             if (typeof fetchAndRenderAll === 'function') {
-              fetchAndRenderAll();
+              await fetchAndRenderAll();
             }
           }
         }
@@ -1483,150 +1357,159 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     return { start, end };
   }
-  
-     // 更新运营分析KPI
-   function updateAnalysisKPI(data) {
-     console.log('更新运营分析KPI，数据:', data);
-     
-     // 计算新的KPI指标
-     const totalExposure = data.reduce((sum, item) => sum + (item.exposure || 0), 0);
-     const totalVisitors = data.reduce((sum, item) => sum + (item.visitors || 0), 0);
-     const totalAddCount = data.reduce((sum, item) => sum + (item.add_people || 0), 0); // 使用add_people字段计算加购次数
-     const totalPayItems = data.reduce((sum, item) => sum + (item.pay_items || 0), 0);
-     
-     // 计算商品数量（去重）
-     const exposedProducts = new Set(data.filter(item => item.exposure > 0).map(item => item.product_id)).size;
-    const cartedProducts = new Set(data.filter(item => item.add_people > 1).map(item => item.product_id)).size; // 使用add_people字段判断有加购商品数
-     const paidProducts = new Set(data.filter(item => item.pay_items > 0).map(item => item.product_id)).size;
-    
-    console.log('KPI计算结果:', {
-      totalExposure,
-      totalVisitors, 
-      totalAddCount,
-      totalPayItems,
-      exposedProducts,
-      cartedProducts,
-      paidProducts
-    });
-    
-    // 更新KPI显示
-    document.getElementById('totalExposure').textContent = totalExposure.toLocaleString();
-    document.getElementById('totalVisitors').textContent = totalVisitors.toLocaleString();
-    document.getElementById('totalAddCount').textContent = totalAddCount.toLocaleString();
-    document.getElementById('totalPayItems').textContent = totalPayItems.toLocaleString();
-    document.getElementById('exposedProducts').textContent = exposedProducts.toLocaleString();
-    document.getElementById('cartedProducts').textContent = cartedProducts.toLocaleString();
-    document.getElementById('paidProducts').textContent = paidProducts.toLocaleString();
+
+  function getPreviousRange(start, end) {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const days = Math.round((endDate - startDate) / 86400000) + 1;
+    const prevEnd = new Date(startDate);
+    prevEnd.setDate(prevEnd.getDate() - 1);
+    const prevStart = new Date(prevEnd);
+    prevStart.setDate(prevStart.getDate() - (days - 1));
+    return {
+      prevStart: prevStart.toISOString().slice(0, 10),
+      prevEnd: prevEnd.toISOString().slice(0, 10)
+    };
   }
-  
-  // 渲染运营分析对比图表
-  async function renderAnalysisCharts(data) {
-    console.log('渲染运营分析对比图表，数据:', data);
-    
-    // 获取上一周期数据进行对比
-    const previousData = await getPreviousPeriodData();
-    
-         // 计算当前周期数据
-     const currentData = {
-       exposure: data.reduce((sum, item) => sum + (item.exposure || 0), 0),
-       visitors: data.reduce((sum, item) => sum + (item.visitors || 0), 0),
-       addCount: data.reduce((sum, item) => sum + (item.add_people || 0), 0), // 使用add_people字段计算加购次数
-       payItems: data.reduce((sum, item) => sum + (item.pay_items || 0), 0),
-       exposedProducts: new Set(data.filter(item => item.exposure > 0).map(item => item.product_id)).size,
-      cartedProducts: new Set(data.filter(item => item.add_people > 1).map(item => item.product_id)).size, // 使用add_people字段判断有加购商品数
-       paidProducts: new Set(data.filter(item => item.pay_items > 0).map(item => item.product_id)).size
-     };
-     
-     // 计算上一周期数据
-     const previousDataCalculated = previousData ? {
-       exposure: previousData.reduce((sum, item) => sum + (item.exposure || 0), 0),
-       visitors: previousData.reduce((sum, item) => sum + (item.visitors || 0), 0),
-       addCount: previousData.reduce((sum, item) => sum + (item.add_people || 0), 0), // 使用add_people字段计算加购次数
-       payItems: previousData.reduce((sum, item) => sum + (item.pay_items || 0), 0),
-       exposedProducts: new Set(previousData.filter(item => item.exposure > 0).map(item => item.product_id)).size,
-      cartedProducts: new Set(previousData.filter(item => item.add_people > 1).map(item => item.product_id)).size, // 使用add_people字段判断有加购商品数
-       paidProducts: new Set(previousData.filter(item => item.pay_items > 0).map(item => item.product_id)).size
-     } : null;
-    
-    // 渲染总展示数对比图
-    renderComparisonChart('exposureComparisonChart', '总展示数对比', 
-      currentData.exposure, previousDataCalculated?.exposure || 0, '总展示数');
-    
-    // 渲染详情页访客数对比图
-    renderComparisonChart('visitorsComparisonChart', '详情页访客数对比', 
-      currentData.visitors, previousDataCalculated?.visitors || 0, '详情页访客数');
-    
-    // 渲染加购次数对比图
-    renderComparisonChart('addCountComparisonChart', '加购次数对比', 
-      currentData.addCount, previousDataCalculated?.addCount || 0, '加购次数');
-    
-    // 渲染订购商品数对比图
-    renderComparisonChart('payItemsComparisonChart', '订购商品数对比', 
-      currentData.payItems, previousDataCalculated?.payItems || 0, '订购商品数');
-    
-    // 渲染有曝光商品数对比图
-    renderComparisonChart('exposedProductsComparisonChart', '有曝光商品数对比', 
-      currentData.exposedProducts, previousDataCalculated?.exposedProducts || 0, '有曝光商品数');
-    
-    // 渲染有加购商品数对比图
-    renderComparisonChart('cartedProductsComparisonChart', '有加购商品数对比', 
-      currentData.cartedProducts, previousDataCalculated?.cartedProducts || 0, '有加购商品数');
-    
-    // 渲染有支付商品数对比图
-    renderComparisonChart('paidProductsComparisonChart', '有支付商品数对比', 
-      currentData.paidProducts, previousDataCalculated?.paidProducts || 0, '有支付商品数');
+  // 渲染运营分析访客比、加购比、支付比趋势图
+  function renderAnalysisCharts(currentRows, previousRows) {
+    console.log('渲染运营分析对比图表，数据:', currentRows, previousRows);
+
+    function extractRates(rs) {
+      if (!rs) return { dates: [], vr: [], cr: [], pr: [] };
+      const sorted = [...rs].sort((a, b) => {
+        const da = a.day || a.date || a.bucket || a.stat_date || '';
+        const db = b.day || b.date || b.bucket || b.stat_date || '';
+        return da.localeCompare(db);
+      });
+      const dates = sorted.map(r => r.day || r.date || r.bucket || r.stat_date || '');
+      const vr = sorted.map(r => {
+        const exposure = r.exposure || 0;
+        const visitors = r.visitors || 0;
+        return exposure > 0 ? (visitors / exposure * 100) : 0;
+      });
+      const cr = sorted.map(r => {
+        const visitors = r.visitors || 0;
+        const add = r.add_people || 0;
+        return visitors > 0 ? (add / visitors * 100) : 0;
+      });
+      const pr = sorted.map(r => {
+        const add = r.add_people || 0;
+        const pay = r.pay_buyers || 0;
+        return add > 0 ? (pay / add * 100) : 0;
+      });
+      return { dates, vr, cr, pr };
+    }
+
+    const current = extractRates(currentRows);
+    const prev = extractRates(previousRows);
+    const align = arr => current.dates.map((_, i) => arr[i] ?? null);
+
+    renderRateChart('visitorRateChart', current.dates, current.vr, align(prev.vr));
+    renderRateChart('cartRateChart', current.dates, current.cr, align(prev.cr));
+    renderRateChart('payRateChart', current.dates, current.pr, align(prev.pr));
   }
-  
-  // 渲染对比柱状图
-  function renderComparisonChart(chartId, title, currentValue, previousValue, label) {
-    const chart = echarts.init(document.getElementById(chartId));
+
+  // 初始化并使图表自适应容器
+  function initResponsiveChart(id, option) {
+    const el = typeof id === 'string' ? document.getElementById(id) : id;
+    let chart = echarts.getInstanceByDom(el);
+    if (!chart) {
+      chart = echarts.init(el);
+      const resize = () => chart.resize();
+      window.addEventListener('resize', resize);
+      if (window.ResizeObserver) {
+        new ResizeObserver(resize).observe(el);
+      }
+    } else {
+      chart.clear();
+    }
+    chart.setOption(option, true);
+    chart.resize();
+    return chart;
+  }
+
+  // 渲染折线图
+  function renderRateChart(id, dates, currentSeries, prevSeries) {
     const option = {
-      title: { 
-        text: title, 
-        textStyle: { color: '#374151', fontSize: 16 },
-        subtext: `${label}: ${currentValue.toLocaleString()}`,
-        subtextStyle: { color: '#6b7280', fontSize: 14 }
-      },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: function(params) {
-          const data = params[0];
-          return `${data.name}<br/>${data.seriesName}: ${data.value.toLocaleString()}`;
-        }
-      },
-      legend: {
-        data: ['当前周期', '上一周期'],
-        textStyle: { color: '#374151' }
-      },
-      xAxis: { 
-        type: 'category', 
-        data: ['当前周期', '上一周期'],
-        axisLabel: { color: '#374151', fontSize: 12 }
-      },
-      yAxis: { 
-        type: 'value',
-        axisLabel: { color: '#374151', fontSize: 12 }
-      },
+      tooltip: { trigger: 'axis', valueFormatter: v => `${v.toFixed(2)}%` },
+      legend: { data: ['当前周期', '上一周期'], textStyle: { color: '#374151' } },
+      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      xAxis: { type: 'category', data: dates, axisLabel: { color: '#374151' } },
+      yAxis: { type: 'value', axisLabel: { formatter: v => v.toFixed(2) + '%', color: '#374151' } },
       series: [
-        {
-          name: '当前周期',
-          data: [currentValue, 0],
-          type: 'bar',
-          itemStyle: { color: '#3B82F6' },
-          barWidth: '40%'
-        },
-        {
-          name: '上一周期',
-          data: [0, previousValue],
-          type: 'bar',
-          itemStyle: { color: '#10B981' },
-          barWidth: '40%'
-        }
+        { name: '当前周期', type: 'line', data: currentSeries },
+        { name: '上一周期', type: 'line', data: prevSeries }
       ]
     };
-    chart.setOption(option);
+    initResponsiveChart(id, option);
   }
-  
+
+  function renderPeriodCompareChart(currentRows, previousRows) {
+    const sum = rows => ({
+      exp: rows.reduce((t, r) => t + (r.exposure || 0), 0),
+      add: rows.reduce((t, r) => t + (r.add_count || 0), 0),
+      pay: rows.reduce((t, r) => t + (r.pay_orders || 0), 0)
+    });
+    const cur = sum(currentRows);
+    const prev = sum(previousRows);
+    const cats = ['曝光','加购件数','支付订单数'];
+    const option = {
+      tooltip:{ trigger:'axis', axisPointer:{ type:'shadow' } },
+      legend:{ data:['本期','上期'], textStyle:{ color:'#374151' } },
+      xAxis:{ type:'category', data: cats, axisLabel:{ color:'#374151' } },
+      yAxis:{ type:'value', axisLabel:{ color:'#374151' } },
+      series:[
+        { name:'本期', type:'bar', data:[cur.exp, cur.add, cur.pay], label:{show:true, position:'top'} },
+        { name:'上期', type:'bar', data:[prev.exp, prev.add, prev.pay], label:{show:true, position:'top'} }
+      ]
+    };
+    initResponsiveChart('sumCompareBar', option);
+  }
+
+  function renderFunnelChart(rowsA, rowsB) {
+    const sum = rows => rows.reduce((a, r) => ({
+      exp: a.exp + (r.exposure || 0),
+      uv: a.uv + (r.visitors || 0),
+      atc: a.atc + (r.add_people || 0),
+      pay: a.pay + (r.pay_buyers || 0)
+    }), {exp:0,uv:0,atc:0,pay:0});
+    const A = sum(rowsA); const B = sum(rowsB);
+    const option = {
+      tooltip:{trigger:'item',formatter:'{a} - {b}: {c}'},
+      legend:{data:['本期','上期'],textStyle:{color:'#374151'}},
+      series:[
+        { name:'本期', type:'funnel', left:'5%', width:'40%', sort:'none', label:{color:'#374151'},
+          data:[{name:'曝光',value:A.exp},{name:'访客',value:A.uv},{name:'加购人数',value:A.atc},{name:'支付买家数',value:A.pay}] },
+        { name:'上期', type:'funnel', left:'55%', width:'40%', sort:'none', label:{color:'#374151'},
+          data:[{name:'曝光',value:B.exp},{name:'访客',value:B.uv},{name:'加购人数',value:B.atc},{name:'支付买家数',value:B.pay}] }
+      ]
+    };
+    initResponsiveChart('funnel', option);
+  }
+
+  function topByRate(rows, denKey, numKey, elId, minDen){
+    const list = rows.map(x=>{
+      const den = toNum(x[denKey]||0), num = toNum(x[numKey]||0);
+      const rate = den>0 ? num/den : 0;
+      return { id:String(x.product_id||''), rate, den };
+    }).filter(o=>o.den>=(minDen||1)).sort((a,b)=>b.rate-a.rate).slice(0,10);
+    const names = list.map(o=>o.id), vals = list.map(o=>Number((o.rate*100).toFixed(2)));
+    const option = {
+      tooltip:{trigger:'axis',axisPointer:{type:'shadow'},formatter:p=>p[0].name+': '+p[0].value+'%'},
+      xAxis:{type:'category',data:names,axisLabel:{color:'#374151',rotate:45}},
+      yAxis:{type:'value',axisLabel:{color:'#374151',formatter:'{value}%'}},
+      series:[{type:'bar',data:vals,barMaxWidth:24,itemStyle:{color:'#3b82f6'}}],
+      grid:{left:40,right:20,top:30,bottom:60}
+    };
+    initResponsiveChart(elId, option);
+  }
+
+  function renderTopCharts(rows){
+    topByRate(rows,'exposure','visitors','vrBar',50);
+    topByRate(rows,'add_people','pay_buyers','payBar',5);
+  }
+
      // 填充产品选择器
    function populateProductSelect(data) {
      const productSelect = document.getElementById('productSelect');
@@ -1651,27 +1534,23 @@ document.addEventListener('DOMContentLoaded', ()=>{
        const selectedProductId = this.value;
        if (selectedProductId) {
          console.log('选择产品:', selectedProductId);
-         loadProductData(selectedProductId);
+         loadProductData(selectedProductId, getDateRange());
        }
      });
    }
   
            // 加载特定产品数据
-    async function loadProductData(productId) {
+    async function loadProductData(productId, range) {
       try {
-        const dateRange = getProductDateRange();
+        const { start, end } = range || getDateRange();
         const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
-        
-        console.log('开始加载产品数据:', { productId, dateRange, currentSite });
-        
-        // 更新产品基本信息
-        document.getElementById('currentProductId').textContent = productId;
-        document.getElementById('productLink').href = `https://aliexpress.com/item/${productId}.html`;
-        
+
+        console.log('开始加载产品数据:', { productId, range: { start, end }, currentSite });
+
         // 构建查询参数 - 使用GET请求而不是POST
         const queryParams = new URLSearchParams({
-          start: dateRange.start,
-          end: dateRange.end,
+          start,
+          end,
           granularity: 'day',
           site: currentSite,
           aggregate: 'time'  // 使用'time'获取时间序列数据
@@ -1693,10 +1572,26 @@ document.addEventListener('DOMContentLoaded', ()=>{
           // 过滤出指定产品的数据
           const productData = data.rows.filter(item => item.product_id === productId);
           if (productData.length > 0) {
-            updateProductKPI(productData);
-            renderProductCharts(productData);
-            document.getElementById('productCharts').style.display = 'grid';
+            const dates = productData.map(item => item.day || item.date || '').filter(Boolean).sort();
+            const listingEl = document.getElementById('listingDate');
+            if (listingEl) {
+              listingEl.textContent = dates.length ? `上架日期：${dates[0]}` : '';
+            }
+            const url = `https://aliexpress.com/item/${productId}.html`;
+            const linkEl = document.getElementById('productLink');
+            if (linkEl) {
+              linkEl.href = url;
+              linkEl.textContent = url;
+              linkEl.style.display = '';
+            }
+            const previousProductData = await getPreviousProductData(productId);
+            updateProductKPI(productData, previousProductData);
+            renderProductCharts(productData, previousProductData);
           } else {
+            const linkEl = document.getElementById('productLink');
+            if (linkEl) linkEl.style.display = 'none';
+            const listingEl = document.getElementById('listingDate');
+            if (listingEl) listingEl.textContent = '';
             showProductDataError('未找到该产品的数据');
           }
         } else {
@@ -1710,9 +1605,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   
            // 更新产品KPI - 计算单个产品的KPI指标，包含与上一周期的对比
-    async function updateProductKPI(data) {
+    async function updateProductKPI(data, previousData) {
       if (!data || data.length === 0) return;
-      
+
       console.log('更新产品KPI，数据:', data);
       
       // 计算当前周期的KPI指标
@@ -1728,11 +1623,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
        const currentAvgVisitorRate = currentTotalExposure > 0 ? (currentTotalVisitors / currentTotalExposure * 100).toFixed(2) : 0;
        const currentAvgCartRate = currentTotalVisitors > 0 ? (currentTotalAddPeople / currentTotalVisitors * 100).toFixed(2) : 0; // 使用add_people计算加购比
        const currentAvgPayRate = currentTotalAddPeople > 0 ? (currentTotalPayItems / currentTotalAddPeople * 100).toFixed(2) : 0; // 使用add_people计算支付比
-      
-      // 获取上一周期数据进行对比
-      const previousData = await getPreviousPeriodData();
+
       let comparisonData = {};
-      
       if (previousData && previousData.length > 0) {
                  const previousTotalExposure = previousData.reduce((sum, item) => sum + (item.exposure || 0), 0);
          const previousTotalVisitors = previousData.reduce((sum, item) => sum + (item.visitors || 0), 0);
@@ -1871,47 +1763,46 @@ document.addEventListener('DOMContentLoaded', ()=>{
         `<span class="${payBuyersColor}">${payBuyersSymbol} ${Math.abs(payBuyersChange).toLocaleString()}</span>`;
     }
     
-    // 获取上一周期数据
-    async function getPreviousPeriodData() {
-      try {
-        const dateRange = getProductDateRange();
-        const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
-        
-        // 计算上一周期的日期范围
-        const currentStart = new Date(dateRange.start);
-        const currentEnd = new Date(dateRange.end);
-        const periodDays = Math.ceil((currentEnd - currentStart) / (1000 * 60 * 60 * 24));
-        
-        const previousEnd = new Date(currentStart);
-        previousEnd.setDate(previousEnd.getDate() - 1);
-        const previousStart = new Date(previousEnd);
-        previousStart.setDate(previousStart.getDate() - periodDays + 1);
-        
-        const queryParams = new URLSearchParams({
-          start: previousStart.toISOString().slice(0, 10),
-          end: previousEnd.toISOString().slice(0, 10),
-          granularity: 'day',
-          site: currentSite,
-          aggregate: 'time'
-        });
-        
-        const response = await fetch(`/api/ae_query?${queryParams.toString()}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.ok && data.rows) {
-            return data.rows;
-          }
+
+  // 获取指定产品的上一周期数据
+  async function getPreviousProductData(productId) {
+    try {
+      const { start, end } = getProductDateRange();
+      const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+
+      const currentStart = new Date(start);
+      const currentEnd = new Date(end);
+      const periodDays = Math.ceil((currentEnd - currentStart) / (1000 * 60 * 60 * 24));
+
+      const previousEnd = new Date(currentStart);
+      previousEnd.setDate(previousEnd.getDate() - 1);
+      const previousStart = new Date(previousEnd);
+      previousStart.setDate(previousStart.getDate() - periodDays + 1);
+
+      const queryParams = new URLSearchParams({
+        start: previousStart.toISOString().slice(0, 10),
+        end: previousEnd.toISOString().slice(0, 10),
+        granularity: 'day',
+        site: currentSite,
+        aggregate: 'time'
+      });
+
+      const response = await fetch(`/api/ae_query?${queryParams.toString()}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.ok && data.rows) {
+          return data.rows.filter(item => item.product_id === productId);
         }
-      } catch (error) {
-        console.error('获取上一周期数据失败:', error);
       }
-      
-      return null;
+    } catch (error) {
+      console.error('获取上一周期产品数据失败:', error);
     }
+    return null;
+  }
     
     // 获取产品分析页面的日期范围
     function getProductDateRange() {
@@ -1929,9 +1820,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   
   // 渲染产品图表
-  function renderProductCharts(data) {
-    console.log('渲染产品图表，数据:', data);
-    
+  function renderProductCharts(data, previousData = []) {
+    console.log('渲染产品图表，数据:', data, previousData);
+
+    // 显示图表容器以确保宽度正确
+    const chartsContainer = document.getElementById('productCharts');
+    chartsContainer.style.display = 'grid';
+
     // 获取日期标签 - 优先使用bucket，如果没有则使用stat_date
     const getDateLabel = (item) => {
       if (item.bucket && item.bucket !== 'undefined') return item.bucket;
@@ -1939,113 +1834,165 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if (item.bucket_label && item.bucket_label !== 'undefined') return item.bucket_label;
       return '未知日期';
     };
-    
+
     const dateLabels = data.map(getDateLabel);
     console.log('产品图表日期标签:', dateLabels);
-    
+
     // 产品曝光趋势图
-    const productExposureChart = echarts.init(document.getElementById('productExposureChart'));
     const productExposureOption = {
       title: { text: '曝光趋势', textStyle: { color: '#374151' } },
       tooltip: { trigger: 'axis' },
-      xAxis: { 
-        type: 'category', 
+      legend: { data: ['本周期', '上一周期'], textStyle: { color: '#374151' } },
+      xAxis: {
+        type: 'category',
         data: dateLabels,
         axisLabel: { color: '#374151', fontSize: 12 }
       },
-      yAxis: { 
+      yAxis: {
         type: 'value',
         axisLabel: { color: '#374151', fontSize: 12 }
       },
-      series: [{
-        data: data.map(item => item.exposure || 0),
-        type: 'line',
-        smooth: true,
-        itemStyle: { color: '#3B82F6' }
-      }]
+      series: [
+        {
+          name: '本周期',
+          data: data.map(item => item.exposure || 0),
+          type: 'line',
+          smooth: true,
+          itemStyle: { color: '#3B82F6' }
+        },
+        {
+          name: '上一周期',
+          data: previousData.map(item => item.exposure || 0),
+          type: 'line',
+          smooth: true,
+          itemStyle: { color: '#94A3B8' }
+        }
+      ]
     };
-    productExposureChart.setOption(productExposureOption);
-    
+    initResponsiveChart('productExposureChart', productExposureOption);
+
     // 访客比趋势图
-    const productVisitorRateChart = echarts.init(document.getElementById('productVisitorRateChart'));
     const productVisitorRateOption = {
       title: { text: '访客比趋势', textStyle: { color: '#374151' } },
       tooltip: { trigger: 'axis' },
-      xAxis: { 
-        type: 'category', 
+      legend: { data: ['本周期', '上一周期'], textStyle: { color: '#374151' } },
+      xAxis: {
+        type: 'category',
         data: dateLabels,
         axisLabel: { color: '#374151', fontSize: 12 }
       },
-      yAxis: { 
+      yAxis: {
         type: 'value',
         axisLabel: { color: '#374151', fontSize: 12, formatter: '{value}%' }
       },
-      series: [{
-        data: data.map(item => {
-          const exposure = item.exposure || 0;
-          const visitors = item.visitors || 0;
-          return exposure > 0 ? ((visitors / exposure) * 100).toFixed(2) : 0;
-        }),
-        type: 'line',
-        smooth: true,
-        itemStyle: { color: '#10B981' }
-      }]
+      series: [
+        {
+          name: '本周期',
+          data: data.map(item => {
+            const exposure = item.exposure || 0;
+            const visitors = item.visitors || 0;
+            return exposure > 0 ? ((visitors / exposure) * 100).toFixed(2) : 0;
+          }),
+          type: 'line',
+          smooth: true,
+          itemStyle: { color: '#10B981' }
+        },
+        {
+          name: '上一周期',
+          data: previousData.map(item => {
+            const exposure = item.exposure || 0;
+            const visitors = item.visitors || 0;
+            return exposure > 0 ? ((visitors / exposure) * 100).toFixed(2) : 0;
+          }),
+          type: 'line',
+          smooth: true,
+          itemStyle: { color: '#6EE7B7' }
+        }
+      ]
     };
-    productVisitorRateChart.setOption(productVisitorRateOption);
-    
-         // 加购比趋势图
-     const productAddRateChart = echarts.init(document.getElementById('productAddRateChart'));
-     const productAddRateOption = {
+    initResponsiveChart('productVisitorRateChart', productVisitorRateOption);
+
+    // 加购比趋势图
+    const productAddRateOption = {
        title: { text: '加购比趋势', textStyle: { color: '#374151' } },
        tooltip: { trigger: 'axis' },
-       xAxis: { 
-         type: 'category', 
+       legend: { data: ['本周期', '上一周期'], textStyle: { color: '#374151' } },
+       xAxis: {
+         type: 'category',
          data: dateLabels,
          axisLabel: { color: '#374151', fontSize: 12 }
        },
-       yAxis: { 
+       yAxis: {
          type: 'value',
          axisLabel: { color: '#374151', fontSize: 12, formatter: '{value}%' }
        },
-       series: [{
-         data: data.map(item => {
-           const visitors = item.visitors || 0;
-           const addPeople = item.add_people || 0; // 使用add_people字段计算加购比
-           return visitors > 0 ? ((addPeople / visitors) * 100).toFixed(2) : 0;
-         }),
-         type: 'line',
-         smooth: true,
-         itemStyle: { color: '#F59E0B' }
-       }]
+       series: [
+         {
+           name: '本周期',
+           data: data.map(item => {
+             const visitors = item.visitors || 0;
+             const addPeople = item.add_people || 0;
+             return visitors > 0 ? ((addPeople / visitors) * 100).toFixed(2) : 0;
+           }),
+           type: 'line',
+           smooth: true,
+           itemStyle: { color: '#F59E0B' }
+         },
+         {
+           name: '上一周期',
+           data: previousData.map(item => {
+             const visitors = item.visitors || 0;
+             const addPeople = item.add_people || 0;
+             return visitors > 0 ? ((addPeople / visitors) * 100).toFixed(2) : 0;
+           }),
+           type: 'line',
+           smooth: true,
+           itemStyle: { color: '#FCD34D' }
+         }
+       ]
      };
-     productAddRateChart.setOption(productAddRateOption);
-    
-         // 支付比趋势图
-     const productPayRateChart = echarts.init(document.getElementById('productPayRateChart'));
-     const productPayRateOption = {
+     initResponsiveChart('productAddRateChart', productAddRateOption);
+
+    // 支付比趋势图
+    const productPayRateOption = {
        title: { text: '支付比趋势', textStyle: { color: '#374151' } },
        tooltip: { trigger: 'axis' },
-       xAxis: { 
-         type: 'category', 
+       legend: { data: ['本周期', '上一周期'], textStyle: { color: '#374151' } },
+       xAxis: {
+         type: 'category',
          data: dateLabels,
          axisLabel: { color: '#374151', fontSize: 12 }
        },
-       yAxis: { 
+       yAxis: {
          type: 'value',
-         axisLabel: { color: '#374151', fontSize: 12, formatter: '{value}%' } 
+         axisLabel: { color: '#374151', fontSize: 12, formatter: '{value}%' }
        },
-       series: [{
-         data: data.map(item => {
-           const addPeople = item.add_people || 0; // 使用add_people字段计算支付比
-           const payItems = item.pay_items || 0;
-           return addPeople > 0 ? ((payItems / addPeople) * 100).toFixed(2) : 0;
-         }),
-         type: 'line',
-         smooth: true,
-         itemStyle: { color: '#EF4444' }
-       }]
+       series: [
+         {
+           name: '本周期',
+           data: data.map(item => {
+             const addPeople = item.add_people || 0;
+             const payItems = item.pay_items || 0;
+             return addPeople > 0 ? ((payItems / addPeople) * 100).toFixed(2) : 0;
+           }),
+           type: 'line',
+           smooth: true,
+           itemStyle: { color: '#EF4444' }
+         },
+         {
+           name: '上一周期',
+           data: previousData.map(item => {
+             const addPeople = item.add_people || 0;
+             const payItems = item.pay_items || 0;
+             return addPeople > 0 ? ((payItems / addPeople) * 100).toFixed(2) : 0;
+           }),
+           type: 'line',
+           smooth: true,
+           itemStyle: { color: '#FCA5A5' }
+         }
+       ]
      };
-     productPayRateChart.setOption(productPayRateOption);
+     initResponsiveChart('productPayRateChart', productPayRateOption);
   }
   
   const userArea=document.getElementById('userArea');
@@ -2102,9 +2049,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
        
        // 根据路由加载相应数据
        if (hash === 'analysis') {
-         loadAnalysisData();
+         loadAnalysisData(getDateRange());
        } else if (hash === 'products') {
-         loadProductAnalysisData();
+         loadProductAnalysisData(getDateRange());
        }
      }
    }
@@ -2133,8 +2080,25 @@ document.addEventListener('DOMContentLoaded', ()=>{
      // 初始化hash路由
    handleHashRoute();
    
-   // 添加双击产品跳转功能
-   addProductDoubleClickHandler();
+  // 添加双击产品跳转功能
+  addProductDoubleClickHandler();
+
+  const uploadControls = document.getElementById('uploadControls');
+  function toggleUploadControls(){
+    const hash = location.hash.replace('#','') || 'detail';
+    if (uploadControls) uploadControls.style.display = hash === 'detail' ? '' : 'none';
+  }
+  window.addEventListener('hashchange', toggleUploadControls);
+  toggleUploadControls();
+
+  const refreshBtn = document.getElementById('refreshBtn');
+  if (refreshBtn){
+    refreshBtn.addEventListener('click', ()=>{
+      if (typeof fetchAndRenderAll === 'function') {
+        fetchAndRenderAll();
+      }
+    });
+  }
    
    // 导航点击处理
    document.querySelectorAll('.sub-nav a').forEach(a => {
