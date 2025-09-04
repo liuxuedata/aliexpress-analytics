@@ -676,6 +676,8 @@
           <div class="controls">
             <label>产品：</label>
             <select id="productSelect" class="sel"></select>
+            <a id="productLink" href="#" target="_blank" style="margin-left:8px;display:none;word-break:break-all;white-space:normal;"></a>
+            <span id="productListingDate" style="margin-left:8px;"></span>
           </div>
         </div>
         
@@ -1009,31 +1011,52 @@ async function getIndependentPreviousPeriodData() {
 function populateIndependentProductSelect(data) {
   const productSelect = document.getElementById('productSelect');
   if (!productSelect) return;
-  
+
   // 清空现有选项
   productSelect.innerHTML = '<option value="">选择产品</option>';
-  
-  // 获取唯一产品
-  const uniqueProducts = [...new Set(data.map(item => item.product))];
-  
-  uniqueProducts.forEach(product => {
+
+  // 按曝光量排序的唯一 landing page
+  const seen = new Set();
+  const list = [];
+  data.forEach(item => {
+    const key = item.landing_path;
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    list.push({
+      path: key,
+      name: item.product || key,
+      url: item.landing_url || '',
+      firstSeen: item.first_seen_date || '',
+      impr: item.impr || 0
+    });
+  });
+  list.sort((a,b)=> b.impr - a.impr);
+
+  list.forEach(p => {
     const option = document.createElement('option');
-    option.value = product;
-    option.textContent = product;
+    option.value = p.path;
+    option.textContent = p.name;
+    option.dataset.url = p.url;
+    option.dataset.firstSeen = p.firstSeen;
     productSelect.appendChild(option);
   });
-  
+
   // 添加产品选择事件
   productSelect.addEventListener('change', function() {
-    const selectedProduct = this.value;
-    if (selectedProduct) {
-      loadIndependentProductData(selectedProduct);
+    const opt = this.selectedOptions[0];
+    if (opt && opt.value) {
+      loadIndependentProductData(opt.value, opt.dataset.url, opt.dataset.firstSeen);
+    } else {
+      const linkEl = document.getElementById('productLink');
+      if (linkEl) linkEl.style.display = 'none';
+      const dateEl = document.getElementById('productListingDate');
+      if (dateEl) dateEl.textContent = '';
     }
   });
 }
 
 // 加载特定产品的分析数据
-async function loadIndependentProductData(product) {
+async function loadIndependentProductData(landingPath, landingUrl, firstSeen) {
   try {
     showLoading();
     const rawSite = document.getElementById('site').value || getParam('site');
@@ -1046,8 +1069,17 @@ async function loadIndependentProductData(product) {
     const json = await res.json();
     if (!json.ok) return;
 
-    const rows = (json.table || []).filter(item => item.product === product);
+    const rows = (json.table || []).filter(item => item.landing_path === landingPath);
     if (!rows.length) return;
+
+    const linkEl = document.getElementById('productLink');
+    if (linkEl && landingUrl) {
+      linkEl.href = landingUrl;
+      linkEl.textContent = landingUrl;
+      linkEl.style.display = '';
+    }
+    const dateEl = document.getElementById('productListingDate');
+    if (dateEl) dateEl.textContent = firstSeen ? `上架日期：${firstSeen}` : '';
 
     const totalClicks = rows.reduce((s, r) => s + (r.clicks || 0), 0);
     const totalImpr = rows.reduce((s, r) => s + (r.impr || r.impressions || 0), 0);
