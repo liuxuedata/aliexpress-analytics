@@ -206,19 +206,19 @@
       text-shadow: none;
     }
     
-         /* 分析KPI卡片网格 */
-     .analysis-kpi-grid {
-       display: grid;
-       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-       gap: 16px;
-       margin-bottom: 24px;
-     }
-     
-     /* 运营分析KPI卡片特殊样式 - 合并两层为一层 */
-     #analysis .analysis-kpi-grid {
-       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-       gap: 12px;
-     }
+    /* 分析KPI卡片网格 */
+    .analysis-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    /* 运营分析KPI卡片特殊样式 - 两列布局 */
+    #analysis .analysis-kpi-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
     
          .analysis-kpi-card {
        background: white;
@@ -357,27 +357,35 @@
       min-width: 60px;
     }
     
+    .product-selector .date-filter,
     .product-selector .sel {
       min-width: 200px;
       padding: 8px 12px;
-      border: 2px solid #e5e7eb;
-      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
       font-size: 14px;
       transition: all 0.3s ease;
     }
-    
-         .product-selector .sel:focus {
-       outline: none;
-       border-color: #3b82f6;
-       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-     }
+
+    .product-selector .date-filter:focus,
+    .product-selector .sel:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
      
-     .product-selector .product-count-info {
-       margin-left: auto;
-       padding: 8px 16px;
-       background: #f3f4f6;
-       border-radius: 6px;
-       font-size: 14px;
+    .product-selector .notice {
+      color: #6b7280;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .product-selector .product-count-info {
+      margin-left: auto;
+      padding: 8px 16px;
+      background: #f3f4f6;
+      border-radius: 6px;
+      font-size: 14px;
        color: #374151;
      }
      
@@ -386,46 +394,7 @@
        font-weight: 600;
      }
      
-     .time-controls .date-filter:focus {
-       outline: none;
-       border-color: #3b82f6;
-       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-     }
-     
-     /* 独立的时间控件样式 */
-     .time-controls {
-       display: flex;
-       align-items: center;
-       gap: 12px;
-       padding: 16px;
-       background: #f9fafb;
-       border-radius: 8px;
-       border: 1px solid #e5e7eb;
-     }
-     
-     .time-controls label {
-       color: #374151;
-       font-weight: 600;
-       font-size: 14px;
-       white-space: nowrap;
-     }
-     
-     .time-controls .date-filter {
-       flex: 1;
-       max-width: 200px;
-       padding: 8px 12px;
-       border: 1px solid #d1d5db;
-       border-radius: 6px;
-       font-size: 14px;
-       transition: all 0.3s ease;
-       min-width: 200px;
-     }
-     
-     .time-controls .notice {
-       color: #6b7280;
-       font-size: 12px;
-       white-space: nowrap;
-     }
+    /* 移除独立时间控件样式 */
      
      .product-selector img {
        border-radius: 8px;
@@ -654,42 +623,38 @@
         <div id="analysisKpi" class="analysis-kpi-grid">
           <div class="analysis-kpi-card">
             <h4>访客比</h4>
-            <div id="visitorRateChart" style="width:100%;height:160px;"></div>
+            <div id="visitorRateChart" style="width:100%;height:240px;"></div>
           </div>
           <div class="analysis-kpi-card">
             <h4>加购比</h4>
-            <div id="cartRateChart" style="width:100%;height:160px;"></div>
+            <div id="cartRateChart" style="width:100%;height:240px;"></div>
           </div>
           <div class="analysis-kpi-card">
             <h4>支付比</h4>
-            <div id="payRateChart" style="width:100%;height:160px;"></div>
+            <div id="payRateChart" style="width:100%;height:240px;"></div>
           </div>
         </div>
       </section>
-             <!-- 产品分析 -->
-      <section id="products" class="analysis-container" style="display:none;">
-            <!-- 时间周期控件 -->
-            <div class="time-controls">
-              <label>时间周期：</label>
-              <input id="productDateFilter" class="date-filter" placeholder="选择日期范围">
-              <span class="notice">（默认显示最近7天）</span>
-            </div>
 
-           <!-- 产品选择器 -->
-            <div class="product-selector">
-              <div class="controls">
-                <label>产品：</label>
-                <select id="productSelect" class="sel">
-                  <option value="">加载中...</option>
-                </select>
-                <span class="notice">（按曝光量排序）</span>
-                <a id="productLink" href="#" target="_blank" style="margin-left:8px;display:none;word-break:break-all;white-space:normal;flex:1 1 auto;"></a>
-                <span id="listingDate" style="margin-left:8px;"></span>
-                <div class="product-count-info">
-                  <span>产品总数：<strong id="productTotalCount">0</strong></span>
-                </div>
-              </div>
+      <!-- 产品分析 -->
+      <section id="products" class="analysis-container" style="display:none;">
+        <div class="product-selector">
+          <div class="controls">
+            <label>时间周期：</label>
+            <input id="productDateFilter" class="date-filter" placeholder="选择日期范围">
+            <span class="notice">（默认显示最近7天）</span>
+            <label style="margin-left:8px;">产品：</label>
+            <select id="productSelect" class="sel">
+              <option value="">加载中...</option>
+            </select>
+            <span class="notice">（按曝光量排序）</span>
+            <a id="productLink" href="#" target="_blank" style="margin-left:8px;display:none;word-break:break-all;white-space:normal;flex:1 1 auto;"></a>
+            <span id="listingDate" style="margin-left:8px;"></span>
+            <div class="product-count-info">
+              <span>产品总数：<strong id="productTotalCount">0</strong></span>
             </div>
+          </div>
+        </div>
            
                        <!-- 产品KPI - 单个产品的KPI指标 -->
             <div id="productKpi" class="analysis-kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
@@ -1404,14 +1369,19 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // 初始化并使图表自适应容器
   function initResponsiveChart(id, option) {
     const el = typeof id === 'string' ? document.getElementById(id) : id;
-    const chart = echarts.init(el);
-    chart.setOption(option);
-    const resize = () => chart.resize();
-    window.addEventListener('resize', resize);
-    if (window.ResizeObserver) {
-      new ResizeObserver(resize).observe(el);
+    let chart = echarts.getInstanceByDom(el);
+    if (!chart) {
+      chart = echarts.init(el);
+      const resize = () => chart.resize();
+      window.addEventListener('resize', resize);
+      if (window.ResizeObserver) {
+        new ResizeObserver(resize).observe(el);
+      }
+    } else {
+      chart.clear();
     }
-    resize();
+    chart.setOption(option, true);
+    chart.resize();
     return chart;
   }
 
@@ -1463,7 +1433,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
            // 加载特定产品数据
     async function loadProductData(productId) {
       try {
-        const dateRange = getProductDateRange();
+        const dateRange = getDateRange();
         const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
         
         console.log('开始加载产品数据:', { productId, dateRange, currentSite });
@@ -1687,7 +1657,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     // 获取上一周期数据
   async function getPreviousPeriodData() {
       try {
-        const dateRange = getProductDateRange();
+        const dateRange = getDateRange();
         const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
         
         // 计算上一周期的日期范围
