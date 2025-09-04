@@ -183,8 +183,16 @@
     <div id="avgRatioTrend" style="width:100%;height:320px;"></div>
   </div>
   <div class="panel">
-    <h3>访客/加购/支付总数趋势（近三个月）</h3>
-    <div id="totalTrend" style="width:100%;height:320px;"></div>
+    <h3>访客近三个月数据曲线</h3>
+    <div id="visitTrend" style="width:100%;height:320px;"></div>
+  </div>
+  <div class="panel">
+    <h3>加购近三个月数据曲线</h3>
+    <div id="addTrend" style="width:100%;height:320px;"></div>
+  </div>
+  <div class="panel">
+    <h3>支付次数近三个月数据曲线</h3>
+    <div id="payTrend" style="width:100%;height:320px;"></div>
   </div>
 </section>
 
@@ -370,7 +378,7 @@
 
       renderAnalysis(window._rowsA, window._rowsB);
       renderAvgRatioTrend();
-      renderTotalTrend();
+      renderTotalTrends();
       setStatus('加载完成');
     }catch(err){
       console.error(err);
@@ -781,7 +789,7 @@ async function renderAvgRatioTrend(){
 }
 </script>
 <script>
-async function renderTotalTrend(){
+async function renderTotalTrends(){
   try{
     const period = $("#periodSelect").val();
     const qs = new URLSearchParams();
@@ -794,19 +802,30 @@ async function renderTotalTrend(){
     const visit = rows.map(x=>x.uv_total);
     const add = rows.map(x=>x.add_total);
     const pay = rows.map(x=>x.pay_total);
-    const option = {
+
+    const vOpt = {
       tooltip:{trigger:"axis"},
-      legend:{data:["访客总数","加购总数","支付总数"], textStyle:{color:"#374151"}},
       xAxis:{type:"category", data:dates, axisLabel:{color:"#374151"}},
       yAxis:{type:"value", axisLabel:{color:"#374151"}},
-      series:[
-        {name:"访客总数", type:"line", smooth:true, data:visit},
-        {name:"加购总数", type:"line", smooth:true, data:add},
-        {name:"支付总数", type:"line", smooth:true, data:pay}
-      ]
+      series:[{name:"访客总数", type:"line", smooth:true, data:visit}]
     };
-    initResponsiveChart("totalTrend", option);
-  }catch(e){ console.error("totalTrend", e); }
+    const aOpt = {
+      tooltip:{trigger:"axis"},
+      xAxis:{type:"category", data:dates, axisLabel:{color:"#374151"}},
+      yAxis:{type:"value", axisLabel:{color:"#374151"}},
+      series:[{name:"加购总数", type:"line", smooth:true, data:add}]
+    };
+    const pOpt = {
+      tooltip:{trigger:"axis"},
+      xAxis:{type:"category", data:dates, axisLabel:{color:"#374151"}},
+      yAxis:{type:"value", axisLabel:{color:"#374151"}},
+      series:[{name:"支付总数", type:"line", smooth:true, data:pay}]
+    };
+
+    initResponsiveChart("visitTrend", vOpt);
+    initResponsiveChart("addTrend", aOpt);
+    initResponsiveChart("payTrend", pOpt);
+  }catch(e){ console.error("totalTrends", e); }
 }
 </script>
 
