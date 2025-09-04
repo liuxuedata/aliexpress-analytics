@@ -1456,8 +1456,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
   function renderSummaryBarChart(currentRows, previousRows) {
     const sum = rows => ({
       exp: rows.reduce((t, r) => t + (r.exposure || 0), 0),
-      add: rows.reduce((t, r) => t + (r.add_count || 0), 0),
-      pay: rows.reduce((t, r) => t + (r.pay_orders || 0), 0)
+      add: rows.reduce((t, r) => t + (r.add_people || 0), 0),
+      pay: rows.reduce((t, r) => t + (r.pay_items || 0), 0)
     });
     const cur = sum(currentRows);
     const prev = sum(previousRows);
@@ -1841,7 +1841,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
     // 产品曝光趋势图
     const productExposureOption = {
-      title: { text: '曝光趋势', textStyle: { color: '#374151' } },
       tooltip: { trigger: 'axis' },
       legend: { data: ['本周期', '上一周期'], textStyle: { color: '#374151' } },
       xAxis: {
@@ -1874,7 +1873,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
     // 访客比趋势图
     const productVisitorRateOption = {
-      title: { text: '访客比趋势', textStyle: { color: '#374151' } },
       tooltip: { trigger: 'axis' },
       legend: { data: ['本周期', '上一周期'], textStyle: { color: '#374151' } },
       xAxis: {
@@ -1915,7 +1913,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
     // 加购比趋势图
     const productAddRateOption = {
-       title: { text: '加购比趋势', textStyle: { color: '#374151' } },
        tooltip: { trigger: 'axis' },
        legend: { data: ['本周期', '上一周期'], textStyle: { color: '#374151' } },
        xAxis: {
@@ -1956,7 +1953,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
     // 支付比趋势图
     const productPayRateOption = {
-       title: { text: '支付比趋势', textStyle: { color: '#374151' } },
        tooltip: { trigger: 'axis' },
        legend: { data: ['本周期', '上一周期'], textStyle: { color: '#374151' } },
        xAxis: {
