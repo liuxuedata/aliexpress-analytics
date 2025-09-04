@@ -547,6 +547,11 @@
           <span>日期：</span>
           <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
           <div id="statusDisplay" class="status-display">数据加载完成</div>
+          <div id="uploadControls" style="display:flex;align-items:center;gap:8px;">
+            <button id="uploadBtn" class="btn">上传数据</button>
+            <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none;">
+            <span id="progress" class="small"></span>
+          </div>
         </div>
       </div>
       <div class="divider"></div>
@@ -737,6 +742,7 @@ const GRID_LINE  = 'rgba(148,163,184,0.18)';
 //  - 下单商品件数（→ order_items）
 //  - 平均停留时长（秒）（→ avg_stay_seconds）
 //  - 搜索点击率（% 数值）（→ search_ctr）
+$('#uploadBtn').on('click', function(){ $('#fileInput').click(); });
 $('#fileInput').on('change', function(e) {
   const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();

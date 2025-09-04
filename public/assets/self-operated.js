@@ -71,6 +71,15 @@
       }
     }
 
+    // 切换内部页面时控制上传控件显示
+    switchInternalSection(target) {
+      super.switchInternalSection(target);
+      const controls = document.getElementById('uploadControls');
+      if (controls) {
+        controls.style.display = (target === 'detail') ? '' : 'none';
+      }
+    }
+
     // 更新页面标题显示当前站点名称
     updatePageTitle() {
       const siteSubtitleEl = document.getElementById('siteSubtitle');
@@ -142,12 +151,20 @@
         
         // 渲染数据表格
         await this.renderDataTable(rowsAggA, 'day');
-        
-                 // 更新状态为成功
-         this.updateStatus('数据加载完成', 'success');
-         
-         // 数据加载完成后，绑定新品筛选事件
-         this.bindNewProductsFilter();
+
+        // 同步刷新运营分析和产品分析图表
+        if (typeof window.loadAnalysisData === 'function') {
+          await window.loadAnalysisData();
+        }
+        if (typeof window.loadProductAnalysisData === 'function') {
+          await window.loadProductAnalysisData();
+        }
+
+        // 更新状态为成功
+        this.updateStatus('数据加载完成', 'success');
+
+        // 数据加载完成后，绑定新品筛选事件
+        this.bindNewProductsFilter();
          
        } catch (error) {
          console.error('数据加载失败:', error);

@@ -651,15 +651,17 @@ function renderProductCharts(pid, rowsA) {
   // Grouped sum comparison
   try{
     const el = document.getElementById('sumCompareBar'); if (el){
+      const atcProdA = new Set(rowsA.filter(r=>toNum(r.add_to_cart_qty||0)>0).map(r=>r.product_id)).size;
+      const atcProdB = new Set(rowsB.filter(r=>toNum(r.add_to_cart_qty||0)>0).map(r=>r.product_id)).size;
       const chart = echarts.init(el, null, {backgroundColor:'transparent'});
       chart.setOption({
         tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
         legend:{ data:[nameA,nameB], textStyle:{color:'#374151'} },
-        xAxis:{ type:'category', data:['曝光量','加购数(件)','支付数(订单)'], axisLabel:{color:'#374151'} },
+        xAxis:{ type:'category', data:['总展示数','详情页访客数','加购次数','订购次数','有加购商品数'], axisLabel:{color:'#374151'} },
         yAxis:{ type:'value', axisLabel:{color:'#374151'} },
         series:[
-          { name:nameA, type:'bar', data:[A.exp, A.atc_qty, A.pay_orders], barMaxWidth:28, itemStyle:{color:COLOR_A} },
-          { name:nameB, type:'bar', data:[B.exp, B.atc_qty, B.pay_orders], barMaxWidth:28, itemStyle:{color:COLOR_B} }
+          { name:nameA, type:'bar', data:[A.exp, A.uv, A.atc_qty, A.pay_orders, atcProdA], barMaxWidth:28, itemStyle:{color:COLOR_A}, label:{show:true,position:'top'} },
+          { name:nameB, type:'bar', data:[B.exp, B.uv, B.atc_qty, B.pay_orders, atcProdB], barMaxWidth:28, itemStyle:{color:COLOR_B}, label:{show:true,position:'top'} }
         ],
         grid:{ left:40, right:20, top:30, bottom:40 }
       });
