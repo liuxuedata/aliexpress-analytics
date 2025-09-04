@@ -179,10 +179,6 @@
     </div>
   </div>
   <div class="panel">
-    <h3>平均访客/加购/支付比趋势</h3>
-    <div id="avgRatioTrend" style="width:100%;height:320px;"></div>
-  </div>
-  <div class="panel">
     <h3>访客近三个月数据曲线</h3>
     <div id="visitTrend" style="width:100%;height:320px;"></div>
   </div>
@@ -386,7 +382,6 @@
       });
 
       renderAnalysis(window._rowsA, window._rowsB);
-      renderAvgRatioTrend();
       renderTotalTrends();
       setStatus('加载完成');
     }catch(err){
@@ -622,7 +617,6 @@
         setTimeout(() => {
           if (window.ratioChart) window.ratioChart.resize();
           if (window.topChart) window.topChart.resize();
-          if (window.avgRatioChart) window.avgRatioChart.resize();
         }, 30);
       } else if (hash === 'products') {
         const pid = $('#productSelect').val();
@@ -769,33 +763,6 @@
   topByRate(rowsA,'add_to_cart_users','pay_buyers','payBar',5);
 }
 
-async function renderAvgRatioTrend(){
-  try{
-    const period = $('#periodSelect').val();
-    const qs = new URLSearchParams();
-    if (period) qs.set('to', period);
-    const r = await fetch('/api/managed/ratio-trend?' + qs.toString());
-    const j = await r.json();
-    if (!j.ok) throw new Error(j.msg||'fetch error');
-    const rows = j.rows || [];
-    const dates = rows.map(x=>x.period_end);
-    const visit = rows.map(x=>x.visit_rate);
-    const add = rows.map(x=>x.add_rate);
-    const pay = rows.map(x=>x.pay_rate);
-    const option = {
-      tooltip:{trigger:'axis'},
-      legend:{data:['平均访客比','平均加购比','平均支付比'], textStyle:{color:'#374151'}},
-      xAxis:{type:'category',data:dates,axisLabel:{color:'#374151'}},
-      yAxis:{type:'value',axisLabel:{color:'#374151',formatter:'{value}%'}},
-      series:[
-        {name:'平均访客比', type:'line', smooth:true, data:visit},
-        {name:'平均加购比', type:'line', smooth:true, data:add},
-        {name:'平均支付比', type:'line', smooth:true, data:pay}
-      ]
-    };
-    window.avgRatioChart = initResponsiveChart('avgRatioTrend', option);
-  }catch(e){ console.error('ratioTrend', e); }
-}
 </script>
 <script>
 async function renderTotalTrends(){

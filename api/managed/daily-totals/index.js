@@ -16,22 +16,34 @@ module.exports = async (req, res) => {
       return d.toISOString().slice(0,10);
     })();
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('managed_stats')
-      .select('period_end, uv, add_to_cart_users, pay_buyers')
+      .select('period_end, uv, add_to_cart_users, add_people, pay_buyers, pay_items, pay_people')
       .eq('period_type', 'day')
       .gte('period_end', from)
       .lte('period_end', to)
       .order('period_end', { ascending: true });
-    if (error) throw error;
+    if (error || !data || !data.length) {
+      const resp = await supabase
+        .from('managed_stats')
+        .select('period_end, uv, add_to_cart_users, add_people, pay_buyers, pay_items, pay_people')
+        .eq('period_type', 'week')
+        .gte('period_end', from)
+        .lte('period_end', to)
+        .order('period_end', { ascending: true });
+      if (resp.error) throw resp.error;
+      data = resp.data || [];
+    }
 
     const map = {};
     (data || []).forEach(r => {
       const d = r.period_end;
       if (!map[d]) map[d] = { uv:0, add:0, pay:0 };
       map[d].uv += +r.uv || 0;
-      map[d].add += +r.add_to_cart_users || 0;
-      map[d].pay += +r.pay_buyers || 0;
+      const addUsers = r.add_to_cart_users ?? r.add_people ?? 0;
+      const payUsers = r.pay_buyers ?? r.pay_people ?? r.pay_items ?? 0;
+      map[d].add += +addUsers || 0;
+      map[d].pay += +payUsers || 0;
     });
 
     const rows = Object.keys(map).sort().map(d => ({
