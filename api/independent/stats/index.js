@@ -71,21 +71,6 @@ module.exports = async (req, res) => {
 
     if (!site) return res.status(400).json({ error: 'missing site param, e.g. ?site=poolsvacuum.com' });
 
-    // Fetch new product registrations within range
-    const newMap = new Map();
-    try {
-      const { data: newRows, error: e0 } = await supabase
-        .from('independent_first_seen')
-        .select('landing_path, first_seen_date')
-        .eq('site', site)
-        .gte('first_seen_date', fromDate)
-        .lte('first_seen_date', toDate);
-      if (e0) throw e0;
-      (newRows || []).forEach(r => newMap.set(r.landing_path, r.first_seen_date));
-    } catch (e) {
-      console.error('independent_first_seen lookup failed', e.message);
-    }
-
     // table data (fetch all pages up to limit)
     const limitNum = Math.min(Number(limit) || PAGE_SIZE, 20000);
     let table = [];
@@ -106,23 +91,56 @@ module.exports = async (req, res) => {
       if (!data.length || data.length < PAGE_SIZE) break;
     }
 
-    table = (table || []).map(r => ({
-      ...r,
-      product: extractName(r.landing_path),
-      clicks: safeNum(r.clicks),
-      impr: safeNum(r.impr),
-      ctr: safeNum(r.ctr),
-      avg_cpc: safeNum(r.avg_cpc),
-      cost: safeNum(r.cost),
-      conversions: safeNum(r.conversions),
-      cost_per_conv: safeNum(r.cost_per_conv),
-      all_conv: safeNum(r.all_conv),
-      conv_value: safeNum(r.conv_value),
-      all_conv_rate: safeNum(r.all_conv_rate),
-      conv_rate: safeNum(r.conv_rate),
-      is_new: newMap.has(r.landing_path),
-      first_seen_date: newMap.get(r.landing_path) || null
-    }));
+    // lookup first seen dates for all landing paths in the result set
+    const paths = Array.from(new Set(table.map(r => r.landing_path))).filter(Boolean);
+    const firstSeenMap = new Map();
+    if (paths.length) {
+      try {
+        const { data: fsRows, error: fsErr } = await supabase
+          .from('independent_first_seen')
+          .select('landing_path, first_seen_date')
+          .eq('site', site)
+          .in('landing_path', paths);
+        if (fsErr) throw fsErr;
+        (fsRows || []).forEach(r => firstSeenMap.set(r.landing_path, r.first_seen_date));
+      } catch (e) {
+        console.error('independent_first_seen lookup failed', e.message);
+      }
+    }
+
+    // total distinct products ever seen for this site
+    let productTotal = 0;
+    try {
+      const { count: totalCount, error: totalErr } = await supabase
+        .from('independent_first_seen')
+        .select('landing_path', { count: 'exact', head: true })
+        .eq('site', site);
+      if (totalErr) throw totalErr;
+      productTotal = totalCount || 0;
+    } catch (e) {
+      console.error('independent_first_seen count failed', e.message);
+    }
+
+    table = (table || []).map(r => {
+      const firstSeen = firstSeenMap.get(r.landing_path) || null;
+      return {
+        ...r,
+        product: extractName(r.landing_path),
+        clicks: safeNum(r.clicks),
+        impr: safeNum(r.impr),
+        ctr: safeNum(r.ctr),
+        avg_cpc: safeNum(r.avg_cpc),
+        cost: safeNum(r.cost),
+        conversions: safeNum(r.conversions),
+        cost_per_conv: safeNum(r.cost_per_conv),
+        all_conv: safeNum(r.all_conv),
+        conv_value: safeNum(r.conv_value),
+        all_conv_rate: safeNum(r.all_conv_rate),
+        conv_rate: safeNum(r.conv_rate),
+        is_new: firstSeen ? firstSeen >= fromDate && firstSeen <= toDate : false,
+        first_seen_date: firstSeen
+      };
+    });
 
     if (onlyNew) {
       table = table.filter(r => r.is_new);
@@ -249,7 +267,8 @@ module.exports = async (req, res) => {
 
     const byPath = {};
     for (const r of topPages) {
-      if (onlyNew && !newMap.has(r.landing_path)) continue;
+      const fs = firstSeenMap.get(r.landing_path);
+      if (onlyNew && !(fs && fs >= fromDate && fs <= toDate)) continue;
       const key = r.landing_path;
       if (!byPath[key]) byPath[key] = { path: key, url: r.landing_url, conversions: 0, conv_value: 0, clicks: 0, impr: 0, cost: 0 };
       byPath[key].conversions += safeNum(r.conversions);
@@ -294,7 +313,8 @@ module.exports = async (req, res) => {
       exposure_product_count: exposureSet.size,
       click_product_count: clickSet.size,
       conversion_product_count: convSet.size,
-      new_product_count: newMap.size,
+      new_product_count: Array.from(firstSeenMap.values()).filter(d => d >= fromDate && d <= toDate).length,
+      product_total: productTotal,
       new_impr: newImpr,
       new_clicks: newClicks,
       new_conversions: newConv

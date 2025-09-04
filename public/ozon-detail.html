@@ -234,6 +234,7 @@
       `<div class="kpi-card success"><h4>加购比<span class="help" onclick="alert('加购比 = 总加入购物车次数 / 浏览过商品详情页的独立访客')">?</span></h4><p>${(k.cart_rate.current*100).toFixed(2)}%</p><div class="kpi-comparison">${delta(k.cart_rate.current,k.cart_rate.previous,true)}</div></div>`,
       `<div class="kpi-card danger"><h4>支付比</h4><p>${(k.pay_rate.current*100).toFixed(2)}%</p><div class="kpi-comparison">${delta(k.pay_rate.current,k.pay_rate.previous,true)}</div></div>`,
       `<div class="kpi-card success"><h4>商品总数</h4><p>${k.product_total.current}</p><div class="kpi-comparison">${delta(k.product_total.current,k.product_total.previous,false)}</div></div>`,
+      `<div class="kpi-card info"><h4>展示商品数</h4><p>${k.exp_product_total.current}</p><div class="kpi-comparison">${delta(k.exp_product_total.current,k.exp_product_total.previous,false)}</div></div>`,
       `<div class="kpi-card warning"><h4>有加购商品总数</h4><p>${k.cart_product_total.current}</p><div class="kpi-comparison">${delta(k.cart_product_total.current,k.cart_product_total.previous,false)}</div></div>`,
       `<div class="kpi-card danger"><h4>有支付商品总数</h4><p>${k.pay_product_total.current}</p><div class="kpi-comparison">${delta(k.pay_product_total.current,k.pay_product_total.previous,false)}</div></div>`,
       `<div class="kpi-card info clickable" id="kpi-new"><h4>新品数</h4><p>${k.new_product_total}</p><div class="kpi-clear" style="display:${onlyNew?'block':'none'}"><a id="kpi-new-clear" class="mini-link">清除筛选</a></div></div>`

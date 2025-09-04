@@ -22,7 +22,7 @@
     // 默认日期范围
     DEFAULT_DATE_RANGE: {
       start: '2025-07-01',
-      days: 30
+      days: 7
     },
     
     // API端点
@@ -101,17 +101,26 @@
     // 初始化站点信息
     async initSiteInfo() {
       const currentPath = window.location.pathname;
-      
+      const params = new URLSearchParams(window.location.search);
+
       if (currentPath.includes('self-operated')) {
         // 自运营页面
-        this.currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
-        this.currentSiteName = localStorage.getItem('currentSiteName') || '自运营robot站';
+        const siteParam = params.get('site');
+        const siteNameParam = params.get('siteName') || params.get('site_name');
+        this.currentSite = siteParam || localStorage.getItem('currentSite') || 'ae_self_operated_a';
+        this.currentSiteName = siteNameParam || siteParam || localStorage.getItem('currentSiteName') || '自运营站点';
+        localStorage.setItem('currentSite', this.currentSite);
+        localStorage.setItem('currentSiteName', this.currentSiteName);
       } else if (currentPath.includes('independent-site')) {
         // 独立站页面
-        this.currentSite = localStorage.getItem('currentIndepSite') || 'independent_poolsvacuum';
-        this.currentSiteName = localStorage.getItem('currentIndepSiteName') || 'poolsvacuum.com';
+        const siteParam = params.get('site');
+        const siteNameParam = params.get('siteName') || params.get('site_name');
+        this.currentSite = siteParam || localStorage.getItem('currentIndepSite') || 'independent_poolsvacuum';
+        this.currentSiteName = siteNameParam || siteParam || localStorage.getItem('currentIndepSiteName') || 'poolsvacuum.com';
+        localStorage.setItem('currentIndepSite', this.currentSite);
+        localStorage.setItem('currentIndepSiteName', this.currentSiteName);
       }
-      
+
       // 更新站点显示
       this.updateSiteDisplay();
     }

@@ -10,7 +10,7 @@
   // 默认站点配置
   const defaultSites = {
     ae_self_operated: [
-      { id: 'ae_self_operated_a', name: '自运营robot站', display_name: '自运营robot站' },
+      { id: 'ae_self_operated_a', name: '自运营站点', display_name: '自运营站点' },
       { id: 'ae_self_operated_poolslab', name: 'poolslab', display_name: 'Poolslab运动娱乐' }
     ],
     independent: [
@@ -23,7 +23,7 @@
   function getSiteDisplayName(siteId, platform) {
     if (platform === 'ae_self_operated') {
       const siteMap = {
-        'ae_self_operated_a': '自运营robot站',
+        'ae_self_operated_a': '自运营站点',
         'ae_self_operated_poolslab': 'Poolslab运动娱乐'
       };
       return siteMap[siteId] || `自运营 ${siteId}`;
@@ -117,8 +117,8 @@
           console.log('自运营页面使用映射名称:', displayName);
         } else {
           // 默认显示
-          currentSiteEl.textContent = '自运营robot站';
-          console.log('自运营页面使用默认名称: 自运营robot站');
+          currentSiteEl.textContent = '自运营站点';
+          console.log('自运营页面使用默认名称: 自运营站点');
         }
       } else {
         // 其他页面：尝试智能判断

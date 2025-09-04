@@ -59,15 +59,19 @@ module.exports = async (req, res) => {
 
     const idCol = platform === 'indep' ? 'landing_path' : 'product_id';
     const firstSeenCol = platform === 'indep' ? 'first_seen_date' : 'first_seen';
-    const selectCols = platform === 'indep' ? `site,${idCol},${firstSeenCol}` : `site,${idCol},${firstSeenCol}`;
+
+    // managed_new_products 视图不包含 site 列
+    const hasSite = platform !== 'managed';
+    const selectCols = hasSite ? `site,${idCol},${firstSeenCol}` : `${idCol},${firstSeenCol}`;
+
     let query = supabase
       .from(view)
       .select(selectCols)
       .gte(firstSeenCol, from)
       .lte(firstSeenCol, to);
-    
-    // 如果指定了站点，添加站点过滤
-    if (site && (platform === 'self' || platform === 'managed')) {
+
+    // 仅在视图包含 site 列时才应用站点过滤
+    if (hasSite && site) {
       query = query.eq('site', site);
     }
     

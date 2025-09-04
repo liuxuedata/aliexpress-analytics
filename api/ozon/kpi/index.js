@@ -65,17 +65,18 @@ module.exports = async function handler(req,res){
       function agg(rows){
         const sums={exposure:0,uv:0,cart:0,pay:0};
         const prodSet=new Set();
+        const expProds=new Set();
         const cartProds=new Set();
         const payProds=new Set();
         for(const r of rows){
           const id=idOf(r);
           prodSet.add(id);
-          const e=Number(r.voronka_prodazh_pokazy_vsego)||0; sums.exposure+=e;
+          const e=Number(r.voronka_prodazh_pokazy_vsego)||0; sums.exposure+=e; if(e>0) expProds.add(id);
           const u=Number(r.uv)||0; sums.uv+=u;
           const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; sums.cart+=c; if(c>0) cartProds.add(id);
           const p=Number(r.voronka_prodazh_zakazano_tovarov)||0; sums.pay+=p; if(p>0) payProds.add(id);
         }
-        return {sums, prodSet, cartProds, payProds, rows};
+        return {sums, prodSet, expProds, cartProds, payProds, rows};
       }
       const cur=agg(curResp.data||[]);
       const prev=agg(prevResp.data||[]);
@@ -87,6 +88,24 @@ module.exports = async function handler(req,res){
       const payRatePrev = prev.sums.cart ? prev.sums.pay / prev.sums.cart : 0;
       const newIds=[...cur.prodSet].filter(id=>!prev.prodSet.has(id));
       const newProducts=curResp.data.filter(r=>newIds.includes(idOf(r))).map(r=>({sku:r.sku,model:r.model,title:r.tovary}));
+
+      const allCurResp = await supabase
+        .schema('public')
+        .from(TABLE)
+        .select('sku,model')
+        .lte('den', end)
+        .limit(100000);
+      if(allCurResp.error) throw allCurResp.error;
+      const allPrevResp = await supabase
+        .schema('public')
+        .from(TABLE)
+        .select('sku,model')
+        .lte('den', prevEnd.toISOString().slice(0,10))
+        .limit(100000);
+      if(allPrevResp.error) throw allPrevResp.error;
+      const allCurSet = new Set((allCurResp.data||[]).map(idOf));
+      const allPrevSet = new Set((allPrevResp.data||[]).map(idOf));
+
       return res.json({
         ok:true,
         start,
@@ -95,7 +114,8 @@ module.exports = async function handler(req,res){
           visitor_rate:{current:visitorRate, previous:visitorRatePrev},
           cart_rate:{current:cartRate, previous:cartRatePrev},
           pay_rate:{current:payRate, previous:payRatePrev},
-          product_total:{current:cur.prodSet.size, previous:prev.prodSet.size},
+          product_total:{current:allCurSet.size, previous:allPrevSet.size},
+          exp_product_total:{current:cur.expProds.size, previous:prev.expProds.size},
           cart_product_total:{current:cur.cartProds.size, previous:prev.cartProds.size},
           pay_product_total:{current:cur.payProds.size, previous:prev.payProds.size},
           new_product_total:newProducts.length,
@@ -134,17 +154,18 @@ module.exports = async function handler(req,res){
     function agg(rows){
       const sums={exposure:0,uv:0,cart:0,pay:0};
       const prodSet=new Set();
+      const expProds=new Set();
       const cartProds=new Set();
       const payProds=new Set();
       for(const r of rows){
         const id=idOf(r);
         prodSet.add(id);
-        const e=Number(r.voronka_prodazh_pokazy_vsego)||0; sums.exposure+=e;
+        const e=Number(r.voronka_prodazh_pokazy_vsego)||0; sums.exposure+=e; if(e>0) expProds.add(id);
         const u=Number(r.uv)||0; sums.uv+=u;
         const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; sums.cart+=c; if(c>0) cartProds.add(id);
         const p=Number(r.voronka_prodazh_zakazano_tovarov)||0; sums.pay+=p; if(p>0) payProds.add(id);
       }
-      return {sums, prodSet, cartProds, payProds, rows};
+      return {sums, prodSet, expProds, cartProds, payProds, rows};
     }
     const cur=agg(curResp.data||[]);
     const prev=agg(prevResp.data||[]);
@@ -156,6 +177,27 @@ module.exports = async function handler(req,res){
     const payRatePrev = prev.sums.cart ? prev.sums.pay / prev.sums.cart : 0;
     const newIds=[...cur.prodSet].filter(id=>!prev.prodSet.has(id));
     const newProducts=cur.rows.filter(r=>newIds.includes(idOf(r))).map(r=>({sku:r.sku,model:r.model,title:r.tovary}));
+
+    const allCurResp = await supabase
+      .schema('public')
+      .from(TABLE)
+      .select('sku,model')
+      .lte('den', date)
+      .limit(100000);
+    if(allCurResp.error) throw allCurResp.error;
+    let allPrevSet = new Set();
+    if(prevDate){
+      const allPrevResp = await supabase
+        .schema('public')
+        .from(TABLE)
+        .select('sku,model')
+        .lte('den', prevDate)
+        .limit(100000);
+      if(allPrevResp.error) throw allPrevResp.error;
+      allPrevSet = new Set((allPrevResp.data||[]).map(idOf));
+    }
+    const allCurSet = new Set((allCurResp.data||[]).map(idOf));
+
     res.json({
       ok:true,
       date,
@@ -164,7 +206,8 @@ module.exports = async function handler(req,res){
         visitor_rate:{current:visitorRate, previous:visitorRatePrev},
         cart_rate:{current:cartRate, previous:cartRatePrev},
         pay_rate:{current:payRate, previous:payRatePrev},
-        product_total:{current:cur.prodSet.size, previous:prev.prodSet.size},
+        product_total:{current:allCurSet.size, previous:allPrevSet.size},
+        exp_product_total:{current:cur.expProds.size, previous:prev.expProds.size},
         cart_product_total:{current:cur.cartProds.size, previous:prev.cartProds.size},
         pay_product_total:{current:cur.payProds.size, previous:prev.payProds.size},
         new_product_total:newProducts.length,
