@@ -157,7 +157,7 @@
       <div id="funnel" style="width:100%;height:320px;"></div>
     </div>
     <div class="panel">
-      <h3>周期对比（曝光 / 加购件数 / 支付订单数）</h3>
+      <h3>周期对比（总展示数 / 详情页访客数 / 加购次数 / 订购次数 / 有加购商品数）</h3>
       <div id="sumCompareBar" style="width:100%;height:320px;"></div>
     </div>
     <div class="panel">
@@ -619,14 +619,15 @@ function renderProductCharts(pid, rowsA) {
   const nameA = window._periodA || '当前周期', nameB = window._periodB || '上一周期';
   const toNum=v=>{ if(v===null||v===undefined) return 0; const n=Number(String(v).replace(/,/g,'')); return isNaN(n)?0:n; };
 
-  const sum = rows => rows.reduce((a,x)=>({ 
-    exp:a.exp+toNum(x.search_exposure||0),
-    uv:a.uv+toNum(x.uv||0),
-    atc_users:a.atc_users+toNum(x.add_to_cart_users||0),
-    atc_qty:a.atc_qty+toNum(x.add_to_cart_qty||0),
-    pay_buyers:a.pay_buyers+toNum(x.pay_buyers||0),
-    pay_orders:a.pay_orders+toNum(x.pay_orders||0)
-  }), {exp:0,uv:0,atc_users:0,atc_qty:0,pay_buyers:0,pay_orders:0});
+  const sum = rows => rows.reduce((a,x)=>({
+    exp: a.exp + toNum(x.search_exposure || 0),
+    uv: a.uv + toNum(x.uv || 0),
+    atc_users: a.atc_users + toNum(x.add_to_cart_users || 0),
+    atc_qty: a.atc_qty + toNum(x.add_to_cart_qty || 0),
+    atc_products: a.atc_products + (toNum(x.add_to_cart_qty || 0) > 0 ? 1 : 0),
+    pay_buyers: a.pay_buyers + toNum(x.pay_buyers || 0),
+    pay_orders: a.pay_orders + toNum(x.pay_orders || 0)
+  }), {exp:0,uv:0,atc_users:0,atc_qty:0,atc_products:0,pay_buyers:0,pay_orders:0});
 
   const A = sum(rowsA), B = sum(rowsB);
 
@@ -655,11 +656,11 @@ function renderProductCharts(pid, rowsA) {
       chart.setOption({
         tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
         legend:{ data:[nameA,nameB], textStyle:{color:'#374151'} },
-        xAxis:{ type:'category', data:['曝光量','加购数(件)','支付数(订单)'], axisLabel:{color:'#374151'} },
+        xAxis:{ type:'category', data:['总展示数','详情页访客数','加购次数','订购次数','有加购商品数'], axisLabel:{color:'#374151'} },
         yAxis:{ type:'value', axisLabel:{color:'#374151'} },
         series:[
-          { name:nameA, type:'bar', data:[A.exp, A.atc_qty, A.pay_orders], barMaxWidth:28, itemStyle:{color:COLOR_A} },
-          { name:nameB, type:'bar', data:[B.exp, B.atc_qty, B.pay_orders], barMaxWidth:28, itemStyle:{color:COLOR_B} }
+          { name:nameA, type:'bar', data:[A.exp, A.uv, A.atc_qty, A.pay_orders, A.atc_products], barMaxWidth:28, itemStyle:{color:COLOR_A}, label:{show:true, position:'top'} },
+          { name:nameB, type:'bar', data:[B.exp, B.uv, B.atc_qty, B.pay_orders, B.atc_products], barMaxWidth:28, itemStyle:{color:COLOR_B}, label:{show:true, position:'top'} }
         ],
         grid:{ left:40, right:20, top:30, bottom:40 }
       });
