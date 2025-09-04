@@ -82,34 +82,32 @@
       
       console.log('更新页面标题，站点信息:', { currentSite, currentSiteName });
       
-      const siteSubtitleEl = document.getElementById('siteSubtitle');
+      // 更新浏览器标题
       const pageTitleEl = document.getElementById('pageTitle');
-      
-      if (currentSiteName) {
-        // 根据站点名称生成合适的标题
-        let siteDisplayName = currentSiteName;
-        
-        // 如果是poolslab相关站点，显示更友好的名称
-        if (currentSiteName.includes('poolslab') || currentSite === 'ae_self_operated_poolslab_store') {
-          siteDisplayName = 'Poolslab运动娱乐';
-        } else if (currentSiteName.includes('icyberite')) {
-          siteDisplayName = 'Icyberite科技';
-        } else if (currentSiteName.includes('ae_self_operated') || currentSite === 'ae_self_operated_a') {
-          siteDisplayName = '自运营Robot站';
-        }
-        
-        // 更新页面副标题
-        if (siteSubtitleEl) {
-          siteSubtitleEl.textContent = `${siteDisplayName} - 智能数据分析与决策支持`;
-        }
-        
-        // 更新浏览器标题
-        if (pageTitleEl) {
-          pageTitleEl.textContent = `跨境电商数据分析平台 - ${siteDisplayName}`;
-        }
-        
-        console.log('页面标题已更新为:', siteDisplayName);
+      if (pageTitleEl) {
+        pageTitleEl.textContent = `跨境电商数据分析平台 - ${this.getSiteDisplayName(currentSite, currentSiteName)}`;
       }
+      
+      // 更新页面主标题（h1元素）
+      const mainTitleEl = document.querySelector('h1');
+      if (mainTitleEl) {
+        mainTitleEl.textContent = `${this.getSiteDisplayName(currentSite, currentSiteName)} - 智能数据分析与决策支持`;
+      }
+      
+      console.log('页面标题已更新为:', this.getSiteDisplayName(currentSite, currentSiteName));
+    }
+    
+    // 获取站点显示名称
+    getSiteDisplayName(currentSite, currentSiteName) {
+      // 如果是poolslab相关站点，显示更友好的名称
+      if (currentSiteName.includes('poolslab') || currentSite === 'ae_self_operated_poolslab_store') {
+        return 'Poolslab运动娱乐';
+      } else if (currentSiteName.includes('icyberite')) {
+        return 'Icyberite科技';
+      } else if (currentSiteName.includes('ae_self_operated') || currentSite === 'ae_self_operated_a') {
+        return '自运营Robot站';
+      }
+      return currentSiteName;
     }
 
     // 数据加载主方法（与index.html保持一致）
