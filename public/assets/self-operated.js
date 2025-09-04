@@ -467,18 +467,27 @@
             `<a href="https://www.aliexpress.com/item/${productId}.html" target="_blank" class="product-link">${productId}</a>` : 
             '';
           
+          // 计算比率，优先使用 add_people
+          const addPeople = row.add_people || 0;
+          const visitors = row.visitors || 0;
+          const exposure = row.exposure || 0;
+          const payItems = row.pay_items || 0;
+          const visitorRatio = exposure > 0 ? (visitors / exposure) * 100 : 0;
+          const addToCartRatio = visitors > 0 ? (addPeople / visitors) * 100 : 0;
+          const paymentRatio = addPeople > 0 ? (payItems / addPeople) * 100 : 0;
+
           // 调试：输出前3行的详细数据
           if (index < 3) {
             console.log(`行${index + 1}数据字段:`, {
               product_id: row.product_id,
               bucket: row.bucket,
-              visitor_ratio: row.visitor_ratio,
-              add_to_cart_ratio: row.add_to_cart_ratio,
-              payment_ratio: row.payment_ratio,
+              visitor_ratio: visitorRatio,
+              add_to_cart_ratio: addToCartRatio,
+              payment_ratio: paymentRatio,
               exposure: row.exposure,
               visitors: row.visitors,
               views: row.views,
-              add_count: row.add_count,
+              add_people: row.add_people,
               order_items: row.order_items,
               pay_items: row.pay_items,
               pay_buyers: row.pay_buyers,
@@ -486,17 +495,17 @@
               avg_stay_seconds: row.avg_stay_seconds
             });
           }
-          
+
           tr.innerHTML = `
             <td style="text-align: left;">${productLink}</td>
             <td style="text-align: center;">${row.bucket || this.formatDateRange(row.start_date, row.end_date)}</td>
-            <td style="text-align: center;">${this.formatPercentage(row.visitor_ratio)}</td>
-            <td style="text-align: center;">${this.formatPercentage(row.add_to_cart_ratio)}</td>
-            <td style="text-align: center;">${this.formatPercentage(row.payment_ratio)}</td>
+            <td style="text-align: center;">${this.formatPercentage(visitorRatio)}</td>
+            <td style="text-align: center;">${this.formatPercentage(addToCartRatio)}</td>
+            <td style="text-align: center;">${this.formatPercentage(paymentRatio)}</td>
             <td style="text-align: center;">${this.formatNumber(row.exposure || 0)}</td>
             <td style="text-align: center;">${this.formatNumber(row.visitors || 0)}</td>
             <td style="text-align: center;">${this.formatNumber(row.views || 0)}</td>
-            <td style="text-align: center;">${this.formatNumber(row.add_count || 0)}</td>
+            <td style="text-align: center;">${this.formatNumber(addPeople)}</td>
             <td style="text-align: center;">${this.formatNumber(row.order_items || 0)}</td>
             <td style="text-align: center;">${this.formatNumber(row.pay_items || 0)}</td>
             <td style="text-align: center;">${this.formatNumber(row.pay_buyers || 0)}</td>
