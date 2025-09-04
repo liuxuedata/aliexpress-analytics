@@ -636,17 +636,6 @@
     <!-- 运营分析 -->
     <section id="analysis" class="content-pad" style="display:none;">
       <div class="analysis-container">
-        <h3>📊 运营分析</h3>
-        
-        <!-- 时间控件 -->
-        <div class="time-controls-panel">
-          <div class="time-controls">
-            <label>时间周期：</label>
-            <input id="analysisDateFilter" class="date-filter" placeholder="选择日期范围">
-            <span class="notice">（与数据明细页时间周期同步）</span>
-          </div>
-        </div>
-        
         <!-- 运营分析KPI卡片 -->
         <div id="analysisKpi" class="analysis-kpi-grid">
           <div class="analysis-kpi-card">
@@ -805,6 +794,10 @@
 <!-- Hash 路由脚本移动至文末以确保依赖函数已定义 -->
 
 <script>
+function getParam(name) {
+  const url = new URL(window.location.href);
+  return url.searchParams.get(name);
+}
 // 站点参数统一为完整域名
 function normalizeSite(site) {
   const map = {
@@ -884,9 +877,7 @@ function getDateRange() {
   const input = document.getElementById('dateFilter');
   if (input && input.value && input.value.includes(' to ')) {
     const [start, end] = input.value.split(' to ');
-    // 同步到各分析页面的时间选择器
-    const analysisInput = document.getElementById('analysisDateFilter');
-    if (analysisInput) analysisInput.value = input.value;
+    // 同步到其他分析页面的时间选择器
     const productInput = document.getElementById('productDateFilter');
     if (productInput) productInput.value = input.value;
     return { start, end };
@@ -896,8 +887,6 @@ function getDateRange() {
   const start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const def = `${start} to ${end}`;
   if (input) input.value = def;
-  const analysisInput = document.getElementById('analysisDateFilter');
-  if (analysisInput) analysisInput.value = def;
   const productInput = document.getElementById('productDateFilter');
   if (productInput) productInput.value = def;
   return { start, end };
@@ -1153,10 +1142,6 @@ function renderLineChart(id, title, dates, data) {
 // 页面逻辑：拉取 /api/independent/stats
 (function(){
   const shorten=(s,l=30)=>{if(!s) return '';return s.length>l?s.slice(0,l)+'…':s;};
-  function getParam(name) {
-    const url = new URL(window.location.href);
-    return url.searchParams.get(name);
-  }
   const siteInput = document.getElementById('site');
   const fromInput = document.getElementById('from');
   const toInput = document.getElementById('to');
@@ -1502,12 +1487,6 @@ function renderLineChart(id, title, dates, data) {
   function syncTimeControlsToOtherPages(selectedDates) {
     const dateStr = `${selectedDates[0].toISOString().slice(0,10)} to ${selectedDates[1].toISOString().slice(0,10)}`;
     
-    // 同步到运营分析页面
-    const analysisDateFilter = document.getElementById('analysisDateFilter');
-    if (analysisDateFilter) {
-      analysisDateFilter.value = dateStr;
-    }
-    
     // 同步到产品分析页面
     const productDateFilter = document.getElementById('productDateFilter');
     if (productDateFilter) {
@@ -1521,30 +1500,6 @@ function renderLineChart(id, title, dates, data) {
     if (!mainDateFilter || !mainDateFilter.value) return;
     
     const dateStr = mainDateFilter.value;
-    
-    // 初始化运营分析页面时间控件
-    const analysisDateFilter = document.getElementById('analysisDateFilter');
-    if (analysisDateFilter) {
-      if (window.flatpickr) {
-        flatpickr(analysisDateFilter, {
-          mode: 'range',
-          dateFormat: 'Y-m-d',
-          onClose: (ds) => {
-            if (ds.length === 2) {
-              const newDateStr = `${ds[0].toISOString().slice(0,10)} to ${ds[1].toISOString().slice(0,10)}`;
-              // 同步到主页面
-              mainDateFilter.value = newDateStr;
-              if (window.fp) {
-                window.fp.setDate(newDateStr.split(' to '), true, 'Y-m-d');
-              }
-              // 重新加载数据
-              load();
-            }
-          }
-        });
-      }
-      analysisDateFilter.value = dateStr;
-    }
     
     // 初始化产品分析页面时间控件
     const productDateFilter = document.getElementById('productDateFilter');
