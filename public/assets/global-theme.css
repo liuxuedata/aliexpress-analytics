@@ -208,6 +208,11 @@ body {
   font-size: 0.875rem;
 }
 
+/* Larger font for numeric cells in detail tables */
+.data-table tbody td.num-cell {
+  font-size: 0.95rem;
+}
+
 .data-table tbody tr:hover {
   background-color: var(--primary-50);
 }
