@@ -65,6 +65,9 @@
       console.log('SelfOperatedPageManager.refreshData() 被调用');
       try {
         await this.loadData();
+        if (typeof window.fetchAndRenderAll === 'function') {
+          await window.fetchAndRenderAll();
+        }
       } catch (error) {
         console.error('数据刷新失败:', error);
         this.showError('数据刷新失败，请重试');
