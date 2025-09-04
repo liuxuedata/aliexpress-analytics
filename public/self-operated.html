@@ -635,6 +635,10 @@
             <div id="payRateChart" style="width:100%;height:240px;"></div>
           </div>
         </div>
+        <div class="panel" style="margin-top:16px;">
+          <h3>关键指标对比</h3>
+          <div id="analysisCompareBar" style="width:100%;height:320px;"></div>
+        </div>
       </section>
 
       <!-- 产品分析 -->
@@ -1054,38 +1058,47 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // 运营分析数据加载
   async function loadAnalysisData() {
     try {
-      const dateRange = getDateRange();
+      const { start, end } = getDateRange();
       const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
-      
-      console.log('开始加载运营分析数据:', { dateRange, currentSite });
-      
-      // 构建查询参数 - 使用GET请求而不是POST
-      const queryParams = new URLSearchParams({
-        start: dateRange.start,
-        end: dateRange.end,
+
+      console.log('开始加载运营分析数据:', { start, end, currentSite });
+
+      const { prevStart, prevEnd } = getPreviousRange(start, end);
+
+      const currentParams = new URLSearchParams({
+        start,
+        end,
         granularity: 'day',
         site: currentSite,
-        aggregate: 'time'  // 使用'time'而不是true
+        aggregate: 'time'
       });
-      
-      // 获取当前周期数据 - 使用GET请求
-      const currentResponse = await fetch(`/api/ae_query?${queryParams.toString()}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+
+      const prevParams = new URLSearchParams({
+        start: prevStart,
+        end: prevEnd,
+        granularity: 'day',
+        site: currentSite,
+        aggregate: 'time'
       });
-      
-      if (!currentResponse.ok) {
-        throw new Error(`API响应错误: ${currentResponse.status} ${currentResponse.statusText}`);
+
+      const [currentResponse, prevResponse] = await Promise.all([
+        fetch(`/api/ae_query?${currentParams.toString()}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } }),
+        fetch(`/api/ae_query?${prevParams.toString()}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
+      ]);
+
+      if (!currentResponse.ok || !prevResponse.ok) {
+        throw new Error(`API响应错误: ${currentResponse.status}/${prevResponse.status}`);
       }
-      
+
       const currentData = await currentResponse.json();
-      console.log('运营分析数据响应:', currentData);
-      
-      if (currentData.ok && currentData.rows) {  // 注意：API返回的是rows而不是data
-        // 渲染访客比、加购比、支付比趋势图
-        await renderAnalysisCharts(currentData.rows);
+      const prevData = await prevResponse.json();
+      console.log('运营分析数据响应:', currentData, prevData);
+
+      if (currentData.ok && currentData.rows && prevData.ok && prevData.rows) {
+        renderAnalysisCharts(currentData.rows, prevData.rows);
+        renderSummaryBarChart(currentData.rows, prevData.rows);
       } else {
-        console.warn('运营分析数据格式不正确:', currentData);
+        console.warn('运营分析数据格式不正确:', currentData, prevData);
         showAnalysisError('数据格式不正确，请检查API响应');
       }
     } catch (error) {
@@ -1252,21 +1265,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
           mode: 'range',
           dateFormat: 'Y-m-d',
           defaultDate: [start, end],
-          onChange: function(selectedDates, dateStr) {
+          onChange: async function(selectedDates, dateStr) {
             if (selectedDates.length === 2) {
               console.log('产品分析时间范围变更:', dateStr);
               // 同步主页面时间控件
               const mainDateFilter = document.getElementById('dateFilter');
               if (mainDateFilter) {
                 mainDateFilter.value = dateStr;
-                // 触发主页面时间变更事件
-                const event = new Event('change', { bubbles: true });
-                mainDateFilter.dispatchEvent(event);
               }
               // 重新加载产品数据
               const currentProductId = document.getElementById('productSelect').value;
+              if (typeof fetchAndRenderAll === 'function') {
+                await fetchAndRenderAll();
+              }
               if (currentProductId) {
-                loadProductData(currentProductId);
+                await loadProductData(currentProductId);
               }
             }
           }
@@ -1293,7 +1306,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         mode: 'range',
         dateFormat: 'Y-m-d',
         defaultDate: [start, end],
-        onChange: function(selectedDates, dateStr) {
+        onChange: async function(selectedDates, dateStr) {
           if (selectedDates.length === 2) {
             console.log('主页面时间范围变更:', dateStr);
             // 同步产品分析页面时间控件
@@ -1303,7 +1316,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
             }
             // 重新加载数据
             if (typeof fetchAndRenderAll === 'function') {
-              fetchAndRenderAll();
+              await fetchAndRenderAll();
             }
           }
         }
@@ -1326,11 +1339,23 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     return { start, end };
   }
-  // 渲染运营分析访客比、加购比、支付比趋势图
-  async function renderAnalysisCharts(rows) {
-    console.log('渲染运营分析对比图表，数据:', rows);
 
-    const previousRows = await getPreviousPeriodData();
+  function getPreviousRange(start, end) {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const days = Math.round((endDate - startDate) / 86400000) + 1;
+    const prevEnd = new Date(startDate);
+    prevEnd.setDate(prevEnd.getDate() - 1);
+    const prevStart = new Date(prevEnd);
+    prevStart.setDate(prevStart.getDate() - (days - 1));
+    return {
+      prevStart: prevStart.toISOString().slice(0, 10),
+      prevEnd: prevEnd.toISOString().slice(0, 10)
+    };
+  }
+  // 渲染运营分析访客比、加购比、支付比趋势图
+  function renderAnalysisCharts(currentRows, previousRows) {
+    console.log('渲染运营分析对比图表，数据:', currentRows, previousRows);
 
     function extractRates(rs) {
       if (!rs) return { dates: [], vr: [], cr: [], pr: [] };
@@ -1358,7 +1383,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       return { dates, vr, cr, pr };
     }
 
-    const current = extractRates(rows);
+    const current = extractRates(currentRows);
     const prev = extractRates(previousRows);
     const align = arr => current.dates.map((_, i) => arr[i] ?? null);
 
@@ -1400,6 +1425,29 @@ document.addEventListener('DOMContentLoaded', ()=>{
       ]
     };
     initResponsiveChart(id, option);
+  }
+
+  function renderSummaryBarChart(currentRows, previousRows) {
+    const sum = rows => ({
+      exp: rows.reduce((t, r) => t + (r.exposure || 0), 0),
+      uv: rows.reduce((t, r) => t + (r.visitors || 0), 0),
+      add: rows.reduce((t, r) => t + (r.add_people || 0), 0),
+      pay: rows.reduce((t, r) => t + (r.pay_buyers || 0), 0)
+    });
+    const cur = sum(currentRows);
+    const prev = sum(previousRows);
+    const cats = ['总展示数','访客数','加购次数','支付次数'];
+    const option = {
+      tooltip:{ trigger:'axis', axisPointer:{ type:'shadow' } },
+      legend:{ data:['本期','上期'], textStyle:{ color:'#374151' } },
+      xAxis:{ type:'category', data: cats, axisLabel:{ color:'#374151' } },
+      yAxis:{ type:'value', axisLabel:{ color:'#374151' } },
+      series:[
+        { name:'本期', type:'bar', data:[cur.exp, cur.uv, cur.add, cur.pay], label:{show:true, position:'top'} },
+        { name:'上期', type:'bar', data:[prev.exp, prev.uv, prev.add, prev.pay], label:{show:true, position:'top'} }
+      ]
+    };
+    initResponsiveChart('analysisCompareBar', option);
   }
 
      // 填充产品选择器
@@ -1655,47 +1703,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
         `<span class="${payBuyersColor}">${payBuyersSymbol} ${Math.abs(payBuyersChange).toLocaleString()}</span>`;
     }
     
-    // 获取上一周期数据
-  async function getPreviousPeriodData() {
-      try {
-        const dateRange = getDateRange();
-        const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
-        
-        // 计算上一周期的日期范围
-        const currentStart = new Date(dateRange.start);
-        const currentEnd = new Date(dateRange.end);
-        const periodDays = Math.ceil((currentEnd - currentStart) / (1000 * 60 * 60 * 24));
-        
-        const previousEnd = new Date(currentStart);
-        previousEnd.setDate(previousEnd.getDate() - 1);
-        const previousStart = new Date(previousEnd);
-        previousStart.setDate(previousStart.getDate() - periodDays + 1);
-        
-        const queryParams = new URLSearchParams({
-          start: previousStart.toISOString().slice(0, 10),
-          end: previousEnd.toISOString().slice(0, 10),
-          granularity: 'day',
-          site: currentSite,
-          aggregate: 'time'
-        });
-        
-        const response = await fetch(`/api/ae_query?${queryParams.toString()}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.ok && data.rows) {
-            return data.rows;
-          }
-        }
-      } catch (error) {
-        console.error('获取上一周期数据失败:', error);
-      }
-      
-    return null;
-  }
 
   // 获取指定产品的上一周期数据
   async function getPreviousProductData(productId) {
