@@ -665,19 +665,9 @@
             <div id="conversionsComparison" class="kpi-comparison"></div>
           </div>
           <div class="analysis-kpi-card">
-            <h4>订购商品数</h4>
-            <p id="totalConvValue">0</p>
-            <div id="convValueComparison" class="kpi-comparison"></div>
-          </div>
-          <div class="analysis-kpi-card">
             <h4>有点击商品数</h4>
             <p id="clickedProducts">0</p>
             <div id="clickedProductsComparison" class="kpi-comparison"></div>
-          </div>
-          <div class="analysis-kpi-card">
-            <h4>有支付商品数</h4>
-            <p id="paidProducts">0</p>
-            <div id="paidProductsComparison" class="kpi-comparison"></div>
           </div>
         </div>
         
@@ -696,16 +686,8 @@
             <div id="conversionsComparisonChart" style="width:100%;height:300px;"></div>
           </div>
           <div class="chart-panel">
-            <h3>订购商品数对比</h3>
-            <div id="convValueComparisonChart" style="width:100%;height:300px;"></div>
-          </div>
-          <div class="chart-panel">
             <h3>有点击商品数对比</h3>
             <div id="clickedProductsComparisonChart" style="width:100%;height:300px;"></div>
-          </div>
-          <div class="chart-panel">
-            <h3>有支付商品数对比</h3>
-            <div id="paidProductsComparisonChart" style="width:100%;height:300px;"></div>
           </div>
         </div>
       </div>
@@ -927,11 +909,9 @@ function updateIndependentAnalysisKPI(data) {
   const totalImpressions = data.reduce((sum, item) => sum + (item.impressions || item.impr || 0), 0);
   const totalClicks = data.reduce((sum, item) => sum + (item.clicks || 0), 0);
   const totalConversions = data.reduce((sum, item) => sum + (item.conversions || 0), 0);
-  const totalConvValue = data.reduce((sum, item) => sum + (item.conv_value || 0), 0);
-  
+
   // 计算商品数量（去重）
   const clickedProducts = new Set(data.filter(item => (item.clicks || 0) > 0).map(item => item.product)).size;
-  const paidProducts = new Set(data.filter(item => item.conv_value > 0).map(item => item.product)).size;
   
   // 更新KPI显示（若元素缺失则跳过以避免报错）
   const impressionsEl = document.getElementById('totalImpressions');
@@ -943,14 +923,8 @@ function updateIndependentAnalysisKPI(data) {
   const convEl = document.getElementById('totalConversions');
   if (convEl) convEl.textContent = totalConversions.toLocaleString();
 
-  const convValueEl = document.getElementById('totalConvValue');
-  if (convValueEl) convValueEl.textContent = totalConvValue.toLocaleString();
-
   const clickedEl = document.getElementById('clickedProducts');
   if (clickedEl) clickedEl.textContent = clickedProducts.toLocaleString();
-
-  const paidEl = document.getElementById('paidProducts');
-  if (paidEl) paidEl.textContent = paidProducts.toLocaleString();
 }
 
 // 渲染独立站运营分析对比图表
@@ -963,10 +937,8 @@ async function renderIndependentAnalysisCharts(data) {
     impressions: data.reduce((sum, item) => sum + (item.impressions || item.impr || 0), 0),
     clicks: data.reduce((sum, item) => sum + (item.clicks || 0), 0),
     conversions: data.reduce((sum, item) => sum + (item.conversions || 0), 0),
-    convValue: data.reduce((sum, item) => sum + (item.conv_value || 0), 0),
     ctr: 0,
-    clickedProducts: new Set(data.filter(item => (item.clicks || 0) > 0).map(item => item.product)).size,
-    paidProducts: new Set(data.filter(item => item.conv_value > 0).map(item => item.product)).size
+    clickedProducts: new Set(data.filter(item => (item.clicks || 0) > 0).map(item => item.product)).size
   };
   currentData.ctr = currentData.impressions > 0 ? currentData.clicks / currentData.impressions * 100 : 0;
 
@@ -975,10 +947,8 @@ async function renderIndependentAnalysisCharts(data) {
     impressions: previousData.reduce((sum, item) => sum + (item.impressions || item.impr || 0), 0),
     clicks: previousData.reduce((sum, item) => sum + (item.clicks || 0), 0),
     conversions: previousData.reduce((sum, item) => sum + (item.conversions || 0), 0),
-    convValue: previousData.reduce((sum, item) => sum + (item.conv_value || 0), 0),
     ctr: 0,
-    clickedProducts: new Set(previousData.filter(item => (item.clicks || 0) > 0).map(item => item.product)).size,
-    paidProducts: new Set(previousData.filter(item => item.conv_value > 0).map(item => item.product)).size
+    clickedProducts: new Set(previousData.filter(item => (item.clicks || 0) > 0).map(item => item.product)).size
   } : null;
   if (previousDataCalculated) {
     previousDataCalculated.ctr = previousDataCalculated.impressions > 0
@@ -998,17 +968,9 @@ async function renderIndependentAnalysisCharts(data) {
   renderIndependentComparisonChart('conversionsComparisonChart', '转化次数对比',
     currentData.conversions, previousDataCalculated?.conversions || 0, '转化次数');
 
-  // 渲染订购商品数对比图
-  renderIndependentComparisonChart('convValueComparisonChart', '订购商品数对比',
-    currentData.convValue, previousDataCalculated?.convValue || 0, '订购商品数');
-
   // 渲染有点击商品数对比图
   renderIndependentComparisonChart('clickedProductsComparisonChart', '有点击商品数对比',
     currentData.clickedProducts, previousDataCalculated?.clickedProducts || 0, '有点击商品数');
-
-  // 渲染有支付商品数对比图
-  renderIndependentComparisonChart('paidProductsComparisonChart', '有支付商品数对比',
-    currentData.paidProducts, previousDataCalculated?.paidProducts || 0, '有支付商品数');
 }
 
 // 渲染独立站对比柱状图
@@ -1070,7 +1032,7 @@ async function getIndependentPreviousPeriodData() {
     // 计算上一周期的日期范围
     const currentStart = new Date(dateRange.start);
     const currentEnd = new Date(dateRange.end);
-    const periodDays = Math.ceil((currentEnd - currentStart) / (1000 * 60 * 60 * 24));
+    const periodDays = Math.ceil((currentEnd - currentStart) / (1000 * 60 * 60 * 24)) + 1;
     
     const previousEnd = new Date(currentStart);
     previousEnd.setDate(previousEnd.getDate() - 1);
