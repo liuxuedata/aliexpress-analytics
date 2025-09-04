@@ -664,12 +664,12 @@
 
         <!-- 时间与产品选择 -->
         <div class="time-controls-panel">
-          <div class="time-controls" style="flex-wrap:wrap;gap:12px;">
+          <div class="time-controls" style="flex-wrap:nowrap;gap:12px;">
             <label>时间周期：</label>
             <input id="productDateFilter" class="date-filter" placeholder="选择日期范围">
             <label style="margin-left:12px;">产品：</label>
-            <select id="productSelect" class="sel" style="min-width:200px;"></select>
-            <a id="productLink" href="#" target="_blank" style="display:none;margin-left:8px;word-break:break-all;"></a>
+            <select id="productSelect" class="sel" style="width:200px;max-width:200px;white-space:nowrap;"></select>
+            <a id="productLink" href="#" target="_blank" style="display:none;margin-left:8px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></a>
             <span id="productListingDate" style="margin-left:8px;"></span>
           </div>
         </div>
@@ -1092,12 +1092,13 @@ async function loadIndependentProductData(landingPath, landingUrl, firstSeen) {
       prevSeries.conv.push(prevDay.conversions);
     }
 
+    const chartWrap = document.getElementById('productCharts');
+    chartWrap.style.display = 'grid';
+
     renderComparisonLineChart('productClicksChart', '点击趋势', dates, currSeries.clicks, prevSeries.clicks);
     renderComparisonLineChart('productImpressionsChart', '曝光趋势', dates, currSeries.impressions, prevSeries.impressions);
     renderComparisonLineChart('productCtrChart', 'CTR趋势', dates, currSeries.ctr, prevSeries.ctr);
     renderComparisonLineChart('productConversionsChart', '转化趋势', dates, currSeries.conv, prevSeries.conv);
-
-    document.getElementById('productCharts').style.display = 'grid';
   } catch (err) {
     console.error('加载独立站产品数据失败:', err);
   } finally {
@@ -1106,7 +1107,8 @@ async function loadIndependentProductData(landingPath, landingUrl, firstSeen) {
 }
 
 function renderComparisonLineChart(id, title, dates, current, previous) {
-  const chart = echarts.init(document.getElementById(id));
+  const el = document.getElementById(id);
+  const chart = echarts.init(el);
   chart.setOption({
     title: { text: title, left: 'center', textStyle: { color: '#374151', fontSize: 16 } },
     tooltip: { trigger: 'axis' },
@@ -1118,6 +1120,7 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       { name: '上一周期', type: 'line', smooth: true, data: previous, itemStyle: { color: '#9ca3af' } }
     ]
   });
+  new ResizeObserver(() => chart.resize()).observe(el);
 }
 
 // 页面逻辑：拉取 /api/independent/stats
