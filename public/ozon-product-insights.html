@@ -7,6 +7,7 @@
   <title>Ozon 产品分析</title>
   <link rel="stylesheet" href="assets/login.css">
   <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <link rel="stylesheet" href="assets/global-theme.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -49,7 +50,7 @@
       <section class="content-pad">
         <div class="controls" style="margin-bottom:12px;"><input id="dateRange" class="date-filter" placeholder="选择日期范围"></div>
         <div class="controls" style="margin-bottom:12px;flex-wrap:wrap;"><label>产品</label><select id="productSelect" class="sel" style="width:200px;flex:0 0 200px;"></select><a id="productLink" href="#" target="_blank" style="margin-left:8px;display:none;word-break:break-all;white-space:normal;flex:1 1 auto;"></a><span id="listingDate" style="margin-left:8px;"></span></div>
-        <div id="kpi" class="kpi-row"></div>
+        <div id="kpi" class="kpi-grid"></div>
         <div id="lineWrap" class="panel" style="margin-top:16px;display:none;">
           <h3>曝光趋势</h3>
           <div id="expLine" style="width:100%;height:260px;"></div>
@@ -77,13 +78,13 @@
   let rowsCur=[],rowsPrev=[],curStart='',curEnd='',prevStart='',prevEnd='',days=0;
   let totalsCur={exp:0,uv:0,add:0,pay:0};
 
-  function card(title,cur,prev,isPct,avg,share){
+  function card(title,cur,prev,isPct,cls,avg,share){
     const diff=(cur-prev)||0;
     const arrow=diff>=0?'\u2191':'\u2193';
-    const cls=diff>=0?'up':'down';
+    const state=diff>=0?'up':'down';
     const fmt=v=>isPct?`${(v*100).toFixed(2)}%`:v;
     const delta=isPct?`${Math.abs(diff*100).toFixed(2)}%`:Math.abs(diff);
-    const parts=[`<span class="delta ${cls}">${arrow} ${delta}</span>`];
+    const parts=[`<span class="delta ${state}">${arrow} ${delta}</span>`];
     if(avg!=null){
       const diffAvg=(cur-avg)||0;
       const dir=diffAvg>=0?'高于平均':'低于平均';
@@ -94,7 +95,7 @@
     if(share!=null){
       parts.push(`<span style="margin-left:8px;">占比 ${(share*100).toFixed(2)}%</span>`);
     }
-    return `<div class="stat-card"><h4>${title}</h4><p>${fmt(cur)}</p><div class="sub">${parts.join('')}</div></div>`;
+    return `<div class="kpi-card ${cls}"><h4>${title}</h4><p>${fmt(cur)}</p><div class="kpi-comparison">${parts.join('')}</div></div>`;
   }
 
   function sumAll(rows){
@@ -188,13 +189,13 @@
     const shareAdd=totalsCur.add?cur.add/totalsCur.add:0;
     const sharePay=totalsCur.pay?cur.pay/totalsCur.pay:0;
     document.getElementById('kpi').innerHTML=[
-      card('平均访客比',curUvRate,prevUvRate,true,avgUvRate),
-      card('平均加购比',curAddRate,prevAddRate,true,avgAddRate),
-      card('平均支付比',curPayRate,prevPayRate,true,avgPayRate),
-      card('总曝光量',cur.exp,prev.exp,false,null,shareExp),
-      card('总访客数',cur.uv,prev.uv,false,null,shareUv),
-      card('总加购数',cur.add,prev.add,false,null,shareAdd),
-      card('总支付数',cur.pay,prev.pay,false,null,sharePay)
+      card('平均访客比',curUvRate,prevUvRate,true,'info',avgUvRate),
+      card('平均加购比',curAddRate,prevAddRate,true,'success',avgAddRate),
+      card('平均支付比',curPayRate,prevPayRate,true,'danger',avgPayRate),
+      card('总曝光量',cur.exp,prev.exp,false,'success',null,shareExp),
+      card('总访客数',cur.uv,prev.uv,false,'info',null,shareUv),
+      card('总加购数',cur.add,prev.add,false,'warning',null,shareAdd),
+      card('总支付数',cur.pay,prev.pay,false,'danger',null,sharePay)
     ].join('');
 
     const [trendCur,trendPrev]=await Promise.all([

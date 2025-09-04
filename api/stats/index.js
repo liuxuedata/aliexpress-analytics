@@ -30,6 +30,23 @@ module.exports = async (req, res) => {
   try {
     const supabase = supa();
     const gran = (req.query.granularity || "week").toLowerCase(); // 'week' | 'month'
+    const pid = req.query.product_id;
+
+    if (pid) {
+      const from = req.query.from || "2000-01-01";
+      const to = req.query.to || fmtDate(new Date());
+      const { data, error } = await supabase
+        .from("managed_stats")
+        .select("*")
+        .eq("period_type", gran)
+        .eq("product_id", pid)
+        .gte("period_end", from)
+        .lte("period_end", to)
+        .order("period_end", { ascending: true });
+      if (error) throw error;
+      return res.status(200).json({ ok: true, rows: data, granularity: gran });
+    }
+
     let periodEnd = req.query.period_end || (gran === "week" ? lastWeekEnd() : lastMonthEnd());
 
     // 若该周期无数据，最多向前找 8 个周期
@@ -83,9 +100,14 @@ module.exports = async (req, res) => {
     const prodCount = rows.length;
     const atcProd = rows.filter(r => num(r.add_to_cart_qty) > 0 || num(r.add_to_cart_users) > 0).length;
     const payProd = rows.filter(r => num(r.pay_items) > 0 || num(r.pay_orders) > 0).length;
+    const expProd = rows.filter(r => {
+      const exp = num(r.search_exposure) || num(r.exposure) || num(r.pv);
+      return exp > 0;
+    }).length;
 
     const visitorTotal = sum(rows, "uv"); // 访客数字段：uv
     const addUsersTotal = sum(rows, "add_to_cart_users");
+    const payBuyersTotal = sum(rows, "pay_buyers");
 
     // 曝光优先级：search_exposure -> exposure -> pv(兜底)
     const exposureSum = (() => {
@@ -97,7 +119,7 @@ module.exports = async (req, res) => {
     })();
 
     const visitToAtcRate = visitorTotal > 0 ? (addUsersTotal / visitorTotal) * 100 : 0;
-    const atcToPayRate = addUsersTotal > 0 ? (sum(rows, "pay_buyers") / addUsersTotal) * 100 : 0;
+    const atcToPayRate = addUsersTotal > 0 ? (payBuyersTotal / addUsersTotal) * 100 : 0;
     const visitRate = exposureSum > 0 ? (visitorTotal / exposureSum) * 100 : 0; // “平均访客比”
 
     const kpis = {
@@ -105,9 +127,13 @@ module.exports = async (req, res) => {
       avg_atc_to_pay: +atcToPayRate.toFixed(2),
       avg_visit_rate: +visitRate.toFixed(2),
       product_count: prodCount,
+      exp_product_count: expProd,
       atc_product_count: atcProd,
       pay_product_count: payProd,
-      visitor_total: visitorTotal
+      visitor_total: visitorTotal,
+      exposure_total: exposureSum,
+      add_user_total: addUsersTotal,
+      pay_buyers_total: payBuyersTotal
     };
 
     return res.status(200).json({ ok: true, kpis, rows, total: count || rows.length, granularity: gran, period_end: found });

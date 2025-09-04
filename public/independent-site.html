@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>独立站 · Landing Pages 明细</title>
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg" sizes="64x64">
   <link rel="stylesheet" href="assets/login.css">
   <link rel="stylesheet" href="assets/global-theme.css">
   <style>
@@ -70,15 +71,6 @@
     }
     .help-icon:hover {
       background: #2563eb;
-    }
-    
-    /* 加载状态样式 - 与全托管页面保持一致 */
-    .loading-status {
-      padding: 40px 20px;
-      text-align: center;
-      background: #f8fafc;
-      border-radius: 8px;
-      margin: 20px 0;
     }
     
     /* 运营分析图表布局 */
@@ -149,22 +141,23 @@
       font-size: 12px;
     }
     
-    /* 分析页面容器样式 */
+    /* 分析页面容器样式 - 与自运营页面保持一致的白底模块 */
     .analysis-container {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      border-radius: 16px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
       padding: 24px;
       margin-bottom: 24px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     }
-    
+
     .analysis-container h3 {
-      color: white;
+      color: #374151;
       font-size: 24px;
       font-weight: 600;
       margin: 0 0 20px 0;
       text-align: center;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      text-shadow: none;
     }
     
     /* 分析KPI卡片网格 */
@@ -176,19 +169,39 @@
     }
     
     .analysis-kpi-card {
-      background: rgba(255, 255, 255, 0.95);
+      background: white;
       border-radius: 12px;
       padding: 20px;
       text-align: center;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
       transition: all 0.3s ease;
       border: 2px solid transparent;
+      position: relative;
+      overflow: hidden;
     }
-    
+
     .analysis-kpi-card:hover {
       transform: translateY(-4px);
       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-      border-color: rgba(255, 255, 255, 0.3);
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    /* 渐变色顶部标识 */
+    .analysis-kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b, #ef4444);
+      background-size: 200% 100%;
+      animation: gradient-shift 3s ease-in-out infinite;
+    }
+
+    @keyframes gradient-shift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
     }
     
     .analysis-kpi-card h4 {
@@ -216,11 +229,14 @@
     }
     
     .chart-panel {
-      background: rgba(255, 255, 255, 0.95);
+      background: white;
       border-radius: 12px;
       padding: 20px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
       transition: all 0.3s ease;
+      border: 1px solid #e5e7eb;
+      position: relative;
+      overflow: hidden;
     }
     
     .chart-panel:hover {
@@ -239,11 +255,12 @@
     
     /* 产品选择器样式 */
     .product-selector {
-      background: rgba(255, 255, 255, 0.95);
+      background: white;
       border-radius: 12px;
       padding: 20px;
       margin-bottom: 20px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e5e7eb;
     }
     
     .product-selector .controls {
@@ -281,11 +298,12 @@
     
     /* 网络选择器样式 */
     .network-selector {
-      background: rgba(255, 255, 255, 0.95);
+      background: white;
       border-radius: 12px;
       padding: 20px;
       margin-bottom: 20px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e5e7eb;
     }
     
     .network-selector .controls {
@@ -377,34 +395,6 @@
       color: #374151;
     }
     
-    .loading-message {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-    }
-    
-    .loading-spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid #e5e7eb;
-      border-top: 4px solid #3b82f6;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    
-    .loading-message p {
-      color: #6b7280;
-      font-size: 16px;
-      margin: 0;
-      font-weight: 500;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    
     /* DataTables 加载状态样式 */
     .dataTables_processing {
       background: rgba(255, 255, 255, 0.9) !important;
@@ -412,7 +402,7 @@
       padding: 20px !important;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
     }
-    
+
     /* KPI网格布局 */
     .kpi-grid {
       display: grid;
@@ -487,18 +477,6 @@
       color: var(--brand-blue-dark);
     }
     
-    .dataTables_processing .loading-message {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
-    
-    .dataTables_processing .loading-spinner {
-      width: 32px;
-      height: 32px;
-    }
-    
     .dataTables_processing p {
       font-size: 14px;
       margin: 0;
@@ -515,6 +493,7 @@
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="assets/site-nav.js"></script>
+  <script src="assets/loading.js"></script>
 </head>
 <body class="fm">
 <div id="loginOverlay" class="login-overlay" style="display:none">
@@ -581,8 +560,8 @@
 
   <main class="main mx-auto max-w-container px-6">
     <div class="content">
-    <!-- 控件 -->
-    <section class="content-pad">
+    <!-- 控件（仅明细页使用） -->
+    <section id="topControls" class="content-pad">
       <div class="panel">
         <div class="controls">
           <label>站点：</label>
@@ -610,85 +589,58 @@
     <!-- 运营分析 -->
     <section id="analysis" class="content-pad" style="display:none;">
       <div class="analysis-container">
-        <h3>📊 运营分析</h3>
-        
-        <!-- 时间控件 -->
+        <h3>📈 运营分析</h3>
         <div class="time-controls-panel">
           <div class="time-controls">
-            <label>时间周期：</label>
-            <input id="analysisDateFilter" class="date-filter" placeholder="选择日期范围">
-            <span class="notice">（与数据明细页时间周期同步）</span>
+            <label>日期：</label>
+            <input id="analysisDate" class="date-filter" placeholder="选择日期范围">
           </div>
         </div>
-        
         <!-- 运营分析KPI卡片 -->
         <div id="analysisKpi" class="analysis-kpi-grid">
           <div class="analysis-kpi-card">
-            <h4>总展示数</h4>
-            <p id="totalImpressions">0</p>
-            <div id="impressionsComparison" class="kpi-comparison"></div>
+            <h4>平均点击率</h4>
+            <p id="avgCtr">0%</p>
           </div>
           <div class="analysis-kpi-card">
-            <h4>详情页访客数</h4>
-            <p id="totalClicks">0</p>
-            <div id="clicksComparison" class="kpi-comparison"></div>
+            <h4>平均转化率</h4>
+            <p id="avgConvRate">0%</p>
           </div>
           <div class="analysis-kpi-card">
-            <h4>加购次数</h4>
-            <p id="totalConversions">0</p>
-            <div id="conversionsComparison" class="kpi-comparison"></div>
+            <h4>曝光商品总数</h4>
+            <p id="exposureProducts">0</p>
           </div>
           <div class="analysis-kpi-card">
-            <h4>订购商品数</h4>
-            <p id="totalConvValue">0</p>
-            <div id="convValueComparison" class="kpi-comparison"></div>
+            <h4>点击商品总数</h4>
+            <p id="clickedProducts">0</p>
           </div>
           <div class="analysis-kpi-card">
-            <h4>有曝光商品数</h4>
-            <p id="exposedProducts">0</p>
-            <div id="exposedProductsComparison" class="kpi-comparison"></div>
+            <h4>转化商品总数</h4>
+            <p id="convertedProducts">0</p>
           </div>
           <div class="analysis-kpi-card">
-            <h4>有加购商品数</h4>
-            <p id="cartedProducts">0</p>
-            <div id="cartedProductsComparison" class="kpi-comparison"></div>
-          </div>
-          <div class="analysis-kpi-card">
-            <h4>有支付商品数</h4>
-            <p id="paidProducts">0</p>
-            <div id="paidProductsComparison" class="kpi-comparison"></div>
+            <h4>本周期新品数</h4>
+            <p id="newProducts">0</p>
           </div>
         </div>
         
         <!-- 对比图表 -->
         <div class="charts-grid">
           <div class="chart-panel">
-            <h3>总展示数对比</h3>
+            <h3>产品展示总数对比</h3>
             <div id="impressionsComparisonChart" style="width:100%;height:300px;"></div>
           </div>
           <div class="chart-panel">
-            <h3>详情页访客数对比</h3>
-            <div id="clicksComparisonChart" style="width:100%;height:300px;"></div>
+            <h3>CTR 对比</h3>
+            <div id="ctrComparisonChart" style="width:100%;height:300px;"></div>
           </div>
           <div class="chart-panel">
-            <h3>加购次数对比</h3>
+            <h3>转化次数对比</h3>
             <div id="conversionsComparisonChart" style="width:100%;height:300px;"></div>
           </div>
           <div class="chart-panel">
-            <h3>订购商品数对比</h3>
-            <div id="convValueComparisonChart" style="width:100%;height:300px;"></div>
-          </div>
-          <div class="chart-panel">
-            <h3>有曝光商品数对比</h3>
-            <div id="exposedProductsComparisonChart" style="width:100%;height:300px;"></div>
-          </div>
-          <div class="chart-panel">
-            <h3>有加购商品数对比</h3>
-            <div id="cartedProductsComparisonChart" style="width:100%;height:300px;"></div>
-          </div>
-          <div class="chart-panel">
-            <h3>有支付商品数对比</h3>
-            <div id="paidProductsComparisonChart" style="width:100%;height:300px;"></div>
+            <h3>有点击商品数对比</h3>
+            <div id="clickedProductsComparisonChart" style="width:100%;height:300px;"></div>
           </div>
         </div>
       </div>
@@ -698,12 +650,6 @@
     <section id="detail" class="content-pad">
       <div class="chart-container">
         <h3>Landing Pages 明细</h3>
-        
-        <!-- 加载状态提示 -->
-        <div id="detailLoading" class="loading-state" style="display: none;">
-          <div class="loading-spinner"></div>
-          <p class="loading-text">努力加载中,请等待片刻。。。</p>
-        </div>
         
         <!-- 数据表格 -->
         <div id="detailContent">
@@ -725,137 +671,35 @@
     <!-- 产品分析 -->
     <section id="products" class="content-pad" style="display:none;">
       <div class="analysis-container">
-        <h3>🔍 产品详情分析</h3>
-        
-        <!-- 时间控件 -->
-        <div class="time-controls-panel">
-          <div class="time-controls">
-            <label>时间周期：</label>
-            <input id="productDateFilter" class="date-filter" placeholder="选择日期范围">
-            <span class="notice">（与数据明细页时间周期同步）</span>
-          </div>
-        </div>
-        
-        <!-- 产品选择器 -->
-        <div class="product-selector">
-          <div class="controls">
-            <label>产品：</label>
-            <select id="productSelect" class="sel">
-              <option value="">选择产品</option>
-            </select>
-            <span class="notice">（按点击量排序）</span>
-          </div>
-        </div>
-        
-        <!-- 产品KPI -->
-        <div id="productKpi" class="analysis-kpi-grid">
-          <div class="analysis-kpi-card">
-            <h4>总点击</h4>
-            <p id="productTotalClicks">0</p>
-            <div id="productClicksComparison" class="kpi-comparison"></div>
-          </div>
-          <div class="analysis-kpi-card">
-            <h4>总曝光</h4>
-            <p id="productTotalImpressions">0</p>
-            <div id="productImpressionsComparison" class="kpi-comparison"></div>
-          </div>
-          <div class="analysis-kpi-card">
-            <h4>平均CTR</h4>
-            <p id="productAvgCtr">0%</p>
-            <div id="productCtrComparison" class="kpi-comparison"></div>
-          </div>
-          <div class="analysis-kpi-card">
-            <h4>总转化</h4>
-            <p id="productTotalConversions">0</p>
-            <div id="productConversionsComparison" class="kpi-comparison"></div>
-          </div>
-        </div>
-        
-        <!-- 产品趋势图表 -->
-        <div id="productCharts" class="charts-grid" style="display:none;">
-          <div class="chart-panel">
-            <h3>点击趋势</h3>
-            <div id="productClicksChart" style="width:100%;height:260px;"></div>
-          </div>
-          <div class="chart-panel">
-            <h3>曝光趋势</h3>
-            <div id="productImpressionsChart" style="width:100%;height:260px;"></div>
-          </div>
-          <div class="chart-panel">
-            <h3>CTR趋势</h3>
-            <div id="productCtrChart" style="width:100%;height:260px;"></div>
-          </div>
-          <div class="chart-panel">
-            <h3>转化趋势</h3>
-            <div id="productConversionsChart" style="width:100%;height:260px;"></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 产品分析 -->
-    <section id="products" class="content-pad" style="display:none;">
-      <div class="analysis-container">
         <h3>🔍 产品分析</h3>
-        
-        <!-- 产品选择器 -->
-        <div class="product-selector">
-          <div class="controls">
+
+        <!-- 产品选择 -->
+        <div class="time-controls-panel">
+          <div class="time-controls" style="flex-wrap:nowrap;gap:12px;">
+            <label>日期：</label>
+            <input id="productDate" class="date-filter" placeholder="选择日期范围">
             <label>产品：</label>
-            <select id="productSelect" class="sel"></select>
+            <select id="productSelect" class="sel" style="width:200px;max-width:200px;white-space:nowrap;"></select>
+            <a id="productLink" href="#" target="_blank" style="display:none;margin-left:8px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></a>
+            <span id="productListingDate" style="margin-left:8px;"></span>
           </div>
         </div>
-        
-        <!-- 网络选择器 -->
-        <div class="network-selector">
-          <div class="controls">
-            <label>网络：</label>
-            <select id="analysisNetworkSel" class="sel">
-              <option value="">全部网络</option>
-            </select>
-          </div>
-        </div>
-        
-        <!-- 产品KPI -->
-        <div id="productKpi" class="analysis-kpi-grid">
-          <div class="analysis-kpi-card">
-            <h4>点击</h4>
-            <p id="productClicks">0</p>
-            <div id="productClicksComparison" class="kpi-comparison"></div>
-          </div>
-          <div class="analysis-kpi-card">
-            <h4>曝光</h4>
-            <p id="productImpressions">0</p>
-            <div id="productImpressionsComparison" class="kpi-comparison"></div>
-          </div>
-          <div class="analysis-kpi-card">
-            <h4>CTR</h4>
-            <p id="productCtr">0%</p>
-            <div id="productCtrComparison" class="kpi-comparison"></div>
-          </div>
-          <div class="analysis-kpi-card">
-            <h4>转化</h4>
-            <p id="productConversions">0</p>
-            <div id="productConversionsComparison" class="kpi-comparison"></div>
-          </div>
-        </div>
+
+        <!-- 产品KPI（隐藏） -->
+        <div id="productKpi" class="analysis-kpi-grid" style="display:none;"></div>
         
         <!-- 产品趋势图表 -->
         <div id="productCharts" class="charts-grid" style="display:none;">
-          <div class="chart-panel">
-            <h3>点击趋势</h3>
+          <div>
             <div id="productClicksChart" style="width:100%;height:260px;"></div>
           </div>
-          <div class="chart-panel">
-            <h3>曝光趋势</h3>
+          <div>
             <div id="productImpressionsChart" style="width:100%;height:260px;"></div>
           </div>
-          <div class="chart-panel">
-            <h3>CTR趋势</h3>
+          <div>
             <div id="productCtrChart" style="width:100%;height:260px;"></div>
           </div>
-          <div class="chart-panel">
-            <h3>转化趋势</h3>
+          <div>
             <div id="productConversionsChart" style="width:100%;height:260px;"></div>
           </div>
         </div>
@@ -865,259 +709,236 @@
   </main>
 </div>
 
+<!-- Hash 路由脚本移动至文末以确保依赖函数已定义 -->
+
 <script>
-// Hash路由处理
-function handleHashRoute() {
-  const hash = window.location.hash.slice(1) || 'detail';
-  const targetLink = document.querySelector(`[data-target="${hash}"]`);
-  
-  if (targetLink) {
-    // 更新导航状态
-    document.querySelectorAll('.sub-nav a').forEach(x => x.classList.remove('active'));
-    targetLink.classList.add('active');
-    
-    // 显示对应内容
-    ['detail', 'analysis', 'products'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = (id === hash ? '' : 'none');
-    });
-    
-    // 根据路由加载相应数据
-    if (hash === 'analysis') {
-      loadIndependentAnalysisData();
-    } else if (hash === 'products') {
-      loadIndependentProductAnalysisData();
-    }
-  }
+function getParam(name) {
+  const url = new URL(window.location.href);
+  return url.searchParams.get(name);
+}
+// 站点参数统一为完整域名
+function normalizeSite(site) {
+  const map = {
+    'poolsvacuum': 'poolsvacuum.com',
+    'independent_poolsvacuum': 'poolsvacuum.com',
+    'icyberite': 'icyberite.com',
+    'independent_icyberite': 'icyberite.com'
+  };
+  return map[site] || site || '';
 }
 
-// 监听hash变化
-window.addEventListener('hashchange', handleHashRoute);
-
-// 初始化hash路由
-handleHashRoute();
-
-// 导航点击处理
-document.querySelectorAll('.sub-nav a').forEach(a => {
-  a.addEventListener('click', e => {
-    const target = a.dataset.target;
-    if (target) {
-      e.preventDefault();
-      window.location.hash = target;
-    }
-  });
-});
-      
-      setTimeout(()=> window.dispatchEvent(new Event('resize')), 0);
-    }
-  });
-})();
-</script>
-
-<script>
 // 独立站运营分析数据加载
 async function loadIndependentAnalysisData() {
   try {
-    const site = document.getElementById('site').value || getParam('site');
+    showLoading();
+    const rawSite = document.getElementById('site').value || getParam('site');
+    const site = normalizeSite(rawSite);
     if (!site) {
       console.warn('未指定站点，无法加载运营分析数据');
       return;
     }
-    
-    const dateRange = getDateRange();
-    
-    // 获取当前周期数据
-    const response = await fetch('/api/independent/stats', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        site: site,
-        start: dateRange.start,
-        end: dateRange.end
-      })
+
+    const dateRange = getDateRange('analysisDate');
+    const params = new URLSearchParams({
+      site: site,
+      from: dateRange.start,
+      to: dateRange.end
     });
-    
+
+    // 获取当前周期数据
+    const response = await fetch(`/api/independent/stats?${params.toString()}`);
     const data = await response.json();
-    
-    if (data.ok && data.data) {
+
+    if (data.ok) {
+      const { table = [], kpis } = data;
       // 更新KPI卡片
-      updateIndependentAnalysisKPI(data.data);
+      updateIndependentAnalysisKPI(table, kpis);
       // 渲染图表
-      renderIndependentAnalysisCharts(data.data);
+      await renderIndependentAnalysisCharts(table, kpis);
     }
   } catch (error) {
     console.error('加载独立站运营分析数据失败:', error);
+  } finally {
+    hideLoading();
   }
 }
 
 // 独立站产品分析数据加载
 async function loadIndependentProductAnalysisData() {
   try {
-    const site = document.getElementById('site').value || getParam('site');
+    showLoading();
+    const rawSite = document.getElementById('site').value || getParam('site');
+    const site = normalizeSite(rawSite);
     if (!site) {
       console.warn('未指定站点，无法加载产品分析数据');
       return;
     }
-    
-    const dateRange = getDateRange();
-    
-    // 获取产品列表
-    const response = await fetch('/api/independent/stats', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        site: site,
-        start: dateRange.start,
-        end: dateRange.end
-      })
+
+    const dateRange = getDateRange('productDate');
+    const params = new URLSearchParams({
+      site: site,
+      from: dateRange.start,
+      to: dateRange.end,
+      aggregate: 'product'
     });
-    
-    const data = await response.json();
-    
-    if (data.ok && data.data) {
-      populateIndependentProductSelect(data.data);
+
+    const [statsRes, newRes] = await Promise.all([
+      fetch(`/api/independent/stats?${params.toString()}`),
+      fetch(`/api/new-products?platform=indep&site=${site}&from=2000-01-01&to=${dateRange.end}&limit=100000`)
+    ]);
+
+    const data = await statsRes.json();
+    const newData = await newRes.json();
+
+    let firstMap = {};
+    if (newData?.items) {
+      newData.items.forEach(it => {
+        try {
+          const u = new URL(it.product_id);
+          firstMap[u.pathname] = it.first_seen;
+        } catch (_) {}
+      });
+    }
+
+    if (data.ok) {
+      populateIndependentProductSelect(data.table || [], firstMap);
     }
   } catch (error) {
     console.error('加载独立站产品分析数据失败:', error);
+  } finally {
+    hideLoading();
   }
 }
 
 // 获取日期范围
-function getDateRange() {
-  const input = document.getElementById('dateFilter');
+function getDateRange(inputId = 'dateFilter') {
+  const input = document.getElementById(inputId);
   if (input && input.value && input.value.includes(' to ')) {
     const [start, end] = input.value.split(' to ');
     return { start, end };
   }
   const today = new Date();
   const end = today.toISOString().slice(0, 10);
-  const start = today.getFullYear() < 2025 ? '2025-07-01' : new Date(today.getTime() - 30 * 86400000).toISOString().slice(0, 10);
+  const start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const def = `${start} to ${end}`;
+  if (input) input.value = def;
   return { start, end };
 }
 
 // 更新独立站运营分析KPI
-function updateIndependentAnalysisKPI(data) {
-  // 计算新的KPI指标
-  const totalImpressions = data.reduce((sum, item) => sum + (item.impressions || 0), 0);
-  const totalClicks = data.reduce((sum, item) => sum + (item.clicks || 0), 0);
-  const totalConversions = data.reduce((sum, item) => sum + (item.conversions || 0), 0);
-  const totalConvValue = data.reduce((sum, item) => sum + (item.conv_value || 0), 0);
-  
-  // 计算商品数量（去重）
-  const exposedProducts = new Set(data.filter(item => item.impressions > 0).map(item => item.product)).size;
-  const cartedProducts = new Set(data.filter(item => item.conversions > 0).map(item => item.product)).size;
-  const paidProducts = new Set(data.filter(item => item.conv_value > 0).map(item => item.product)).size;
-  
-  // 更新KPI显示
-  document.getElementById('totalImpressions').textContent = totalImpressions.toLocaleString();
-  document.getElementById('totalClicks').textContent = totalClicks.toLocaleString();
-  document.getElementById('totalConversions').textContent = totalConversions.toLocaleString();
-  document.getElementById('totalConvValue').textContent = totalConvValue.toLocaleString();
-  document.getElementById('exposedProducts').textContent = exposedProducts.toLocaleString();
-  document.getElementById('cartedProducts').textContent = cartedProducts.toLocaleString();
-  document.getElementById('paidProducts').textContent = paidProducts.toLocaleString();
+function updateIndependentAnalysisKPI(data, kpis = {}) {
+  const pct = v => `${Number(v || 0).toFixed(2)}%`;
+
+  const avgCtrEl = document.getElementById('avgCtr');
+  if (avgCtrEl) avgCtrEl.textContent = pct(kpis.avg_ctr);
+
+  const avgConvEl = document.getElementById('avgConvRate');
+  if (avgConvEl) avgConvEl.textContent = pct(kpis.avg_conv_rate);
+
+  const exposureEl = document.getElementById('exposureProducts');
+  if (exposureEl) exposureEl.textContent = (kpis.exposure_product_count || 0).toLocaleString();
+
+  const clickEl = document.getElementById('clickedProducts');
+  if (clickEl) clickEl.textContent = (kpis.click_product_count || 0).toLocaleString();
+
+  const convEl = document.getElementById('convertedProducts');
+  if (convEl) convEl.textContent = (kpis.conversion_product_count || 0).toLocaleString();
+
+  const newEl = document.getElementById('newProducts');
+  if (newEl) newEl.textContent = (kpis.new_product_count || 0).toLocaleString();
 }
 
 // 渲染独立站运营分析对比图表
-async function renderIndependentAnalysisCharts(data) {
+async function renderIndependentAnalysisCharts(data, kpis = {}) {
   // 获取上一周期数据进行对比
-  const previousData = await getIndependentPreviousPeriodData();
-  
+  const previousData = await getIndependentPreviousPeriodData('analysisDate');
+
   // 计算当前周期数据
   const currentData = {
-    impressions: data.reduce((sum, item) => sum + (item.impressions || 0), 0),
+    impressions: data.reduce((sum, item) => sum + (item.impressions || item.impr || 0), 0),
     clicks: data.reduce((sum, item) => sum + (item.clicks || 0), 0),
     conversions: data.reduce((sum, item) => sum + (item.conversions || 0), 0),
-    convValue: data.reduce((sum, item) => sum + (item.conv_value || 0), 0),
-    exposedProducts: new Set(data.filter(item => item.impressions > 0).map(item => item.product)).size,
-    cartedProducts: new Set(data.filter(item => item.conversions > 0).map(item => item.product)).size,
-    paidProducts: new Set(data.filter(item => item.conv_value > 0).map(item => item.product)).size
+    ctr: 0,
+    clickedProducts: kpis.click_product_count != null
+      ? kpis.click_product_count
+      : new Set(data.filter(item => (item.clicks || 0) > 0).map(item => item.product)).size
   };
-  
+  currentData.ctr = currentData.impressions > 0 ? currentData.clicks / currentData.impressions * 100 : 0;
+
   // 计算上一周期数据
   const previousDataCalculated = previousData ? {
-    impressions: previousData.reduce((sum, item) => sum + (item.impressions || 0), 0),
-    clicks: previousData.reduce((sum, item) => sum + (item.clicks || 0), 0),
-    conversions: previousData.reduce((sum, item) => sum + (item.conversions || 0), 0),
-    convValue: previousData.reduce((sum, item) => sum + (item.conv_value || 0), 0),
-    exposedProducts: new Set(previousData.filter(item => item.impressions > 0).map(item => item.product)).size,
-    cartedProducts: new Set(previousData.filter(item => item.conversions > 0).map(item => item.product)).size,
-    paidProducts: new Set(previousData.filter(item => item.conv_value > 0).map(item => item.product)).size
+    impressions: previousData.table.reduce((sum, item) => sum + (item.impressions || item.impr || 0), 0),
+    clicks: previousData.table.reduce((sum, item) => sum + (item.clicks || 0), 0),
+    conversions: previousData.table.reduce((sum, item) => sum + (item.conversions || 0), 0),
+    ctr: 0,
+    clickedProducts: previousData.kpis?.click_product_count != null
+      ? previousData.kpis.click_product_count
+      : new Set(previousData.table.filter(item => (item.clicks || 0) > 0).map(item => item.product)).size
   } : null;
-  
-  // 渲染总展示数对比图
-  renderIndependentComparisonChart('impressionsComparisonChart', '总展示数对比', 
-    currentData.impressions, previousDataCalculated?.impressions || 0, '总展示数');
-  
-  // 渲染详情页访客数对比图
-  renderIndependentComparisonChart('clicksComparisonChart', '详情页访客数对比', 
-    currentData.clicks, previousDataCalculated?.clicks || 0, '详情页访客数');
-  
-  // 渲染加购次数对比图
-  renderIndependentComparisonChart('conversionsComparisonChart', '加购次数对比', 
-    currentData.conversions, previousDataCalculated?.conversions || 0, '加购次数');
-  
-  // 渲染订购商品数对比图
-  renderIndependentComparisonChart('convValueComparisonChart', '订购商品数对比', 
-    currentData.convValue, previousDataCalculated?.convValue || 0, '订购商品数');
-  
-  // 渲染有曝光商品数对比图
-  renderIndependentComparisonChart('exposedProductsComparisonChart', '有曝光商品数对比', 
-    currentData.exposedProducts, previousDataCalculated?.exposedProducts || 0, '有曝光商品数');
-  
-  // 渲染有加购商品数对比图
-  renderIndependentComparisonChart('cartedProductsComparisonChart', '有加购商品数对比', 
-    currentData.cartedProducts, previousDataCalculated?.cartedProducts || 0, '有加购商品数');
-  
-  // 渲染有支付商品数对比图
-  renderIndependentComparisonChart('paidProductsComparisonChart', '有支付商品数对比', 
-    currentData.paidProducts, previousDataCalculated?.paidProducts || 0, '有支付商品数');
+  if (previousDataCalculated) {
+    previousDataCalculated.ctr = previousDataCalculated.impressions > 0
+      ? previousDataCalculated.clicks / previousDataCalculated.impressions * 100
+      : 0;
+  }
+
+  // 渲染产品展示总数对比图
+  renderIndependentComparisonChart('impressionsComparisonChart',
+    currentData.impressions, previousDataCalculated?.impressions || 0, '产品展示总数');
+
+  // 渲染 CTR 对比图
+  renderIndependentComparisonChart('ctrComparisonChart',
+    currentData.ctr, previousDataCalculated?.ctr || 0, 'CTR (%)');
+
+  // 渲染转化次数对比图
+  renderIndependentComparisonChart('conversionsComparisonChart',
+    currentData.conversions, previousDataCalculated?.conversions || 0, '转化次数');
+
+  // 渲染有点击商品数对比图
+  renderIndependentComparisonChart('clickedProductsComparisonChart',
+    currentData.clickedProducts, previousDataCalculated?.clickedProducts || 0, '有点击商品数');
 }
 
 // 渲染独立站对比柱状图
-function renderIndependentComparisonChart(chartId, title, currentValue, previousValue, label) {
+function renderIndependentComparisonChart(chartId, currentValue, previousValue, label) {
   const chart = echarts.init(document.getElementById(chartId));
+  const formatVal = v => label.includes('CTR') ? v.toFixed(2) + '%' : v.toLocaleString();
   const option = {
-    title: { 
-      text: title, 
-      textStyle: { color: '#374151', fontSize: 16 },
-      subtext: `${label}: ${currentValue.toLocaleString()}`,
-      subtextStyle: { color: '#6b7280', fontSize: 14 }
-    },
-    tooltip: { 
+    tooltip: {
       trigger: 'axis',
       formatter: function(params) {
         const data = params[0];
-        return `${data.name}<br/>${data.seriesName}: ${data.value.toLocaleString()}`;
+        return `${data.seriesName}: ${formatVal(data.value)}`;
       }
     },
     legend: {
       data: ['当前周期', '上一周期'],
       textStyle: { color: '#374151' }
     },
-    xAxis: { 
-      type: 'category', 
+    xAxis: {
+      type: 'category',
       data: ['当前周期', '上一周期'],
       axisLabel: { color: '#374151', fontSize: 12 }
     },
-    yAxis: { 
+    yAxis: {
       type: 'value',
       axisLabel: { color: '#374151', fontSize: 12 }
     },
     series: [
       {
         name: '当前周期',
-        data: [currentValue, 0],
+        data: [currentValue, null],
         type: 'bar',
         itemStyle: { color: '#3B82F6' },
-        barWidth: '40%'
+        barWidth: '40%',
+        label: { show: true, position: 'top', formatter: p => formatVal(p.value) }
       },
       {
         name: '上一周期',
-        data: [0, previousValue],
+        data: [null, previousValue],
         type: 'bar',
         itemStyle: { color: '#10B981' },
-        barWidth: '40%'
+        barWidth: '40%',
+        label: { show: true, position: 'top', formatter: p => formatVal(p.value) }
       }
     ]
   };
@@ -1125,78 +946,227 @@ function renderIndependentComparisonChart(chartId, title, currentValue, previous
 }
 
 // 获取独立站上一周期数据
-async function getIndependentPreviousPeriodData() {
+async function getIndependentPreviousPeriodData(inputId = 'dateFilter') {
   try {
-    const dateRange = getDateRange();
-    const currentSite = getParam('site') || 'icyberite';
+    const dateRange = getDateRange(inputId);
+    const currentSite = normalizeSite(getParam('site')) || 'icyberite.com';
     
     // 计算上一周期的日期范围
     const currentStart = new Date(dateRange.start);
     const currentEnd = new Date(dateRange.end);
-    const periodDays = Math.ceil((currentEnd - currentStart) / (1000 * 60 * 60 * 24));
+    const periodDays = Math.ceil((currentEnd - currentStart) / (1000 * 60 * 60 * 24)) + 1;
     
     const previousEnd = new Date(currentStart);
     previousEnd.setDate(previousEnd.getDate() - 1);
     const previousStart = new Date(previousEnd);
     previousStart.setDate(previousStart.getDate() - periodDays + 1);
     
-    const response = await fetch('/api/independent/stats', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        site: currentSite,
-        start: previousStart.toISOString().slice(0, 10),
-        end: previousEnd.toISOString().slice(0, 10)
-      })
+    const params = new URLSearchParams({
+      site: currentSite,
+      from: previousStart.toISOString().slice(0, 10),
+      to: previousEnd.toISOString().slice(0, 10)
     });
-    
+
+    const response = await fetch(`/api/independent/stats?${params.toString()}`);
+
     if (response.ok) {
       const data = await response.json();
-      if (data.ok && data.data) {
-        return data.data;
+      if (data.ok) {
+        return data;
       }
     }
   } catch (error) {
     console.error('获取独立站上一周期数据失败:', error);
   }
-  
+
   return null;
 }
 
 // 填充独立站产品选择器
-function populateIndependentProductSelect(data) {
+function populateIndependentProductSelect(data, firstMap = {}) {
   const productSelect = document.getElementById('productSelect');
   if (!productSelect) return;
-  
-  // 清空现有选项
+
   productSelect.innerHTML = '<option value="">选择产品</option>';
-  
-  // 获取唯一产品
-  const uniqueProducts = [...new Set(data.map(item => item.product))];
-  
-  uniqueProducts.forEach(product => {
+
+  const seen = new Set();
+  const list = [];
+  data.forEach(item => {
+    const key = item.landing_path;
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    list.push({
+      path: key,
+      name: item.product || key,
+      url: item.landing_url || '',
+      firstSeen: firstMap[key] || item.first_seen_date || '',
+      impr: item.impr || 0
+    });
+  });
+  list.sort((a,b)=> b.impr - a.impr);
+
+  list.forEach(p => {
     const option = document.createElement('option');
-    option.value = product;
-    option.textContent = product;
+    option.value = p.path;
+    option.textContent = p.name;
+    option.dataset.url = p.url;
+    option.dataset.firstSeen = p.firstSeen;
     productSelect.appendChild(option);
   });
-  
-  // 添加产品选择事件
-  productSelect.addEventListener('change', function() {
-    const selectedProduct = this.value;
-    if (selectedProduct) {
-      loadIndependentProductData(selectedProduct);
+
+  productSelect.onchange = function() {
+    const opt = this.selectedOptions[0];
+    if (opt && opt.value) {
+      loadIndependentProductData(opt.value, opt.dataset.url, opt.dataset.firstSeen);
+    } else {
+      const linkEl = document.getElementById('productLink');
+      if (linkEl) linkEl.style.display = 'none';
+      const dateEl = document.getElementById('productListingDate');
+      if (dateEl) dateEl.textContent = '';
+      const kpiEl = document.getElementById('productKpi');
+      if (kpiEl) { kpiEl.style.display = 'none'; kpiEl.innerHTML = ''; }
+      const chartWrap = document.getElementById('productCharts');
+      if (chartWrap) chartWrap.style.display = 'none';
     }
+  };
+
+  const productParam = getParam('product');
+  if (productParam) {
+    const opt = Array.from(productSelect.options).find(o => o.value === productParam);
+    if (opt) {
+      productSelect.value = opt.value;
+      loadIndependentProductData(opt.value, opt.dataset.url, opt.dataset.firstSeen);
+      return;
+    }
+  }
+
+  if (list.length) {
+    const first = list[0];
+    productSelect.value = first.path;
+    loadIndependentProductData(first.path, first.url, first.firstSeen);
+  }
+}
+
+// 加载特定产品的分析数据
+async function loadIndependentProductData(landingPath, landingUrl, firstSeen) {
+  try {
+    showLoading();
+    const rawSite = document.getElementById('site').value || getParam('site');
+    const site = normalizeSite(rawSite);
+    if (!site) return;
+
+    const { start, end } = getDateRange('productDate');
+    const params = new URLSearchParams({ site, from: start, to: end });
+    const res = await fetch(`/api/independent/stats?${params.toString()}`);
+    const json = await res.json();
+    if (!json.ok) return;
+
+    const rows = (json.table || []).filter(item => item.landing_path === landingPath);
+    if (!rows.length) return;
+
+    const totalImpressions = rows.reduce((sum, r) => sum + (r.impr || r.impressions || 0), 0);
+    const totalClicks = rows.reduce((sum, r) => sum + (r.clicks || 0), 0);
+    const totalConversions = rows.reduce((sum, r) => sum + (r.conversions || 0), 0);
+    const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions * 100).toFixed(2) : '0.00';
+    const kpiWrap = document.getElementById('productKpi');
+    if (kpiWrap) {
+      kpiWrap.innerHTML = `
+        <div class="analysis-kpi-card"><h4>曝光总数</h4><p>${totalImpressions.toLocaleString()}</p></div>
+        <div class="analysis-kpi-card"><h4>点击总数</h4><p>${totalClicks.toLocaleString()}</p></div>
+        <div class="analysis-kpi-card"><h4>转化总数</h4><p>${totalConversions.toLocaleString()}</p></div>
+        <div class="analysis-kpi-card"><h4>CTR</h4><p>${ctr}%</p></div>`;
+      kpiWrap.style.display = 'grid';
+    }
+
+    const linkEl = document.getElementById('productLink');
+    if (linkEl && landingUrl) {
+      linkEl.href = landingUrl;
+      linkEl.textContent = landingUrl;
+      linkEl.style.display = '';
+    }
+    const dateEl = document.getElementById('productListingDate');
+    if (dateEl) dateEl.textContent = firstSeen ? `上架日期：${firstSeen}` : '';
+
+    const byDay = {};
+    rows.forEach(r => {
+      const d = r.day;
+      if (!byDay[d]) byDay[d] = { clicks: 0, impressions: 0, conversions: 0 };
+      byDay[d].clicks += r.clicks || 0;
+      byDay[d].impressions += r.impr || r.impressions || 0;
+      byDay[d].conversions += r.conversions || 0;
+    });
+    // 获取上一周期数据
+    const prev = await getIndependentPreviousPeriodData('productDate');
+    const prevRows = (prev?.table || []).filter(item => item.landing_path === landingPath);
+    const prevByDay = {};
+    prevRows.forEach(r => {
+      const d = r.day;
+      if (!prevByDay[d]) prevByDay[d] = { clicks: 0, impressions: 0, conversions: 0 };
+      prevByDay[d].clicks += r.clicks || 0;
+      prevByDay[d].impressions += r.impr || r.impressions || 0;
+      prevByDay[d].conversions += r.conversions || 0;
+    });
+
+    // 构造当前与上一周期日期序列
+    const periodDays = Math.round((new Date(end) - new Date(start)) / (1000*60*60*24)) + 1;
+    const dates = [];
+    const currSeries = { clicks: [], impressions: [], ctr: [], conv: [] };
+    const prevSeries = { clicks: [], impressions: [], ctr: [], conv: [] };
+    for (let i = 0; i < periodDays; i++) {
+      const currDate = new Date(start);
+      currDate.setDate(currDate.getDate() + i);
+      const currKey = currDate.toISOString().slice(0,10);
+      dates.push(currKey);
+      const curr = byDay[currKey] || { clicks:0, impressions:0, conversions:0 };
+      currSeries.clicks.push(curr.clicks);
+      currSeries.impressions.push(curr.impressions);
+      currSeries.ctr.push(curr.impressions>0 ? +(curr.clicks/curr.impressions*100).toFixed(2) : 0);
+      currSeries.conv.push(curr.conversions);
+
+      const prevDate = new Date(start);
+      prevDate.setDate(prevDate.getDate() - periodDays + i);
+      const prevKey = prevDate.toISOString().slice(0,10);
+      const prevDay = prevByDay[prevKey] || { clicks:0, impressions:0, conversions:0 };
+      prevSeries.clicks.push(prevDay.clicks);
+      prevSeries.impressions.push(prevDay.impressions);
+      prevSeries.ctr.push(prevDay.impressions>0 ? +(prevDay.clicks/prevDay.impressions*100).toFixed(2) : 0);
+      prevSeries.conv.push(prevDay.conversions);
+    }
+
+    const chartWrap = document.getElementById('productCharts');
+    chartWrap.style.display = 'grid';
+
+    renderComparisonLineChart('productClicksChart', '点击趋势', dates, currSeries.clicks, prevSeries.clicks);
+    renderComparisonLineChart('productImpressionsChart', '曝光趋势', dates, currSeries.impressions, prevSeries.impressions);
+    renderComparisonLineChart('productCtrChart', 'CTR趋势', dates, currSeries.ctr, prevSeries.ctr);
+    renderComparisonLineChart('productConversionsChart', '转化趋势', dates, currSeries.conv, prevSeries.conv);
+  } catch (err) {
+    console.error('加载独立站产品数据失败:', err);
+  } finally {
+    hideLoading();
+  }
+}
+
+function renderComparisonLineChart(id, title, dates, current, previous) {
+  const el = document.getElementById(id);
+  const chart = echarts.init(el);
+  chart.setOption({
+    title: { text: title, left: 'center', textStyle: { color: '#374151', fontSize: 16 } },
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['当前周期','上一周期'] },
+    xAxis: { type: 'category', data: dates },
+    yAxis: { type: 'value' },
+    series: [
+      { name: '当前周期', type: 'line', smooth: true, data: current, itemStyle: { color: '#3b82f6' } },
+      { name: '上一周期', type: 'line', smooth: true, data: previous, itemStyle: { color: '#9ca3af' } }
+    ]
   });
+  new ResizeObserver(() => chart.resize()).observe(el);
 }
 
 // 页面逻辑：拉取 /api/independent/stats
 (function(){
   const shorten=(s,l=30)=>{if(!s) return '';return s.length>l?s.slice(0,l)+'…':s;};
-  function getParam(name) {
-    const url = new URL(window.location.href);
-    return url.searchParams.get(name);
-  }
   const siteInput = document.getElementById('site');
   const fromInput = document.getElementById('from');
   const toInput = document.getElementById('to');
@@ -1327,9 +1297,6 @@ function populateIndependentProductSelect(data) {
         autoWidth: true,
         processing: true,
         responsive: false,
-        language: {
-          processing: '<div class="loading-message"><div class="loading-spinner"></p>努力加载中,请等待片刻。。。</p></div>'
-        },
         columns:[
                   { data:'product', render:(v,t,r)=>{
             const name = v || r.landing_path || '';
@@ -1356,16 +1323,27 @@ function populateIndependentProductSelect(data) {
       dt.column(1).visible(false); // 设备列
       dt.column(2).visible(false); // 网络列
       dt.column(3).visible(false); // Campaign列
-      
+
       // 强制重新计算列宽，确保对齐
       setTimeout(() => {
         dt.columns.adjust();
         dt.fixedHeader.adjust();
       }, 100);
-      
+      // 双击行跳转到产品分析
+      $('#report tbody').off('dblclick').on('dblclick', 'tr', function() {
+        const row = dt.row(this).data();
+        if (!row) return;
+        const params = new URLSearchParams(window.location.search);
+        if (!params.get('site')) {
+          params.set('site', getCurrentSiteForAPI());
+        }
+        params.set('product', row.landing_path);
+        window.location.href = `independent-site.html?${params.toString()}#products`;
+      });
+
       return;
     }
-    
+
     let data = rawTable;
     const net = networkSel.value;
     const camp = campaignSel.value;
@@ -1385,9 +1363,6 @@ function populateIndependentProductSelect(data) {
       autoWidth: true,
       processing: true,
       responsive: false,
-      language: {
-        processing: '<div class="loading-message"><div class="loading-spinner"></p>努力加载中,请等待片刻。。。</p></div>'
-      },
       columns:[
         { data:'product', render:(v,t,r)=>{
             const name = v || r.landing_path || '';
@@ -1418,12 +1393,23 @@ function populateIndependentProductSelect(data) {
     if (showDevice) dt.column(1).visible(true);
     if (showNetwork) dt.column(2).visible(true);
     if (showCampaign) dt.column(3).visible(true);
-    
+
     // 强制重新计算列宽，确保对齐
     setTimeout(() => {
       dt.columns.adjust();
       dt.fixedHeader.adjust();
     }, 100);
+    // 双击行跳转到产品分析
+    $('#report tbody').off('dblclick').on('dblclick', 'tr', function() {
+      const row = dt.row(this).data();
+      if (!row) return;
+      const params = new URLSearchParams(window.location.search);
+      if (!params.get('site')) {
+        params.set('site', getCurrentSiteForAPI());
+      }
+      params.set('product', row.landing_path);
+      window.location.href = `independent-site.html?${params.toString()}#products`;
+    });
   }
 
   $('#columnMenu').on('change','input[type=checkbox]', buildTable);
@@ -1441,17 +1427,13 @@ function populateIndependentProductSelect(data) {
       // 重新获取最新的localStorage值
       const latestSiteId = localStorage.getItem('currentIndepSite');
       const latestSiteName = localStorage.getItem('currentIndepSiteName');
-      
+
       if (latestSiteName) {
-        currentSiteEl.textContent = latestSiteName;
-        console.log('独立站页面更新站点名称:', latestSiteName);
+        const display = normalizeSite(latestSiteName);
+        currentSiteEl.textContent = display;
+        console.log('独立站页面更新站点名称:', display);
       } else if (latestSiteId) {
-        // 根据站点ID显示名称
-        const siteNameMap = {
-          'independent_icyberite': 'icyberite.com',
-          'independent_poolsvacuum': 'poolsvacuum.com'
-        };
-        const displayName = siteNameMap[latestSiteId] || '独立站';
+        const displayName = normalizeSite(latestSiteId) || '独立站';
         currentSiteEl.textContent = displayName;
         console.log('独立站页面更新站点名称:', displayName);
       } else {
@@ -1459,8 +1441,9 @@ function populateIndependentProductSelect(data) {
         const urlParams = new URLSearchParams(window.location.search);
         const siteParam = urlParams.get('site');
         if (siteParam) {
-          currentSiteEl.textContent = siteParam;
-          console.log('独立站页面从URL参数获取站点名称:', siteParam);
+          const display = normalizeSite(siteParam);
+          currentSiteEl.textContent = display;
+          console.log('独立站页面从URL参数获取站点名称:', display);
         } else {
           currentSiteEl.textContent = 'poolsvacuum.com';
           console.log('独立站页面使用默认名称: poolsvacuum.com');
@@ -1473,26 +1456,22 @@ function populateIndependentProductSelect(data) {
   function getCurrentSiteForAPI() {
     const currentIndepSiteId = localStorage.getItem('currentIndepSite');
     const currentIndepSiteName = localStorage.getItem('currentIndepSiteName');
-    
+
     // 如果有站点名称，使用站点名称（这是数据库中的site字段值）
     if (currentIndepSiteName) {
-      return currentIndepSiteName;
+      return normalizeSite(currentIndepSiteName);
     }
-    
+
     // 如果有站点ID，根据ID映射到站点名称
     if (currentIndepSiteId) {
-      const siteNameMap = {
-        'independent_icyberite': 'icyberite.com',
-        'independent_poolsvacuum': 'poolsvacuum.com'
-      };
-      return siteNameMap[currentIndepSiteId] || 'poolsvacuum.com';
+      return normalizeSite(currentIndepSiteId) || 'poolsvacuum.com';
     }
-    
+
     // 从URL参数获取
     const urlParams = new URLSearchParams(window.location.search);
     const siteParam = urlParams.get('site');
     if (siteParam) {
-      return siteParam;
+      return normalizeSite(siteParam);
     }
     
     // 默认值
@@ -1500,7 +1479,7 @@ function populateIndependentProductSelect(data) {
   }
   
   // 默认站点取 url 参数、当前选中的站点或从示例取
-  siteInput.value = getParam('site') || getCurrentSiteForAPI();
+  siteInput.value = normalizeSite(getParam('site')) || getCurrentSiteForAPI();
   
   // 初始化站点名称显示
   updateSiteDisplay();
@@ -1524,104 +1503,29 @@ function populateIndependentProductSelect(data) {
     }
   }, 1000);
   
-  // 初始化统一的时间控件
-  const fp = flatpickr('#dateFilter', { 
-    mode: 'range', 
-    dateFormat: 'Y-m-d', 
-    onClose: (ds) => { 
-      if (ds.length === 2) {
-        // 同步其他页面的时间控件
-        syncTimeControlsToOtherPages(ds);
-        load(); 
+  // 初始化日期控件
+  function initDatePicker(id, onChange) {
+    const fp = flatpickr(`#${id}`, {
+      mode: 'range',
+      dateFormat: 'Y-m-d',
+      onClose: (ds) => {
+        if (ds.length === 2 && onChange) {
+          onChange();
+        }
       }
-    } 
-  });
-  
-  // 设置默认日期范围（最近7天）
-  const today = new Date();
-  const end = today.toISOString().slice(0,10);
-  const start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0,10);
-  const def = `${start} to ${end}`;
-  $('#dateFilter').val(def);
-  
-  // 同步时间控件到其他页面
-  function syncTimeControlsToOtherPages(selectedDates) {
-    const dateStr = `${selectedDates[0].toISOString().slice(0,10)} to ${selectedDates[1].toISOString().slice(0,10)}`;
-    
-    // 同步到运营分析页面
-    const analysisDateFilter = document.getElementById('analysisDateFilter');
-    if (analysisDateFilter) {
-      analysisDateFilter.value = dateStr;
-    }
-    
-    // 同步到产品分析页面
-    const productDateFilter = document.getElementById('productDateFilter');
-    if (productDateFilter) {
-      productDateFilter.value = dateStr;
-    }
+    });
+    const today = new Date();
+    const end = today.toISOString().slice(0,10);
+    const start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0,10);
+    fp.setDate([start, end]);
+    const input = document.getElementById(id);
+    if (input) input.value = `${start} to ${end}`;
+    return fp;
   }
-  
-  // 初始化其他页面的时间控件
-  function initializeOtherPageTimeControls() {
-    const mainDateFilter = document.getElementById('dateFilter');
-    if (!mainDateFilter || !mainDateFilter.value) return;
-    
-    const dateStr = mainDateFilter.value;
-    
-    // 初始化运营分析页面时间控件
-    const analysisDateFilter = document.getElementById('analysisDateFilter');
-    if (analysisDateFilter) {
-      if (window.flatpickr) {
-        flatpickr(analysisDateFilter, {
-          mode: 'range',
-          dateFormat: 'Y-m-d',
-          onClose: (ds) => {
-            if (ds.length === 2) {
-              const newDateStr = `${ds[0].toISOString().slice(0,10)} to ${ds[1].toISOString().slice(0,10)}`;
-              // 同步到主页面
-              mainDateFilter.value = newDateStr;
-              if (window.fp) {
-                window.fp.setDate(newDateStr.split(' to '), true, 'Y-m-d');
-              }
-              // 重新加载数据
-              load();
-            }
-          }
-        });
-      }
-      analysisDateFilter.value = dateStr;
-    }
-    
-    // 初始化产品分析页面时间控件
-    const productDateFilter = document.getElementById('productDateFilter');
-    if (productDateFilter) {
-      if (window.flatpickr) {
-        flatpickr(productDateFilter, {
-          mode: 'range',
-          dateFormat: 'Y-m-d',
-          onClose: (ds) => {
-            if (ds.length === 2) {
-              const newDateStr = `${ds[0].toISOString().slice(0,10)} to ${ds[1].toISOString().slice(0,10)}`;
-              // 同步到主页面
-              mainDateFilter.value = newDateStr;
-              if (window.fp) {
-                window.fp.setDate(newDateStr.split(' to '), true, 'Y-m-d');
-              }
-              // 重新加载数据
-              load();
-            }
-          }
-        });
-      }
-      productDateFilter.value = dateStr;
-    }
-  }
-  
-  // 页面加载完成后初始化时间控件
-  document.addEventListener('DOMContentLoaded', function() {
-    // 延迟初始化，确保主时间控件已经设置
-    setTimeout(initializeOtherPageTimeControls, 100);
-  });
+
+  initDatePicker('dateFilter', load);
+  initDatePicker('analysisDate', loadIndependentAnalysisData);
+  initDatePicker('productDate', loadIndependentProductAnalysisData);
 
   function parseDateRange() {
     const input = document.getElementById('dateFilter');
@@ -1789,7 +1693,7 @@ function populateIndependentProductSelect(data) {
   async function load() {
     try {
       // 显示加载状态
-      showLoadingState('detail');
+      showLoading();
       
       const siteName = siteInput.value.trim();
       
@@ -1857,14 +1761,14 @@ function populateIndependentProductSelect(data) {
       $('#topTable').DataTable({ destroy:true, paging:false, searching:false, info:false, data: topRows, scrollX:true, autoWidth:false });
       
       // 隐藏加载状态
-      hideLoadingState('detail');
+      hideLoading();
       
       // 移除产品行点击事件绑定，因为产品分析功能已移至外部页面
     } catch(e) {
       console.error(e);
       alert(e.message || '加载失败');
       // 隐藏加载状态
-      hideLoadingState('detail');
+      hideLoading();
     }
   }
 
@@ -1953,23 +1857,6 @@ function populateIndependentProductSelect(data) {
     }
   });
   
-  // 加载状态管理函数
-  function showLoadingState(section) {
-    const loadingEl = document.getElementById(section + 'Loading');
-    const contentEl = document.getElementById(section + 'Content');
-    
-    if (loadingEl) loadingEl.style.display = 'block';
-    if (contentEl) contentEl.style.display = 'none';
-  }
-  
-  function hideLoadingState(section) {
-    const loadingEl = document.getElementById(section + 'Loading');
-    const contentEl = document.getElementById(section + 'Content');
-    
-    if (loadingEl) loadingEl.style.display = 'none';
-    if (contentEl) contentEl.style.display = 'block';
-  }
-  
   // 确保所有函数定义完成后再调用load
   setTimeout(() => {
     if (typeof load === 'function') {
@@ -1983,6 +1870,51 @@ function populateIndependentProductSelect(data) {
     }
   }, 1000);
 })();
+</script>
+
+<script>
+// 延迟执行Hash路由逻辑，确保数据加载函数已定义
+document.addEventListener('DOMContentLoaded', () => {
+  function handleHashRoute() {
+    const hash = window.location.hash.slice(1) || 'detail';
+    const link = document.querySelector(`[data-target="${hash}"]`);
+    if (link) {
+      document.querySelectorAll('.sub-nav a').forEach(x => x.classList.remove('active'));
+      link.classList.add('active');
+
+      ['detail', 'analysis', 'products'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = (id === hash ? '' : 'none');
+      });
+
+      const kpiBlock = document.getElementById('kpi');
+      if (kpiBlock) kpiBlock.style.display = (hash === 'detail') ? '' : 'none';
+      const topControls = document.getElementById('topControls');
+      if (topControls) topControls.style.display = (hash === 'detail') ? '' : 'none';
+
+      if (hash === 'analysis') {
+        loadIndependentAnalysisData();
+      } else if (hash === 'products') {
+        loadIndependentProductAnalysisData();
+      }
+
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
+    }
+  }
+
+  window.addEventListener('hashchange', handleHashRoute);
+  handleHashRoute();
+
+  document.querySelectorAll('.sub-nav a').forEach(a => {
+    a.addEventListener('click', e => {
+      const target = a.dataset.target;
+      if (target) {
+        e.preventDefault();
+        window.location.hash = target;
+      }
+    });
+  });
+});
 </script>
 
 <script src="assets/login.js"></script>
