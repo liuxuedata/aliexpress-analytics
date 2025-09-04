@@ -182,6 +182,10 @@
     <h3>平均访客/加购/支付比趋势</h3>
     <div id="avgRatioTrend" style="width:100%;height:320px;"></div>
   </div>
+  <div class="panel">
+    <h3>访客/加购/支付总数趋势（近三个月）</h3>
+    <div id="totalTrend" style="width:100%;height:320px;"></div>
+  </div>
 </section>
 
 <section id="products" class="content-pad" style="display:none;">
@@ -366,6 +370,7 @@
 
       renderAnalysis(window._rowsA, window._rowsB);
       renderAvgRatioTrend();
+      renderTotalTrend();
       setStatus('加载完成');
     }catch(err){
       console.error(err);
@@ -773,6 +778,35 @@ async function renderAvgRatioTrend(){
     };
     window.avgRatioChart = initResponsiveChart('avgRatioTrend', option);
   }catch(e){ console.error('ratioTrend', e); }
+}
+</script>
+<script>
+async function renderTotalTrend(){
+  try{
+    const period = $("#periodSelect").val();
+    const qs = new URLSearchParams();
+    if (period) qs.set("to", period);
+    const r = await fetch("/api/managed/daily-totals?" + qs.toString());
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.msg || "fetch error");
+    const rows = j.rows || [];
+    const dates = rows.map(x=>x.period_end);
+    const visit = rows.map(x=>x.uv_total);
+    const add = rows.map(x=>x.add_total);
+    const pay = rows.map(x=>x.pay_total);
+    const option = {
+      tooltip:{trigger:"axis"},
+      legend:{data:["访客总数","加购总数","支付总数"], textStyle:{color:"#374151"}},
+      xAxis:{type:"category", data:dates, axisLabel:{color:"#374151"}},
+      yAxis:{type:"value", axisLabel:{color:"#374151"}},
+      series:[
+        {name:"访客总数", type:"line", smooth:true, data:visit},
+        {name:"加购总数", type:"line", smooth:true, data:add},
+        {name:"支付总数", type:"line", smooth:true, data:pay}
+      ]
+    };
+    initResponsiveChart("totalTrend", option);
+  }catch(e){ console.error("totalTrend", e); }
 }
 </script>
 
