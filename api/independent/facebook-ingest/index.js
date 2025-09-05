@@ -266,6 +266,16 @@ async function handleFile(filePath, filename, siteId) {
     }
 
     const dayStr = day.toISOString().slice(0, 10);
+    
+    // 详细调试campaign字段提取
+    console.log(`第${i+1}行campaign字段调试:`, {
+      campaignCol,
+      rowLength: row.length,
+      rawCampaignValue: row[campaignCol],
+      rawCampaignType: typeof row[campaignCol],
+      campaignValue: String(row[campaignCol] || '').trim()
+    });
+    
     const campaign = String(row[campaignCol] || '').trim();
     const adset = adsetCol !== -1 ? String(row[adsetCol] || '').trim() : '';
     const landingUrl = landingUrlCol !== -1 ? String(row[landingUrlCol] || '').trim() : '';
