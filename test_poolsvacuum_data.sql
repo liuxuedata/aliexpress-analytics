@@ -10,18 +10,18 @@ SELECT
   COUNT(DISTINCT day) as unique_days
 FROM independent_landing_metrics;
 
--- 检查 poolsvacuum.com 的数据
+-- 检查 poolsvacuum 的数据
 SELECT 
-  'poolsvacuum.com 数据统计' as site_info,
+  'poolsvacuum 数据统计' as site_info,
   COUNT(*) as total_records,
   COUNT(DISTINCT day) as unique_days,
   COUNT(DISTINCT landing_path) as unique_paths,
   MIN(day) as earliest_date,
   MAX(day) as latest_date
-FROM independent_landing_metrics 
-WHERE site = 'poolsvacuum.com';
+FROM independent_landing_metrics
+WHERE site = 'poolsvacuum';
 
--- 查看 poolsvacuum.com 的样本数据
+-- 查看 poolsvacuum 的样本数据
 SELECT 
   day,
   landing_path,
@@ -31,7 +31,7 @@ SELECT
   conversions,
   conv_value
 FROM independent_landing_metrics 
-WHERE site = 'poolsvacuum.com'
+WHERE site = 'poolsvacuum'
 ORDER BY day DESC
 LIMIT 10;
 
@@ -43,14 +43,14 @@ SELECT
   COUNT(DISTINCT site) as unique_sites
 FROM independent_first_seen;
 
--- 检查 poolsvacuum.com 的新产品数据
+-- 检查 poolsvacuum 的新产品数据
 SELECT 
-  'poolsvacuum.com 新产品统计' as site_info,
+  'poolsvacuum 新产品统计' as site_info,
   COUNT(*) as total_new_products,
   MIN(first_seen_date) as earliest_first_seen,
   MAX(first_seen_date) as latest_first_seen
 FROM independent_first_seen 
-WHERE site = 'poolsvacuum.com';
+WHERE site = 'poolsvacuum';
 
 -- 3. 检查 independent_landing_summary_by_day 视图
 SELECT '=== independent_landing_summary_by_day 视图数据检查 ===' as info;
@@ -60,9 +60,9 @@ SELECT
   COUNT(DISTINCT site) as unique_sites
 FROM independent_landing_summary_by_day;
 
--- 检查 poolsvacuum.com 的汇总数据
+-- 检查 poolsvacuum 的汇总数据
 SELECT 
-  'poolsvacuum.com 汇总数据统计' as site_info,
+  'poolsvacuum 汇总数据统计' as site_info,
   COUNT(*) as total_days,
   MIN(day) as earliest_date,
   MAX(day) as latest_date,
@@ -71,8 +71,8 @@ SELECT
   SUM(cost) as total_cost,
   SUM(conversions) as total_conversions,
   SUM(conv_value) as total_conv_value
-FROM independent_landing_summary_by_day 
-WHERE site = 'poolsvacuum.com';
+FROM independent_landing_summary_by_day
+WHERE site = 'poolsvacuum';
 
 -- 4. 检查所有独立站站点
 SELECT '=== 所有独立站站点检查 ===' as info;
@@ -104,7 +104,7 @@ SELECT '=== 数据检查总结 ===' as info;
 
 SELECT 
   CASE 
-    WHEN EXISTS (SELECT 1 FROM independent_landing_metrics WHERE site = 'poolsvacuum.com' LIMIT 1)
-    THEN 'poolsvacuum.com 数据存在'
-    ELSE 'poolsvacuum.com 数据不存在'
+    WHEN EXISTS (SELECT 1 FROM independent_landing_metrics WHERE site = 'poolsvacuum' LIMIT 1)
+    THEN 'poolsvacuum 数据存在'
+    ELSE 'poolsvacuum 数据不存在'
   END as poolsvacuum_data_status;

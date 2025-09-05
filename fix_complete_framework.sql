@@ -163,9 +163,9 @@ INSERT INTO public.data_source_templates (id, name, platform, source_type, field
 -- 5. 插入现有站点配置
 INSERT INTO public.site_configs (id, name, platform, display_name, domain, data_source, template_id) VALUES
 ('ae_self_operated_a', 'A站', 'ae_self_operated', '速卖通自运营 A站', null, 'ae_api', null),
-('independent_poolsvacuum', 'poolsvacuum.com', 'independent', '独立站 poolsvacuum.com', 'poolsvacuum.com', 'google_ads', 'google_ads_landing_pages'),
-('independent_icyberite', 'icyberite.com', 'independent', '独立站 icyberite.com', 'icyberite.com', 'facebook_ads', 'facebook_ads_v2025')
-ON CONFLICT (id) DO UPDATE SET 
+('independent_poolsvacuum', 'poolsvacuum', 'independent', '独立站 poolsvacuum.com', 'poolsvacuum.com', 'google_ads', 'google_ads_landing_pages'),
+('independent_icyberite', 'icyberite', 'independent', '独立站 icyberite.com', 'icyberite.com', 'facebook_ads', 'facebook_ads_v2025')
+ON CONFLICT (id) DO UPDATE SET
   data_source = EXCLUDED.data_source,
   template_id = EXCLUDED.template_id,
   updated_at = now();

@@ -34,7 +34,7 @@
 执行完成后，你应该看到：
 - 成功创建了 `site_configs`、`data_source_templates`、`dynamic_tables` 表
 - 插入了预定义的 Facebook Ads 和 Google Ads 模板
-- 插入了现有站点配置（A站、poolsvacuum.com、icyberite.com）
+- 插入了现有站点配置（A站、poolsvacuum、icyberite）
 - 创建了 `generate_dynamic_table` 函数
 - 生成了 `independent_icyberite_facebook_ads_daily` 表
 - 设置了 RLS 策略和索引

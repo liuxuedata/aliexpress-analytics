@@ -79,8 +79,8 @@ INSERT INTO public.sites (id, name, platform, display_name) VALUES
     ('ae_self_operated_a', 'A站', 'ae_self_operated', '速卖通自运营 A站'),
     ('ae_self_operated_poolslab', 'poolslab', 'ae_self_operated', 'Poolslab运动娱乐'),
     ('ae_managed', '全托管', 'ae_managed', '速卖通全托管'),
-    ('independent_poolsvacuum', 'poolsvacuum.com', 'independent', '独立站 poolsvacuum.com'),
-    ('independent_icyberite', 'icyberite.com', 'independent', '独立站 icyberite.com')
+    ('independent_poolsvacuum', 'poolsvacuum', 'independent', '独立站 poolsvacuum.com'),
+    ('independent_icyberite', 'icyberite', 'independent', '独立站 icyberite.com')
 ON CONFLICT (id) DO UPDATE SET
     display_name = EXCLUDED.display_name,
     updated_at = now();

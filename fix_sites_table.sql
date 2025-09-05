@@ -20,7 +20,7 @@ BEGIN
         -- 初始化默认站点
         INSERT INTO public.sites (id, name, platform, display_name) VALUES
             ('ae_self_operated_a', 'A站', 'ae_self_operated', '速卖通自运营 A站'),
-            ('independent_poolsvacuum', 'poolsvacuum.com', 'independent', '独立站 poolsvacuum.com');
+            ('independent_poolsvacuum', 'poolsvacuum', 'independent', '独立站 poolsvacuum.com');
             
         RAISE NOTICE 'Created sites table with default data';
     ELSE
@@ -57,7 +57,7 @@ BEGIN
             -- 初始化默认站点
             INSERT INTO public.sites (id, name, platform, display_name) VALUES
                 ('ae_self_operated_a', 'A站', 'ae_self_operated', '速卖通自运营 A站'),
-                ('independent_poolsvacuum', 'poolsvacuum.com', 'independent', '独立站 poolsvacuum.com');
+                ('independent_poolsvacuum', 'poolsvacuum', 'independent', '独立站 poolsvacuum.com');
                 
             RAISE NOTICE 'Initialized default sites';
         ELSE
