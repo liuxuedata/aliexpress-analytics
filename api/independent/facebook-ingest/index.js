@@ -185,18 +185,38 @@ async function handleFile(filePath, filename, siteId) {
   }
 
   const processed = [];
-  for (const row of dataRows) {
-    if (!row || row.length < Math.max(campaignCol, dateCol)) continue;
+  console.log('开始处理数据行，总行数:', dataRows.length);
+  console.log('列索引信息:', {
+    campaignCol, dateCol, adsetCol, impressionsCol, clicksCol, spendCol
+  });
+  
+  for (let i = 0; i < dataRows.length; i++) {
+    const row = dataRows[i];
+    console.log(`处理第${i+1}行数据:`, row);
+    
+    if (!row || row.length < Math.max(campaignCol, dateCol)) {
+      console.log(`第${i+1}行被跳过：行数据无效或列数不足`);
+      continue;
+    }
 
     const day = parseDay(row[dateCol]);
-    if (!day) continue;
+    console.log(`第${i+1}行日期解析结果:`, { raw: row[dateCol], parsed: day });
+    if (!day) {
+      console.log(`第${i+1}行被跳过：日期解析失败`);
+      continue;
+    }
 
     const dayStr = day.toISOString().slice(0, 10);
     const campaign = String(row[campaignCol] || '').trim();
     const adset = adsetCol !== -1 ? String(row[adsetCol] || '').trim() : '';
     const landingUrl = landingUrlCol !== -1 ? String(row[landingUrlCol] || '').trim() : '';
 
-    if (!campaign || !dayStr) continue;
+    console.log(`第${i+1}行提取的关键字段:`, { campaign, dayStr, adset, landingUrl });
+
+    if (!campaign || !dayStr) {
+      console.log(`第${i+1}行被跳过：campaign或dayStr为空`, { campaign, dayStr });
+      continue;
+    }
 
     const record = {
       site: siteId,
@@ -233,8 +253,11 @@ async function handleFile(filePath, filename, siteId) {
     };
 
     processed.push(record);
+    console.log(`第${i+1}行处理成功，添加到结果中`);
   }
 
+  console.log('数据处理完成，有效记录数:', processed.length);
+  console.log('前3条有效记录:', processed.slice(0, 3));
   return processed;
 }
 
