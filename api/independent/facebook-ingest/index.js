@@ -36,34 +36,80 @@ function coerceNum(x) {
 
 // Normalize assorted date representations to a Date in UTC.
 function parseDay(dayRaw) {
-  if (dayRaw === null || dayRaw === undefined || dayRaw === '') return null;
+  console.log('parseDay 输入:', { dayRaw, type: typeof dayRaw });
+  
+  if (dayRaw === null || dayRaw === undefined || dayRaw === '') {
+    console.log('parseDay 返回 null: 输入为空');
+    return null;
+  }
 
   if (typeof dayRaw === 'number') {
     const s = String(dayRaw);
+    console.log('parseDay 处理数字:', s);
     // Handle numbers shaped like 20250818 (YYYYMMDD)
     if (/^\d{8}$/.test(s)) {
-      return new Date(Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8)));
+      const result = new Date(Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8)));
+      console.log('parseDay 8位数字解析结果:', result);
+      return result;
     }
     // Otherwise assume an Excel serial date
     const parsed = XLSX.SSF && XLSX.SSF.parse_date_code(dayRaw);
     if (parsed && parsed.y && parsed.m && parsed.d) {
-      return new Date(Date.UTC(parsed.y, parsed.m - 1, parsed.d));
+      const result = new Date(Date.UTC(parsed.y, parsed.m - 1, parsed.d));
+      console.log('parseDay Excel日期解析结果:', result);
+      return result;
     }
+    console.log('parseDay 数字解析失败');
     return null;
   }
 
   const s = String(dayRaw).trim();
+  console.log('parseDay 处理字符串:', s);
+  
   // Support "YYYY/M/D" or "YYYY-M-D"
   let m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
   if (m) {
-    return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+    const result = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+    console.log('parseDay 日期格式解析结果:', result);
+    return result;
   }
+  
   // Plain 8-digit string
   if (/^\d{8}$/.test(s)) {
-    return new Date(Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8)));
+    const result = new Date(Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8)));
+    console.log('parseDay 8位字符串解析结果:', result);
+    return result;
   }
+  
+  // 支持更多日期格式
+  // 支持 "YYYY年MM月DD日" 格式
+  let chineseMatch = s.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日$/);
+  if (chineseMatch) {
+    const result = new Date(Date.UTC(+chineseMatch[1], +chineseMatch[2] - 1, +chineseMatch[3]));
+    console.log('parseDay 中文日期格式解析结果:', result);
+    return result;
+  }
+  
+  // 支持 "MM/DD/YYYY" 格式
+  let usMatch = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (usMatch) {
+    const result = new Date(Date.UTC(+usMatch[3], +usMatch[1] - 1, +usMatch[2]));
+    console.log('parseDay 美式日期格式解析结果:', result);
+    return result;
+  }
+  
+  // 支持 "DD/MM/YYYY" 格式
+  let euMatch = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (euMatch) {
+    const result = new Date(Date.UTC(+euMatch[3], +euMatch[2] - 1, +euMatch[1]));
+    console.log('parseDay 欧式日期格式解析结果:', result);
+    return result;
+  }
+  
   const d = new Date(s);
-  return isNaN(d.getTime()) ? null : d;
+  const isValid = !isNaN(d.getTime());
+  console.log('parseDay 通用日期解析结果:', { date: d, isValid });
+  return isValid ? d : null;
 }
 
 async function handleFile(filePath, filename, siteId) {
@@ -149,6 +195,19 @@ async function handleFile(filePath, filename, siteId) {
   console.log('找到表头行:', headerIdx, '表头内容:', rows[headerIdx]);
   const header = rows[headerIdx];
   const dataRows = rows.slice(headerIdx + 1);
+  
+  console.log('表头详细信息:');
+  header.forEach((col, index) => {
+    console.log(`  列${index}: "${col}"`);
+  });
+  
+  console.log('数据行数量:', dataRows.length);
+  if (dataRows.length > 0) {
+    console.log('前3行数据:');
+    dataRows.slice(0, 3).forEach((row, index) => {
+      console.log(`  第${index + 1}行:`, row);
+    });
+  }
 
   // Build a case-insensitive header lookup tolerant of punctuation and spacing
   const canon = s => String(s || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
