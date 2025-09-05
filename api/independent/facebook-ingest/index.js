@@ -86,26 +86,36 @@ async function handleFile(filePath, filename, siteId) {
   console.log('前3行数据:', rows.slice(0, 3));
   
   let headerIdx = rows.findIndex(r => (r||[]).some(c => {
-    const cell = String(c||'').trim().toLowerCase();
+    const cell = String(c||'').trim();
+    const cellLower = cell.toLowerCase();
     console.log('检查单元格:', cell);
     // 支持标准Facebook Ads格式
-    if (cell === 'campaign name' || cell === 'adset name' || cell === 'date' || 
-        cell === 'campaign_name' || cell === 'adset_name' || 
-        cell === 'campaign' || cell === 'adset' ||
-        cell.includes('campaign') || cell.includes('adset') || cell.includes('date')) {
+    if (cellLower === 'campaign name' || cellLower === 'adset name' || cellLower === 'date' || 
+        cellLower === 'campaign_name' || cellLower === 'adset_name' || 
+        cellLower === 'campaign' || cellLower === 'adset' ||
+        cellLower.includes('campaign') || cellLower.includes('adset') || cellLower.includes('date')) {
       console.log('找到标准Facebook Ads列:', cell);
       return true;
     }
     // 支持icyberite特定格式 - 根据图三的字段名
-    if (cell === 'campaign' || cell === 'ad set' || cell === 'adset' || 
-        cell === 'date' || cell === 'day' || cell === 'start date' ||
-        cell === 'impressions' || cell === 'clicks' || cell === 'spend' ||
-        cell === 'cost' || cell === 'ctr' || cell === 'cpc' || cell === 'cpm' ||
+    if (cellLower === 'campaign' || cellLower === 'ad set' || cellLower === 'adset' || 
+        cellLower === 'date' || cellLower === 'day' || cellLower === 'start date' ||
+        cellLower === 'impressions' || cellLower === 'clicks' || cellLower === 'spend' ||
+        cellLower === 'cost' || cellLower === 'ctr' || cellLower === 'cpc' || cellLower === 'cpm' ||
         // icyberite特有字段
-        cell === 'reach' || cell === 'frequency' || cell === 'landing page' ||
-        cell === 'website url' || cell === 'url' || cell === 'conversions' ||
-        cell === 'conversion value' || cell === 'purchases' || cell === 'add to cart') {
+        cellLower === 'reach' || cellLower === 'frequency' || cellLower === 'landing page' ||
+        cellLower === 'website url' || cellLower === 'url' || cellLower === 'conversions' ||
+        cellLower === 'conversion value' || cellLower === 'purchases' || cellLower === 'add to cart') {
       console.log('找到icyberite列:', cell);
+      return true;
+    }
+    // 支持中文列名
+    if (cell === '广告系列名称' || cell === '广告组名称' || cell === '单日' || 
+        cell === '开始日期' || cell === '展示次数' || cell === '链接点击量' ||
+        cell === '已花费金额 (USD)' || cell === '点击率（全部）' || cell === '覆盖人数' ||
+        cell === '频次' || cell === '加入购物车' || cell === '网站购物' ||
+        cell === '购物次数' || cell === '链接（广告设置）' || cell === '网址') {
+      console.log('找到中文列:', cell);
       return true;
     }
     return false;
@@ -115,20 +125,25 @@ async function handleFile(filePath, filename, siteId) {
     console.log('尝试查找Facebook Ads列，前5行数据:', rows.slice(0, 5));
     // 尝试更宽松的匹配
     headerIdx = rows.findIndex(r => (r||[]).some(c => {
-      const cell = String(c||'').trim().toLowerCase();
-      return cell.includes('campaign') || cell.includes('ad') || cell.includes('date') ||
-             cell.includes('impression') || cell.includes('click') || cell.includes('cost') ||
-             cell.includes('conversion') || cell.includes('spend') || cell.includes('reach') ||
-             cell.includes('frequency') || cell.includes('cpm') || cell.includes('ctr') ||
-             cell.includes('cpc') || cell.includes('value') || cell.includes('purchase') ||
-             cell.includes('landing') || cell.includes('website') || cell.includes('url');
+      const cell = String(c||'').trim();
+      const cellLower = cell.toLowerCase();
+      return cellLower.includes('campaign') || cellLower.includes('ad') || cellLower.includes('date') ||
+             cellLower.includes('impression') || cellLower.includes('click') || cellLower.includes('cost') ||
+             cellLower.includes('conversion') || cellLower.includes('spend') || cellLower.includes('reach') ||
+             cellLower.includes('frequency') || cellLower.includes('cpm') || cellLower.includes('ctr') ||
+             cellLower.includes('cpc') || cellLower.includes('value') || cellLower.includes('purchase') ||
+             cellLower.includes('landing') || cellLower.includes('website') || cellLower.includes('url') ||
+             // 中文关键词匹配
+             cell.includes('广告') || cell.includes('系列') || cell.includes('组') || cell.includes('日') ||
+             cell.includes('展示') || cell.includes('点击') || cell.includes('花费') || cell.includes('购物') ||
+             cell.includes('覆盖') || cell.includes('频次') || cell.includes('链接') || cell.includes('网址');
     }));
   }
   
   if (headerIdx === -1) {
-    console.error('未找到Facebook Ads列，请确保文件包含以下列之一：Campaign name, Adset name, Date');
+    console.error('未找到Facebook Ads列，请确保文件包含以下列之一：Campaign name, Adset name, Date 或 广告系列名称, 广告组名称, 单日');
     console.log('文件前10行数据:', rows.slice(0, 10));
-    throw new Error('Header row not found. Make sure the sheet has Facebook Ads columns like "Campaign name", "Adset name", "Date".');
+    throw new Error('Header row not found. Make sure the sheet has Facebook Ads columns like "Campaign name", "Adset name", "Date" or "广告系列名称", "广告组名称", "单日".');
   }
   
   console.log('找到表头行:', headerIdx, '表头内容:', rows[headerIdx]);
@@ -146,27 +161,27 @@ async function handleFile(filePath, filename, siteId) {
     return -1;
   };
 
-  // Facebook Ads specific column mappings - 支持多种格式
-  const campaignCol = col('campaign name', 'campaign', 'campaign_name');
-  const adsetCol = col('adset name', 'adset', 'ad set', 'adset_name', 'ad_set_name');
-  const dateCol = col('date', 'day', 'start date', 'startdate');
-  const impressionsCol = col('impressions', 'imp', 'impression');
-  const clicksCol = col('clicks', 'link clicks', 'click', 'all clicks');
-  const spendCol = col('spend', 'amount spent', 'cost', 'amountspent');
+  // Facebook Ads specific column mappings - 支持多种格式，包括中文
+  const campaignCol = col('campaign name', 'campaign', 'campaign_name', '广告系列名称');
+  const adsetCol = col('adset name', 'adset', 'ad set', 'adset_name', 'ad_set_name', '广告组名称');
+  const dateCol = col('date', 'day', 'start date', 'startdate', '单日', '开始日期', '报告开始日期');
+  const impressionsCol = col('impressions', 'imp', 'impression', '展示次数');
+  const clicksCol = col('clicks', 'link clicks', 'click', 'all clicks', '链接点击量', '点击量（全部）');
+  const spendCol = col('spend', 'amount spent', 'cost', 'amountspent', '已花费金额 (USD)');
   const cpmCol = col('cpm', 'cost per 1,000 impressions', 'costper1000impressions');
-  const cpcCol = col('cpc', 'cost per link click', 'costperlinkclick');
-  const ctrCol = col('ctr', 'link click-through rate', 'clickthroughrate', 'click through rate');
-  const reachCol = col('reach');
-  const frequencyCol = col('frequency');
-  const landingUrlCol = col('landing page', 'website url', 'url', 'landingpage', 'websiteurl');
+  const cpcCol = col('cpc', 'cost per link click', 'costperlinkclick', '单次链接点击费用');
+  const ctrCol = col('ctr', 'link click-through rate', 'clickthroughrate', 'click through rate', '点击率（全部）', '链接点击率');
+  const reachCol = col('reach', '覆盖人数');
+  const frequencyCol = col('frequency', '频次');
+  const landingUrlCol = col('landing page', 'website url', 'url', 'landingpage', 'websiteurl', '链接（广告设置）', '网址');
   // icyberite特有字段
-  const conversionsCol = col('conversions', 'conversion', 'conversion_value');
+  const conversionsCol = col('conversions', 'conversion', 'conversion_value', '加入购物车', '网站加入购物车', 'Meta 加入购物车');
   const conversionValueCol = col('conversion value', 'conversionvalue', 'value', 'conversion_value', 'conversion_value_usd');
-  const purchasesCol = col('purchases', 'purchase', 'purchase_value');
-  const addToCartCol = col('add to cart', 'addtocart', 'add to cart conversions');
+  const purchasesCol = col('purchases', 'purchase', 'purchase_value', '网站购物', 'Meta 内购物次数', '购物次数');
+  const addToCartCol = col('add to cart', 'addtocart', 'add to cart conversions', '加入购物车', '网站加入购物车');
 
   if (campaignCol === -1 || dateCol === -1) {
-    throw new Error('Required columns not found. Need at least "Campaign name" and "Date".');
+    throw new Error('Required columns not found. Need at least "Campaign name" (广告系列名称) and "Date" (单日/开始日期).');
   }
 
   const processed = [];
