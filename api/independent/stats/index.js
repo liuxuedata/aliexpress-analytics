@@ -498,13 +498,43 @@ module.exports = async (req, res) => {
       new_product_count: table.filter(r => r.is_new).length
     };
 
-    return res.json({
+    // 获取可用渠道列表
+    let availableChannels = [];
+    if (channel) {
+      // 如果指定了渠道，只返回该渠道
+      availableChannels = [channel];
+    } else {
+      // 获取站点所有启用的渠道
+      try {
+        const channels = await getSiteChannels(supabase, site);
+        availableChannels = channels.map(c => c.channel);
+      } catch (error) {
+        console.error('获取可用渠道失败:', error);
+        // 回退到原有逻辑
+        const dataSource = getDataSource(site);
+        availableChannels = [dataSource];
+      }
+    }
+
+    // 如果只有一个渠道，不返回渠道信息（保持向后兼容）
+    const shouldReturnChannelInfo = availableChannels.length > 1;
+
+    const response = {
       ok: true,
       table: table,
       kpis: kpis,
       dataSource: channel || (table.length > 0 ? 'multi_channel' : getDataSource(site)),
       query: { site, from: fromDate, to: toDate, limit, only_new, campaign, network, device, aggregate, channel }
-    });
+    };
+
+    // 只有在多渠道时才添加渠道信息
+    if (shouldReturnChannelInfo) {
+      response.availableChannels = availableChannels;
+      response.currentChannel = channel || null;
+      response.isMultiChannel = true;
+    }
+
+    return res.json(response);
 
   } catch (error) {
     console.error('独立站查询错误:', error);

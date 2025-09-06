@@ -539,6 +539,91 @@
       border-color: #f5c6cb;
       color: #721c24;
     }
+    
+    /* 多Tab页面样式 */
+    .channel-tabs {
+      display: none; /* 默认隐藏，只有多渠道时才显示 */
+      background: white;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e5e7eb;
+    }
+    
+    .channel-tabs.show {
+      display: block;
+    }
+    
+    .tab-header {
+      display: flex;
+      border-bottom: 1px solid #e5e7eb;
+      background: #f8f9fa;
+      border-radius: 12px 12px 0 0;
+    }
+    
+    .tab-button {
+      flex: 1;
+      padding: 16px 20px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: #6b7280;
+      transition: all 0.3s ease;
+      border-radius: 12px 12px 0 0;
+      position: relative;
+    }
+    
+    .tab-button:hover {
+      background: rgba(59, 130, 246, 0.1);
+      color: #3b82f6;
+    }
+    
+    .tab-button.active {
+      background: white;
+      color: #3b82f6;
+      border-bottom: 2px solid #3b82f6;
+    }
+    
+    .tab-button.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: white;
+    }
+    
+    .tab-content {
+      display: none;
+      padding: 20px;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .channel-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    
+    .channel-indicator.google_ads {
+      background: #4285f4;
+    }
+    
+    .channel-indicator.facebook_ads {
+      background: #1877f2;
+    }
+    
+    .channel-indicator.tiktok_ads {
+      background: #000000;
+    }
   </style>
   <!-- DataTables & ECharts CDN -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
@@ -711,7 +796,17 @@
       <div class="chart-container">
         <h3>Landing Pages 明细</h3>
         
-        <!-- 数据表格 -->
+        <!-- 多Tab页面容器 -->
+        <div id="channelTabs" class="channel-tabs">
+          <div class="tab-header" id="tabHeader">
+            <!-- Tab按钮将通过JavaScript动态生成 -->
+          </div>
+          <div id="tabContents">
+            <!-- Tab内容将通过JavaScript动态生成 -->
+          </div>
+        </div>
+        
+        <!-- 单渠道数据表格（默认显示） -->
         <div id="detailContent">
           <table id="report" class="data-table display nowrap" style="width:100%">
             <thead>
@@ -1250,6 +1345,9 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
   let rawTable = [];
   let isNewProductFilterActive = false; // 跟踪新品筛选状态
   let currentKPIs = {}; // 保存当前KPI数据
+  let availableChannels = []; // 可用渠道列表
+  let currentChannel = null; // 当前选中的渠道
+  let channelData = {}; // 各渠道的数据缓存
 
   function card(title,val){
     return `<div class="stat-card"><h4>${title}</h4><p>${val}</p></div>`;
@@ -1379,6 +1477,203 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
   // 将清除筛选函数设为全局函数，供HTML调用
   window.clearNewProductFilter = clearNewProductFilter;
 
+  // 生成渠道名称
+  function getChannelDisplayName(channel, siteName) {
+    const channelNames = {
+      'google_ads': 'Google Ads',
+      'facebook_ads': 'Facebook Ads',
+      'tiktok_ads': 'TikTok Ads'
+    };
+    const channelName = channelNames[channel] || channel;
+    return `${siteName} - ${channelName}`;
+  }
+
+  // 判断是否应该显示Tab
+  function shouldShowTabs(channels) {
+    return channels && channels.length > 1;
+  }
+
+  // 创建Tab页面
+  function createChannelTabs(channels, siteName) {
+    const tabsContainer = document.getElementById('channelTabs');
+    const tabHeader = document.getElementById('tabHeader');
+    const tabContents = document.getElementById('tabContents');
+    const detailContent = document.getElementById('detailContent');
+
+    if (!shouldShowTabs(channels)) {
+      // 单渠道，隐藏Tab，显示默认表格
+      tabsContainer.classList.remove('show');
+      detailContent.style.display = 'block';
+      return;
+    }
+
+    // 多渠道，显示Tab
+    tabsContainer.classList.add('show');
+    detailContent.style.display = 'none';
+
+    // 清空现有内容
+    tabHeader.innerHTML = '';
+    tabContents.innerHTML = '';
+
+    // 创建Tab按钮
+    channels.forEach((channel, index) => {
+      const tabButton = document.createElement('button');
+      tabButton.className = `tab-button ${index === 0 ? 'active' : ''}`;
+      tabButton.innerHTML = `
+        <span class="channel-indicator ${channel}"></span>
+        ${getChannelDisplayName(channel, siteName)}
+      `;
+      tabButton.addEventListener('click', () => switchTab(channel, index));
+      tabHeader.appendChild(tabButton);
+
+      // 创建Tab内容
+      const tabContent = document.createElement('div');
+      tabContent.className = `tab-content ${index === 0 ? 'active' : ''}`;
+      tabContent.id = `tab-${channel}`;
+      tabContent.innerHTML = `
+        <table id="report-${channel}" class="data-table display nowrap" style="width:100%">
+          <thead>
+            <tr>
+              <th>产品</th><th>设备</th><th>网络</th><th>Campaign</th>
+              <th>点击</th><th>曝光</th><th>CTR <span class="help-icon" title="CTR = 总点击 / 总曝光">?</span></th><th>Avg CPC</th><th>Cost</th>
+              <th>转化</th><th>Cost/Conv</th><th>All conv</th><th>Conv value</th>
+              <th>All conv rate <span class="help-icon" title="All conv rate = All conv / 总点击">?</span></th><th>Conv rate <span class="help-icon" title="Conv rate = 转化 / 总点击">?</span></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      `;
+      tabContents.appendChild(tabContent);
+    });
+
+    // 设置默认选中的渠道
+    if (channels.length > 0) {
+      currentChannel = channels[0];
+    }
+  }
+
+  // 切换Tab
+  function switchTab(channel, index) {
+    // 更新按钮状态
+    document.querySelectorAll('.tab-button').forEach((btn, i) => {
+      btn.classList.toggle('active', i === index);
+    });
+
+    // 更新内容显示
+    document.querySelectorAll('.tab-content').forEach((content, i) => {
+      content.classList.toggle('active', i === index);
+    });
+
+    currentChannel = channel;
+    
+    // 重新构建当前渠道的表格
+    buildChannelTable(channel);
+  }
+
+  // 构建指定渠道的表格
+  function buildChannelTable(channel) {
+    const tableId = `report-${channel}`;
+    const tableElement = document.getElementById(tableId);
+    
+    if (!tableElement) {
+      console.warn(`表格元素 ${tableId} 不存在`);
+      return;
+    }
+
+    // 获取该渠道的数据
+    let channelTableData = rawTable;
+    if (channel) {
+      if (channel === 'google_ads') {
+        channelTableData = rawTable.filter(r => r.network === 'google');
+      } else if (channel === 'facebook_ads') {
+        channelTableData = rawTable.filter(r => r.network === 'facebook');
+      } else if (channel === 'tiktok_ads') {
+        channelTableData = rawTable.filter(r => r.network === 'tiktok');
+      }
+    }
+
+    // 应用新品筛选
+    if (isNewProductFilterActive) {
+      channelTableData = channelTableData.filter(r => r.is_new === true);
+    }
+
+    // 应用其他筛选条件
+    const net = networkSel.value;
+    const camp = campaignSel.value;
+    if (net) channelTableData = channelTableData.filter(r => r.network === net);
+    if (camp) channelTableData = channelTableData.filter(r => r.campaign === camp);
+
+    const showDevice = $('#columnMenu input[data-col=1]').prop('checked');
+    const showNetwork = !!net;
+    const showCampaign = !!camp;
+    const aggregatedData = aggregateTable(channelTableData, showDevice, showNetwork, showCampaign);
+
+    // 销毁现有DataTable
+    if (window[`dt_${channel}`]) {
+      window[`dt_${channel}`].destroy();
+    }
+
+    // 创建新的DataTable
+    window[`dt_${channel}`] = $(`#${tableId}`).DataTable({
+      destroy: true,
+      pageLength: 20,
+      data: aggregatedData,
+      scrollX: false,
+      fixedHeader: true,
+      autoWidth: true,
+      processing: true,
+      responsive: false,
+      columns: [
+        { data: 'product', render: (v, t, r) => {
+          const name = v || r.landing_path || '';
+          return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
+        }, width: '200px' },
+        { data: 'device', render: v => v || '', width: '80px' },
+        { data: 'network', render: v => v || '', width: '100px' },
+        { data: 'campaign', render: v => v || '', width: '120px' },
+        { data: 'clicks', render: v => v ?? 0, width: '80px' },
+        { data: 'impr', render: v => v ?? 0, width: '80px' },
+        { data: 'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '80px' },
+        { data: 'avg_cpc', render: v => (v ?? 0).toFixed(2), width: '100px' },
+        { data: 'cost', render: v => (v ?? 0).toFixed(2), width: '100px' },
+        { data: 'conversions', render: v => v ?? 0, width: '80px' },
+        { data: 'cost_per_conv', render: v => (v ?? 0).toFixed(2), width: '100px' },
+        { data: 'all_conv', render: v => v ?? 0, width: '80px' },
+        { data: 'conv_value', render: v => (v ?? 0).toFixed(2), width: '100px' },
+        { data: 'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '120px' },
+        { data: 'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' }
+      ]
+    });
+
+    // 默认隐藏筛选列
+    window[`dt_${channel}`].column(1).visible(false); // 设备列
+    window[`dt_${channel}`].column(2).visible(false); // 网络列
+    window[`dt_${channel}`].column(3).visible(false); // Campaign列
+
+    // 根据筛选条件显示列
+    if (showDevice) window[`dt_${channel}`].column(1).visible(true);
+    if (showNetwork) window[`dt_${channel}`].column(2).visible(true);
+    if (showCampaign) window[`dt_${channel}`].column(3).visible(true);
+
+    // 强制重新计算列宽
+    setTimeout(() => {
+      window[`dt_${channel}`].columns.adjust();
+      window[`dt_${channel}`].fixedHeader.adjust();
+    }, 100);
+
+    // 双击行跳转到产品分析
+    $(`#${tableId} tbody`).off('dblclick').on('dblclick', 'tr', function() {
+      const row = window[`dt_${channel}`].row(this).data();
+      if (!row) return;
+      const params = new URLSearchParams(window.location.search);
+      if (!params.get('site')) {
+        params.set('site', getCurrentSiteForAPI());
+      }
+      params.set('product', row.landing_path);
+      window.location.href = `independent-site.html?${params.toString()}#products`;
+    });
+  }
+
   function aggregateTable(data, showDevice, showNetwork, showCampaign){
     // 安全处理空数据
     if (!data || !Array.isArray(data) || data.length === 0) {
@@ -1484,6 +1779,14 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
         window.location.href = `independent-site.html?${params.toString()}#products`;
       });
 
+      return;
+    }
+
+    // 如果有多渠道，构建所有渠道的表格
+    if (shouldShowTabs(availableChannels)) {
+      availableChannels.forEach(channel => {
+        buildChannelTable(channel);
+      });
       return;
     }
 
@@ -1940,6 +2243,20 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
 
       rawTable = json.table || [];
       currentKPIs = json.kpis || {}; // 保存KPI数据
+      
+      // 处理渠道信息
+      if (json.availableChannels && json.availableChannels.length > 1) {
+        availableChannels = json.availableChannels;
+        currentChannel = json.currentChannel;
+        
+        // 创建Tab页面
+        const siteName = getCurrentSiteForAPI();
+        createChannelTabs(availableChannels, siteName);
+      } else {
+        availableChannels = [];
+        currentChannel = null;
+      }
+      
       renderKPI(currentKPIs);
       populateFilters();
       buildTable();
