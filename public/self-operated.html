@@ -1280,9 +1280,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
       }
     }
 
-    // 根据当前时间范围重新加载运营与产品分析数据
+    // 根据当前时间范围重新加载所有数据（包括主页面KPI和表格）
     async function fetchAndRenderAll() {
       const range = getDateRange();
+      
+      // 刷新主页面数据（KPI卡片和数据表格）
+      if (window.selfOperatedManager && typeof window.selfOperatedManager.loadData === 'function') {
+        console.log('刷新主页面数据...');
+        await window.selfOperatedManager.loadData();
+      }
+      
+      // 刷新运营分析和产品分析数据
       await loadAnalysisData(range);
       await loadProductAnalysisData(range);
       const currentProductId = document.getElementById('productSelect')?.value;
