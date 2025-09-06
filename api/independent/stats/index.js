@@ -711,7 +711,7 @@ module.exports = async (req, res) => {
       tableLength: table.length,
       kpisKeys: Object.keys(kpis),
       availableChannels,
-      currentChannel,
+      currentChannel: channel || null,
       sampleTableData: table.slice(0, 2)
     });
 
