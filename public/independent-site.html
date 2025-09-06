@@ -1621,9 +1621,9 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
         const name = v || r.landing_path || '';
         return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
       }, width: '120px' },
-      { data: 'day', title: '单日', render: v => v || '', width: '100px' },
-      { data: 'campaign_name', title: '广告系列名称', render: v => v || '', width: '150px' },
-      { data: 'adset_name', title: '广告组名称', render: v => v || '', width: '150px' },
+      { data: 'days', title: '天数', render: v => v || 0, width: '80px' },
+      { data: 'campaign', title: '广告系列名称', render: v => v || '', width: '150px' },
+      { data: 'network', title: '网络', render: v => v || '', width: '100px' },
       { data: 'impr', title: '展示次数', render: v => v ?? 0, width: '100px' },
       { data: 'frequency', title: '频次', render: v => (v ?? 0).toFixed(2), width: '80px' },
       { data: 'clicks', title: '点击量（全部）', render: v => v ?? 0, width: '100px' },
