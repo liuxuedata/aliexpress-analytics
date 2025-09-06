@@ -761,7 +761,7 @@ const GRID_LINE  = 'rgba(148,163,184,0.18)';
 
 /* ---------- 上传 Excel → 入库 ---------- */
 // NOTE: 这里已支持 4 个字段：
-//  - 支付商品件数（→ pay_items，兼容“支付件数/付款件数/成交件数”）
+//  - 支付商品件数（→ pay_items，兼容"支付件数/付款件数/成交件数"）
 //  - 下单商品件数（→ order_items）
 //  - 平均停留时长（秒）（→ avg_stay_seconds）
 //  - 搜索点击率（% 数值）（→ search_ctr）
@@ -792,7 +792,7 @@ $('#fileInput').on('change', function(e) {
         views:      findIdx(/^(商品浏览量|浏览量|pv|page views)$/i),
         add_people: findIdx(/^(商品加购人数|加购人数|加购买家数)$/i),
         add_count:  findIdx(/^(商品加购件数|加购件数)$/i),
-        // ✅ 支付商品件数：兼容“支付件数/付款件数/成交件数/支付商品件数”
+        // ✅ 支付商品件数：兼容"支付件数/付款件数/成交件数/支付商品件数"
         pay_items:  (function(){ const rs=[/^支付商品件数$/i,/^支付件数$/i,/^付款件数$/i,/^成交件数$/i]; for (const re of rs){const i=findIdx(re); if(i!==-1) return i;} return -1; })(),
         pay_orders: findIdx(/^(支付订单数|下单人数|订单数)$/i),
         pay_buyers: findIdx(/^(支付买家数|支付人数|成交人数)$/i),
@@ -808,15 +808,22 @@ $('#fileInput').on('change', function(e) {
       function excelDateToISO(n){ if(typeof n!=='number') return null; const utc_days=Math.floor(n-25569); const utc_value=utc_days*86400; const date_info=new Date(utc_value*1000); const y=date_info.getUTCFullYear(); const m=(date_info.getUTCMonth()+1).toString().padStart(2,'0'); const d=date_info.getUTCDate().toString().padStart(2,'0'); return `${y}-${m}-${d}`; }
       function parseDateToISO(v){ if(v===null||v===undefined||v==='') return null; if(typeof v==='number') return excelDateToISO(v); let s=String(v).trim(); s=s.replace(/[.]/g,'-').replace(/\//g,'-'); const m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/); if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`; const m2=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/); if(m2) return `${m2[3]}-${m2[1].padStart(2,'0')}-${m2[2].padStart(2,'0')}`; return s.slice(0,10); }
 
+      // 获取当前站点信息
+      const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+      const currentSiteName = localStorage.getItem('currentSiteName') || 'A站';
+      
+      console.log('上传数据到站点:', { currentSite, currentSiteName });
+      
       const rows = sheet.slice(1).filter(r => r && r.length).map(r => {
         const pid = String(r[idx.product_id]).trim();
         const sd  = parseDateToISO(r[idx.stat_date]);
         const visitors = (idx.visitors !== -1 ? toNum(r[idx.visitors])
                         : ((idx.visitors_new !== -1 ? toNum(r[idx.visitors_new]) : 0)
                         + (idx.visitors_old !== -1 ? toNum(r[idx.visitors_old]) : 0)));
-        // 将“12.3%”型点击率转成 12.3
+        // 将"12.3%"型点击率转成 12.3
         const pct = (x) => { const n = String(x ?? '').trim(); if (!n) return 0; return toNum(n.replace('%','')); };
         const row = {
+          site: currentSite, // 使用站点ID，如 'ae_self_operated_poolslab_store'
           product_id: pid, stat_date: sd,
           exposure:  idx.exposure  === -1 ? 0 : toNum(r[idx.exposure]),
           visitors,
@@ -835,13 +842,20 @@ $('#fileInput').on('change', function(e) {
         if (idx.fav_count  !== -1) row.fav_count  = toNum(r[idx.fav_count]);
         return row;
       }).filter(x => x.product_id && x.stat_date);
-      const dmap=new Map(); rows.forEach(r=>dmap.set(r.product_id+'__'+r.stat_date,r)); const deduped=Array.from(dmap.values());
+      const dmap=new Map(); rows.forEach(r=>dmap.set(r.site+'__'+r.product_id+'__'+r.stat_date,r)); const deduped=Array.from(dmap.values());
 
-      $('#progress').text(`入库中（${deduped.length} 条）…`);
+      $('#progress').text(`入库中（${deduped.length} 条）到站点：${currentSiteName}…`);
       const resp = await fetch('/api/ae_upsert', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ rows: deduped }) });
       const txt = await resp.text(); let j; try { j = JSON.parse(txt); } catch(e) { throw new Error('Upsert API响应不是JSON：' + txt.slice(0,200)); }
       if (!resp.ok || !j.ok) throw new Error(j.error || '入库失败');
-      $('#progress').text('入库完成 ✔'); $('#refreshBtn').click();
+      $('#progress').text(`入库完成 ✔ 站点：${currentSiteName}，记录数：${j.upserted || deduped.length}`); 
+      
+      // 刷新数据
+      if (typeof fetchAndRenderAll === 'function') {
+        await fetchAndRenderAll();
+      } else {
+        $('#refreshBtn').click();
+      }
     } catch(err) {
       console.error(err); alert('处理失败：' + (err.message || err)); $('#progress').text('');
     }
@@ -1266,9 +1280,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
       }
     }
 
-    // 根据当前时间范围重新加载运营与产品分析数据
+    // 根据当前时间范围重新加载所有数据（包括主页面KPI和表格）
     async function fetchAndRenderAll() {
       const range = getDateRange();
+      
+      // 刷新主页面数据（KPI卡片和数据表格）
+      if (window.selfOperatedManager && typeof window.selfOperatedManager.loadData === 'function') {
+        console.log('刷新主页面数据...');
+        await window.selfOperatedManager.loadData();
+      }
+      
+      // 刷新运营分析和产品分析数据
       await loadAnalysisData(range);
       await loadProductAnalysisData(range);
       const currentProductId = document.getElementById('productSelect')?.value;

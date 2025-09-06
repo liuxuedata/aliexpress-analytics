@@ -76,34 +76,38 @@
 
     // 更新页面标题显示当前站点名称
     updatePageTitle() {
-      const siteSubtitleEl = document.getElementById('siteSubtitle');
-      const pageTitleEl = document.getElementById('pageTitle');
+      // 强制从localStorage获取最新的站点信息，确保页面标题正确
+      const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+      const currentSiteName = localStorage.getItem('currentSiteName') || '自运营robot站';
       
-      if (this.currentSiteName) {
-        // 根据站点名称生成合适的标题
-        let siteDisplayName = this.currentSiteName;
-        
-        // 如果是poolslab相关站点，显示更友好的名称
-        if (this.currentSiteName.includes('poolslab')) {
-          siteDisplayName = 'Poolslab运动娱乐';
-        } else if (this.currentSiteName.includes('icyberite')) {
-          siteDisplayName = 'Icyberite科技';
-        } else if (this.currentSiteName.includes('ae_self_operated')) {
-          siteDisplayName = '自运营站点';
-        }
-        
-        // 更新页面副标题
-        if (siteSubtitleEl) {
-          siteSubtitleEl.textContent = `${siteDisplayName} - 智能数据分析与决策支持`;
-        }
-        
-        // 更新浏览器标题
-        if (pageTitleEl) {
-          pageTitleEl.textContent = `跨境电商数据分析平台 - ${siteDisplayName}`;
-        }
-        
-        console.log('页面标题已更新为:', siteDisplayName);
+      console.log('更新页面标题，站点信息:', { currentSite, currentSiteName });
+      
+      // 更新浏览器标题
+      const pageTitleEl = document.getElementById('pageTitle');
+      if (pageTitleEl) {
+        pageTitleEl.textContent = `跨境电商数据分析平台 - ${this.getSiteDisplayName(currentSite, currentSiteName)}`;
       }
+      
+      // 更新页面主标题（h1元素）
+      const mainTitleEl = document.querySelector('h1');
+      if (mainTitleEl) {
+        mainTitleEl.textContent = `${this.getSiteDisplayName(currentSite, currentSiteName)} - 智能数据分析与决策支持`;
+      }
+      
+      console.log('页面标题已更新为:', this.getSiteDisplayName(currentSite, currentSiteName));
+    }
+    
+    // 获取站点显示名称
+    getSiteDisplayName(currentSite, currentSiteName) {
+      // 如果是poolslab相关站点，显示更友好的名称
+      if (currentSiteName.includes('poolslab') || currentSite === 'ae_self_operated_poolslab_store') {
+        return 'Poolslab运动娱乐';
+      } else if (currentSiteName.includes('icyberite')) {
+        return 'Icyberite科技';
+      } else if (currentSiteName.includes('ae_self_operated') || currentSite === 'ae_self_operated_a') {
+        return '自运营Robot站';
+      }
+      return currentSiteName;
     }
 
     // 数据加载主方法（与index.html保持一致）
@@ -152,6 +156,9 @@
                  // 更新状态为成功
          this.updateStatus('数据加载完成', 'success');
          
+         // 数据加载完成后，更新页面标题（确保显示正确的站点名称）
+         this.updatePageTitle();
+         
          // 数据加载完成后，绑定新品筛选事件
          this.bindNewProductsFilter();
          
@@ -191,11 +198,17 @@
 
     // 获取聚合数据（使用正确的自运营API接口）
     async fetchAggregatedData(startISO, endISO, granularity) {
+      // 获取当前站点信息
+      const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+      const currentSiteName = localStorage.getItem('currentSiteName') || '自运营robot站';
+      
+      console.log('查询数据，站点信息:', { currentSite, currentSiteName });
+      
       const params = new URLSearchParams({
         start: startISO,
         end: endISO,
         granularity: granularity,
-        site: this.currentSite || 'ae_self_operated_a',
+        site: currentSite, // 使用站点ID，如 'ae_self_operated_poolslab_store'
         aggregate: 'product'
       });
 
@@ -229,7 +242,24 @@
 
     // 获取平台至今商品总数
     async fetchProductTotal(toISO) {
-      const qs = new URLSearchParams({ platform:'self', from:'2000-01-01', to: toISO, limit:5000, site: this.currentSite || 'ae_self_operated_a' });
+      // 强制从localStorage获取最新的站点信息，确保使用正确的站点ID
+      const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+      const currentSiteName = localStorage.getItem('currentSiteName') || '自运营robot站';
+      
+      console.log('查询商品总数，站点信息:', { currentSite, currentSiteName });
+      console.log('localStorage中的站点信息:', {
+        currentSite: localStorage.getItem('currentSite'),
+        currentSiteName: localStorage.getItem('currentSiteName')
+      });
+      
+      const qs = new URLSearchParams({ 
+        platform:'self', 
+        from:'2000-01-01', 
+        to: toISO, 
+        limit:5000, 
+        site: currentSite // 使用站点ID，如 'ae_self_operated_poolslab_store'
+      });
+      
       try {
         const r = await fetch('/api/new-products?'+qs.toString());
         const j = await r.json();

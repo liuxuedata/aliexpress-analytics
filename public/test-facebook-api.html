@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Ads API 测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .test-result {
+            background: #f5f5f5;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Facebook Ads API 测试页面</h1>
+    
+    <div class="test-section">
+        <h2>1. API 连接测试</h2>
+        <button onclick="testAPIConnection()">测试 API 连接</button>
+        <div id="connection-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. 文件上传测试</h2>
+        <input type="file" id="test-file" accept=".xlsx,.csv">
+        <button onclick="testFileUpload()" id="upload-btn">上传测试文件</button>
+        <div id="upload-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 请求详情</h2>
+        <div id="request-details" class="test-result"></div>
+    </div>
+
+    <script>
+        function log(elementId, message, isError = false) {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = isError ? 'error' : 'success';
+            element.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+        }
+
+        function clearLog(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+
+        async function testAPIConnection() {
+            clearLog('connection-result');
+            log('connection-result', '开始测试 API 连接...');
+            
+            try {
+                // 测试不同的API端点
+                const endpoints = [
+                    '/api/independent/facebook-ingest',
+                    '/api/independent/ingest'
+                ];
+                
+                for (const endpoint of endpoints) {
+                    log('connection-result', `测试端点: ${endpoint}`);
+                    
+                    const response = await fetch(endpoint, {
+                        method: 'OPTIONS',
+                        headers: {
+                            'X-Site-ID': 'independent_icyberite'
+                        }
+                    });
+                    
+                    log('connection-result', `状态码: ${response.status}`);
+                    log('connection-result', `状态文本: ${response.statusText}`);
+                    
+                    if (response.ok) {
+                        log('connection-result', `✅ ${endpoint} 连接成功`);
+                    } else {
+                        log('connection-result', `❌ ${endpoint} 连接失败`, true);
+                    }
+                }
+            } catch (error) {
+                log('connection-result', `❌ 连接测试失败: ${error.message}`, true);
+            }
+        }
+
+        async function testFileUpload() {
+            const fileInput = document.getElementById('test-file');
+            const uploadBtn = document.getElementById('upload-btn');
+            
+            if (!fileInput.files[0]) {
+                log('upload-result', '❌ 请先选择一个文件', true);
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            clearLog('upload-result');
+            clearLog('request-details');
+            
+            log('upload-result', '开始文件上传测试...');
+            log('request-details', `文件信息:
+名称: ${file.name}
+大小: ${file.size} bytes
+类型: ${file.type}
+最后修改: ${new Date(file.lastModified).toLocaleString()}`);
+            
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = '上传中...';
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const headers = {
+                    'X-Site-ID': 'independent_icyberite'
+                };
+                
+                log('request-details', `请求头:
+X-Site-ID: ${headers['X-Site-ID']}
+Content-Type: multipart/form-data (自动设置)`);
+                
+                log('request-details', `请求方法: POST
+目标URL: /api/independent/facebook-ingest`);
+                
+                const response = await fetch('/api/independent/facebook-ingest', {
+                    method: 'POST',
+                    body: formData,
+                    headers: headers
+                });
+                
+                log('upload-result', `响应状态: ${response.status} ${response.statusText}`);
+                log('request-details', `响应头:
+Content-Type: ${response.headers.get('content-type')}
+Content-Length: ${response.headers.get('content-length') || '未知'}`);
+                
+                const responseText = await response.text();
+                log('request-details', `响应内容: ${responseText}`);
+                
+                if (response.ok) {
+                    try {
+                        const json = JSON.parse(responseText);
+                        log('upload-result', `✅ 上传成功: ${JSON.stringify(json, null, 2)}`);
+                    } catch (e) {
+                        log('upload-result', `✅ 上传成功 (非JSON响应): ${responseText}`);
+                    }
+                } else {
+                    log('upload-result', `❌ 上传失败: ${responseText}`, true);
+                }
+                
+            } catch (error) {
+                log('upload-result', `❌ 上传错误: ${error.message}`, true);
+                log('request-details', `错误详情: ${error.stack}`);
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = '上传测试文件';
+            }
+        }
+
+        // 页面加载时自动测试连接
+        window.addEventListener('load', () => {
+            log('connection-result', '页面加载完成，准备测试...');
+        });
+    </script>
+</body>
+</html>

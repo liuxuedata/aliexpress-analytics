@@ -104,6 +104,7 @@ function pickSearchCtr(raw) {
 
 function normalize(r) {
   const row = {
+    site: r.site || 'A站', // 保留site字段，如果没有则默认为'A站'
     product_id: pickProductId(r),
     stat_date: pickStatDate(r),
     exposure: pickExposure(r),
@@ -151,8 +152,8 @@ export default async function handler(req, res) {
     const map = new Map();
     for (const raw of rowsIn) {
       const row = normalize(raw);
-      if (!row.product_id || !row.stat_date) continue;
-      map.set(row.product_id + '__' + row.stat_date, row);
+      if (!row.product_id || !row.stat_date || !row.site) continue;
+      map.set(row.site + '__' + row.product_id + '__' + row.stat_date, row);
     }
     const rows = Array.from(map.values());
 

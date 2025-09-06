@@ -77,6 +77,7 @@ END $$;
 -- 4. 初始化默认站点数据
 INSERT INTO public.sites (id, name, platform, display_name) VALUES
     ('ae_self_operated_a', 'A站', 'ae_self_operated', '速卖通自运营 A站'),
+    ('ae_self_operated_poolslab', 'poolslab', 'ae_self_operated', 'Poolslab运动娱乐'),
     ('ae_managed', '全托管', 'ae_managed', '速卖通全托管'),
     ('independent_poolsvacuum', 'poolsvacuum.com', 'independent', '独立站 poolsvacuum.com'),
     ('independent_icyberite', 'icyberite.com', 'independent', '独立站 icyberite.com')
