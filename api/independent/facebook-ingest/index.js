@@ -277,7 +277,7 @@ async function handleFile(filePath, filename, siteId) {
     });
     
     const campaign = String(row[campaignCol] || '').trim();
-    const adset = adsetCol !== -1 ? String(row[adsetCol] || '').trim() : '';
+    const adset = adsetCol !== -1 ? String(row[adsetCol] || '').trim() : campaign; // 修复：使用campaign作为默认adset
     const landingUrl = landingUrlCol !== -1 ? String(row[landingUrlCol] || '').trim() : '';
 
     console.log(`第${i+1}行提取的关键字段:`, { campaign, dayStr, adset, landingUrl });
