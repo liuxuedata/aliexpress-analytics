@@ -87,7 +87,7 @@ module.exports = async function handler(req,res){
       const payRate = cur.sums.cart ? cur.sums.pay / cur.sums.cart : 0;
       const payRatePrev = prev.sums.cart ? prev.sums.pay / prev.sums.cart : 0;
       const newIds=[...cur.prodSet].filter(id=>!prev.prodSet.has(id));
-      const newProducts=curResp.data.filter(r=>newIds.includes(idOf(r))).map(r=>({sku:r.sku,model:r.model,title:r.tovary}));
+      const newProducts=cur.rows.filter(r=>newIds.includes(idOf(r))).map(r=>({sku:r.sku,model:r.model,title:r.tovary}));
 
       const allCurResp = await supabase
         .schema('public')
