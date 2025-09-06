@@ -309,12 +309,28 @@ async function queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, ca
 async function queryTikTokAdsData(supabase, site, fromDate, toDate, limitNum, campaign) {
   const table = [];
   
+  // 站点名称映射：将前端使用的站点名映射为数据库中的实际值
+  const siteMapping = {
+    'icyberite.com': 'independent_icyberite'
+  };
+  const dbSite = siteMapping[site] || site;
+  
+  // 调试日志：查询参数
+  console.log('TikTok Ads查询参数:', {
+    originalSite: site,
+    dbSite: dbSite,
+    fromDate,
+    toDate,
+    limitNum,
+    campaign
+  });
+  
   for (let fromIdx = 0; table.length < limitNum; fromIdx += PAGE_SIZE) {
     const toIdx = Math.min(fromIdx + PAGE_SIZE - 1, limitNum - 1);
     let query = supabase
       .from('independent_tiktok_ads_daily')
       .select('*')
-      .eq('site', site)
+      .eq('site', dbSite)
       .gte('day', fromDate).lte('day', toDate)
       .order('day', { ascending: false });
     
@@ -328,8 +344,8 @@ async function queryTikTokAdsData(supabase, site, fromDate, toDate, limitNum, ca
     }
 
   // 转换TikTok Ads数据格式为统一格式
-  return table.map(r => ({
-    site: r.site,
+  const transformedData = table.map(r => ({
+    site: site, // 使用原始的site值，而不是数据库中的值
     day: r.day,
     landing_path: r.landing_url || '',
     landing_url: r.landing_url || '',
@@ -354,6 +370,19 @@ async function queryTikTokAdsData(supabase, site, fromDate, toDate, limitNum, ca
     // 原始数据保留
     _raw: r
   }));
+  
+  // 调试日志：数据转换结果
+  console.log('TikTok Ads数据转换结果:', {
+    originalDataLength: table.length,
+    transformedDataLength: transformedData.length,
+    sampleTransformedData: transformedData.slice(0, 2)
+  });
+  
+  return {
+    data: transformedData,
+    useLatestData: false,
+    actualDateRange: { from: fromDate, to: toDate }
+  };
 }
 
 module.exports = async (req, res) => {
@@ -397,7 +426,10 @@ module.exports = async (req, res) => {
         useLatestData = result.useLatestData || false;
         actualDateRange = result.actualDateRange || { from: fromDate, to: toDate };
       } else if (channel === 'tiktok_ads') {
-        table = await queryTikTokAdsData(supabase, site, fromDate, toDate, limitNum, campaign);
+        const result = await queryTikTokAdsData(supabase, site, fromDate, toDate, limitNum, campaign);
+        table = result.data;
+        useLatestData = result.useLatestData || false;
+        actualDateRange = result.actualDateRange || { from: fromDate, to: toDate };
         } else {
           const result = await queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
           table = result.data;
@@ -419,7 +451,10 @@ module.exports = async (req, res) => {
           useLatestData = result.useLatestData || false;
           actualDateRange = result.actualDateRange || { from: fromDate, to: toDate };
         } else if (channelConfig.channel === 'tiktok_ads') {
-          channelTable = await queryTikTokAdsData(supabase, site, fromDate, toDate, limitNum, campaign);
+          const result = await queryTikTokAdsData(supabase, site, fromDate, toDate, limitNum, campaign);
+          channelTable = result.data;
+          useLatestData = result.useLatestData || false;
+          actualDateRange = result.actualDateRange || { from: fromDate, to: toDate };
         } else {
           const result = await queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
           channelTable = result.data;
