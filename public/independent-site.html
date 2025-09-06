@@ -511,6 +511,34 @@
       background: #ff3742;
       transform: scale(1.05);
     }
+    
+    /* 上传状态栏样式 */
+    #uploadStatus {
+      margin-left: 10px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      transition: all 0.3s ease;
+    }
+    
+    #uploadStatus:not(:empty) {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+    }
+    
+    /* 成功状态样式 */
+    #uploadStatus.success {
+      background: #d4edda;
+      border-color: #c3e6cb;
+      color: #155724;
+    }
+    
+    /* 错误状态样式 */
+    #uploadStatus.error {
+      background: #f8d7da;
+      border-color: #f5c6cb;
+      color: #721c24;
+    }
   </style>
   <!-- DataTables & ECharts CDN -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
@@ -1320,6 +1348,11 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
 
   // 清除新品筛选
   function clearNewProductFilter() {
+    console.log('清除筛选前状态:', {
+      isNewProductFilterActive,
+      rawTableLength: rawTable?.length || 0
+    });
+    
     isNewProductFilterActive = false;
     
     // 重新构建表格显示所有数据
@@ -1328,7 +1361,10 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     // 重新渲染KPI卡片以隐藏清除筛选按钮
     renderKPI(currentKPIs || {});
     
-    console.log('已清除新品筛选');
+    console.log('已清除新品筛选，当前状态:', {
+      isNewProductFilterActive,
+      rawTableLength: rawTable?.length || 0
+    });
   }
 
   // 将清除筛选函数设为全局函数，供HTML调用
@@ -1455,8 +1491,17 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     if(camp) data = data.filter(r=>r.campaign===camp);
     
     // 应用新品筛选
+    console.log('buildTable筛选状态:', {
+      isNewProductFilterActive,
+      dataLengthBefore: data.length,
+      rawTableLength: rawTable?.length || 0
+    });
+    
     if (isNewProductFilterActive) {
       data = data.filter(r => r.is_new === true);
+      console.log('应用新品筛选后数据长度:', data.length);
+    } else {
+      console.log('未应用新品筛选，显示所有数据');
     }
     const showDevice = $('#columnMenu input[data-col=1]').prop('checked');
     const showNetwork = !!net;
@@ -1947,6 +1992,7 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     
     try {
       statusEl.textContent = '导入中...';
+      statusEl.className = '';
       uploadBtn.disabled = true;
       
       // 根据站点ID选择正确的API
@@ -1988,17 +2034,21 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       if (!json.ok) throw new Error(json.error || '上传失败');
       
       statusEl.textContent = '导入完成，加载中...';
+      statusEl.className = '';
       await load();
-      statusEl.textContent = '完成';
-      alert(`上传成功，记录数: ${json.inserted}`);
+      statusEl.textContent = `✅ 上传成功，记录数: ${json.inserted}`;
+      statusEl.className = 'success';
     } catch(e) {
       console.error('上传错误:', e);
-      statusEl.textContent = `上传失败: ${e.message}`;
-      alert(`上传失败: ${e.message}`);
+      statusEl.textContent = `❌ 上传失败: ${e.message}`;
+      statusEl.className = 'error';
     } finally {
       fileInput.value = '';
       uploadBtn.disabled = false;
-      setTimeout(() => { statusEl.textContent = ''; }, 3000);
+      setTimeout(() => { 
+        statusEl.textContent = ''; 
+        statusEl.className = '';
+      }, 5000); // 延长显示时间到5秒
     }
   });
   
