@@ -274,19 +274,22 @@ async function queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, 
 async function queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device) {
   const table = [];
   
-  for (let fromIdx = 0; table.length < limitNum; fromIdx += PAGE_SIZE) {
-    const toIdx = Math.min(fromIdx + PAGE_SIZE - 1, limitNum - 1);
-    let query = supabase
-      .from('independent_landing_metrics')
-      .select('*')
-      .eq('site', site)
-      .gte('day', fromDate).lte('day', toDate)
-      .order('day', { ascending: false });
-    
-    if (campaign) query = query.eq('campaign', campaign);
-    if (network) query = query.eq('network', network);
-    if (device) query = query.eq('device', device);
-    
+  // 对于Google Ads数据，暂时不实现自动日期范围调整，保持原有行为
+  // 这样可以确保不影响现有的poolsvacuum数据
+  
+    for (let fromIdx = 0; table.length < limitNum; fromIdx += PAGE_SIZE) {
+      const toIdx = Math.min(fromIdx + PAGE_SIZE - 1, limitNum - 1);
+      let query = supabase
+        .from('independent_landing_metrics')
+        .select('*')
+        .eq('site', site)
+        .gte('day', fromDate).lte('day', toDate)
+        .order('day', { ascending: false });
+  
+      if (campaign) query = query.eq('campaign', campaign);
+      if (network) query = query.eq('network', network);
+      if (device) query = query.eq('device', device);
+  
     const { data, error } = await query.range(fromIdx, toIdx);
     if (error) throw new Error(`Google Ads query error: ${error.message}`);
     
@@ -294,7 +297,12 @@ async function queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, ca
     if (!data.length || data.length < PAGE_SIZE) break;
   }
   
-  return table;
+  // 返回与queryFacebookAdsData相同的结构，但useLatestData始终为false
+  return {
+    data: table,
+    useLatestData: false,
+    actualDateRange: { from: fromDate, to: toDate }
+  };
 }
 
 // 查询 TikTok Ads 数据
@@ -312,13 +320,13 @@ async function queryTikTokAdsData(supabase, site, fromDate, toDate, limitNum, ca
     
     if (campaign) query = query.eq('campaign_name', campaign);
     
-    const { data, error } = await query.range(fromIdx, toIdx);
+      const { data, error } = await query.range(fromIdx, toIdx);
     if (error) throw new Error(`TikTok Ads query error: ${error.message}`);
     
     table.push(...data);
-    if (!data.length || data.length < PAGE_SIZE) break;
-  }
-  
+      if (!data.length || data.length < PAGE_SIZE) break;
+    }
+
   // 转换TikTok Ads数据格式为统一格式
   return table.map(r => ({
     site: r.site,
@@ -390,9 +398,12 @@ module.exports = async (req, res) => {
         actualDateRange = result.actualDateRange || { from: fromDate, to: toDate };
       } else if (channel === 'tiktok_ads') {
         table = await queryTikTokAdsData(supabase, site, fromDate, toDate, limitNum, campaign);
-      } else {
-        table = await queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
-      }
+        } else {
+          const result = await queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
+          table = result.data;
+          useLatestData = result.useLatestData || false;
+          actualDateRange = result.actualDateRange || { from: fromDate, to: toDate };
+        }
     } else {
       // 获取站点所有启用的渠道
       const channels = await getSiteChannels(supabase, site);
@@ -410,7 +421,10 @@ module.exports = async (req, res) => {
         } else if (channelConfig.channel === 'tiktok_ads') {
           channelTable = await queryTikTokAdsData(supabase, site, fromDate, toDate, limitNum, campaign);
         } else {
-          channelTable = await queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
+          const result = await queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
+          channelTable = result.data;
+          useLatestData = result.useLatestData || false;
+          actualDateRange = result.actualDateRange || { from: fromDate, to: toDate };
         }
         allTables.push(...channelTable);
       }
@@ -423,10 +437,16 @@ module.exports = async (req, res) => {
       console.log('回退到原有逻辑，数据源:', dataSource, 'for site:', site);
       
       if (dataSource === 'facebook_ads') {
-        table = await queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
+        const result = await queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
+        table = result.data;
+        useLatestData = result.useLatestData || false;
+        actualDateRange = result.actualDateRange || { from: fromDate, to: toDate };
         console.log('Facebook Ads查询结果:', table.length, '条记录');
       } else {
-        table = await queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
+        const result = await queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
+        table = result.data;
+        useLatestData = result.useLatestData || false;
+        actualDateRange = result.actualDateRange || { from: fromDate, to: toDate };
         console.log('Google Ads查询结果:', table.length, '条记录');
       }
     }
@@ -554,20 +574,20 @@ module.exports = async (req, res) => {
       }
       
       return {
-        ...r,
+      ...r,
         product: productId, // 使用统一的商品标识
         product_display_name: extractName(r.landing_path || r.landing_url || r.campaign_name), // 用于显示的名称
-        clicks: safeNum(r.clicks),
-        impr: safeNum(r.impr),
-        ctr: safeNum(r.ctr),
-        avg_cpc: safeNum(r.avg_cpc),
-        cost: safeNum(r.cost),
-        conversions: safeNum(r.conversions),
-        cost_per_conv: safeNum(r.cost_per_conv),
-        all_conv: safeNum(r.all_conv),
-        conv_value: safeNum(r.conv_value),
-        all_conv_rate: safeNum(r.all_conv_rate),
-        conv_rate: safeNum(r.conv_rate),
+      clicks: safeNum(r.clicks),
+      impr: safeNum(r.impr),
+      ctr: safeNum(r.ctr),
+      avg_cpc: safeNum(r.avg_cpc),
+      cost: safeNum(r.cost),
+      conversions: safeNum(r.conversions),
+      cost_per_conv: safeNum(r.cost_per_conv),
+      all_conv: safeNum(r.all_conv),
+      conv_value: safeNum(r.conv_value),
+      all_conv_rate: safeNum(r.all_conv_rate),
+      conv_rate: safeNum(r.conv_rate),
         is_new: is_new,
         first_seen_date: firstSeen
       };
