@@ -18,7 +18,7 @@ CREATE TABLE public.sites (
 -- 3. 插入默认站点数据
 INSERT INTO public.sites (id, name, platform, display_name) VALUES
     ('ae_self_operated_a', 'A站', 'ae_self_operated', '速卖通自运营 A站'),
-    ('independent_poolsvacuum', 'poolsvacuum.com', 'independent', '独立站 poolsvacuum.com');
+    ('independent_poolsvacuum', 'poolsvacuum', 'independent', '独立站 poolsvacuum.com');
 
 -- 4. 启用RLS
 ALTER TABLE public.sites ENABLE ROW LEVEL SECURITY;

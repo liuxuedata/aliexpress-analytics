@@ -77,7 +77,7 @@ create table if not exists public.sites (
 -- 初始化默认站点
 insert into public.sites (id, name, platform, display_name) values
   ('ae_self_operated_a', 'A站', 'ae_self_operated', '速卖通自运营 A站'),
-  ('independent_poolsvacuum', 'poolsvacuum.com', 'independent', '独立站 poolsvacuum.com')
+  ('independent_poolsvacuum', 'poolsvacuum', 'independent', '独立站 poolsvacuum.com')
 on conflict (id) do nothing;
 
 -- RLS

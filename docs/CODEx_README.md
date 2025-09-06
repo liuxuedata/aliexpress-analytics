@@ -36,7 +36,7 @@
 - CI：把 Google Ads 导出文件放在 CI 工件中，通过 `curl` 向 `/api/independent/ingest` 发送 POST。
 
 ## 5. 页面使用
-- 访问：`/independent-site.html?site=poolsvacuum.com&from=2025-05-17&to=2025-08-12`
+- 访问：`/independent-site.html?site=poolsvacuum&from=2025-05-17&to=2025-08-12`
 - “运营分析”页签：展示日趋势 & Top Landing Pages；“明细表”页签：逐行明细。
 
 ## 6. 合并上线

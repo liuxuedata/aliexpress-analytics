@@ -13,7 +13,7 @@
 ### 2. 添加新站点
 
 #### 2.1 基本信息配置
-- **站点名称**: 输入站点标识（如：icyberite.com）
+- **站点名称**: 输入站点短名（如：icyberite）
 - **平台类型**: 选择平台（独立站、速卖通自运营等）
 - **显示名称**: 输入显示名称（如：独立站 icyberite.com）
 - **域名**: 可选，输入站点域名
@@ -193,10 +193,10 @@ CREATE TABLE data_source_templates (
 
 ## 使用示例
 
-### 添加 icyberite.com 站点
+### 添加 icyberite 站点
 
 1. **基本信息**
-   - 站点名称: icyberite.com
+   - 站点名称: icyberite
    - 平台类型: 独立站
    - 显示名称: 独立站 icyberite.com
    - 域名: icyberite.com
