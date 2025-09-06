@@ -399,7 +399,12 @@ module.exports = async (req, res) => {
       avg_ctr: table.length > 0 ? table.reduce((sum, r) => sum + r.ctr, 0) / table.length : 0,
       avg_conv_rate: table.length > 0 ? table.reduce((sum, r) => sum + r.conv_rate, 0) / table.length : 0,
       new_products: table.filter(r => r.is_new).length,
-      total_products: productTotal
+      total_products: productTotal,
+      // 商品计数KPI
+      exposure_product_count: table.filter(r => r.impr > 0).length,
+      click_product_count: table.filter(r => r.clicks > 0).length,
+      conversion_product_count: table.filter(r => r.conversions > 0).length,
+      new_product_count: table.filter(r => r.is_new).length
     };
 
     return res.json({
