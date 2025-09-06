@@ -12,18 +12,20 @@ function getClient() {
 
 function parseDate(s, fallback) {
   const d = s ? new Date(s) : null;
-  if (d && !isNaN(d.getTime())) return d.toISOString().slice(0,10);
-  return fallback;
+  return d && !isNaN(d.getTime()) ? d.toISOString().slice(0,10) : fallback;
 }
 
-function extractName(path) {
-  const p = path || '';
-  const seg = p.split('/').filter(Boolean).pop();
-  const name = seg ? decodeURIComponent(seg) : '';
-  return name || decodeURIComponent(p);
+function extractName(url) {
+  try {
+    const u = new URL(url);
+    return u.pathname.split('/').pop() || u.pathname || url;
+  } catch {
+    return url;
+  }
 }
 
 function safeNum(v){
+  if (v === null || v === undefined || v === '') return 0;
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 }
@@ -45,6 +47,97 @@ function lastWeek() {
     from: from.toISOString().slice(0,10),
     to: to.toISOString().slice(0,10)
   };
+}
+
+// 判断站点使用哪个数据源
+function getDataSource(site) {
+  // icyberite.com 使用 Facebook Ads 数据
+  if (site === 'icyberite.com' || site === 'independent_icyberite') {
+    return 'facebook_ads';
+  }
+  // 其他站点使用 Google Ads 数据
+  return 'google_ads';
+}
+
+// 查询 Facebook Ads 数据
+async function queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device) {
+  const table = [];
+  
+  for (let fromIdx = 0; table.length < limitNum; fromIdx += PAGE_SIZE) {
+    const toIdx = Math.min(fromIdx + PAGE_SIZE - 1, limitNum - 1);
+    let query = supabase
+      .from('independent_facebook_ads_daily')
+      .select('*')
+      .eq('site', site)
+      .gte('day', fromDate).lte('day', toDate)
+      .order('day', { ascending: false });
+    
+    if (campaign) query = query.eq('campaign_name', campaign);
+    // Facebook Ads 没有 network 和 device 字段，跳过这些过滤
+    
+    const { data, error } = await query.range(fromIdx, toIdx);
+    if (error) throw new Error(`Facebook Ads query error: ${error.message}`);
+    
+    table.push(...data);
+    if (!data.length || data.length < PAGE_SIZE) break;
+  }
+  
+  // 转换 Facebook Ads 数据格式为统一格式
+  return table.map(r => ({
+    site: r.site,
+    day: r.day,
+    landing_path: r.landing_url || '',
+    landing_url: r.landing_url || '',
+    campaign: r.campaign_name,
+    network: 'facebook', // Facebook Ads 固定为 facebook
+    device: 'all', // Facebook Ads 没有设备区分
+    clicks: safeNum(r.clicks),
+    impr: safeNum(r.impressions),
+    ctr: safeNum(r.all_ctr),
+    avg_cpc: safeNum(r.cpc_all),
+    cost: safeNum(r.spend_usd),
+    conversions: safeNum(r.atc_total), // 使用加购作为转化
+    cost_per_conv: r.atc_total > 0 ? safeNum(r.spend_usd / r.atc_total) : 0,
+    all_conv: safeNum(r.atc_total),
+    conv_value: safeNum(r.conversion_value),
+    all_conv_rate: r.impressions > 0 ? safeNum(r.atc_total / r.impressions * 100) : 0,
+    conv_rate: r.clicks > 0 ? safeNum(r.atc_total / r.clicks * 100) : 0,
+    // Facebook Ads 特有字段
+    reach: safeNum(r.reach),
+    frequency: safeNum(r.frequency),
+    link_clicks: safeNum(r.link_clicks),
+    link_ctr: safeNum(r.link_ctr),
+    cpm: safeNum(r.cpm),
+    // 原始数据保留
+    _raw: r
+  }));
+}
+
+// 查询 Google Ads 数据（原有逻辑）
+async function queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device) {
+  const table = [];
+  
+  for (let fromIdx = 0; table.length < limitNum; fromIdx += PAGE_SIZE) {
+    const toIdx = Math.min(fromIdx + PAGE_SIZE - 1, limitNum - 1);
+    let query = supabase
+      .from('independent_landing_metrics')
+      .select('*')
+      .eq('site', site)
+      .gte('day', fromDate).lte('day', toDate)
+      .order('day', { ascending: false });
+    
+    if (campaign) query = query.eq('campaign', campaign);
+    if (network) query = query.eq('network', network);
+    if (device) query = query.eq('device', device);
+    
+    const { data, error } = await query.range(fromIdx, toIdx);
+    if (error) throw new Error(`Google Ads query error: ${error.message}`);
+    
+    table.push(...data);
+    if (!data.length || data.length < PAGE_SIZE) break;
+  }
+  
+  return table;
 }
 
 module.exports = async (req, res) => {
@@ -71,24 +164,20 @@ module.exports = async (req, res) => {
 
     if (!site) return res.status(400).json({ error: 'missing site param, e.g. ?site=poolsvacuum.com' });
 
+    // 根据站点选择数据源
+    const dataSource = getDataSource(site);
+    console.log('数据源:', dataSource, 'for site:', site);
+
     // table data (fetch all pages up to limit)
     const limitNum = Math.min(Number(limit) || PAGE_SIZE, 20000);
     let table = [];
-    for (let fromIdx = 0; table.length < limitNum; fromIdx += PAGE_SIZE) {
-      const toIdx = Math.min(fromIdx + PAGE_SIZE - 1, limitNum - 1);
-      let query = supabase
-        .from('independent_landing_metrics')
-        .select('*')
-        .eq('site', site)
-        .gte('day', fromDate).lte('day', toDate)
-        .order('day', { ascending: false });
-      if (campaign) query = query.eq('campaign', campaign);
-      if (network) query = query.eq('network', network);
-      if (device) query = query.eq('device', device);
-      const { data, error } = await query.range(fromIdx, toIdx);
-      if (error) return res.status(500).json({ error: error.message });
-      table = table.concat(data);
-      if (!data.length || data.length < PAGE_SIZE) break;
+
+    if (dataSource === 'facebook_ads') {
+      // 查询 Facebook Ads 数据
+      table = await queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
+    } else {
+      // 查询 Google Ads 数据
+      table = await queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
     }
 
     // lookup first seen dates for all landing paths in the result set
@@ -148,180 +237,85 @@ module.exports = async (req, res) => {
 
     // 如果请求产品聚合，按产品聚合数据
     if (isProductAggregate) {
-      const productMap = {};
+      const productMap = new Map();
       table.forEach(r => {
-        const key = r.landing_path;
-        if (!productMap[key]) {
-          productMap[key] = {
+        const key = r.landing_path || r.product;
+        if (!key) return;
+        
+        if (!productMap.has(key)) {
+          productMap.set(key, {
+            product: r.product,
             landing_path: r.landing_path,
             landing_url: r.landing_url,
-            product: r.product,
-            device: r.device,
-            network: r.network,
             campaign: r.campaign,
-            period: `${fromDate}~${toDate}`, // 显示周期范围
+            network: r.network,
+            device: r.device,
             clicks: 0,
             impr: 0,
+            ctr: 0,
+            avg_cpc: 0,
             cost: 0,
             conversions: 0,
+            cost_per_conv: 0,
             all_conv: 0,
             conv_value: 0,
+            all_conv_rate: 0,
+            conv_rate: 0,
             is_new: r.is_new,
-            first_seen_date: r.first_seen_date
-          };
+            first_seen_date: r.first_seen_date,
+            days: 0
+          });
         }
-        // 累加数值字段
-        productMap[key].clicks += r.clicks;
-        productMap[key].impr += r.impr;
-        productMap[key].cost += r.cost;
-        productMap[key].conversions += r.conversions;
-        productMap[key].all_conv += r.all_conv;
-        productMap[key].conv_value += r.conv_value;
+        
+        const existing = productMap.get(key);
+        existing.clicks += r.clicks;
+        existing.impr += r.impr;
+        existing.cost += r.cost;
+        existing.conversions += r.conversions;
+        existing.all_conv += r.all_conv;
+        existing.conv_value += r.conv_value;
+        existing.days += 1;
       });
-
-      // 计算聚合后的比率
-      table = Object.values(productMap).map(r => ({
-        ...r,
-        // 重新计算比率：先算总数再相除
-        ctr: r.impr > 0 ? r.clicks / r.impr : 0,
-        avg_cpc: r.clicks > 0 ? r.cost / r.clicks : 0,
-        cost_per_conv: r.conversions > 0 ? r.cost / r.conversions : 0,
-        all_conv_rate: r.clicks > 0 ? r.all_conv / r.clicks : 0,
-        conv_rate: r.clicks > 0 ? r.conversions / r.clicks : 0
-      }));
-    }
-
-    // daily summary series
-    let seriesQuery = supabase
-      .from('independent_landing_summary_by_day')
-      .select('*')
-      .eq('site', site)
-      .gte('day', fromDate).lte('day', toDate)
-      .order('day', { ascending: true });
-    if (campaign) seriesQuery = seriesQuery.eq('campaign', campaign);
-    if (network) seriesQuery = seriesQuery.eq('network', network);
-    if (device) seriesQuery = seriesQuery.eq('device', device);
-    let { data: series, error: e2 } = await seriesQuery;
-
-    if (e2) {
-      // fall back to aggregating from metrics table when summary view doesn't support the filter
-      let fbQuery = supabase
-        .from('independent_landing_metrics')
-        .select(
-          'day, clicks:sum(clicks), impr:sum(impr), conversions:sum(conversions), conv_value:sum(conv_value), cost:sum(cost)'
-        )
-        .eq('site', site)
-        .gte('day', fromDate)
-        .lte('day', toDate)
-        .order('day', { ascending: true });
-      if (campaign) fbQuery = fbQuery.eq('campaign', campaign);
-      if (network) fbQuery = fbQuery.eq('network', network);
-      if (device) fbQuery = fbQuery.eq('device', device);
-      const { data: fallback, error: e2b } = await fbQuery;
-      if (e2b) return res.status(500).json({ error: e2b.message });
-      series = fallback || [];
-    } else {
-      series = series || [];
-    }
-
-    series = series.map(r => ({
-      ...r,
-      clicks: safeNum(r.clicks),
-      impr: safeNum(r.impr),
-      conversions: safeNum(r.conversions),
-      conv_value: safeNum(r.conv_value),
-      cost: safeNum(r.cost)
-    }));
-
-    if (onlyNew) {
-      const byDay = {};
-      table.forEach(r => {
-        const d = r.day;
-        if (!byDay[d]) byDay[d] = { day: d, clicks: 0, impr: 0, conversions: 0, conv_value: 0, cost: 0 };
-        byDay[d].clicks += safeNum(r.clicks);
-        byDay[d].impr += safeNum(r.impr);
-        byDay[d].conversions += safeNum(r.conversions);
-        byDay[d].conv_value += safeNum(r.conv_value);
-        byDay[d].cost += safeNum(r.cost);
+      
+      // 重新计算比率
+      productMap.forEach(p => {
+        p.ctr = p.impr > 0 ? (p.clicks / p.impr * 100) : 0;
+        p.avg_cpc = p.clicks > 0 ? (p.cost / p.clicks) : 0;
+        p.cost_per_conv = p.conversions > 0 ? (p.cost / p.conversions) : 0;
+        p.all_conv_rate = p.impr > 0 ? (p.all_conv / p.impr * 100) : 0;
+        p.conv_rate = p.clicks > 0 ? (p.all_conv / p.clicks * 100) : 0;
       });
-      series = Object.values(byDay).sort((a,b)=> a.day.localeCompare(b.day));
+      
+      table = Array.from(productMap.values());
     }
 
-    // top landing pages by conversions (aggregate all pages)
-    let topPages = [];
-    for (let fromIdx = 0;; fromIdx += PAGE_SIZE) {
-      const toIdx = fromIdx + PAGE_SIZE - 1;
-      let tpQuery = supabase
-        .from('independent_landing_metrics')
-        .select('landing_path, landing_url, conversions, conv_value, clicks, impr, cost')
-        .eq('site', site)
-        .gte('day', fromDate).lte('day', toDate);
-      if (campaign) tpQuery = tpQuery.eq('campaign', campaign);
-      if (network) tpQuery = tpQuery.eq('network', network);
-      if (device) tpQuery = tpQuery.eq('device', device);
-      const { data, error } = await tpQuery.range(fromIdx, toIdx);
-      if (error) return res.status(500).json({ error: error.message });
-      topPages = topPages.concat(data);
-      if (!data.length || data.length < PAGE_SIZE) break;
-    }
-
-    const byPath = {};
-    for (const r of topPages) {
-      const fs = firstSeenMap.get(r.landing_path);
-      if (onlyNew && !(fs && fs >= fromDate && fs <= toDate)) continue;
-      const key = r.landing_path;
-      if (!byPath[key]) byPath[key] = { path: key, url: r.landing_url, conversions: 0, conv_value: 0, clicks: 0, impr: 0, cost: 0 };
-      byPath[key].conversions += safeNum(r.conversions);
-      byPath[key].conv_value += safeNum(r.conv_value);
-      byPath[key].clicks += safeNum(r.clicks);
-      byPath[key].impr += safeNum(r.impr);
-      byPath[key].cost += safeNum(r.cost);
-    }
-    const topList = Object.values(byPath)
-      .map(x => ({
-        ...x,
-        product: extractName(x.path),
-        ctr: x.impr>0 ? x.clicks/x.impr : 0,
-        cpa: x.conversions>0 ? x.cost/x.conversions : 0,
-        roas: x.cost>0 ? x.conv_value/x.cost : 0
-      }))
-      .sort((a,b)=> b.conversions - a.conversions)
-      .slice(0, 50);
-
-    // KPI metrics
-    const sum = (arr, k) => arr.reduce((s,r)=> s + safeNum(r[k]), 0);
-    const clickSum = sum(table, 'clicks');
-    const imprSum = sum(table, 'impr');
-    const convSum = sum(table, 'conversions');
-    const exposureSet = new Set();
-    const clickSet = new Set();
-    const convSet = new Set();
-    table.forEach(r=>{
-      const key = r.landing_path;
-      if (safeNum(r.impr) > 0) exposureSet.add(key);
-      if (safeNum(r.clicks) > 0) clickSet.add(key);
-      if (safeNum(r.conversions) > 0) convSet.add(key);
-    });
-    const newRows = table.filter(r => r.is_new);
-    const newImpr = sum(newRows, 'impr');
-    const newClicks = sum(newRows, 'clicks');
-    const newConv = sum(newRows, 'conversions');
-
+    // 计算KPI
     const kpis = {
-      avg_ctr: +(imprSum>0 ? (clickSum/imprSum*100).toFixed(2) : 0),
-      avg_conv_rate: +(clickSum>0 ? (convSum/clickSum*100).toFixed(2) : 0),
-      exposure_product_count: exposureSet.size,
-      click_product_count: clickSet.size,
-      conversion_product_count: convSet.size,
-      new_product_count: Array.from(firstSeenMap.values()).filter(d => d >= fromDate && d <= toDate).length,
-      product_total: productTotal,
-      new_impr: newImpr,
-      new_clicks: newClicks,
-      new_conversions: newConv
+      total_clicks: table.reduce((sum, r) => sum + r.clicks, 0),
+      total_impressions: table.reduce((sum, r) => sum + r.impr, 0),
+      total_cost: table.reduce((sum, r) => sum + r.cost, 0),
+      total_conversions: table.reduce((sum, r) => sum + r.conversions, 0),
+      total_all_conv: table.reduce((sum, r) => sum + r.all_conv, 0),
+      total_conv_value: table.reduce((sum, r) => sum + r.conv_value, 0),
+      avg_ctr: table.length > 0 ? table.reduce((sum, r) => sum + r.ctr, 0) / table.length : 0,
+      avg_conv_rate: table.length > 0 ? table.reduce((sum, r) => sum + r.conv_rate, 0) / table.length : 0,
+      new_products: table.filter(r => r.is_new).length,
+      total_products: productTotal
     };
 
-    res.status(200).json({ ok: true, from: fromDate, to: toDate, table, series, topList, kpis });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+    return res.json({
+      ok: true,
+      table: table,
+      kpis: kpis,
+      dataSource: dataSource,
+      query: { site, from: fromDate, to: toDate, limit, only_new, campaign, network, device, aggregate }
+    });
+
+  } catch (error) {
+    console.error('独立站查询错误:', error);
+    return res.status(500).json({
+      ok: false,
+      error: error.message
+    });
   }
 };
