@@ -106,6 +106,33 @@ async function getSiteChannels(supabase, site) {
 async function queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device) {
   const table = [];
   
+  // 调试日志：查询参数
+  console.log('Facebook Ads查询参数:', {
+    site,
+    fromDate,
+    toDate,
+    limitNum,
+    campaign,
+    network,
+    device
+  });
+  
+  // 先检查数据库中是否有该站点的数据
+  const { data: siteCheck, error: siteError } = await supabase
+    .from('independent_facebook_ads_daily')
+    .select('site, day, campaign_name')
+    .eq('site', site)
+    .limit(5);
+  
+  if (siteError) {
+    console.error('检查站点数据失败:', siteError);
+  } else {
+    console.log('站点数据检查结果:', {
+      siteExists: siteCheck && siteCheck.length > 0,
+      sampleData: siteCheck
+    });
+  }
+  
   for (let fromIdx = 0; table.length < limitNum; fromIdx += PAGE_SIZE) {
     const toIdx = Math.min(fromIdx + PAGE_SIZE - 1, limitNum - 1);
     let query = supabase
@@ -120,6 +147,11 @@ async function queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, 
     
     const { data, error } = await query.range(fromIdx, toIdx);
     if (error) throw new Error(`Facebook Ads query error: ${error.message}`);
+    
+    console.log(`Facebook Ads查询结果 (${fromIdx}-${toIdx}):`, {
+      dataLength: data.length,
+      sampleData: data.slice(0, 2)
+    });
     
     table.push(...data);
     if (!data.length || data.length < PAGE_SIZE) break;
