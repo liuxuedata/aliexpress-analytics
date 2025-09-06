@@ -450,38 +450,15 @@ export default async function handler(req, res) {
 
     console.log(`处理了 ${records.length} 条记录`);
 
-    // 确定表名 - 修复表名生成逻辑
-    const siteName = currentIndepSiteId.replace('independent_', '');
-    const tableName = `independent_${siteName}_facebook_ads_daily`;
+    // 使用统一的Facebook Ads表
+    const tableName = 'independent_facebook_ads_daily';
     
     console.log('目标表名:', tableName);
     console.log('站点ID:', currentIndepSiteId);
-    console.log('站点名称:', siteName);
+    console.log('使用统一表架构');
     
-    // 检查表是否存在，如果不存在则创建
-    try {
-      const { error: tableCheckError } = await supabase
-        .from(tableName)
-        .select('day')
-        .limit(1);
-      
-      if (tableCheckError) {
-        console.log('表不存在，尝试创建:', tableName);
-        // 调用动态表创建函数
-        const { error: createError } = await supabase.rpc('generate_dynamic_table', {
-          p_site_id: currentIndepSiteId,
-          p_table_name: tableName,
-          p_data_source: 'facebook_ads'
-        });
-        
-        if (createError) {
-          console.error('创建表失败:', createError);
-          return res.status(500).json({ error: `Failed to create table: ${createError.message}` });
-        }
-      }
-    } catch (e) {
-      console.log('表检查失败，可能表不存在:', e.message);
-    }
+    // 统一表架构：表已预创建，无需检查或创建
+    console.log('使用预创建的统一表:', tableName);
 
     // 插入数据
     const { data, error } = await supabase

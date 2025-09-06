@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Ads API 增强测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .test-result {
+            background: #f5f5f5;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        .warning {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        .file-preview {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .date-test {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 3px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Facebook Ads API 增强测试页面</h1>
+    
+    <div class="test-section">
+        <h2>1. API 连接测试</h2>
+        <button onclick="testAPIConnection()">测试 API 连接</button>
+        <div id="connection-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. 文件内容分析</h2>
+        <input type="file" id="test-file" accept=".xlsx,.csv" onchange="analyzeFile()">
+        <div id="file-analysis" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 日期格式测试</h2>
+        <button onclick="testDateFormats()">测试常见日期格式</button>
+        <div id="date-test-result" class="test-result"></div>
+    </div>
+
+    <div class="grid">
+        <div class="test-section">
+            <h2>4. 文件上传测试</h2>
+            <button onclick="testFileUpload()" id="upload-btn">上传测试文件</button>
+            <div id="upload-result" class="test-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>5. 请求详情</h2>
+            <div id="request-details" class="test-result"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+            element.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            element.scrollTop = element.scrollHeight;
+        }
+
+        function clearLog(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+
+        async function testAPIConnection() {
+            clearLog('connection-result');
+            log('connection-result', '开始测试 API 连接...');
+            
+            try {
+                const response = await fetch('/api/independent/facebook-ingest', {
+                    method: 'OPTIONS',
+                    headers: {
+                        'X-Site-ID': 'independent_icyberite'
+                    }
+                });
+                
+                log('connection-result', `状态码: ${response.status}`);
+                log('connection-result', `状态文本: ${response.statusText}`);
+                
+                if (response.ok) {
+                    log('connection-result', `✅ API 连接成功`, 'success');
+                } else {
+                    log('connection-result', `❌ API 连接失败`, 'error');
+                }
+            } catch (error) {
+                log('connection-result', `❌ 连接测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        function analyzeFile() {
+            const fileInput = document.getElementById('test-file');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                clearLog('file-analysis');
+                return;
+            }
+            
+            clearLog('file-analysis');
+            log('file-analysis', `开始分析文件: ${file.name}`);
+            log('file-analysis', `文件大小: ${file.size} bytes`);
+            log('file-analysis', `文件类型: ${file.type}`);
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = e.target.result;
+                    const workbook = XLSX.read(data, { type: 'binary' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    log('file-analysis', `工作表名称: ${sheetName}`);
+                    log('file-analysis', `总行数: ${jsonData.length}`);
+                    
+                    if (jsonData.length > 0) {
+                        const headers = jsonData[0];
+                        log('file-analysis', `表头列数: ${headers.length}`);
+                        log('file-analysis', `表头内容: ${JSON.stringify(headers)}`);
+                        
+                        // 查找关键列
+                        const dateCols = headers.filter((h, i) => 
+                            h && String(h).toLowerCase().includes('date') || 
+                            String(h).toLowerCase().includes('day') ||
+                            String(h).toLowerCase().includes('时间')
+                        );
+                        const campaignCols = headers.filter((h, i) => 
+                            h && String(h).toLowerCase().includes('campaign')
+                        );
+                        const adsetCols = headers.filter((h, i) => 
+                            h && String(h).toLowerCase().includes('adset')
+                        );
+                        
+                        log('file-analysis', `找到日期相关列: ${JSON.stringify(dateCols)}`);
+                        log('file-analysis', `找到Campaign相关列: ${JSON.stringify(campaignCols)}`);
+                        log('file-analysis', `找到Adset相关列: ${JSON.stringify(adsetCols)}`);
+                        
+                        // 分析前几行数据
+                        log('file-analysis', `前3行数据样本:`);
+                        for (let i = 0; i < Math.min(3, jsonData.length); i++) {
+                            log('file-analysis', `第${i+1}行: ${JSON.stringify(jsonData[i])}`);
+                        }
+                        
+                        // 特别分析日期列
+                        if (dateCols.length > 0) {
+                            const dateColIndex = headers.findIndex(h => 
+                                h && String(h).toLowerCase().includes('date')
+                            );
+                            if (dateColIndex !== -1) {
+                                log('file-analysis', `分析日期列 (索引${dateColIndex}):`);
+                                for (let i = 1; i < Math.min(6, jsonData.length); i++) {
+                                    const dateValue = jsonData[i][dateColIndex];
+                                    log('file-analysis', `第${i+1}行日期值: "${dateValue}" (类型: ${typeof dateValue})`);
+                                    
+                                    // 测试日期解析
+                                    const testDate = new Date(dateValue);
+                                    if (isNaN(testDate.getTime())) {
+                                        log('file-analysis', `  ❌ 日期解析失败: Invalid Date`, 'error');
+                                    } else {
+                                        log('file-analysis', `  ✅ 日期解析成功: ${testDate.toISOString().slice(0, 10)}`, 'success');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (error) {
+                    log('file-analysis', `❌ 文件分析失败: ${error.message}`, 'error');
+                }
+            };
+            reader.readAsBinaryString(file);
+        }
+
+        function testDateFormats() {
+            clearLog('date-test-result');
+            log('date-test-result', '测试常见日期格式...');
+            
+            const testDates = [
+                '2025-08-31',
+                '2025/08/31',
+                '31/08/2025',
+                '08/31/2025',
+                'Aug 31, 2025',
+                '2025-8-31',
+                '2025-08-3',
+                '20250831',
+                '2025-08-31 00:00:00',
+                '2025-08-31T00:00:00Z',
+                '31-Aug-2025',
+                '2025年8月31日',
+                '8/31/25',
+                '31.08.2025'
+            ];
+            
+            testDates.forEach(dateStr => {
+                const testDate = new Date(dateStr);
+                const isValid = !isNaN(testDate.getTime());
+                const isoString = isValid ? testDate.toISOString().slice(0, 10) : 'Invalid';
+                
+                if (isValid) {
+                    log('date-test-result', `✅ "${dateStr}" → ${isoString}`, 'success');
+                } else {
+                    log('date-test-result', `❌ "${dateStr}" → Invalid Date`, 'error');
+                }
+            });
+        }
+
+        async function testFileUpload() {
+            const fileInput = document.getElementById('test-file');
+            const uploadBtn = document.getElementById('upload-btn');
+            
+            if (!fileInput.files[0]) {
+                log('upload-result', '❌ 请先选择一个文件', 'error');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            clearLog('upload-result');
+            clearLog('request-details');
+            
+            log('upload-result', '开始文件上传测试...');
+            log('request-details', `文件信息:
+名称: ${file.name}
+大小: ${file.size} bytes
+类型: ${file.type}
+最后修改: ${new Date(file.lastModified).toLocaleString()}`);
+            
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = '上传中...';
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const headers = {
+                    'X-Site-ID': 'independent_icyberite'
+                };
+                
+                log('request-details', `请求头:
+X-Site-ID: ${headers['X-Site-ID']}
+Content-Type: multipart/form-data (自动设置)`);
+                
+                log('request-details', `请求方法: POST
+目标URL: /api/independent/facebook-ingest`);
+                
+                const response = await fetch('/api/independent/facebook-ingest', {
+                    method: 'POST',
+                    body: formData,
+                    headers: headers
+                });
+                
+                log('upload-result', `响应状态: ${response.status} ${response.statusText}`);
+                log('request-details', `响应头:
+Content-Type: ${response.headers.get('content-type')}
+Content-Length: ${response.headers.get('content-length') || '未知'}`);
+                
+                const responseText = await response.text();
+                log('request-details', `响应内容: ${responseText}`);
+                
+                if (response.ok) {
+                    try {
+                        const json = JSON.parse(responseText);
+                        log('upload-result', `✅ 上传成功: ${JSON.stringify(json, null, 2)}`, 'success');
+                    } catch (e) {
+                        log('upload-result', `✅ 上传成功 (非JSON响应): ${responseText}`, 'success');
+                    }
+                } else {
+                    log('upload-result', `❌ 上传失败: ${responseText}`, 'error');
+                }
+                
+            } catch (error) {
+                log('upload-result', `❌ 上传错误: ${error.message}`, 'error');
+                log('request-details', `错误详情: ${error.stack}`);
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = '上传测试文件';
+            }
+        }
+
+        // 页面加载时自动测试连接
+        window.addEventListener('load', () => {
+            log('connection-result', '页面加载完成，准备测试...');
+            testAPIConnection();
+        });
+    </script>
+</body>
+</html>

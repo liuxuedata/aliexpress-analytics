@@ -85,25 +85,14 @@ export default async function handler(req, res) {
 
         if (insertError) throw insertError;
 
-        // 如果是独立站且有模板，自动生成数据表
-        if (platform === 'independent' && template_id) {
-          try {
-            // 获取模板信息
-            const { data: template } = await supabase
-              .from('data_source_templates')
-              .select('*')
-              .eq('id', template_id)
-              .single();
-
-            if (template) {
-              // 生成数据表
-              const tableName = await generateDataTable(siteId, data_source, template);
-              console.log(`Generated data table: ${tableName}`);
-            }
-          } catch (tableError) {
-            console.error('Failed to generate data table:', tableError);
-            // 不阻止站点创建，只记录错误
-          }
+        // 统一表架构：不再需要为每个站点创建独立表
+        // 所有站点共享通用表：
+        // - Facebook Ads: independent_facebook_ads_daily
+        // - Google Ads: independent_landing_metrics  
+        // - TikTok Ads: independent_tiktok_ads_daily
+        if (platform === 'independent') {
+          const tableName = getUnifiedTableName(data_source);
+          console.log(`站点 ${siteId} 将使用统一表: ${tableName}`);
         }
 
         return res.status(201).json({
@@ -126,82 +115,13 @@ export default async function handler(req, res) {
   }
 }
 
-// 生成数据表的辅助函数
-async function generateDataTable(siteId, sourceType, template) {
-  const supabase = getClient();
+// 获取统一表名的辅助函数
+function getUnifiedTableName(dataSource) {
+  const tableMapping = {
+    'facebook_ads': 'independent_facebook_ads_daily',
+    'google_ads': 'independent_landing_metrics',
+    'tiktok_ads': 'independent_tiktok_ads_daily'
+  };
   
-  // 根据数据源类型生成表结构
-  let tableSchema;
-  
-  if (sourceType === 'facebook_ads') {
-    tableSchema = {
-      columns: {
-        site: "text not null",
-        day: "date not null",
-        campaign_name: "text",
-        adset_name: "text",
-        landing_url: "text",
-        impressions: "integer",
-        clicks: "integer",
-        spend_usd: "numeric(10,2)",
-        cpm: "numeric(10,2)",
-        cpc_all: "numeric(10,2)",
-        all_ctr: "numeric(10,4)",
-        reach: "integer",
-        frequency: "numeric(10,2)",
-        all_clicks: "integer",
-        link_clicks: "integer",
-        ic_web: "integer",
-        ic_meta: "integer",
-        ic_total: "integer",
-        atc_web: "integer",
-        atc_meta: "integer",
-        atc_total: "integer",
-        purchase_web: "integer",
-        purchase_meta: "integer",
-        cpa_purchase_web: "numeric(10,2)",
-        link_ctr: "numeric(10,4)",
-        conversion_value: "numeric(10,2)",
-        row_start_date: "date",
-        row_end_date: "date"
-      }
-    };
-  } else if (sourceType === 'google_ads') {
-    tableSchema = {
-      columns: {
-        site: "text not null",
-        landing_url: "text",
-        campaign: "text",
-        day: "date",
-        network: "text",
-        device: "text",
-        clicks: "integer",
-        impr: "integer",
-        ctr: "numeric(10,4)",
-        avg_cpc: "numeric(10,2)",
-        cost: "numeric(10,2)",
-        conversions: "integer",
-        cost_per_conv: "numeric(10,2)"
-      }
-    };
-  } else {
-    // 默认表结构
-    tableSchema = {
-      columns: {
-        site: "text not null",
-        date: "date",
-        data: "jsonb"
-      }
-    };
-  }
-
-  // 调用动态表生成函数
-  const { data, error } = await supabase.rpc('generate_dynamic_table', {
-    site_id: siteId,
-    source_type: sourceType,
-    table_schema: tableSchema
-  });
-
-  if (error) throw error;
-  return data;
+  return tableMapping[dataSource] || 'independent_generic_daily';
 }
