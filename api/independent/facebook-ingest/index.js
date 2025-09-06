@@ -331,7 +331,7 @@ async function handleFile(filePath, filename, siteId) {
       conversion_value: conversionValueCol !== -1 ? coerceNum(row[conversionValueCol]) : 0, // 新增转化价值字段
       row_start_date: dayStr,
       row_end_date: dayStr,
-      created_at: new Date().toISOString(),
+      inserted_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
 

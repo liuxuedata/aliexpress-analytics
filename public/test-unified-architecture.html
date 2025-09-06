@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>统一表架构测试</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .test-section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .test-section h2 {
+      color: #333;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 10px;
+    }
+    .btn {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    .btn:hover {
+      background: #0056b3;
+    }
+    .btn-success {
+      background: #28a745;
+    }
+    .btn-success:hover {
+      background: #1e7e34;
+    }
+    .btn-danger {
+      background: #dc3545;
+    }
+    .btn-danger:hover {
+      background: #c82333;
+    }
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    .status-success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .status-error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .status-info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    .file-upload {
+      border: 2px dashed #ccc;
+      border-radius: 4px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      margin: 10px 0;
+    }
+    .file-upload:hover {
+      border-color: #007bff;
+    }
+    .result-box {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 15px;
+      margin: 10px 0;
+      font-family: monospace;
+      white-space: pre-wrap;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>🏗️ 统一表架构测试</h1>
+  
+  <!-- 架构信息 -->
+  <div class="test-section">
+    <h2>📊 架构信息</h2>
+    <div class="result-box">
+统一表架构已实施完成！
+
+表结构：
+• Facebook Ads → independent_facebook_ads_daily
+• Google Ads → independent_landing_metrics  
+• TikTok Ads → independent_tiktok_ads_daily
+
+优势：
+✅ 零维护成本：新站点无需创建新表
+✅ 无限扩展：支持任意数量站点
+✅ 统一管理：所有数据集中存储
+✅ 查询优化：跨站点分析更容易
+    </div>
+  </div>
+
+  <!-- API测试 -->
+  <div class="test-section">
+    <h2>🔌 API连接测试</h2>
+    <button class="btn" onclick="testAPIs()">测试所有API</button>
+    <div id="apiResults"></div>
+  </div>
+
+  <!-- 站点配置测试 -->
+  <div class="test-section">
+    <h2>🏢 站点配置测试</h2>
+    <button class="btn" onclick="testSiteConfigs()">测试站点配置</button>
+    <button class="btn btn-success" onclick="createTestSite()">创建测试站点</button>
+    <div id="siteResults"></div>
+  </div>
+
+  <!-- 数据上传测试 -->
+  <div class="test-section">
+    <h2>📤 数据上传测试</h2>
+    <div>
+      <label>选择站点：</label>
+      <select id="testSiteSelect">
+        <option value="">选择站点</option>
+      </select>
+    </div>
+    <div class="file-upload" onclick="document.getElementById('testFile').click()">
+      <p>点击选择Facebook Ads数据文件</p>
+      <input type="file" id="testFile" accept=".xlsx,.csv" style="display: none;">
+    </div>
+    <button class="btn" onclick="testDataUpload()">测试数据上传</button>
+    <div id="uploadResults"></div>
+  </div>
+
+  <!-- 数据查询测试 -->
+  <div class="test-section">
+    <h2>📊 数据查询测试</h2>
+    <button class="btn" onclick="testDataQuery()">查询统一表数据</button>
+    <button class="btn btn-success" onclick="testCrossSiteQuery()">跨站点查询测试</button>
+    <div id="queryResults"></div>
+  </div>
+
+  <!-- 新站点添加测试 -->
+  <div class="test-section">
+    <h2>➕ 新站点添加测试</h2>
+    <div>
+      <input type="text" id="newSiteName" placeholder="新站点名称" style="padding: 8px; margin: 5px;">
+      <input type="text" id="newSiteDomain" placeholder="域名" style="padding: 8px; margin: 5px;">
+      <select id="newSiteDataSource" style="padding: 8px; margin: 5px;">
+        <option value="facebook_ads">Facebook Ads</option>
+        <option value="google_ads">Google Ads</option>
+        <option value="tiktok_ads">TikTok Ads</option>
+      </select>
+    </div>
+    <button class="btn btn-success" onclick="addNewSite()">添加新站点</button>
+    <div id="newSiteResults"></div>
+  </div>
+
+  <script>
+    let currentSites = [];
+
+    // 页面加载时初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      loadSites();
+    });
+
+    // 加载站点列表
+    async function loadSites() {
+      try {
+        const response = await fetch('/api/site-configs');
+        const data = await response.json();
+        
+        if (data.ok) {
+          currentSites = data.data || [];
+          updateSiteSelect();
+          showStatus('apiResults', '站点列表加载成功', 'success');
+        } else {
+          showStatus('apiResults', '加载站点失败: ' + data.error, 'error');
+        }
+      } catch (error) {
+        showStatus('apiResults', '加载站点失败: ' + error.message, 'error');
+      }
+    }
+
+    // 更新站点选择器
+    function updateSiteSelect() {
+      const select = document.getElementById('testSiteSelect');
+      select.innerHTML = '<option value="">选择站点</option>';
+      
+      currentSites.forEach(site => {
+        select.innerHTML += `<option value="${site.id}">${site.display_name} (${site.data_source})</option>`;
+      });
+    }
+
+    // 测试所有API
+    async function testAPIs() {
+      const results = [];
+      
+      // 测试站点配置API
+      try {
+        const response = await fetch('/api/site-configs');
+        const data = await response.json();
+        results.push(`站点配置API: ${response.ok ? '✅ 正常' : '❌ 失败'} (${response.status})`);
+      } catch (error) {
+        results.push(`站点配置API: ❌ 错误 - ${error.message}`);
+      }
+
+      // 测试模板API
+      try {
+        const response = await fetch('/api/data-source-templates');
+        const data = await response.json();
+        results.push(`模板API: ${response.ok ? '✅ 正常' : '❌ 失败'} (${response.status})`);
+      } catch (error) {
+        results.push(`模板API: ❌ 错误 - ${error.message}`);
+      }
+
+      // 测试统一Facebook Ads API
+      try {
+        const response = await fetch('/api/universal-ingest/facebook-ads', {
+          method: 'POST',
+          headers: { 'X-Site-ID': 'test' }
+        });
+        results.push(`统一Facebook Ads API: ${response.status === 400 ? '✅ 正常(需要文件)' : '❌ 异常'} (${response.status})`);
+      } catch (error) {
+        results.push(`统一Facebook Ads API: ❌ 错误 - ${error.message}`);
+      }
+
+      showStatus('apiResults', results.join('\n'), 'info');
+    }
+
+    // 测试站点配置
+    async function testSiteConfigs() {
+      try {
+        const response = await fetch('/api/site-configs');
+        const data = await response.json();
+        
+        if (data.ok) {
+          const sites = data.data || [];
+          const result = `站点配置测试成功！\n\n站点数量: ${sites.length}\n\n站点列表:\n${sites.map(site => 
+            `• ${site.display_name} (${site.id})\n  平台: ${site.platform}\n  数据源: ${site.data_source}\n  域名: ${site.domain || 'N/A'}`
+          ).join('\n\n')}`;
+          
+          showStatus('siteResults', result, 'success');
+        } else {
+          showStatus('siteResults', '站点配置测试失败: ' + data.error, 'error');
+        }
+      } catch (error) {
+        showStatus('siteResults', '站点配置测试失败: ' + error.message, 'error');
+      }
+    }
+
+    // 创建测试站点
+    async function createTestSite() {
+      const testSite = {
+        name: 'test-unified-site.com',
+        platform: 'independent',
+        display_name: '统一架构测试站点',
+        domain: 'test-unified-site.com',
+        data_source: 'facebook_ads',
+        template_id: null,
+        config_json: { test: true }
+      };
+
+      try {
+        const response = await fetch('/api/site-configs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(testSite)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          showStatus('siteResults', `测试站点创建成功！\n站点ID: ${data.data.id}\n使用统一表: independent_facebook_ads_daily`, 'success');
+          loadSites(); // 重新加载站点列表
+        } else {
+          showStatus('siteResults', '创建测试站点失败: ' + data.error, 'error');
+        }
+      } catch (error) {
+        showStatus('siteResults', '创建测试站点失败: ' + error.message, 'error');
+      }
+    }
+
+    // 测试数据上传
+    async function testDataUpload() {
+      const siteId = document.getElementById('testSiteSelect').value;
+      const fileInput = document.getElementById('testFile');
+      
+      if (!siteId) {
+        showStatus('uploadResults', '请选择站点', 'error');
+        return;
+      }
+      
+      if (!fileInput.files || fileInput.files.length === 0) {
+        showStatus('uploadResults', '请选择文件', 'error');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      try {
+        showStatus('uploadResults', '正在上传数据...', 'info');
+        
+        const site = currentSites.find(s => s.id === siteId);
+        let apiEndpoint;
+        let headers = {};
+        
+        if (site.data_source === 'facebook_ads') {
+          apiEndpoint = '/api/universal-ingest/facebook-ads';
+          headers['X-Site-ID'] = siteId;
+        } else {
+          apiEndpoint = `/api/dynamic-ingest/${encodeURIComponent(siteId)}`;
+        }
+        
+        const response = await fetch(apiEndpoint, {
+          method: 'POST',
+          headers: headers,
+          body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          showStatus('uploadResults', `数据上传成功！\n处理记录: ${result.processed}\n插入记录: ${result.upserted}\n目标表: ${result.table}`, 'success');
+        } else {
+          showStatus('uploadResults', '上传失败: ' + result.error, 'error');
+        }
+      } catch (error) {
+        showStatus('uploadResults', '上传失败: ' + error.message, 'error');
+      }
+    }
+
+    // 测试数据查询
+    async function testDataQuery() {
+      try {
+        // 这里需要创建一个查询API，暂时模拟
+        showStatus('queryResults', '数据查询测试功能需要实现查询API', 'info');
+      } catch (error) {
+        showStatus('queryResults', '查询测试失败: ' + error.message, 'error');
+      }
+    }
+
+    // 跨站点查询测试
+    async function testCrossSiteQuery() {
+      try {
+        showStatus('queryResults', '跨站点查询测试：\n\n统一表架构支持通过site字段进行跨站点分析\n\n示例查询：\nSELECT site, COUNT(*) as records, SUM(spend_usd) as total_spend\nFROM independent_facebook_ads_daily\nGROUP BY site\nORDER BY total_spend DESC;', 'info');
+      } catch (error) {
+        showStatus('queryResults', '跨站点查询测试失败: ' + error.message, 'error');
+      }
+    }
+
+    // 添加新站点
+    async function addNewSite() {
+      const name = document.getElementById('newSiteName').value;
+      const domain = document.getElementById('newSiteDomain').value;
+      const dataSource = document.getElementById('newSiteDataSource').value;
+      
+      if (!name || !domain) {
+        showStatus('newSiteResults', '请填写站点名称和域名', 'error');
+        return;
+      }
+
+      const newSite = {
+        name: name,
+        platform: 'independent',
+        display_name: `独立站 ${domain}`,
+        domain: domain,
+        data_source: dataSource,
+        template_id: null,
+        config_json: null
+      };
+
+      try {
+        const response = await fetch('/api/site-configs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newSite)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          const tableMapping = {
+            'facebook_ads': 'independent_facebook_ads_daily',
+            'google_ads': 'independent_landing_metrics',
+            'tiktok_ads': 'independent_tiktok_ads_daily'
+          };
+          
+          showStatus('newSiteResults', `新站点添加成功！\n站点ID: ${data.data.id}\n使用统一表: ${tableMapping[dataSource]}\n\n零维护成本：无需创建新表，立即可用！`, 'success');
+          loadSites(); // 重新加载站点列表
+          
+          // 清空表单
+          document.getElementById('newSiteName').value = '';
+          document.getElementById('newSiteDomain').value = '';
+        } else {
+          showStatus('newSiteResults', '添加新站点失败: ' + data.error, 'error');
+        }
+      } catch (error) {
+        showStatus('newSiteResults', '添加新站点失败: ' + error.message, 'error');
+      }
+    }
+
+    // 显示状态消息
+    function showStatus(elementId, message, type) {
+      const element = document.getElementById(elementId);
+      element.innerHTML = `<div class="status status-${type}">${message}</div>`;
+    }
+  </script>
+</body>
+</html>
