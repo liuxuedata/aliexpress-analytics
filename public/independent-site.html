@@ -568,6 +568,8 @@
           <input type="text" id="site" value="" placeholder="如：poolsvacuum.com">
           <span>日期：</span>
           <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
+          <label>渠道：</label>
+          <select id="channelSel"><option value="">全部</option></select>
           <label>网络：</label>
           <select id="networkSel"><option value="">全部</option></select>
           <label>Campaign：</label>
@@ -1172,6 +1174,7 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
   const toInput = document.getElementById('to');
   const columnMenu = document.getElementById('columnMenu');
   const columnToggle = document.getElementById('columnToggle');
+  const channelSel = document.getElementById('channelSel');
   const networkSel = document.getElementById('networkSel');
   const campaignSel = document.getElementById('campaignSel');
   const optionalCols = [
@@ -1345,8 +1348,14 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     }
 
     let data = rawTable;
+    const channel = channelSel.value;
     const net = networkSel.value;
     const camp = campaignSel.value;
+    if(channel) {
+      if(channel === 'google_ads') data = data.filter(r=>r.network==='google');
+      else if(channel === 'facebook_ads') data = data.filter(r=>r.network==='facebook');
+      else if(channel === 'tiktok_ads') data = data.filter(r=>r.network==='tiktok');
+    }
     if(net) data = data.filter(r=>r.network===net);
     if(camp) data = data.filter(r=>r.campaign===camp);
     const showDevice = $('#columnMenu input[data-col=1]').prop('checked');
@@ -1413,6 +1422,7 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
   }
 
   $('#columnMenu').on('change','input[type=checkbox]', buildTable);
+  channelSel.addEventListener('change', buildTable);
   networkSel.addEventListener('change', buildTable);
   campaignSel.addEventListener('change', buildTable);
 
@@ -1542,10 +1552,19 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
   function populateFilters(){
     // 安全处理空数据
     if (!rawTable || !Array.isArray(rawTable) || rawTable.length === 0) {
+      channelSel.innerHTML = '<option value="">全部</option>';
       networkSel.innerHTML = '<option value="">全部</option>';
       campaignSel.innerHTML = '<option value="">全部</option>';
       return;
     }
+    
+    // 填充渠道选择器
+    const channels = Array.from(new Set(rawTable.map(r=>r.network).filter(Boolean))).sort();
+    const channelOptions = ['<option value="">全部</option>'];
+    if (channels.includes('google')) channelOptions.push('<option value="google_ads">Google Ads</option>');
+    if (channels.includes('facebook')) channelOptions.push('<option value="facebook_ads">Facebook Ads</option>');
+    if (channels.includes('tiktok')) channelOptions.push('<option value="tiktok_ads">TikTok Ads</option>');
+    channelSel.innerHTML = channelOptions.join('');
     
     const nets = Array.from(new Set(rawTable.map(r=>r.network).filter(Boolean))).sort();
     networkSel.innerHTML = '<option value="">全部</option>' + nets.map(n=>`<option value="${n}">${n}</option>`).join('');
@@ -1708,7 +1727,8 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       console.log('独立站查询参数:', { siteName, siteParam, from, to });
       
       // 获取当前周期数据
-      const currentUrl = `/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${from}&to=${to}&aggregate=product`;
+      const channel = channelSel.value;
+      const currentUrl = `/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${from}&to=${to}&aggregate=product${channel ? `&channel=${encodeURIComponent(channel)}` : ''}`;
       
       // 计算上一周期日期范围
       const currentFrom = new Date(from);
@@ -1728,7 +1748,7 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       // 并行获取两个周期的数据
       const [currentRes, prevRes] = await Promise.all([
         fetch(currentUrl),
-        fetch(`/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${prevFromStr}&to=${prevToStr}&aggregate=product`)
+        fetch(`/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${prevFromStr}&to=${prevToStr}&aggregate=product${channel ? `&channel=${encodeURIComponent(channel)}` : ''}`)
       ]);
       
       if (!currentRes.ok) throw new Error(`当前周期 HTTP ${currentRes.status}`);
@@ -1813,11 +1833,17 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       // 根据站点ID选择正确的API
       let apiUrl = '/api/independent/ingest'; // 默认Google Ads API
       
-      // 如果是icyberite.com，使用Facebook Ads API
+      // 根据站点ID选择API
       if (uploadSiteId === 'independent_icyberite') {
         apiUrl = '/api/independent/facebook-ingest';
         console.log('使用Facebook Ads API:', apiUrl);
+      } else if (uploadSiteId === 'independent_poolsvacuum') {
+        // poolsvacuum默认使用Google Ads，但可以根据需要扩展
+        apiUrl = '/api/independent/ingest';
+        console.log('使用Google Ads API:', apiUrl);
       } else {
+        // 其他站点默认使用Google Ads
+        apiUrl = '/api/independent/ingest';
         console.log('使用Google Ads API:', apiUrl);
       }
       

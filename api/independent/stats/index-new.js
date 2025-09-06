@@ -59,23 +59,6 @@ function getDataSource(site) {
   return 'google_ads';
 }
 
-// 获取站点渠道配置
-async function getSiteChannels(supabase, site) {
-  try {
-    const { data: configs } = await supabase
-      .from('site_channel_configs')
-      .select('channel, table_name, is_enabled')
-      .eq('site_id', site)
-      .eq('is_enabled', true);
-    
-    return configs || [{ channel: 'google_ads', table_name: 'independent_landing_metrics', is_enabled: true }];
-  } catch (error) {
-    console.error('获取站点渠道配置失败:', error);
-    // 回退到原有逻辑
-    return [{ channel: getDataSource(site), table_name: getDataSource(site) === 'facebook_ads' ? 'independent_facebook_ads_daily' : 'independent_landing_metrics', is_enabled: true }];
-  }
-}
-
 // 查询 Facebook Ads 数据
 async function queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device) {
   const table = [];
@@ -157,57 +140,6 @@ async function queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, ca
   return table;
 }
 
-// 查询 TikTok Ads 数据
-async function queryTikTokAdsData(supabase, site, fromDate, toDate, limitNum, campaign) {
-  const table = [];
-  
-  for (let fromIdx = 0; table.length < limitNum; fromIdx += PAGE_SIZE) {
-    const toIdx = Math.min(fromIdx + PAGE_SIZE - 1, limitNum - 1);
-    let query = supabase
-      .from('independent_tiktok_ads_daily')
-      .select('*')
-      .eq('site', site)
-      .gte('day', fromDate).lte('day', toDate)
-      .order('day', { ascending: false });
-    
-    if (campaign) query = query.eq('campaign_name', campaign);
-    
-    const { data, error } = await query.range(fromIdx, toIdx);
-    if (error) throw new Error(`TikTok Ads query error: ${error.message}`);
-    
-    table.push(...data);
-    if (!data.length || data.length < PAGE_SIZE) break;
-  }
-  
-  // 转换TikTok Ads数据格式为统一格式
-  return table.map(r => ({
-    site: r.site,
-    day: r.day,
-    landing_path: r.landing_url || '',
-    landing_url: r.landing_url || '',
-    campaign: r.campaign_name,
-    network: 'tiktok',
-    device: 'all',
-    clicks: safeNum(r.clicks),
-    impr: safeNum(r.impressions),
-    ctr: safeNum(r.ctr),
-    avg_cpc: safeNum(r.cpc),
-    cost: safeNum(r.spend_usd),
-    conversions: safeNum(r.conversions),
-    cost_per_conv: r.conversions > 0 ? safeNum(r.spend_usd / r.conversions) : 0,
-    all_conv: safeNum(r.conversions),
-    conv_value: safeNum(r.conversion_value),
-    all_conv_rate: r.impressions > 0 ? safeNum(r.conversions / r.impressions * 100) : 0,
-    conv_rate: r.clicks > 0 ? safeNum(r.conversions / r.clicks * 100) : 0,
-    // TikTok Ads特有字段
-    reach: safeNum(r.reach),
-    frequency: safeNum(r.frequency),
-    cpm: safeNum(r.cpm),
-    // 原始数据保留
-    _raw: r
-  }));
-}
-
 module.exports = async (req, res) => {
   // 设置CORS头
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -221,62 +153,31 @@ module.exports = async (req, res) => {
 
   try {
     const supabase = getClient();
-    const { site, from, to, limit = '20000', only_new, campaign, network, device, aggregate, channel } = req.query;
+    const { site, from, to, limit = '20000', only_new, campaign, network, device, aggregate } = req.query;
     const def = lastWeek();
     const toDate = parseDate(to, def.to);
     const fromDate = parseDate(from, def.from);
     const onlyNew = String(only_new || '') === '1';
     const isProductAggregate = String(aggregate || '') === 'product';
 
-    console.log('独立站查询参数:', { site, from: fromDate, to: toDate, limit, only_new, campaign, network, device, aggregate, channel });
+    console.log('独立站查询参数:', { site, from: fromDate, to: toDate, limit, only_new, campaign, network, device, aggregate });
 
     if (!site) return res.status(400).json({ error: 'missing site param, e.g. ?site=poolsvacuum.com' });
+
+    // 根据站点选择数据源
+    const dataSource = getDataSource(site);
+    console.log('数据源:', dataSource, 'for site:', site);
 
     // table data (fetch all pages up to limit)
     const limitNum = Math.min(Number(limit) || PAGE_SIZE, 20000);
     let table = [];
 
-    // 如果指定了渠道，直接查询该渠道
-    if (channel) {
-      console.log('查询指定渠道:', channel, 'for site:', site);
-      if (channel === 'facebook_ads') {
-        table = await queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
-      } else if (channel === 'tiktok_ads') {
-        table = await queryTikTokAdsData(supabase, site, fromDate, toDate, limitNum, campaign);
-      } else {
-        table = await queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
-      }
+    if (dataSource === 'facebook_ads') {
+      // 查询 Facebook Ads 数据
+      table = await queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
     } else {
-      // 获取站点所有启用的渠道
-      const channels = await getSiteChannels(supabase, site);
-      console.log('站点渠道配置:', channels);
-
-      // 查询所有启用的渠道数据
-      const allTables = [];
-      for (const channelConfig of channels) {
-        let channelTable = [];
-        if (channelConfig.channel === 'facebook_ads') {
-          channelTable = await queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
-        } else if (channelConfig.channel === 'tiktok_ads') {
-          channelTable = await queryTikTokAdsData(supabase, site, fromDate, toDate, limitNum, campaign);
-        } else {
-          channelTable = await queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
-        }
-        allTables.push(...channelTable);
-      }
-      table = allTables;
-    }
-
-    // 保持向后兼容：如果没有渠道配置，使用原有逻辑
-    if (table.length === 0) {
-      const dataSource = getDataSource(site);
-      console.log('回退到原有逻辑，数据源:', dataSource, 'for site:', site);
-      
-      if (dataSource === 'facebook_ads') {
-        table = await queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
-      } else {
-        table = await queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
-      }
+      // 查询 Google Ads 数据
+      table = await queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
     }
 
     // lookup first seen dates for all landing paths in the result set
@@ -406,8 +307,8 @@ module.exports = async (req, res) => {
       ok: true,
       table: table,
       kpis: kpis,
-      dataSource: channel || (table.length > 0 ? 'multi_channel' : getDataSource(site)),
-      query: { site, from: fromDate, to: toDate, limit, only_new, campaign, network, device, aggregate, channel }
+      dataSource: dataSource,
+      query: { site, from: fromDate, to: toDate, limit, only_new, campaign, network, device, aggregate }
     });
 
   } catch (error) {
