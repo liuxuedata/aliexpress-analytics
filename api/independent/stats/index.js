@@ -593,6 +593,14 @@ module.exports = async (req, res) => {
       console.error('independent_first_seen count failed', e.message);
     }
 
+    // 调试日志：数据映射前的状态
+    console.log('数据映射前状态:', {
+      originalTableLength: table.length,
+      firstSeenMapSize: firstSeenMap.size,
+      channel: channel,
+      sampleOriginalData: table.slice(0, 2)
+    });
+    
     table = (table || []).map(r => {
       const productId = extractProductId(r, channel);
       const firstSeen = firstSeenMap.get(productId) || null;
@@ -641,8 +649,15 @@ module.exports = async (req, res) => {
       };
     });
 
+    // 调试日志：数据映射后的状态
+    console.log('数据映射后状态:', {
+      mappedTableLength: table.length,
+      sampleMappedData: table.slice(0, 2)
+    });
+
     if (onlyNew) {
       table = table.filter(r => r.is_new);
+      console.log('新品筛选后:', { filteredTableLength: table.length });
     }
 
     // 如果请求产品聚合，按产品聚合数据
@@ -697,6 +712,7 @@ module.exports = async (req, res) => {
       });
       
       table = Array.from(productMap.values());
+      console.log('产品聚合后:', { aggregatedTableLength: table.length });
     }
 
     // 计算KPI
