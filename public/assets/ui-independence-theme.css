@@ -1,0 +1,393 @@
+/* ====== UI主题独立性系统 ====== */
+/* 确保系统和表格UI的对比色不受系统背景主题变更影响 */
+
+/* 1. 强制独立的高对比度颜色变量 */
+:root {
+  /* 强制白色背景系统 - 不受系统主题影响 */
+  --ui-bg-primary: #ffffff !important;
+  --ui-bg-secondary: #f8fafc !important;
+  --ui-bg-tertiary: #f1f5f9 !important;
+  
+  /* 强制深色文字 - 确保高对比度 */
+  --ui-text-primary: #0f172a !important;
+  --ui-text-secondary: #1e293b !important;
+  --ui-text-muted: #475569 !important;
+  
+  /* 强制边框颜色 */
+  --ui-border-primary: #e2e8f0 !important;
+  --ui-border-secondary: #cbd5e1 !important;
+  --ui-border-accent: #94a3b8 !important;
+  
+  /* 强制品牌色 - 保持一致性 */
+  --ui-brand-blue: #3b82f6 !important;
+  --ui-brand-blue-dark: #1d4ed8 !important;
+  --ui-brand-green: #10b981 !important;
+  --ui-brand-green-dark: #059669 !important;
+  --ui-brand-orange: #f59e0b !important;
+  --ui-brand-orange-dark: #d97706 !important;
+  --ui-brand-red: #ef4444 !important;
+  --ui-brand-red-dark: #dc2626 !important;
+  
+  /* 强制阴影 - 确保深度感 */
+  --ui-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  --ui-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1) !important;
+  --ui-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1) !important;
+  --ui-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 2. 强制应用独立主题的容器 */
+.ui-independent {
+  /* 强制白色背景 */
+  background-color: var(--ui-bg-primary) !important;
+  color: var(--ui-text-primary) !important;
+}
+
+/* 3. 强制KPI卡片独立性 */
+.ui-independent .kpi-card,
+.kpi-card {
+  background: linear-gradient(135deg, var(--ui-bg-primary) 0%, var(--ui-bg-secondary) 100%) !important;
+  border: 1px solid var(--ui-border-primary) !important;
+  color: var(--ui-text-primary) !important;
+  box-shadow: var(--ui-shadow-md) !important;
+}
+
+.ui-independent .kpi-card h4,
+.kpi-card h4 {
+  color: var(--ui-text-secondary) !important;
+}
+
+.ui-independent .kpi-card p,
+.kpi-card p {
+  color: var(--ui-text-primary) !important;
+}
+
+/* 4. 强制表格独立性 */
+.ui-independent .data-table,
+.data-table,
+table.dataTable {
+  background-color: var(--ui-bg-primary) !important;
+  border: 1px solid var(--ui-border-primary) !important;
+  color: var(--ui-text-primary) !important;
+}
+
+.ui-independent .data-table thead th,
+.data-table thead th,
+table.dataTable thead th {
+  background: linear-gradient(135deg, var(--ui-bg-secondary) 0%, var(--ui-bg-tertiary) 100%) !important;
+  color: var(--ui-text-secondary) !important;
+  border-bottom: 1px solid var(--ui-border-primary) !important;
+}
+
+.ui-independent .data-table tbody td,
+.data-table tbody td,
+table.dataTable tbody td {
+  background-color: var(--ui-bg-primary) !important;
+  color: var(--ui-text-primary) !important;
+  border-bottom: 1px solid var(--ui-border-primary) !important;
+}
+
+.ui-independent .data-table tbody tr:hover td,
+.data-table tbody tr:hover td,
+table.dataTable tbody tr:hover td {
+  background-color: var(--ui-bg-secondary) !important;
+}
+
+/* 5. 强制图表容器独立性 */
+.ui-independent .chart-container,
+.chart-container {
+  background-color: var(--ui-bg-primary) !important;
+  border: 1px solid var(--ui-border-primary) !important;
+  color: var(--ui-text-primary) !important;
+  box-shadow: var(--ui-shadow-sm) !important;
+}
+
+.ui-independent .chart-container h3,
+.chart-container h3 {
+  color: var(--ui-text-secondary) !important;
+  border-bottom: 1px solid var(--ui-border-primary) !important;
+}
+
+/* 6. 强制分析容器独立性 */
+.ui-independent .analysis-container,
+.analysis-container {
+  background-color: var(--ui-bg-primary) !important;
+  border: 1px solid var(--ui-border-primary) !important;
+  color: var(--ui-text-primary) !important;
+  box-shadow: var(--ui-shadow-md) !important;
+}
+
+.ui-independent .analysis-container h3,
+.analysis-container h3 {
+  color: var(--ui-text-secondary) !important;
+}
+
+/* 7. 强制分析KPI卡片独立性 */
+.ui-independent .analysis-kpi-card,
+.analysis-kpi-card {
+  background-color: var(--ui-bg-primary) !important;
+  border: 2px solid transparent !important;
+  color: var(--ui-text-primary) !important;
+  box-shadow: var(--ui-shadow-md) !important;
+}
+
+.ui-independent .analysis-kpi-card h4,
+.analysis-kpi-card h4 {
+  color: var(--ui-text-secondary) !important;
+}
+
+.ui-independent .analysis-kpi-card p,
+.analysis-kpi-card p {
+  color: var(--ui-text-primary) !important;
+}
+
+/* 8. 强制图表面板独立性 */
+.ui-independent .chart-panel,
+.chart-panel {
+  background-color: var(--ui-bg-primary) !important;
+  border: 1px solid var(--ui-border-primary) !important;
+  color: var(--ui-text-primary) !important;
+  box-shadow: var(--ui-shadow-md) !important;
+}
+
+.ui-independent .chart-panel h3,
+.chart-panel h3 {
+  color: var(--ui-text-secondary) !important;
+}
+
+/* 9. 强制产品选择器独立性 */
+.ui-independent .product-selector,
+.product-selector {
+  background-color: var(--ui-bg-primary) !important;
+  border: 1px solid var(--ui-border-primary) !important;
+  color: var(--ui-text-primary) !important;
+  box-shadow: var(--ui-shadow-md) !important;
+}
+
+.ui-independent .product-selector label,
+.product-selector label {
+  color: var(--ui-text-secondary) !important;
+}
+
+/* 10. 强制按钮独立性 */
+.ui-independent .btn,
+.btn {
+  background: linear-gradient(135deg, var(--ui-brand-blue) 0%, var(--ui-brand-blue-dark) 100%) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: var(--ui-shadow-md) !important;
+}
+
+.ui-independent .btn:hover,
+.btn:hover {
+  background: linear-gradient(135deg, var(--ui-brand-blue-dark) 0%, #1e40af 100%) !important;
+  box-shadow: var(--ui-shadow-lg) !important;
+}
+
+/* 11. 强制输入框独立性 */
+.ui-independent input,
+.ui-independent select,
+.ui-independent textarea,
+input,
+select,
+textarea {
+  background-color: var(--ui-bg-primary) !important;
+  border: 1px solid var(--ui-border-secondary) !important;
+  color: var(--ui-text-primary) !important;
+}
+
+.ui-independent input:focus,
+.ui-independent select:focus,
+.ui-independent textarea:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--ui-brand-blue) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* 12. 强制状态显示独立性 */
+.ui-independent .status-display,
+.status-display {
+  background-color: var(--ui-bg-secondary) !important;
+  border: 1px solid var(--ui-border-primary) !important;
+  color: var(--ui-text-secondary) !important;
+}
+
+.ui-independent .status-display.loading,
+.status-display.loading {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  color: var(--ui-brand-blue-dark) !important;
+  border-color: rgba(59, 130, 246, 0.2) !important;
+}
+
+.ui-independent .status-display.success,
+.status-display.success {
+  background-color: rgba(16, 185, 129, 0.1) !important;
+  color: var(--ui-brand-green-dark) !important;
+  border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+.ui-independent .status-display.error,
+.status-display.error {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  color: var(--ui-brand-red-dark) !important;
+  border-color: rgba(239, 68, 68, 0.2) !important;
+}
+
+/* 13. 强制链接独立性 */
+.ui-independent a,
+a {
+  color: var(--ui-brand-blue) !important;
+}
+
+.ui-independent a:hover,
+a:hover {
+  color: var(--ui-brand-blue-dark) !important;
+}
+
+/* 14. 强制产品链接独立性 */
+.ui-independent .product-link,
+.product-link {
+  color: var(--ui-brand-blue) !important;
+  text-decoration: underline !important;
+  font-weight: 500 !important;
+}
+
+.ui-independent .product-link:hover,
+.product-link:hover {
+  color: var(--ui-brand-blue-dark) !important;
+  text-decoration: none !important;
+}
+
+/* 15. 强制对比度显示独立性 */
+.ui-independent .kpi-comparison,
+.kpi-comparison {
+  color: var(--ui-text-muted) !important;
+}
+
+.ui-independent .kpi-comparison .text-green-600,
+.kpi-comparison .text-green-600 {
+  color: var(--ui-brand-green) !important;
+}
+
+.ui-independent .kpi-comparison .text-red-600,
+.kpi-comparison .text-red-600 {
+  color: var(--ui-brand-red) !important;
+}
+
+.ui-independent .kpi-comparison .text-gray-500,
+.kpi-comparison .text-gray-500 {
+  color: var(--ui-text-muted) !important;
+}
+
+/* 16. 强制DataTable特定样式独立性 */
+.ui-independent table.dataTable,
+table.dataTable {
+  background-color: var(--ui-bg-primary) !important;
+}
+
+.ui-independent table.dataTable thead th,
+table.dataTable thead th {
+  background-color: var(--ui-bg-secondary) !important;
+  color: var(--ui-text-secondary) !important;
+  border-color: var(--ui-border-primary) !important;
+}
+
+.ui-independent table.dataTable tbody td,
+table.dataTable tbody td {
+  background-color: var(--ui-bg-primary) !important;
+  color: var(--ui-text-primary) !important;
+  border-color: var(--ui-border-primary) !important;
+}
+
+.ui-independent table.dataTable tbody tr:hover td,
+table.dataTable tbody tr:hover td {
+  background-color: var(--ui-bg-secondary) !important;
+}
+
+/* 17. 强制固定头部独立性 */
+.ui-independent .fixedHeader-floating,
+.fixedHeader-floating {
+  background-color: var(--ui-bg-secondary) !important;
+}
+
+.ui-independent .fixedHeader-floating th,
+.fixedHeader-floating th {
+  background-color: var(--ui-bg-secondary) !important;
+  color: var(--ui-text-secondary) !important;
+}
+
+/* 18. 强制加载状态独立性 */
+.ui-independent .loading-state,
+.loading-state {
+  background: linear-gradient(135deg, var(--ui-bg-secondary) 0%, var(--ui-bg-tertiary) 100%) !important;
+  border: 1px solid var(--ui-border-primary) !important;
+  color: var(--ui-text-secondary) !important;
+}
+
+.ui-independent .loading-text,
+.loading-text {
+  color: var(--ui-text-muted) !important;
+}
+
+/* 19. 强制响应式设计保持独立性 */
+@media (max-width: 768px) {
+  .ui-independent .kpi-card,
+  .kpi-card {
+    background: linear-gradient(135deg, var(--ui-bg-primary) 0%, var(--ui-bg-secondary) 100%) !important;
+  }
+  
+  .ui-independent .chart-container,
+  .chart-container {
+    background-color: var(--ui-bg-primary) !important;
+  }
+}
+
+/* 20. 强制覆盖任何可能的系统主题影响 */
+@media (prefers-color-scheme: dark) {
+  .ui-independent,
+  .ui-independent *,
+  .kpi-card,
+  .data-table,
+  .chart-container,
+  .analysis-container,
+  .analysis-kpi-card,
+  .chart-panel,
+  .product-selector {
+    background-color: var(--ui-bg-primary) !important;
+    color: var(--ui-text-primary) !important;
+    border-color: var(--ui-border-primary) !important;
+  }
+}
+
+/* 21. 强制覆盖任何可能的系统主题影响 - 高对比度模式 */
+@media (prefers-contrast: high) {
+  .ui-independent,
+  .ui-independent *,
+  .kpi-card,
+  .data-table,
+  .chart-container,
+  .analysis-container,
+  .analysis-kpi-card,
+  .chart-panel,
+  .product-selector {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border-color: #000000 !important;
+  }
+}
+
+/* 22. 强制覆盖任何可能的系统主题影响 - 减少动画模式 */
+@media (prefers-reduced-motion: reduce) {
+  .ui-independent *,
+  .kpi-card,
+  .data-table,
+  .chart-container,
+  .analysis-container,
+  .analysis-kpi-card,
+  .chart-panel,
+  .product-selector {
+    transition: none !important;
+    animation: none !important;
+  }
+}

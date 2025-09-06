@@ -7,6 +7,8 @@
   <link rel="icon" type="image/svg+xml" href="assets/logo.svg" sizes="64x64">
   <link rel="stylesheet" href="assets/login.css">
   <link rel="stylesheet" href="assets/global-theme.css">
+  <!-- UI主题独立性系统 - 确保不受系统主题影响 -->
+  <link rel="stylesheet" href="assets/ui-independence-theme.css">
   <style>
     #report td:first-child{ text-align:left; }
     #report td:first-child a.name{ display:inline-block; max-width:180px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
@@ -558,7 +560,7 @@
     </ul>
   </nav>
 
-  <main class="main mx-auto max-w-container px-6">
+  <main class="main mx-auto max-w-container px-6 ui-independent">
     <div class="content">
     <!-- 控件（仅明细页使用） -->
     <section id="topControls" class="content-pad">
