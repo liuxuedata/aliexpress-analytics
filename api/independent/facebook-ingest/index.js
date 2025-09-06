@@ -457,8 +457,66 @@ export default async function handler(req, res) {
     console.log('站点ID:', currentIndepSiteId);
     console.log('使用统一表架构');
     
-    // 统一表架构：表已预创建，无需检查或创建
+    // 检查表是否存在
+    const { data: tableExists, error: tableCheckError } = await supabase
+      .from('information_schema.tables')
+      .select('table_name')
+      .eq('table_schema', 'public')
+      .eq('table_name', tableName);
+
+    if (tableCheckError) {
+      console.error('检查表存在性失败:', tableCheckError);
+      return res.status(500).json({ 
+        error: 'Failed to check table existence', 
+        details: tableCheckError.message 
+      });
+    }
+
+    if (!tableExists || tableExists.length === 0) {
+      console.error('表不存在:', tableName);
+      return res.status(500).json({ 
+        error: `Table ${tableName} does not exist. Please run the create_unified_facebook_ads_table.sql script first.`,
+        suggestion: 'Contact administrator to create the unified table'
+      });
+    }
+
+    // 检查关键字段是否存在
+    const { data: columns, error: columnError } = await supabase
+      .from('information_schema.columns')
+      .select('column_name')
+      .eq('table_schema', 'public')
+      .eq('table_name', tableName);
+
+    if (columnError) {
+      console.error('检查表结构失败:', columnError);
+      return res.status(500).json({ 
+        error: 'Failed to check table structure', 
+        details: columnError.message 
+      });
+    }
+
+    const columnNames = columns.map(col => col.column_name);
+    const hasInsertedAt = columnNames.includes('inserted_at');
+    const hasUpdatedAt = columnNames.includes('updated_at');
+
+    console.log('表结构检查结果:', {
+      tableExists: true,
+      hasInsertedAt,
+      hasUpdatedAt,
+      allColumns: columnNames
+    });
+
+    if (!hasInsertedAt || !hasUpdatedAt) {
+      console.error('表结构不完整，缺少关键字段:', { hasInsertedAt, hasUpdatedAt });
+      return res.status(500).json({ 
+        error: `Table structure is incomplete. Missing fields: inserted_at=${hasInsertedAt}, updated_at=${hasUpdatedAt}`,
+        suggestion: 'Please recreate the table with the correct schema'
+      });
+    }
+
     console.log('使用预创建的统一表:', tableName);
+    console.log('准备插入记录数:', records.length);
+    console.log('第一条记录示例:', records[0]);
 
     // 插入数据
     const { data, error } = await supabase
@@ -469,7 +527,18 @@ export default async function handler(req, res) {
 
     if (error) {
       console.error('数据插入失败:', error);
-      return res.status(500).json({ error: error.message });
+      console.error('错误详情:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      return res.status(500).json({ 
+        error: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
     }
 
     // 清理临时文件
