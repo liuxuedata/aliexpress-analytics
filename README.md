@@ -1,4 +1,39 @@
-# TailAdmin UI 优化施工指令
+# 跨境电商数据分析平台
+
+## 项目概述
+跨境电商数据分析平台，支持多平台、多渠道的广告数据分析，包括速卖通、亚马逊、TikTok Shop、Temu、Ozon等平台的数据整合与分析。
+
+## 核心功能
+
+### 🎯 多渠道架构 (2025-01-06 更新)
+- **支持平台**：Google Ads、Facebook Ads、TikTok Ads
+- **统一数据表**：
+  - `independent_facebook_ads_daily` - Facebook Ads统一表
+  - `independent_tiktok_ads_daily` - TikTok Ads统一表  
+  - `independent_landing_metrics` - Google Ads统一表
+- **站点渠道配置**：通过 `site_channel_configs` 表管理各站点的渠道启用状态
+- **API端点**：
+  - `/api/independent/facebook-ingest` - Facebook Ads数据上传
+  - `/api/independent/tiktok-ingest` - TikTok Ads数据上传
+  - `/api/independent/ingest` - Google Ads数据上传
+  - `/api/independent/stats?channel=<channel>` - 多渠道数据查询
+
+### 📊 数据分析功能
+- **运营分析**：KPI对比、趋势分析、周期对比
+- **产品分析**：产品表现、转化漏斗、ROI分析
+- **数据明细**：支持多维度筛选和导出
+
+### 🏪 平台支持
+- **速卖通**：全托管、自运营
+- **亚马逊**：数据导入与分析
+- **TikTok Shop**：广告数据分析
+- **Temu**：平台数据整合
+- **Ozon**：俄罗斯市场分析
+- **独立站**：多渠道广告数据统一管理
+
+---
+
+## TailAdmin UI 优化施工指令
 
 ## 目标
 - 以 **TailAdmin React/Tailwind 模板** 为视觉与布局规范，优化本站架构与 UI，但 **不改变现有数据结构与接口**。
@@ -84,53 +119,114 @@
 - 自运营 `.kpi` 保持单行卡片布局，窄屏横向滑动
 - 所有上传、查询、渲染功能与上线前一致
 
-- ## 贡献 & 反馈
+- ## 技术架构
 
-.github/
-  ISSUE_TEMPLATE/
-    bug_report.md
-    feature_request.md
-    amazon_onboarding.md
-    config.yml
-  pull_request_template.md
-README.md
-README_AMAZON.md
+### 🏗️ 系统架构
+- **前端**：HTML + JavaScript + DataTables + ECharts
+- **后端**：Vercel Serverless Functions (Node.js)
+- **数据库**：Supabase (PostgreSQL)
+- **部署**：Vercel 静态托管 + API 路由
 
----
-
-### `.github/pull_request_template.md`
-
-```md
-### 背景
-请简要说明本 PR 要解决的问题或新增的功能（如：closes #123）。
-
-### 变更内容
-- [ ] 前端页面（新增/修改：_____）
-- [ ] 后端 API（新增/修改：_____）
-- [ ] 入库/定时任务（新增/修改：_____）
-- [ ] 数据库迁移（是否有新表/新字段）
-
-### 验证说明
-- [ ] 功能自测通过（截图或日志）
-- [ ] 单元/集成测试覆盖
-- [ ] 回滚策略（如何快速关闭或回退）
-
-### 影响范围
-- [ ] 速卖通全托管
-- [ ] 速卖通自运营
-- [ ] 亚马逊模块
-- [ ] 其他（请说明）
-
-### 其他说明
-- 环境变量是否有变更：
-- 文档更新：是否更新了 README 或相关文档
+### 📁 项目结构
+```
+├── public/                 # 静态文件
+│   ├── index.html         # 全托管页面
+│   ├── self-operated.html # 自运营页面
+│   ├── independent-site.html # 独立站页面
+│   └── assets/            # 样式和脚本
+├── api/                   # Serverless API
+│   ├── independent/       # 独立站相关API
+│   │   ├── facebook-ingest/ # Facebook Ads上传
+│   │   ├── tiktok-ingest/   # TikTok Ads上传
+│   │   ├── ingest/          # Google Ads上传
+│   │   └── stats/           # 数据查询
+│   └── ...
+└── vercel.json           # Vercel配置
 ```
 
+### 🗄️ 数据库设计
+
+#### 统一表架构
+- **`independent_facebook_ads_daily`**：Facebook Ads数据
+- **`independent_tiktok_ads_daily`**：TikTok Ads数据
+- **`independent_landing_metrics`**：Google Ads数据
+- **`site_channel_configs`**：站点渠道配置
+
+#### 关键字段
+```sql
+-- 统一字段
+site, day, campaign_name, impressions, clicks, spend_usd, conversions
+
+-- Facebook Ads特有
+adset_name, reach, frequency, cpm, cpc_all, all_ctr
+
+-- TikTok Ads特有  
+adgroup_name, ctr, cpc, conversion_value
+
+-- Google Ads特有
+network, device, landing_path, landing_url
+```
+
+### 🔧 环境配置
+```bash
+# Supabase配置
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# 其他配置
+TEMP=/tmp  # 临时文件目录
+```
+
+## 部署说明
+
+### 🚀 Vercel部署
+1. 连接GitHub仓库到Vercel
+2. 配置环境变量
+3. 自动部署完成
+
+### 📊 数据库初始化
+```sql
+-- 创建站点渠道配置表
+CREATE TABLE public.site_channel_configs (
+  id SERIAL PRIMARY KEY,
+  site_id TEXT NOT NULL,
+  site_name TEXT NOT NULL,
+  channel TEXT NOT NULL,
+  table_name TEXT NOT NULL,
+  is_enabled BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(site_id, channel)
+);
+
+-- 插入默认配置
+INSERT INTO public.site_channel_configs (site_id, site_name, channel, table_name, is_enabled) VALUES
+('independent_poolsvacuum', 'poolsvacuum.com', 'google_ads', 'independent_landing_metrics', true),
+('independent_icyberite', 'icyberite.com', 'facebook_ads', 'independent_facebook_ads_daily', true);
+```
+
+## 使用指南
+
+### 📤 数据上传
+1. 选择对应站点
+2. 根据渠道选择上传API：
+   - Google Ads → `/api/independent/ingest`
+   - Facebook Ads → `/api/independent/facebook-ingest`
+   - TikTok Ads → `/api/independent/tiktok-ingest`
+3. 上传Excel/CSV文件
+
+### 📈 数据分析
+1. **数据明细**：查看原始数据，支持多维度筛选
+2. **运营分析**：KPI对比和趋势分析
+3. **产品分析**：产品表现和转化分析
+
+### 🔍 渠道筛选
+- 使用渠道选择器筛选特定广告平台数据
+- 支持多渠道数据对比分析
+- 自动聚合不同渠道的KPI指标
+
 ---
 
-### `README.md`（在底部加“贡献 & 反馈”入口）
-
-```md
 ## 贡献 & 反馈
 
 - 🐞 [报告 Bug](https://github.com/liuxuedata/aliexpress-analytics/issues/new?template=bug_report.md)
@@ -139,6 +235,15 @@ README_AMAZON.md
 - 🔀 [发起 Pull Request](https://github.com/liuxuedata/aliexpress-analytics/compare)
 
 > 提交 PR 时请遵循 [.github/pull_request_template.md](.github/pull_request_template.md)
-```
+
+## 更新日志
+
+### v2.0.0 (2025-01-06)
+- ✨ 新增多渠道架构支持
+- ✨ 支持Google Ads、Facebook Ads、TikTok Ads
+- ✨ 统一数据表设计
+- ✨ 站点渠道配置管理
+- 🔧 保持向后兼容性
+- 📚 完善技术文档
 
 
