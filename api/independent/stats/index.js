@@ -318,13 +318,43 @@ module.exports = async (req, res) => {
     const firstSeenMap = new Map();
     if (uniqueProductIds.length) {
       try {
-        const { data: fsRows, error: fsErr } = await supabase
-          .from('independent_first_seen')
-          .select('product_identifier, first_seen_date')
-          .eq('site', site)
-          .in('product_identifier', uniqueProductIds);
-        if (fsErr) throw fsErr;
-        (fsRows || []).forEach(r => firstSeenMap.set(r.product_identifier, r.first_seen_date));
+        // 批量查询，避免URI过长的问题
+        const BATCH_SIZE = 100; // 每批查询100个商品ID
+        const batches = [];
+        for (let i = 0; i < uniqueProductIds.length; i += BATCH_SIZE) {
+          batches.push(uniqueProductIds.slice(i, i + BATCH_SIZE));
+        }
+        
+        console.log(`分批查询first_seen，共${uniqueProductIds.length}个商品ID，分${batches.length}批`);
+        
+        // 并行查询所有批次
+        const batchPromises = batches.map(batch => 
+          supabase
+            .from('independent_first_seen')
+            .select('product_identifier, first_seen_date')
+            .eq('site', site)
+            .in('product_identifier', batch)
+        );
+        
+        const batchResults = await Promise.all(batchPromises);
+        
+        // 合并所有批次的结果
+        batchResults.forEach(({ data: fsRows, error: fsErr }) => {
+          if (fsErr) {
+            console.error('批次查询失败:', fsErr);
+            return;
+          }
+          (fsRows || []).forEach(r => firstSeenMap.set(r.product_identifier, r.first_seen_date));
+        });
+        
+        // 调试日志
+        console.log('firstSeen查询结果:', {
+          site,
+          totalProductIds: uniqueProductIds.length,
+          batches: batches.length,
+          fsRowsCount: firstSeenMap.size,
+          sampleFirstSeen: Array.from(firstSeenMap.entries()).slice(0, 3)
+        });
       } catch (e) {
         console.error('independent_first_seen lookup failed', e.message);
       }
@@ -346,6 +376,31 @@ module.exports = async (req, res) => {
     table = (table || []).map(r => {
       const productId = extractProductId(r, channel);
       const firstSeen = firstSeenMap.get(productId) || null;
+      
+      // 调试新品检测逻辑
+      let is_new = false;
+      if (firstSeen) {
+        const firstSeenDate = new Date(firstSeen);
+        const fromDateObj = new Date(fromDate);
+        const toDateObj = new Date(toDate);
+        
+        is_new = firstSeenDate >= fromDateObj && firstSeenDate <= toDateObj;
+        
+        // 添加调试日志（只对前几条记录）
+        if (table.length < 3) {
+          console.log('新品检测调试:', {
+            productId,
+            firstSeen,
+            firstSeenDate: firstSeenDate.toISOString(),
+            fromDate,
+            fromDateObj: fromDateObj.toISOString(),
+            toDate,
+            toDateObj: toDateObj.toISOString(),
+            is_new
+          });
+        }
+      }
+      
       return {
         ...r,
         product: productId, // 使用统一的商品标识
@@ -361,7 +416,7 @@ module.exports = async (req, res) => {
         conv_value: safeNum(r.conv_value),
         all_conv_rate: safeNum(r.all_conv_rate),
         conv_rate: safeNum(r.conv_rate),
-        is_new: firstSeen ? firstSeen >= fromDate && firstSeen <= toDate : false,
+        is_new: is_new,
         first_seen_date: firstSeen
       };
     });
