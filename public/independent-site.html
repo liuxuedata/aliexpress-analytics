@@ -2271,10 +2271,11 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
         availableChannels = [];
         currentChannel = null;
         
-        // 没有渠道信息时，恢复默认标题
+        // 没有渠道信息时，只显示站点名
         const detailTitle = document.getElementById('detailTitle');
         if (detailTitle) {
-          detailTitle.textContent = 'Landing Pages 明细';
+          const siteName = getCurrentSiteForAPI();
+          detailTitle.textContent = siteName;
         }
       }
       
