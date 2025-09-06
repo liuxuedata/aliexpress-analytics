@@ -1888,6 +1888,15 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
         currentChannel = 'google_ads';
       }
     }
+    
+    // 调试日志：检查渠道和数据
+    console.log('buildTable调试信息:', {
+      availableChannels,
+      currentChannel,
+      rawTableLength: rawTable.length,
+      networks: [...new Set(rawTable.map(r => r.network))],
+      sampleRawData: rawTable.slice(0, 2)
+    });
 
     let data = rawTable;
     const channel = channelSel.value;
@@ -1917,7 +1926,23 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     const showDevice = $('#columnMenu input[data-col=1]').prop('checked');
     const showNetwork = !!net;
     const showCampaign = !!camp;
+    
+    // 调试日志：聚合前的数据
+    console.log('aggregateTable前数据:', {
+      dataLength: data.length,
+      showDevice,
+      showNetwork,
+      showCampaign,
+      sampleData: data.slice(0, 2)
+    });
+    
     data = aggregateTable(data, showDevice, showNetwork, showCampaign);
+    
+    // 调试日志：聚合后的数据
+    console.log('aggregateTable后数据:', {
+      dataLength: data.length,
+      sampleData: data.slice(0, 2)
+    });
     if(dt) dt.destroy();
     
     // 获取渠道专用的列定义
@@ -2333,6 +2358,14 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
 
       rawTable = json.table || [];
       currentKPIs = json.kpis || {}; // 保存KPI数据
+      
+      // 调试日志：检查数据
+      console.log('API返回的数据:', {
+        tableLength: rawTable.length,
+        kpis: currentKPIs,
+        availableChannels: json.availableChannels,
+        sampleData: rawTable.slice(0, 2)
+      });
       
       // 处理渠道信息
       if (json.availableChannels && json.availableChannels.length > 0) {
