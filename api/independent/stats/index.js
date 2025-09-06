@@ -106,9 +106,16 @@ async function getSiteChannels(supabase, site) {
 async function queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device) {
   const table = [];
   
+  // 站点名称映射：将前端使用的站点名映射为数据库中的实际值
+  const siteMapping = {
+    'icyberite.com': 'independent_icyberite'
+  };
+  const dbSite = siteMapping[site] || site;
+  
   // 调试日志：查询参数
   console.log('Facebook Ads查询参数:', {
-    site,
+    originalSite: site,
+    dbSite: dbSite,
     fromDate,
     toDate,
     limitNum,
@@ -121,7 +128,7 @@ async function queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, 
   const { data: siteCheck, error: siteError } = await supabase
     .from('independent_facebook_ads_daily')
     .select('site, day, campaign_name')
-    .eq('site', site)
+    .eq('site', dbSite)
     .limit(5);
   
   if (siteError) {
@@ -138,7 +145,7 @@ async function queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, 
     let query = supabase
       .from('independent_facebook_ads_daily')
       .select('*')
-      .eq('site', site)
+      .eq('site', dbSite)
       .gte('day', fromDate).lte('day', toDate)
       .order('day', { ascending: false });
     
@@ -159,7 +166,7 @@ async function queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, 
   
   // 转换 Facebook Ads 数据格式为统一格式
   return table.map(r => ({
-    site: r.site,
+    site: site, // 使用原始的site值，而不是数据库中的值
     day: r.day,
     landing_path: r.landing_url || '',
     landing_url: r.landing_url || '',
