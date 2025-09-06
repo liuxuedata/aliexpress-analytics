@@ -2367,6 +2367,11 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
         sampleData: rawTable.slice(0, 2)
       });
       
+      // 处理API返回的消息提示
+      if (json.message) {
+        setStatus(json.message, 'info');
+      }
+      
       // 处理渠道信息
       if (json.availableChannels && json.availableChannels.length > 0) {
         availableChannels = json.availableChannels;
@@ -2406,7 +2411,8 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       // 移除产品行点击事件绑定，因为产品分析功能已移至外部页面
     } catch(e) {
       console.error(e);
-      alert(e.message || '加载失败');
+      // 在状态栏显示错误信息，而不是弹窗
+      setStatus(e.message || '加载失败', 'error');
       // 隐藏加载状态
       hideLoading();
     }
