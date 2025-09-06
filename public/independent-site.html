@@ -794,7 +794,7 @@
     <!-- 明细表 -->
     <section id="detail" class="content-pad">
       <div class="chart-container">
-        <h3>Landing Pages 明细</h3>
+        <h3 id="detailTitle">Landing Pages 明细</h3>
         
         <!-- 多Tab页面容器 -->
         <div id="channelTabs" class="channel-tabs">
@@ -1499,17 +1499,32 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     const tabHeader = document.getElementById('tabHeader');
     const tabContents = document.getElementById('tabContents');
     const detailContent = document.getElementById('detailContent');
+    const detailTitle = document.getElementById('detailTitle');
 
     if (!shouldShowTabs(channels)) {
-      // 单渠道，隐藏Tab，显示默认表格
+      // 单渠道，隐藏Tab，显示默认表格，更新标题
       tabsContainer.classList.remove('show');
       detailContent.style.display = 'block';
+      
+      // 更新单渠道标题
+      if (channels && channels.length === 1) {
+        const channel = channels[0];
+        const channelName = getChannelDisplayName(channel, siteName);
+        if (detailTitle) {
+          detailTitle.textContent = channelName;
+        }
+      }
       return;
     }
 
     // 多渠道，显示Tab
     tabsContainer.classList.add('show');
     detailContent.style.display = 'none';
+    
+    // 更新多渠道标题
+    if (detailTitle) {
+      detailTitle.textContent = `${siteName} - 多渠道数据`;
+    }
 
     // 清空现有内容
     tabHeader.innerHTML = '';
@@ -2245,7 +2260,7 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       currentKPIs = json.kpis || {}; // 保存KPI数据
       
       // 处理渠道信息
-      if (json.availableChannels && json.availableChannels.length > 1) {
+      if (json.availableChannels && json.availableChannels.length > 0) {
         availableChannels = json.availableChannels;
         currentChannel = json.currentChannel;
         
@@ -2255,6 +2270,12 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       } else {
         availableChannels = [];
         currentChannel = null;
+        
+        // 没有渠道信息时，恢复默认标题
+        const detailTitle = document.getElementById('detailTitle');
+        if (detailTitle) {
+          detailTitle.textContent = 'Landing Pages 明细';
+        }
       }
       
       renderKPI(currentKPIs);
