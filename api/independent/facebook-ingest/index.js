@@ -422,7 +422,7 @@ async function handleFile(filePath, filename, siteId) {
       spend_usd: coerceNum(row[spendCol]),
       cpm: coerceNum(row[cpmCol]),
       cpc_all: coerceNum(row[cpcCol]),
-      all_ctr: coerceNum(row[ctrCol]),
+      ctr_all: coerceNum(row[ctrCol]),
       // Facebook Ads specific fields - 匹配新的数据库表结构
       clicks: coerceNum(row[clicksCol]), // 点击量（全部）
       link_clicks: coerceNum(row[linkClicksCol] || 0), // 链接点击量
