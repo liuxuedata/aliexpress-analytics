@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Ads API 调试工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section h2 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .button.danger {
+            background: #dc3545;
+        }
+        .button.danger:hover {
+            background: #c82333;
+        }
+        .button.success {
+            background: #28a745;
+        }
+        .button.success:hover {
+            background: #218838;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .warning {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+        .file-input {
+            margin: 10px 0;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Facebook Ads API 调试工具</h1>
+        <p>用于诊断和修复 icyberite.com Facebook Ads 数据上传问题</p>
+    </div>
+
+    <div class="container section">
+        <h2>1. 数据库表状态检查</h2>
+        <p>检查统一Facebook Ads表是否存在以及结构是否正确</p>
+        <button class="button" onclick="checkTableSchema()">检查表结构</button>
+        <div id="tableStatus" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="container section">
+        <h2>2. 强制重建表</h2>
+        <p>如果表结构有问题，可以强制重建统一表</p>
+        <button class="button danger" onclick="createUnifiedTable()">重建统一表</button>
+        <div id="createTableResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="container section">
+        <h2>3. 测试数据上传</h2>
+        <p>使用测试文件验证Facebook Ads API是否正常工作</p>
+        <div class="file-input">
+            <input type="file" id="testFile" accept=".xlsx,.csv" />
+        </div>
+        <button class="button success" onclick="testUpload()">测试上传</button>
+        <div id="uploadResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="container section">
+        <h2>4. 系统信息</h2>
+        <div class="status info">
+            <strong>当前站点:</strong> <span id="currentSite">icyberite.com</span><br>
+            <strong>站点ID:</strong> <span id="currentSiteId">independent_icyberite</span><br>
+            <strong>API端点:</strong> <span id="apiEndpoint">/api/independent/facebook-ingest</span>
+        </div>
+    </div>
+
+    <script>
+        // 设置当前站点信息
+        document.getElementById('currentSite').textContent = 'icyberite.com';
+        document.getElementById('currentSiteId').textContent = 'independent_icyberite';
+        document.getElementById('apiEndpoint').textContent = '/api/independent/facebook-ingest';
+
+        async function checkTableSchema() {
+            const resultDiv = document.getElementById('tableStatus');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.textContent = '正在检查表结构...';
+
+            try {
+                const response = await fetch('/api/check-table-schema');
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = JSON.stringify(data, null, 2);
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `错误: ${data.error}\n详情: ${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `请求失败: ${error.message}`;
+            }
+        }
+
+        async function createUnifiedTable() {
+            const resultDiv = document.getElementById('createTableResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.textContent = '正在重建表...';
+
+            try {
+                const response = await fetch('/api/create-unified-table', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = JSON.stringify(data, null, 2);
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `错误: ${data.error}\n详情: ${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `请求失败: ${error.message}`;
+            }
+        }
+
+        async function testUpload() {
+            const fileInput = document.getElementById('testFile');
+            const resultDiv = document.getElementById('uploadResult');
+            
+            if (!fileInput.files[0]) {
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '请先选择一个文件';
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.textContent = '正在上传文件...';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+
+                const response = await fetch('/api/independent/facebook-ingest', {
+                    method: 'POST',
+                    headers: {
+                        'X-Site-ID': 'independent_icyberite'
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `上传成功!\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `上传失败: ${data.error}\n详情: ${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `请求失败: ${error.message}`;
+            }
+        }
+
+        // 页面加载时自动检查表结构
+        window.onload = function() {
+            checkTableSchema();
+        };
+    </script>
+</body>
+</html>
