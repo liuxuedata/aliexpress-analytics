@@ -50,7 +50,7 @@ async function updateFirstSeen(supabase, site, records, channel) {
         .from('independent_first_seen')
         .select('first_seen_date')
         .eq('site', site)
-        .eq('landing_path', productId)
+        .eq('product_identifier', productId)
         .single();
       
       if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
@@ -62,7 +62,7 @@ async function updateFirstSeen(supabase, site, records, channel) {
       if (!existing) {
         firstSeenUpdates.push({
           site: site,
-          landing_path: productId,
+          product_identifier: productId,
           first_seen_date: record.day
         });
       }
@@ -73,7 +73,7 @@ async function updateFirstSeen(supabase, site, records, channel) {
       const { error: insertError } = await supabase
         .from('independent_first_seen')
         .upsert(firstSeenUpdates, { 
-          onConflict: 'site,landing_path',
+          onConflict: 'site,product_identifier',
           ignoreDuplicates: true 
         });
       

@@ -320,11 +320,11 @@ module.exports = async (req, res) => {
       try {
         const { data: fsRows, error: fsErr } = await supabase
           .from('independent_first_seen')
-          .select('landing_path, first_seen_date')
+          .select('product_identifier, first_seen_date')
           .eq('site', site)
-          .in('landing_path', uniqueProductIds);
+          .in('product_identifier', uniqueProductIds);
         if (fsErr) throw fsErr;
-        (fsRows || []).forEach(r => firstSeenMap.set(r.landing_path, r.first_seen_date));
+        (fsRows || []).forEach(r => firstSeenMap.set(r.product_identifier, r.first_seen_date));
       } catch (e) {
         console.error('independent_first_seen lookup failed', e.message);
       }
@@ -335,7 +335,7 @@ module.exports = async (req, res) => {
     try {
       const { count: totalCount, error: totalErr } = await supabase
         .from('independent_first_seen')
-        .select('landing_path', { count: 'exact', head: true })
+        .select('product_identifier', { count: 'exact', head: true })
         .eq('site', site);
       if (totalErr) throw totalErr;
       productTotal = totalCount || 0;
