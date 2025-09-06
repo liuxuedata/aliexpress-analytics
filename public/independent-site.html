@@ -1823,6 +1823,14 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       }
       
       if(dt) dt.destroy();
+      
+      // 获取列定义，确保不为空
+      const columns = getChannelColumns(currentChannel);
+      if (!columns || !Array.isArray(columns)) {
+        console.error('无法获取列定义，使用默认列');
+        return;
+      }
+      
       dt = $('#report').DataTable({
         destroy:true,
         pageLength:20,
@@ -1832,7 +1840,11 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
         autoWidth: true,
         processing: true,
         responsive: false,
-        columns: getChannelColumns(currentChannel)
+        columns: columns,
+        language: {
+          emptyTable: "暂无数据",
+          zeroRecords: "没有找到匹配的记录"
+        }
       });
       
       // 根据渠道类型隐藏不同的列
@@ -1947,6 +1959,10 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     
     // 获取渠道专用的列定义
     const columns = getChannelColumns(currentChannel);
+    if (!columns || !Array.isArray(columns)) {
+      console.error('无法获取列定义，使用默认列');
+      return;
+    }
     
     dt = $('#report').DataTable({
       destroy:true,
@@ -1957,7 +1973,11 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       autoWidth: true,
       processing: true,
       responsive: false,
-      columns: columns
+      columns: columns,
+      language: {
+        emptyTable: "暂无数据",
+        zeroRecords: "没有找到匹配的记录"
+      }
     });
     // 根据渠道类型隐藏不同的列
     if (currentChannel === 'facebook_ads') {
