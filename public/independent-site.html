@@ -1593,7 +1593,13 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     const current = data.kpis || {};
     const previous = data.previous?.kpis || {};
     
-    const chart = echarts.init(document.getElementById('compareBar'));
+    const chartElement = document.getElementById('compareBar');
+    if (!chartElement) {
+      console.warn('图表容器 compareBar 不存在，跳过渲染');
+      return;
+    }
+    
+    const chart = echarts.init(chartElement);
     chart.setOption({
       tooltip: { trigger: 'axis' },
       legend: { data: ['本周期', '上一周期'] },
@@ -1634,7 +1640,13 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     const current = data.series || [];
     const previous = data.previous?.series || [];
     
-    const chart = echarts.init(document.getElementById('ctrChart'));
+    const chartElement = document.getElementById('ctrChart');
+    if (!chartElement) {
+      console.warn('图表容器 ctrChart 不存在，跳过渲染');
+      return;
+    }
+    
+    const chart = echarts.init(chartElement);
     chart.setOption({
       tooltip: { trigger: 'axis' },
       legend: { data: ['本周期', '上一周期'] },
@@ -1674,7 +1686,13 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     const current = data.series || [];
     const previous = data.previous?.series || [];
     
-    const chart = echarts.init(document.getElementById('convChart'));
+    const chartElement = document.getElementById('convChart');
+    if (!chartElement) {
+      console.warn('图表容器 convChart 不存在，跳过渲染');
+      return;
+    }
+    
+    const chart = echarts.init(chartElement);
     chart.setOption({
       tooltip: { trigger: 'axis' },
       legend: { data: ['本周期', '上一周期'] },
@@ -1775,7 +1793,7 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       renderAnalysisCharts(json);
       
       // Top landing pages
-      const topRows = json.topList.map(r => [
+      const topRows = (json.topList || []).map(r => [
         shorten(r.product || r.path), r.clicks, r.impr, (r.ctr*100).toFixed(2)+'%', r.conversions, r.cost, r.conv_value, r.cpa.toFixed(2), r.roas.toFixed(2)
       ]);
       $('#topTable').DataTable({ destroy:true, paging:false, searching:false, info:false, data: topRows, scrollX:true, autoWidth:false });
