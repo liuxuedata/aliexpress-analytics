@@ -1,5 +1,6 @@
 // /api/independent/facebook-ingest/index.js
-// 简化版本 - 直接插入数据，不检查表结构
+// Upload Facebook Ads export (xlsx or csv) and upsert into Supabase
+// Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (recommended) or SUPABASE_ANON_KEY (insert allowed by RLS)
 const { createClient } = require('@supabase/supabase-js');
 const formidable = require('formidable').default;
 const fs = require('fs');
@@ -454,10 +455,65 @@ export default async function handler(req, res) {
     console.log('目标表名:', tableName);
     console.log('站点ID:', currentIndepSiteId);
     console.log('使用统一表架构');
+    
+    // 检查表是否存在 - 使用原生SQL查询
+    const { data: tableExists, error: tableCheckError } = await supabase
+      .rpc('exec_sql', {
+        sql: `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '${tableName}'`
+      });
+
+    if (tableCheckError) {
+      console.error('检查表存在性失败:', tableCheckError);
+      return res.status(500).json({ 
+        error: 'Failed to check table existence', 
+        details: tableCheckError.message 
+      });
+    }
+
+    if (!tableExists || tableExists.length === 0) {
+      console.error('表不存在:', tableName);
+      return res.status(500).json({ 
+        error: `Table ${tableName} does not exist. Please run the create_unified_facebook_ads_table.sql script first.`,
+        suggestion: 'Contact administrator to create the unified table'
+      });
+    }
+
+    // 检查关键字段是否存在 - 使用原生SQL查询
+    const { data: columns, error: columnError } = await supabase
+      .rpc('exec_sql', {
+        sql: `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '${tableName}'`
+      });
+
+    if (columnError) {
+      console.error('检查表结构失败:', columnError);
+      return res.status(500).json({ 
+        error: 'Failed to check table structure', 
+        details: columnError.message 
+      });
+    }
+
+    const columnNames = columns.map(col => col.column_name);
+    const hasInsertedAt = columnNames.includes('inserted_at');
+
+    console.log('表结构检查结果:', {
+      tableExists: true,
+      hasInsertedAt,
+      allColumns: columnNames
+    });
+
+    if (!hasInsertedAt) {
+      console.error('表结构不完整，缺少关键字段:', { hasInsertedAt });
+      return res.status(500).json({ 
+        error: `Table structure is incomplete. Missing field: inserted_at=${hasInsertedAt}`,
+        suggestion: 'Please recreate the table with the correct schema'
+      });
+    }
+
+    console.log('使用预创建的统一表:', tableName);
     console.log('准备插入记录数:', records.length);
     console.log('第一条记录示例:', records[0]);
 
-    // 直接插入数据，不检查表结构
+    // 插入数据
     const { data, error } = await supabase
       .from(tableName)
       .upsert(records, {
