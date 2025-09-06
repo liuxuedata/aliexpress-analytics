@@ -32,12 +32,11 @@ export default async function handler(req, res) {
     // 获取要检查的表名（默认为统一表）
     const tableName = req.query.table || 'independent_facebook_ads_daily';
     
-    // 检查表是否存在
+    // 检查表是否存在 - 使用原生SQL查询
     const { data: tableExists, error: tableError } = await supabase
-      .from('information_schema.tables')
-      .select('table_name')
-      .eq('table_schema', 'public')
-      .eq('table_name', tableName);
+      .rpc('exec_sql', {
+        sql: `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '${tableName}'`
+      });
 
     if (tableError) {
       console.error('检查表存在性失败:', tableError);
@@ -52,13 +51,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // 检查表结构
+    // 检查表结构 - 使用原生SQL查询
     const { data: columns, error: columnError } = await supabase
-      .from('information_schema.columns')
-      .select('column_name, data_type, is_nullable, column_default')
-      .eq('table_schema', 'public')
-      .eq('table_name', 'independent_facebook_ads_daily')
-      .order('ordinal_position');
+      .rpc('exec_sql', {
+        sql: `SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '${tableName}' ORDER BY ordinal_position`
+      });
 
     if (columnError) {
       console.error('检查表结构失败:', columnError);
@@ -74,23 +71,21 @@ export default async function handler(req, res) {
     const hasCampaignName = columnNames.includes('campaign_name');
     const hasAdsetName = columnNames.includes('adset_name');
 
-    // 检查约束
+    // 检查约束 - 使用原生SQL查询
     const { data: constraints, error: constraintError } = await supabase
-      .from('information_schema.table_constraints')
-      .select('constraint_name, constraint_type')
-      .eq('table_schema', 'public')
-      .eq('table_name', 'independent_facebook_ads_daily');
+      .rpc('exec_sql', {
+        sql: `SELECT constraint_name, constraint_type FROM information_schema.table_constraints WHERE table_schema = 'public' AND table_name = '${tableName}'`
+      });
 
     if (constraintError) {
       console.error('检查约束失败:', constraintError);
     }
 
-    // 检查索引
+    // 检查索引 - 使用原生SQL查询
     const { data: indexes, error: indexError } = await supabase
-      .from('pg_indexes')
-      .select('indexname, indexdef')
-      .eq('tablename', 'independent_facebook_ads_daily')
-      .eq('schemaname', 'public');
+      .rpc('exec_sql', {
+        sql: `SELECT indexname, indexdef FROM pg_indexes WHERE tablename = '${tableName}' AND schemaname = 'public'`
+      });
 
     if (indexError) {
       console.error('检查索引失败:', indexError);
@@ -98,7 +93,7 @@ export default async function handler(req, res) {
 
     // 检查数据
     const { data: sampleData, error: dataError } = await supabase
-      .from('independent_facebook_ads_daily')
+      .from(tableName)
       .select('*')
       .limit(5);
 

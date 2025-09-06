@@ -456,12 +456,11 @@ export default async function handler(req, res) {
     console.log('站点ID:', currentIndepSiteId);
     console.log('使用统一表架构');
     
-    // 检查表是否存在
+    // 检查表是否存在 - 使用原生SQL查询
     const { data: tableExists, error: tableCheckError } = await supabase
-      .from('information_schema.tables')
-      .select('table_name')
-      .eq('table_schema', 'public')
-      .eq('table_name', tableName);
+      .rpc('exec_sql', {
+        sql: `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '${tableName}'`
+      });
 
     if (tableCheckError) {
       console.error('检查表存在性失败:', tableCheckError);
@@ -479,12 +478,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // 检查关键字段是否存在
+    // 检查关键字段是否存在 - 使用原生SQL查询
     const { data: columns, error: columnError } = await supabase
-      .from('information_schema.columns')
-      .select('column_name')
-      .eq('table_schema', 'public')
-      .eq('table_name', tableName);
+      .rpc('exec_sql', {
+        sql: `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '${tableName}'`
+      });
 
     if (columnError) {
       console.error('检查表结构失败:', columnError);
