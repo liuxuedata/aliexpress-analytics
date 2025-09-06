@@ -108,7 +108,13 @@ function parseDay(dayRaw) {
   
   const d = new Date(s);
   const isValid = !isNaN(d.getTime());
-  console.log('parseDay 通用日期解析结果:', { date: d, isValid });
+  console.log('parseDay 通用日期解析结果:', { 
+    input: s, 
+    date: d, 
+    isValid, 
+    timestamp: d.getTime(),
+    isoString: isValid ? d.toISOString() : 'Invalid'
+  });
   return isValid ? d : null;
 }
 
@@ -210,7 +216,7 @@ async function handleFile(filePath, filename, siteId) {
   }
 
   // Build a case-insensitive header lookup tolerant of punctuation and spacing
-  const canon = s => String(s || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const canon = s => String(s || '').trim().toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g, ''); // 修复：保留中文字符
   const headerCanon = header.map(canon);
   const col = (...names) => {
     for (const n of names) {
@@ -219,11 +225,14 @@ async function handleFile(filePath, filename, siteId) {
     }
     return -1;
   };
+  
+  // 调试：输出标准化后的列名
+  console.log('标准化后的列名:', headerCanon);
 
   // Facebook Ads specific column mappings - 支持多种格式，包括中文
   const campaignCol = col('campaign name', 'campaign', 'campaign_name', '广告系列名称');
   const adsetCol = col('adset name', 'adset', 'ad set', 'adset_name', 'ad_set_name', '广告组名称');
-  const dateCol = col('date', 'day', 'start date', 'startdate', '单日', '开始日期', '报告开始日期');
+  const dateCol = col('date', 'day', 'start date', 'startdate', '单日', '开始日期', '报告开始日期', 'reporting starts', 'reporting starts date', 'date start', 'date_start', 'report date', 'report_date', '时间', '日期', 'date/time', 'datetime');
   const impressionsCol = col('impressions', 'imp', 'impression', '展示次数');
   const clicksCol = col('clicks', 'link clicks', 'click', 'all clicks', '链接点击量', '点击量（全部）');
   const spendCol = col('spend', 'amount spent', 'cost', 'amountspent', '已花费金额 (USD)');
@@ -240,7 +249,12 @@ async function handleFile(filePath, filename, siteId) {
   const addToCartCol = col('add to cart', 'addtocart', 'add to cart conversions', '加入购物车', '网站加入购物车');
 
   if (campaignCol === -1 || dateCol === -1) {
-    throw new Error('Required columns not found. Need at least "Campaign name" (广告系列名称) and "Date" (单日/开始日期).');
+    console.error('必需列未找到:');
+    console.error('  Campaign列索引:', campaignCol);
+    console.error('  Date列索引:', dateCol);
+    console.error('  可用列名:', header);
+    console.error('  标准化列名:', headerCanon);
+    throw new Error(`Required columns not found. Need at least "Campaign name" (广告系列名称) and "Date" (单日/开始日期). Found columns: ${header.join(', ')}`);
   }
 
   const processed = [];
