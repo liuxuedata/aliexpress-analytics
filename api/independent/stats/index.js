@@ -214,43 +214,78 @@ async function queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, 
     campaign: r.campaign_name,
     network: 'facebook', // Facebook Ads 固定为 facebook
     device: 'all', // Facebook Ads 没有设备区分
+    
+    // 核心指标字段
     clicks: safeNum(r.clicks),
     impr: safeNum(r.impressions),
-    ctr: safeNum(r.all_ctr),
+    ctr: safeNum(r.ctr_all),
     avg_cpc: safeNum(r.cpc_all),
     cost: safeNum(r.spend_usd),
-    conversions: safeNum(r.atc_total), // 使用加购作为转化
-    cost_per_conv: r.atc_total > 0 ? safeNum(r.spend_usd / r.atc_total) : 0,
-    all_conv: safeNum(r.atc_total),
+    conversions: safeNum(r.results), // 使用成效作为转化
+    cost_per_conv: r.results > 0 ? safeNum(r.spend_usd / r.results) : 0,
+    all_conv: safeNum(r.results),
     conv_value: safeNum(r.conversion_value),
-    all_conv_rate: r.impressions > 0 ? safeNum(r.atc_total / r.impressions * 100) : 0,
-    conv_rate: r.clicks > 0 ? safeNum(r.atc_total / r.clicks * 100) : 0,
+    all_conv_rate: r.impressions > 0 ? safeNum(r.results / r.impressions * 100) : 0,
+    conv_rate: r.clicks > 0 ? safeNum(r.results / r.clicks * 100) : 0,
     
-    // Facebook Ads 特有字段 - 基础指标
+    // Facebook Ads 完整字段映射
+    campaign_name: r.campaign_name || '',
+    adset_name: r.adset_name || '',
+    ad_name: r.ad_name || '',
+    delivery_status: r.delivery_status || '',
+    delivery_level: r.delivery_level || '',
+    attribution_setting: r.attribution_setting || '',
+    objective: r.objective || '',
+    
+    // 核心指标
     reach: safeNum(r.reach),
     frequency: safeNum(r.frequency),
     link_clicks: safeNum(r.link_clicks),
+    unique_link_clicks: safeNum(r.unique_link_clicks),
+    unique_clicks: safeNum(r.unique_clicks),
     link_ctr: safeNum(r.link_ctr),
+    unique_ctr_all: safeNum(r.unique_ctr_all),
     cpm: safeNum(r.cpm),
+    cpc_link: safeNum(r.cpc_link),
     
-    // Facebook Ads 特有字段 - 广告系列和广告组信息
-    adset_name: r.adset_name || '',
-    campaign_name: r.campaign_name || '',
+    // 转化相关字段
+    results: safeNum(r.results),
+    cost_per_result: safeNum(r.cost_per_result),
     
-    // Facebook Ads 特有字段 - 转化相关
-    atc_web: safeNum(r.atc_web), // 加入购物车 - 网站
-    atc_meta: safeNum(r.atc_meta), // 加入购物车 - Meta
-    atc_total: safeNum(r.atc_total), // 加入购物车 - 总计
-    ic_web: safeNum(r.ic_web), // 发起结账 - 网站
-    ic_meta: safeNum(r.ic_meta), // 发起结账 - Meta
-    ic_total: safeNum(r.ic_total), // 发起结账 - 总计
-    purchase_web: safeNum(r.purchase_web), // 购买 - 网站
-    purchase_meta: safeNum(r.purchase_meta), // 购买 - Meta
-    cpa_purchase_web: safeNum(r.cpa_purchase_web), // 购买CPA - 网站
+    // 购物车相关字段
+    atc_total: safeNum(r.atc_total),
+    atc_web: safeNum(r.atc_web),
+    atc_meta: safeNum(r.atc_meta),
     
-    // Facebook Ads 特有字段 - 日期范围
+    // 心愿单字段
+    wishlist_adds: safeNum(r.wishlist_adds),
+    
+    // 结账相关字段
+    ic_total: safeNum(r.ic_total),
+    ic_web: safeNum(r.ic_web),
+    ic_meta: safeNum(r.ic_meta),
+    
+    // 购物相关字段
+    purchases: safeNum(r.purchases),
+    purchases_web: safeNum(r.purchases_web),
+    purchases_meta: safeNum(r.purchases_meta),
+    
+    // 店铺相关字段
+    store_clicks: safeNum(r.store_clicks),
+    
+    // 页面浏览字段
+    page_views: safeNum(r.page_views),
+    
+    // 日期字段
     row_start_date: r.row_start_date,
     row_end_date: r.row_end_date,
+    report_start_date: r.report_start_date,
+    report_end_date: r.report_end_date,
+    
+    // 广告素材字段
+    ad_link: r.ad_link || '',
+    image_name: r.image_name || '',
+    video_name: r.video_name || '',
     
     // 原始数据保留
     _raw: r
@@ -675,31 +710,52 @@ module.exports = async (req, res) => {
             days: 0, // 天数
             campaign_name: r.campaign_name || r.campaign, // 广告系列名称
             adset_name: r.adset_name || '', // 广告组名称
+            ad_name: r.ad_name || '', // 广告名称
+            delivery_status: r.delivery_status || '', // 投放状态
+            delivery_level: r.delivery_level || '', // 投放层级
             network: r.network, // 网络
             impr: 0, // 展示次数
+            reach: 0, // 覆盖人数
             frequency: 0, // 频次
             clicks: 0, // 点击量（全部）
             link_clicks: 0, // 链接点击量
+            unique_link_clicks: 0, // 链接点击量 - 独立用户
+            unique_clicks: 0, // 点击量（全部）- 独立用户
             ctr: 0, // 点击率（全部）
             link_ctr: 0, // 链接点击率
-            reach: 0, // 浏览量
+            unique_ctr_all: 0, // 点击率（全部）- 独立用户
+            page_views: 0, // 浏览量
             atc_total: 0, // 加入购物车
+            atc_web: 0, // 网站加入购物车
+            atc_meta: 0, // Meta 加入购物车
+            wishlist_adds: 0, // 加入心愿单次数
             ic_total: 0, // 结账发起次数
-            cost: 0, // 成效
+            ic_web: 0, // 网站结账发起次数
+            ic_meta: 0, // Meta 结账发起次数
+            store_clicks: 0, // 店铺点击量
+            purchases: 0, // 购物次数
+            purchases_web: 0, // 网站购物
+            purchases_meta: 0, // Meta 内购物次数
+            cost: 0, // 成效（花费）
+            spend_usd: 0, // 已花费金额 (USD)
+            cpc_all: 0, // 单次点击费用
+            cpc_link: 0, // 单次链接点击费用
+            cpm: 0, // 千次展示费用
+            results: 0, // 成效
+            cost_per_result: 0, // 单次成效费用
+            conversion_value: 0, // 转化价值
             row_start_date: r.row_start_date || '', // 开始日期
             row_end_date: r.row_end_date || '', // 结束日期
+            report_start_date: r.report_start_date || '', // 报告开始日期
+            report_end_date: r.report_end_date || '', // 报告结束日期
+            ad_link: r.ad_link || '', // 链接（广告设置）
+            landing_url: r.landing_url || '', // 网址
+            image_name: r.image_name || '', // 图片名称
+            video_name: r.video_name || '', // 视频名称
             // 保留原有字段用于计算
             landing_path: r.landing_path,
-            landing_url: r.landing_url,
             campaign: r.campaign,
             device: r.device,
-            avg_cpc: 0,
-            conversions: 0,
-            cost_per_conv: 0,
-            all_conv: 0,
-            conv_value: 0,
-            all_conv_rate: 0,
-            conv_rate: 0,
             is_new: r.is_new,
             first_seen_date: r.first_seen_date
           });
@@ -715,20 +771,38 @@ module.exports = async (req, res) => {
         existing.conv_value += r.conv_value;
         existing.days += 1;
         
-        // 累加Facebook Ads特有字段
-        existing.link_clicks += r.link_clicks || 0;
-        existing.atc_total += r.atc_total || 0;
-        existing.ic_total += r.ic_total || 0;
+        // 累加Facebook Ads完整字段
         existing.reach += r.reach || 0;
         existing.frequency += r.frequency || 0;
+        existing.link_clicks += r.link_clicks || 0;
+        existing.unique_link_clicks += r.unique_link_clicks || 0;
+        existing.unique_clicks += r.unique_clicks || 0;
+        existing.page_views += r.page_views || 0;
+        existing.atc_total += r.atc_total || 0;
+        existing.atc_web += r.atc_web || 0;
+        existing.atc_meta += r.atc_meta || 0;
+        existing.wishlist_adds += r.wishlist_adds || 0;
+        existing.ic_total += r.ic_total || 0;
+        existing.ic_web += r.ic_web || 0;
+        existing.ic_meta += r.ic_meta || 0;
+        existing.store_clicks += r.store_clicks || 0;
+        existing.purchases += r.purchases || 0;
+        existing.purchases_web += r.purchases_web || 0;
+        existing.purchases_meta += r.purchases_meta || 0;
+        existing.spend_usd += r.spend_usd || 0;
+        existing.results += r.results || 0;
       });
       
       // 重新计算比率
       productMap.forEach(p => {
         p.ctr = p.impr > 0 ? (p.clicks / p.impr) : 0; // 点击率（全部）
         p.link_ctr = p.impr > 0 ? (p.link_clicks / p.impr) : 0; // 链接点击率
-        p.avg_cpc = p.clicks > 0 ? (p.cost / p.clicks) : 0;
-        p.cost_per_conv = p.conversions > 0 ? (p.cost / p.conversions) : 0;
+        p.unique_ctr_all = p.impr > 0 ? (p.unique_clicks / p.impr) : 0; // 点击率（全部）- 独立用户
+        p.avg_cpc = p.clicks > 0 ? (p.spend_usd / p.clicks) : 0; // 单次点击费用
+        p.cpc_link = p.link_clicks > 0 ? (p.spend_usd / p.link_clicks) : 0; // 单次链接点击费用
+        p.cpm = p.impr > 0 ? (p.spend_usd / p.impr * 1000) : 0; // 千次展示费用
+        p.cost_per_conv = p.conversions > 0 ? (p.spend_usd / p.conversions) : 0;
+        p.cost_per_result = p.results > 0 ? (p.spend_usd / p.results) : 0; // 单次成效费用
         p.all_conv_rate = p.impr > 0 ? (p.all_conv / p.impr * 100) : 0;
         p.conv_rate = p.clicks > 0 ? (p.all_conv / p.clicks * 100) : 0;
         // 计算平均频次
