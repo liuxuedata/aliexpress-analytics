@@ -165,7 +165,7 @@ async function queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, 
   }
   
   // 转换 Facebook Ads 数据格式为统一格式
-  return table.map(r => ({
+  const transformedData = table.map(r => ({
     site: site, // 使用原始的site值，而不是数据库中的值
     day: r.day,
     landing_path: r.landing_url || '',
@@ -214,6 +214,15 @@ async function queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, 
     // 原始数据保留
     _raw: r
   }));
+  
+  // 调试日志：数据转换结果
+  console.log('Facebook Ads数据转换结果:', {
+    originalDataLength: table.length,
+    transformedDataLength: transformedData.length,
+    sampleTransformedData: transformedData.slice(0, 2)
+  });
+  
+  return transformedData;
 }
 
 // 查询 Google Ads 数据（原有逻辑）
@@ -615,6 +624,15 @@ module.exports = async (req, res) => {
       currentChannel: channel || null,
       isMultiChannel: availableChannels.length > 1
     };
+
+    // 调试日志：最终返回的数据
+    console.log('API最终返回数据:', {
+      tableLength: table.length,
+      kpisKeys: Object.keys(kpis),
+      availableChannels,
+      currentChannel,
+      sampleTableData: table.slice(0, 2)
+    });
 
     return res.json(response);
 
