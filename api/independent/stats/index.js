@@ -670,17 +670,30 @@ module.exports = async (req, res) => {
         
         if (!productMap.has(key)) {
           productMap.set(key, {
-            product: key, // 使用key作为product标识
+            // 与前端Facebook Ads表格列名匹配的字段
+            product: key, // 商品编号
+            days: 0, // 天数
+            campaign_name: r.campaign_name || r.campaign, // 广告系列名称
+            adset_name: r.adset_name || '', // 广告组名称
+            network: r.network, // 网络
+            impr: 0, // 展示次数
+            frequency: 0, // 频次
+            clicks: 0, // 点击量（全部）
+            link_clicks: 0, // 链接点击量
+            ctr: 0, // 点击率（全部）
+            link_ctr: 0, // 链接点击率
+            reach: 0, // 浏览量
+            atc_total: 0, // 加入购物车
+            ic_total: 0, // 结账发起次数
+            cost: 0, // 成效
+            row_start_date: r.row_start_date || '', // 开始日期
+            row_end_date: r.row_end_date || '', // 结束日期
+            // 保留原有字段用于计算
             landing_path: r.landing_path,
             landing_url: r.landing_url,
             campaign: r.campaign,
-            network: r.network,
             device: r.device,
-            clicks: 0,
-            impr: 0,
-            ctr: 0,
             avg_cpc: 0,
-            cost: 0,
             conversions: 0,
             cost_per_conv: 0,
             all_conv: 0,
@@ -688,12 +701,12 @@ module.exports = async (req, res) => {
             all_conv_rate: 0,
             conv_rate: 0,
             is_new: r.is_new,
-            first_seen_date: r.first_seen_date,
-            days: 0
+            first_seen_date: r.first_seen_date
           });
         }
         
         const existing = productMap.get(key);
+        // 累加基础指标
         existing.clicks += r.clicks;
         existing.impr += r.impr;
         existing.cost += r.cost;
@@ -701,15 +714,25 @@ module.exports = async (req, res) => {
         existing.all_conv += r.all_conv;
         existing.conv_value += r.conv_value;
         existing.days += 1;
+        
+        // 累加Facebook Ads特有字段
+        existing.link_clicks += r.link_clicks || 0;
+        existing.atc_total += r.atc_total || 0;
+        existing.ic_total += r.ic_total || 0;
+        existing.reach += r.reach || 0;
+        existing.frequency += r.frequency || 0;
       });
       
       // 重新计算比率
       productMap.forEach(p => {
-        p.ctr = p.impr > 0 ? (p.clicks / p.impr * 100) : 0;
+        p.ctr = p.impr > 0 ? (p.clicks / p.impr) : 0; // 点击率（全部）
+        p.link_ctr = p.impr > 0 ? (p.link_clicks / p.impr) : 0; // 链接点击率
         p.avg_cpc = p.clicks > 0 ? (p.cost / p.clicks) : 0;
         p.cost_per_conv = p.conversions > 0 ? (p.cost / p.conversions) : 0;
         p.all_conv_rate = p.impr > 0 ? (p.all_conv / p.impr * 100) : 0;
         p.conv_rate = p.clicks > 0 ? (p.all_conv / p.clicks * 100) : 0;
+        // 计算平均频次
+        p.frequency = p.days > 0 ? (p.frequency / p.days) : 0;
       });
       
       table = Array.from(productMap.values());
