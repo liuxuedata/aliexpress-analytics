@@ -434,16 +434,49 @@ export default async function handler(req, res) {
         .from(tableName)
         .select('day')
         .limit(1);
-      
+
       if (tableCheckError) {
         console.log('表不存在，尝试创建:', tableName);
-        // 调用动态表创建函数
+        // 调用动态表创建函数（使用新的参数名）
+        const tableSchema = {
+          columns: {
+            site: 'text not null',
+            day: 'date not null',
+            campaign_name: 'text',
+            adset_name: 'text',
+            landing_url: 'text',
+            impressions: 'integer',
+            clicks: 'integer',
+            spend_usd: 'numeric(10,2)',
+            cpm: 'numeric(10,2)',
+            cpc_all: 'numeric(10,2)',
+            all_ctr: 'numeric(10,4)',
+            reach: 'integer',
+            frequency: 'numeric(10,2)',
+            all_clicks: 'integer',
+            link_clicks: 'integer',
+            ic_web: 'integer',
+            ic_meta: 'integer',
+            ic_total: 'integer',
+            atc_web: 'integer',
+            atc_meta: 'integer',
+            atc_total: 'integer',
+            purchase_web: 'integer',
+            purchase_meta: 'integer',
+            cpa_purchase_web: 'numeric(10,2)',
+            link_ctr: 'numeric(10,4)',
+            conversion_value: 'numeric(10,2)',
+            row_start_date: 'date',
+            row_end_date: 'date'
+          }
+        };
+
         const { error: createError } = await supabase.rpc('generate_dynamic_table', {
           p_site_id: currentIndepSiteId,
-          p_table_name: tableName,
-          p_data_source: 'facebook_ads'
+          p_source_type: 'facebook_ads',
+          p_table_schema: tableSchema
         });
-        
+
         if (createError) {
           console.error('创建表失败:', createError);
           return res.status(500).json({ error: `Failed to create table: ${createError.message}` });

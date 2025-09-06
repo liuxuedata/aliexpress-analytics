@@ -98,10 +98,10 @@ export default async function handler(req, res) {
     if (action === 'create' && siteConfig.platform === 'independent') {
       console.log('为新建的独立站创建数据表');
       
-      // 调用动态表生成函数
+      // 调用动态表生成函数（使用更新的参数名）
       const { error: tableError } = await supabase.rpc('generate_dynamic_table', {
         p_site_id: siteId,
-        p_table_name: `independent_${siteConfig.name}_daily`,
+        p_source_type: siteConfig.data_source || 'facebook_ads',
         p_table_schema: siteConfig.config_json || {}
       });
       
