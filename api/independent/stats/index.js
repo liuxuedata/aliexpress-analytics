@@ -263,7 +263,11 @@ async function queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, 
     sampleTransformedData: transformedData.slice(0, 2)
   });
   
-  return transformedData;
+  return {
+    data: transformedData,
+    useLatestData: useLatestData,
+    actualDateRange: { from: actualFromDate, to: actualToDate }
+  };
 }
 
 // 查询 Google Ads 数据（原有逻辑）
@@ -372,11 +376,18 @@ module.exports = async (req, res) => {
     const limitNum = Math.min(Number(limit) || PAGE_SIZE, 20000);
     let table = [];
 
+    // 用于跟踪是否使用了最新数据
+    let useLatestData = false;
+    let actualDateRange = { from: fromDate, to: toDate };
+
     // 如果指定了渠道，直接查询该渠道
     if (channel) {
       console.log('查询指定渠道:', channel, 'for site:', site);
       if (channel === 'facebook_ads') {
-        table = await queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
+        const result = await queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
+        table = result.data;
+        useLatestData = result.useLatestData || false;
+        actualDateRange = result.actualDateRange || { from: fromDate, to: toDate };
       } else if (channel === 'tiktok_ads') {
         table = await queryTikTokAdsData(supabase, site, fromDate, toDate, limitNum, campaign);
       } else {
@@ -392,7 +403,10 @@ module.exports = async (req, res) => {
       for (const channelConfig of channels) {
         let channelTable = [];
         if (channelConfig.channel === 'facebook_ads') {
-          channelTable = await queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
+          const result = await queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
+          channelTable = result.data;
+          useLatestData = result.useLatestData || false;
+          actualDateRange = result.actualDateRange || { from: fromDate, to: toDate };
         } else if (channelConfig.channel === 'tiktok_ads') {
           channelTable = await queryTikTokAdsData(supabase, site, fromDate, toDate, limitNum, campaign);
         } else {
@@ -668,11 +682,8 @@ module.exports = async (req, res) => {
     
     // 如果使用了最新数据，添加提示信息
     if (useLatestData) {
-      response.message = `指定日期范围内无数据，已显示最新7天数据 (${actualFromDate} 至 ${actualToDate})`;
-      response.actualDateRange = {
-        from: actualFromDate,
-        to: actualToDate
-      };
+      response.message = `指定日期范围内无数据，已显示最新7天数据 (${actualDateRange.from} 至 ${actualDateRange.to})`;
+      response.actualDateRange = actualDateRange;
     }
 
     // 调试日志：最终返回的数据

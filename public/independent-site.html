@@ -2367,10 +2367,10 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
         sampleData: rawTable.slice(0, 2)
       });
       
-      // 处理API返回的消息提示
-      if (json.message) {
-        setStatus(json.message, 'info');
-      }
+  // 处理API返回的消息提示
+  if (json.message) {
+    showStatusMessage(json.message, 'info');
+  }
       
       // 处理渠道信息
       if (json.availableChannels && json.availableChannels.length > 0) {
@@ -2412,10 +2412,54 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     } catch(e) {
       console.error(e);
       // 在状态栏显示错误信息，而不是弹窗
-      setStatus(e.message || '加载失败', 'error');
+      showStatusMessage(e.message || '加载失败', 'error');
       // 隐藏加载状态
       hideLoading();
     }
+  }
+
+  // 显示状态消息函数
+  function showStatusMessage(message, type = 'info') {
+    // 查找或创建状态显示元素
+    let statusEl = document.getElementById('statusMessage');
+    if (!statusEl) {
+      statusEl = document.createElement('div');
+      statusEl.id = 'statusMessage';
+      statusEl.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 6px;
+        color: white;
+        font-size: 14px;
+        z-index: 10000;
+        max-width: 400px;
+        word-wrap: break-word;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: all 0.3s ease;
+      `;
+      document.body.appendChild(statusEl);
+    }
+    
+    // 设置样式和内容
+    statusEl.textContent = message;
+    statusEl.className = type;
+    
+    if (type === 'error') {
+      statusEl.style.backgroundColor = '#ef4444';
+    } else if (type === 'info') {
+      statusEl.style.backgroundColor = '#3b82f6';
+    } else {
+      statusEl.style.backgroundColor = '#10b981';
+    }
+    
+    // 3秒后自动隐藏
+    setTimeout(() => {
+      if (statusEl && statusEl.parentNode) {
+        statusEl.parentNode.removeChild(statusEl);
+      }
+    }, 3000);
   }
 
   document.getElementById('refreshBtn').addEventListener('click', () => {
