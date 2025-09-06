@@ -119,12 +119,33 @@ async function queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, 
     conv_value: safeNum(r.conversion_value),
     all_conv_rate: r.impressions > 0 ? safeNum(r.atc_total / r.impressions * 100) : 0,
     conv_rate: r.clicks > 0 ? safeNum(r.atc_total / r.clicks * 100) : 0,
-    // Facebook Ads 特有字段
+    
+    // Facebook Ads 特有字段 - 基础指标
     reach: safeNum(r.reach),
     frequency: safeNum(r.frequency),
     link_clicks: safeNum(r.link_clicks),
     link_ctr: safeNum(r.link_ctr),
     cpm: safeNum(r.cpm),
+    
+    // Facebook Ads 特有字段 - 广告系列和广告组信息
+    adset_name: r.adset_name || '',
+    campaign_name: r.campaign_name || '',
+    
+    // Facebook Ads 特有字段 - 转化相关
+    atc_web: safeNum(r.atc_web), // 加入购物车 - 网站
+    atc_meta: safeNum(r.atc_meta), // 加入购物车 - Meta
+    atc_total: safeNum(r.atc_total), // 加入购物车 - 总计
+    ic_web: safeNum(r.ic_web), // 发起结账 - 网站
+    ic_meta: safeNum(r.ic_meta), // 发起结账 - Meta
+    ic_total: safeNum(r.ic_total), // 发起结账 - 总计
+    purchase_web: safeNum(r.purchase_web), // 购买 - 网站
+    purchase_meta: safeNum(r.purchase_meta), // 购买 - Meta
+    cpa_purchase_web: safeNum(r.cpa_purchase_web), // 购买CPA - 网站
+    
+    // Facebook Ads 特有字段 - 日期范围
+    row_start_date: r.row_start_date,
+    row_end_date: r.row_end_date,
+    
     // 原始数据保留
     _raw: r
   }));
