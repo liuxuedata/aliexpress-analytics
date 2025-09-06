@@ -324,10 +324,32 @@ async function handleFile(filePath, filename, siteId) {
   const reachCol = col('reach', '覆盖人数');
   const frequencyCol = col('frequency', '频次');
   const landingUrlCol = col('landing page', 'website url', 'url', 'landingpage', 'websiteurl', '链接（广告设置）', '网址');
-  // icyberite特有字段
-  const conversionsCol = col('conversions', 'conversion', 'conversion_value', '加入购物车', '网站加入购物车', 'Meta 加入购物车');
-  const conversionValueCol = col('conversion value', 'conversionvalue', 'value', 'conversion_value', 'conversion_value_usd');
+  
+  // 新增字段的列索引查找
+  const linkClicksCol = col('link clicks', 'linkclicks', '链接点击量');
+  const uniqueLinkClicksCol = col('unique link clicks', 'uniquelinkclicks', '链接点击量 - 独立用户');
+  const uniqueClicksCol = col('unique clicks', 'uniqueclicks', '点击量（全部）- 独立用户');
+  const linkCtrCol = col('link ctr', 'linkctr', '链接点击率');
+  const uniqueCtrCol = col('unique ctr', 'uniquectr', '点击率（全部）- 独立用户');
+  const cpcLinkCol = col('cpc link', 'cpclink', '单次链接点击费用');
+  const pageViewsCol = col('page views', 'pageviews', '浏览量');
+  const atcTotalCol = col('add to cart', 'addtocart', '加入购物车');
+  const atcWebCol = col('website add to cart', 'websiteaddtocart', '网站加入购物车');
+  const atcMetaCol = col('meta add to cart', 'metaaddtocart', 'Meta 加入购物车');
+  const wishlistCol = col('wishlist adds', 'wishlistadds', '加入心愿单次数');
+  const icTotalCol = col('initiate checkout', 'initiatecheckout', '结账发起次数');
+  const icWebCol = col('website initiate checkout', 'websiteinitiatecheckout', '网站结账发起次数');
+  const icMetaCol = col('meta initiate checkout', 'metainitiatecheckout', 'Meta 结账发起次数');
+  const storeClicksCol = col('store clicks', 'storeclicks', '店铺点击量');
   const purchasesCol = col('purchases', 'purchase', 'purchase_value', '网站购物', 'Meta 内购物次数', '购物次数');
+  const purchasesWebCol = col('website purchases', 'websitepurchases', '网站购物');
+  const purchasesMetaCol = col('meta purchases', 'metapurchases', 'Meta 内购物次数');
+  const resultsCol = col('results', '成效');
+  const costPerResultCol = col('cost per result', 'costperresult', '单次成效费用');
+  const conversionValueCol = col('conversion value', 'conversionvalue', 'value', 'conversion_value', 'conversion_value_usd');
+  
+  // 兼容旧字段名
+  const conversionsCol = col('conversions', 'conversion', 'conversion_value', '加入购物车', '网站加入购物车', 'Meta 加入购物车');
   const addToCartCol = col('add to cart', 'addtocart', 'add to cart conversions', '加入购物车', '网站加入购物车');
 
   if (campaignCol === -1 || dateCol === -1) {
@@ -386,33 +408,52 @@ async function handleFile(filePath, filename, siteId) {
     const record = {
       site: siteId,
       day: dayStr,
+      product_id: String(row[0] || '').trim(), // 商品编号
       campaign_name: campaign,
       adset_name: adset,
-      landing_url: landingUrl,
+      ad_name: '', // 广告名称
+      delivery_status: '', // 投放状态
+      delivery_level: '', // 投放层级
+      attribution_setting: '', // 归因设置
+      objective: '', // 成效类型
       impressions: coerceNum(row[impressionsCol]),
-      clicks: coerceNum(row[clicksCol]),
+      reach: coerceNum(row[reachCol]),
+      frequency: coerceNum(row[frequencyCol]),
       spend_usd: coerceNum(row[spendCol]),
       cpm: coerceNum(row[cpmCol]),
       cpc_all: coerceNum(row[cpcCol]),
       all_ctr: coerceNum(row[ctrCol]),
-      reach: coerceNum(row[reachCol]),
-      frequency: coerceNum(row[frequencyCol]),
-      // Facebook Ads specific fields
-      all_clicks: coerceNum(row[clicksCol]),
-      link_clicks: coerceNum(row[clicksCol]),
-      ic_web: 0, // 需要根据实际数据调整
-      ic_meta: 0, // 需要根据实际数据调整
-      ic_total: coerceNum(row[clicksCol]),
-      atc_web: conversionsCol !== -1 ? coerceNum(row[conversionsCol]) : 0, // 使用conversions字段
-      atc_meta: 0, // 需要根据实际数据调整
-      atc_total: conversionsCol !== -1 ? coerceNum(row[conversionsCol]) : 0, // 使用conversions字段
-      purchase_web: purchasesCol !== -1 ? coerceNum(row[purchasesCol]) : 0, // 使用purchases字段
-      purchase_meta: 0, // 需要根据实际数据调整
-      cpa_purchase_web: 0, // 需要根据实际数据调整
-      link_ctr: coerceNum(row[ctrCol]),
-      conversion_value: conversionValueCol !== -1 ? coerceNum(row[conversionValueCol]) : 0, // 新增转化价值字段
+      // Facebook Ads specific fields - 匹配新的数据库表结构
+      clicks: coerceNum(row[clicksCol]), // 点击量（全部）
+      link_clicks: coerceNum(row[linkClicksCol] || 0), // 链接点击量
+      unique_link_clicks: coerceNum(row[uniqueLinkClicksCol] || 0), // 链接点击量 - 独立用户
+      unique_clicks: coerceNum(row[uniqueClicksCol] || 0), // 点击量（全部）- 独立用户
+      link_ctr: coerceNum(row[linkCtrCol] || 0), // 链接点击率
+      unique_ctr_all: coerceNum(row[uniqueCtrCol] || 0), // 点击率（全部）- 独立用户
+      cpc_link: coerceNum(row[cpcLinkCol] || 0), // 单次链接点击费用
+      page_views: coerceNum(row[pageViewsCol] || 0), // 浏览量
+      atc_total: coerceNum(row[atcTotalCol] || 0), // 加入购物车
+      atc_web: coerceNum(row[atcWebCol] || 0), // 网站加入购物车
+      atc_meta: coerceNum(row[atcMetaCol] || 0), // Meta 加入购物车
+      wishlist_adds: coerceNum(row[wishlistCol] || 0), // 加入心愿单次数
+      ic_total: coerceNum(row[icTotalCol] || 0), // 结账发起次数
+      ic_web: coerceNum(row[icWebCol] || 0), // 网站结账发起次数
+      ic_meta: coerceNum(row[icMetaCol] || 0), // Meta 结账发起次数
+      store_clicks: coerceNum(row[storeClicksCol] || 0), // 店铺点击量
+      purchases: coerceNum(row[purchasesCol] || 0), // 购物次数
+      purchases_web: coerceNum(row[purchasesWebCol] || 0), // 网站购物
+      purchases_meta: coerceNum(row[purchasesMetaCol] || 0), // Meta 内购物次数
+      results: coerceNum(row[resultsCol] || 0), // 成效
+      cost_per_result: coerceNum(row[costPerResultCol] || 0), // 单次成效费用
+      conversion_value: coerceNum(row[conversionValueCol] || 0), // 转化价值
       row_start_date: dayStr,
       row_end_date: dayStr,
+      report_start_date: dayStr,
+      report_end_date: dayStr,
+      ad_link: '', // 链接（广告设置）
+      landing_url: landingUrl, // 网址
+      image_name: '', // 图片名称
+      video_name: '', // 视频名称
       inserted_at: new Date().toISOString()
     };
 
