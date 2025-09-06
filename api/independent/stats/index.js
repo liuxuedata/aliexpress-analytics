@@ -62,17 +62,43 @@ function getDataSource(site) {
 // 获取站点渠道配置
 async function getSiteChannels(supabase, site) {
   try {
-    const { data: configs } = await supabase
+    const { data: configs, error } = await supabase
       .from('site_channel_configs')
       .select('channel, table_name, is_enabled')
       .eq('site_id', site)
       .eq('is_enabled', true);
     
-    return configs || [{ channel: 'google_ads', table_name: 'independent_landing_metrics', is_enabled: true }];
+    if (error) {
+      console.error('查询站点渠道配置失败:', error);
+      throw error;
+    }
+    
+    // 如果有配置数据，返回配置
+    if (configs && configs.length > 0) {
+      console.log('找到站点渠道配置:', configs);
+      return configs;
+    }
+    
+    // 如果没有配置数据，根据站点返回默认配置
+    const dataSource = getDataSource(site);
+    const defaultConfig = [{ 
+      channel: dataSource, 
+      table_name: dataSource === 'facebook_ads' ? 'independent_facebook_ads_daily' : 'independent_landing_metrics', 
+      is_enabled: true 
+    }];
+    console.log('使用默认渠道配置:', defaultConfig);
+    return defaultConfig;
   } catch (error) {
     console.error('获取站点渠道配置失败:', error);
     // 回退到原有逻辑
-    return [{ channel: getDataSource(site), table_name: getDataSource(site) === 'facebook_ads' ? 'independent_facebook_ads_daily' : 'independent_landing_metrics', is_enabled: true }];
+    const dataSource = getDataSource(site);
+    const fallbackConfig = [{ 
+      channel: dataSource, 
+      table_name: dataSource === 'facebook_ads' ? 'independent_facebook_ads_daily' : 'independent_landing_metrics', 
+      is_enabled: true 
+    }];
+    console.log('回退到默认渠道配置:', fallbackConfig);
+    return fallbackConfig;
   }
 }
 
@@ -288,15 +314,17 @@ module.exports = async (req, res) => {
       table = allTables;
     }
 
-    // 保持向后兼容：如果没有渠道配置，使用原有逻辑
+    // 保持向后兼容：如果没有渠道配置或查询结果为空，使用原有逻辑
     if (table.length === 0) {
       const dataSource = getDataSource(site);
       console.log('回退到原有逻辑，数据源:', dataSource, 'for site:', site);
       
       if (dataSource === 'facebook_ads') {
         table = await queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
+        console.log('Facebook Ads查询结果:', table.length, '条记录');
       } else {
         table = await queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
+        console.log('Google Ads查询结果:', table.length, '条记录');
       }
     }
 
