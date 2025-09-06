@@ -481,6 +481,36 @@
       font-size: 14px;
       margin: 0;
     }
+    
+    /* 新品KPI卡片样式 */
+    .new-product-card {
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    
+    .new-product-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .clear-filter-btn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: #ff4757;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 2px 8px;
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .clear-filter-btn:hover {
+      background: #ff3742;
+      transform: scale(1.05);
+    }
   </style>
   <!-- DataTables & ECharts CDN -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
@@ -1190,6 +1220,8 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
   });
   let dt;
   let rawTable = [];
+  let isNewProductFilterActive = false; // 跟踪新品筛选状态
+  let currentKPIs = {}; // 保存当前KPI数据
 
   function card(title,val){
     return `<div class="stat-card"><h4>${title}</h4><p>${val}</p></div>`;
@@ -1231,13 +1263,76 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       }
     ];
     
-    kpiEl.innerHTML = cards.map(card => `
-      <div class="kpi-card ${card.type}">
-        <h4>${card.title}</h4>
-        <p>${card.value}</p>
-      </div>
-    `).join('');
+    kpiEl.innerHTML = cards.map(card => {
+      // 为新品卡片添加特殊样式和双击事件
+      if (card.title === '本周期新品数') {
+        return `
+          <div class="kpi-card ${card.type} new-product-card" style="cursor: pointer;" title="双击筛选新品数据">
+            <h4>${card.title}</h4>
+            <p>${card.value}</p>
+            ${isNewProductFilterActive ? '<button class="clear-filter-btn" onclick="clearNewProductFilter()" title="清除筛选">清除筛选</button>' : ''}
+          </div>
+        `;
+      }
+      return `
+        <div class="kpi-card ${card.type}">
+          <h4>${card.title}</h4>
+          <p>${card.value}</p>
+        </div>
+      `;
+    }).join('');
+    
+    // 为新品卡片添加双击事件监听器
+    const newProductCard = document.querySelector('.new-product-card');
+    if (newProductCard) {
+      newProductCard.addEventListener('dblclick', function() {
+        filterNewProducts();
+      });
+    }
   }
+
+  // 筛选新品数据
+  function filterNewProducts() {
+    if (!rawTable || rawTable.length === 0) {
+      alert('没有数据可供筛选');
+      return;
+    }
+    
+    // 筛选出新品数据
+    const newProducts = rawTable.filter(item => item.is_new === true);
+    
+    if (newProducts.length === 0) {
+      alert('本周期没有新品数据');
+      return;
+    }
+    
+    // 设置筛选状态
+    isNewProductFilterActive = true;
+    
+    // 重新构建表格
+    buildTable();
+    
+    // 重新渲染KPI卡片以显示清除筛选按钮
+    renderKPI(currentKPIs || {});
+    
+    console.log(`筛选出 ${newProducts.length} 个新品`);
+  }
+
+  // 清除新品筛选
+  function clearNewProductFilter() {
+    isNewProductFilterActive = false;
+    
+    // 重新构建表格显示所有数据
+    buildTable();
+    
+    // 重新渲染KPI卡片以隐藏清除筛选按钮
+    renderKPI(currentKPIs || {});
+    
+    console.log('已清除新品筛选');
+  }
+
+  // 将清除筛选函数设为全局函数，供HTML调用
+  window.clearNewProductFilter = clearNewProductFilter;
 
   function aggregateTable(data, showDevice, showNetwork, showCampaign){
     // 安全处理空数据
@@ -1358,6 +1453,11 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     }
     if(net) data = data.filter(r=>r.network===net);
     if(camp) data = data.filter(r=>r.campaign===camp);
+    
+    // 应用新品筛选
+    if (isNewProductFilterActive) {
+      data = data.filter(r => r.is_new === true);
+    }
     const showDevice = $('#columnMenu input[data-col=1]').prop('checked');
     const showNetwork = !!net;
     const showCampaign = !!camp;
@@ -1785,7 +1885,8 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       };
 
       rawTable = json.table || [];
-      renderKPI(json.kpis || {});
+      currentKPIs = json.kpis || {}; // 保存KPI数据
+      renderKPI(currentKPIs);
       populateFilters();
       buildTable();
 
