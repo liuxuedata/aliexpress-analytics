@@ -5,6 +5,89 @@ const formidable = require('formidable').default;
 const fs = require('fs');
 const XLSX = require('xlsx');
 
+// 统一的商品标识提取函数
+function extractProductId(record, channel) {
+  if (channel === 'facebook_ads') {
+    // Facebook Ads: 从landing_url中提取商品ID，或使用campaign_name作为商品标识
+    const landingUrl = record.landing_url || '';
+    const productIdMatch = landingUrl.match(/(\d{10,})/); // 匹配10位以上的数字
+    if (productIdMatch) {
+      return productIdMatch[1];
+    }
+    // 如果campaign_name包含商品ID格式，使用它
+    const campaignName = record.campaign_name || '';
+    const campaignIdMatch = campaignName.match(/(\d{10,})/);
+    if (campaignIdMatch) {
+      return campaignIdMatch[1];
+    }
+    // 否则使用campaign_name作为标识
+    return campaignName;
+  } else if (channel === 'tiktok_ads') {
+    // TikTok Ads: 类似Facebook的处理
+    const landingUrl = record.landing_url || '';
+    const productIdMatch = landingUrl.match(/(\d{10,})/);
+    if (productIdMatch) {
+      return productIdMatch[1];
+    }
+    return record.campaign_name || record.adgroup_name || '';
+  } else {
+    // Google Ads: 使用landing_path
+    return record.landing_path || '';
+  }
+}
+
+// 更新first_seen表的函数
+async function updateFirstSeen(supabase, site, records, channel) {
+  try {
+    const firstSeenUpdates = [];
+    
+    for (const record of records) {
+      const productId = extractProductId(record, channel);
+      if (!productId) continue;
+      
+      // 检查是否已存在
+      const { data: existing, error: checkError } = await supabase
+        .from('independent_first_seen')
+        .select('first_seen_date')
+        .eq('site', site)
+        .eq('landing_path', productId)
+        .single();
+      
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('检查first_seen记录失败:', checkError);
+        continue;
+      }
+      
+      // 如果不存在，添加新记录
+      if (!existing) {
+        firstSeenUpdates.push({
+          site: site,
+          landing_path: productId,
+          first_seen_date: record.day
+        });
+      }
+    }
+    
+    // 批量插入新记录
+    if (firstSeenUpdates.length > 0) {
+      const { error: insertError } = await supabase
+        .from('independent_first_seen')
+        .upsert(firstSeenUpdates, { 
+          onConflict: 'site,landing_path',
+          ignoreDuplicates: true 
+        });
+      
+      if (insertError) {
+        console.error('插入first_seen记录失败:', insertError);
+      } else {
+        console.log(`成功更新 ${firstSeenUpdates.length} 条first_seen记录`);
+      }
+    }
+  } catch (error) {
+    console.error('更新first_seen表失败:', error);
+  }
+}
+
 function getClient() {
   const url = process.env.SUPABASE_URL;
   const key =
@@ -270,6 +353,9 @@ export default async function handler(req, res) {
         details: error.details
       });
     }
+
+    // 更新first_seen表
+    await updateFirstSeen(supabase, currentIndepSiteId, records, 'tiktok_ads');
 
     // 清理临时文件
     try {

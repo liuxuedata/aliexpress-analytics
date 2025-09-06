@@ -279,16 +279,50 @@ module.exports = async (req, res) => {
       }
     }
 
-    // lookup first seen dates for all landing paths in the result set
-    const paths = Array.from(new Set(table.map(r => r.landing_path))).filter(Boolean);
+    // 统一的商品标识提取函数
+    function extractProductId(record, channel) {
+      if (channel === 'facebook_ads') {
+        // Facebook Ads: 从landing_url中提取商品ID，或使用campaign_name作为商品标识
+        // 如果landing_url包含数字ID，提取它；否则使用campaign_name
+        const landingUrl = record.landing_url || '';
+        const productIdMatch = landingUrl.match(/(\d{10,})/); // 匹配10位以上的数字
+        if (productIdMatch) {
+          return productIdMatch[1];
+        }
+        // 如果campaign_name包含商品ID格式，使用它
+        const campaignName = record.campaign_name || '';
+        const campaignIdMatch = campaignName.match(/(\d{10,})/);
+        if (campaignIdMatch) {
+          return campaignIdMatch[1];
+        }
+        // 否则使用campaign_name作为标识
+        return campaignName;
+      } else if (channel === 'tiktok_ads') {
+        // TikTok Ads: 类似Facebook的处理
+        const landingUrl = record.landing_url || '';
+        const productIdMatch = landingUrl.match(/(\d{10,})/);
+        if (productIdMatch) {
+          return productIdMatch[1];
+        }
+        return record.campaign_name || record.adgroup_name || '';
+      } else {
+        // Google Ads: 使用landing_path
+        return record.landing_path || '';
+      }
+    }
+
+    // 为每条记录提取商品标识
+    const productIds = table.map(r => extractProductId(r, channel)).filter(Boolean);
+    const uniqueProductIds = Array.from(new Set(productIds));
+    
     const firstSeenMap = new Map();
-    if (paths.length) {
+    if (uniqueProductIds.length) {
       try {
         const { data: fsRows, error: fsErr } = await supabase
           .from('independent_first_seen')
           .select('landing_path, first_seen_date')
           .eq('site', site)
-          .in('landing_path', paths);
+          .in('landing_path', uniqueProductIds);
         if (fsErr) throw fsErr;
         (fsRows || []).forEach(r => firstSeenMap.set(r.landing_path, r.first_seen_date));
       } catch (e) {
@@ -310,10 +344,12 @@ module.exports = async (req, res) => {
     }
 
     table = (table || []).map(r => {
-      const firstSeen = firstSeenMap.get(r.landing_path) || null;
+      const productId = extractProductId(r, channel);
+      const firstSeen = firstSeenMap.get(productId) || null;
       return {
         ...r,
-        product: extractName(r.landing_path),
+        product: productId, // 使用统一的商品标识
+        product_display_name: extractName(r.landing_path || r.landing_url || r.campaign_name), // 用于显示的名称
         clicks: safeNum(r.clicks),
         impr: safeNum(r.impr),
         ctr: safeNum(r.ctr),
@@ -338,7 +374,7 @@ module.exports = async (req, res) => {
     if (isProductAggregate) {
       const productMap = new Map();
       table.forEach(r => {
-        const key = r.landing_path || r.product;
+        const key = r.product; // 使用统一的商品标识
         if (!key) return;
         
         if (!productMap.has(key)) {
