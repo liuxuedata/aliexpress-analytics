@@ -341,7 +341,23 @@ async function handleFile(filePath, filename, siteId) {
 
   console.log('数据处理完成，有效记录数:', processed.length);
   console.log('前3条有效记录:', processed.slice(0, 3));
-  return processed;
+  
+  // 去重：基于主键 (site, day, campaign_name, adset_name)
+  const uniqueRecords = [];
+  const seenKeys = new Set();
+  
+  for (const record of processed) {
+    const key = `${record.site}|${record.day}|${record.campaign_name}|${record.adset_name}`;
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      uniqueRecords.push(record);
+    } else {
+      console.log('发现重复记录，跳过:', key);
+    }
+  }
+  
+  console.log('去重后记录数:', uniqueRecords.length);
+  return uniqueRecords;
 }
 
 export default async function handler(req, res) {
