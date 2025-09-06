@@ -664,12 +664,13 @@ module.exports = async (req, res) => {
     if (isProductAggregate) {
       const productMap = new Map();
       table.forEach(r => {
-        const key = r.product; // 使用统一的商品标识
-        if (!key) return;
+        // 使用landing_path或campaign作为商品标识
+        const key = r.landing_path || r.campaign || r.landing_url || 'unknown';
+        if (!key || key === 'unknown') return;
         
         if (!productMap.has(key)) {
           productMap.set(key, {
-            product: r.product,
+            product: key, // 使用key作为product标识
             landing_path: r.landing_path,
             landing_url: r.landing_url,
             campaign: r.campaign,
