@@ -29,12 +29,15 @@ export default async function handler(req, res) {
   try {
     const supabase = getClient();
     
+    // 获取要检查的表名（默认为统一表）
+    const tableName = req.query.table || 'independent_facebook_ads_daily';
+    
     // 检查表是否存在
     const { data: tableExists, error: tableError } = await supabase
       .from('information_schema.tables')
       .select('table_name')
       .eq('table_schema', 'public')
-      .eq('table_name', 'independent_facebook_ads_daily');
+      .eq('table_name', tableName);
 
     if (tableError) {
       console.error('检查表存在性失败:', tableError);
@@ -44,8 +47,8 @@ export default async function handler(req, res) {
     if (!tableExists || tableExists.length === 0) {
       return res.status(404).json({ 
         error: 'Table not found', 
-        message: 'independent_facebook_ads_daily table does not exist',
-        suggestion: 'Please run the create_unified_facebook_ads_table.sql script first'
+        message: `${tableName} table does not exist`,
+        suggestion: 'Please create the table first'
       });
     }
 

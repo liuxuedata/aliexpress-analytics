@@ -331,8 +331,7 @@ async function handleFile(filePath, filename, siteId) {
       conversion_value: conversionValueCol !== -1 ? coerceNum(row[conversionValueCol]) : 0, // 新增转化价值字段
       row_start_date: dayStr,
       row_end_date: dayStr,
-      inserted_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      inserted_at: new Date().toISOString()
     };
 
     processed.push(record);
@@ -497,19 +496,17 @@ export default async function handler(req, res) {
 
     const columnNames = columns.map(col => col.column_name);
     const hasInsertedAt = columnNames.includes('inserted_at');
-    const hasUpdatedAt = columnNames.includes('updated_at');
 
     console.log('表结构检查结果:', {
       tableExists: true,
       hasInsertedAt,
-      hasUpdatedAt,
       allColumns: columnNames
     });
 
-    if (!hasInsertedAt || !hasUpdatedAt) {
-      console.error('表结构不完整，缺少关键字段:', { hasInsertedAt, hasUpdatedAt });
+    if (!hasInsertedAt) {
+      console.error('表结构不完整，缺少关键字段:', { hasInsertedAt });
       return res.status(500).json({ 
-        error: `Table structure is incomplete. Missing fields: inserted_at=${hasInsertedAt}, updated_at=${hasUpdatedAt}`,
+        error: `Table structure is incomplete. Missing field: inserted_at=${hasInsertedAt}`,
         suggestion: 'Please recreate the table with the correct schema'
       });
     }

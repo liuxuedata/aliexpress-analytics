@@ -233,7 +233,8 @@ async function handleFile(filePath, filename, siteId) {
       cpa_purchase_web: 0,
       conversion_value: conversionValueCol !== -1 ? coerceNum(row[conversionValueCol]) : 0,
       row_start_date: dayStr,
-      row_end_date: dayStr
+      row_end_date: dayStr,
+      inserted_at: new Date().toISOString()
     };
     
     processed.push(record);

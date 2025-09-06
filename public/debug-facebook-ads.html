@@ -144,16 +144,31 @@
             resultDiv.textContent = '正在检查表结构...';
 
             try {
-                const response = await fetch('/api/check-table-schema');
-                const data = await response.json();
+                // 检查统一表
+                const unifiedResponse = await fetch('/api/check-table-schema');
+                const unifiedData = await unifiedResponse.json();
 
-                if (response.ok) {
-                    resultDiv.className = 'result success';
-                    resultDiv.textContent = JSON.stringify(data, null, 2);
+                // 检查站点特定表
+                const siteSpecificTableName = 'independent_icyberite_facebook_ads_daily';
+                const siteResponse = await fetch(`/api/check-table-schema?table=${siteSpecificTableName}`);
+                const siteData = await siteResponse.json();
+
+                let result = '=== 统一表检查结果 ===\n';
+                if (unifiedResponse.ok) {
+                    result += `✅ 统一表存在: ${JSON.stringify(unifiedData, null, 2)}\n\n`;
                 } else {
-                    resultDiv.className = 'result error';
-                    resultDiv.textContent = `错误: ${data.error}\n详情: ${JSON.stringify(data, null, 2)}`;
+                    result += `❌ 统一表不存在: ${unifiedData.error}\n\n`;
                 }
+
+                result += '=== 站点特定表检查结果 ===\n';
+                if (siteResponse.ok) {
+                    result += `✅ 站点特定表存在: ${JSON.stringify(siteData, null, 2)}`;
+                } else {
+                    result += `❌ 站点特定表不存在: ${siteData.error}`;
+                }
+
+                resultDiv.className = 'result success';
+                resultDiv.textContent = result;
             } catch (error) {
                 resultDiv.className = 'result error';
                 resultDiv.textContent = `请求失败: ${error.message}`;
