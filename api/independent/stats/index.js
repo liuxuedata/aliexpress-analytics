@@ -604,23 +604,17 @@ module.exports = async (req, res) => {
       }
     }
 
-    // 如果只有一个渠道，不返回渠道信息（保持向后兼容）
-    const shouldReturnChannelInfo = availableChannels.length > 1;
-
+    // 总是返回渠道信息，让前端能够正确识别渠道类型
     const response = {
       ok: true,
       table: table,
       kpis: kpis,
       dataSource: channel || (table.length > 0 ? 'multi_channel' : getDataSource(site)),
-      query: { site, from: fromDate, to: toDate, limit, only_new, campaign, network, device, aggregate, channel }
+      query: { site, from: fromDate, to: toDate, limit, only_new, campaign, network, device, aggregate, channel },
+      availableChannels: availableChannels,
+      currentChannel: channel || null,
+      isMultiChannel: availableChannels.length > 1
     };
-
-    // 只有在多渠道时才添加渠道信息
-    if (shouldReturnChannelInfo) {
-      response.availableChannels = availableChannels;
-      response.currentChannel = channel || null;
-      response.isMultiChannel = true;
-    }
 
     return res.json(response);
 
