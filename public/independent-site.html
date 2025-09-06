@@ -1807,6 +1807,21 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
   function buildTable(){
     // 安全处理空数据
     if (!rawTable || !Array.isArray(rawTable) || rawTable.length === 0) {
+      // 确定当前渠道（用于空数据情况下的列定义）
+      let currentChannel = null;
+      if (availableChannels && availableChannels.length === 1) {
+        currentChannel = availableChannels[0];
+      } else {
+        // 从URL参数或其他方式推断渠道
+        const urlParams = new URLSearchParams(window.location.search);
+        const site = urlParams.get('site');
+        if (site === 'icyberite.com') {
+          currentChannel = 'facebook_ads';
+        } else {
+          currentChannel = 'google_ads';
+        }
+      }
+      
       if(dt) dt.destroy();
       dt = $('#report').DataTable({
         destroy:true,
@@ -1817,32 +1832,18 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
         autoWidth: true,
         processing: true,
         responsive: false,
-        columns:[
-                  { data:'product', render:(v,t,r)=>{
-            const name = v || r.landing_path || '';
-            return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
-          }, width: '200px' },
-          { data:'device', render: v => v || '', width: '80px' },
-          { data:'network', render: v => v || '', width: '100px' },
-          { data:'campaign', render: v => v || '', width: '120px' },
-          { data:'clicks', render: v => v ?? 0, width: '80px' },
-          { data:'impr', render: v => v ?? 0, width: '80px' },
-          { data:'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '80px' },
-          { data:'avg_cpc', render: v => (v ?? 0).toFixed(2), width: '100px' },
-          { data:'cost', render: v => (v ?? 0).toFixed(2), width: '100px' },
-          { data:'conversions', render: v => v ?? 0, width: '80px' },
-          { data:'cost_per_conv', render: v => (v ?? 0).toFixed(2), width: '100px' },
-          { data:'all_conv', render: v => v ?? 0, width: '80px' },
-          { data:'conv_value', render: v => (v ?? 0).toFixed(2), width: '100px' },
-          { data:'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '120px' },
-          { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' }
-        ]
+        columns: getChannelColumns(currentChannel)
       });
       
-      // 默认隐藏筛选列
-      dt.column(1).visible(false); // 设备列
-      dt.column(2).visible(false); // 网络列
-      dt.column(3).visible(false); // Campaign列
+      // 根据渠道类型隐藏不同的列
+      if (currentChannel === 'facebook_ads') {
+        // Facebook Ads 不需要隐藏列，所有列都显示
+      } else {
+        // 默认列隐藏设备、网络、Campaign列
+        dt.column(1).visible(false); // 设备列
+        dt.column(2).visible(false); // 网络列
+        dt.column(3).visible(false); // Campaign列
+      }
 
       // 强制重新计算列宽，确保对齐
       setTimeout(() => {
@@ -1870,6 +1871,22 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
         buildChannelTable(channel);
       });
       return;
+    }
+
+    // 单渠道情况：确定当前渠道
+    let currentChannel = null;
+    if (availableChannels && availableChannels.length === 1) {
+      currentChannel = availableChannels[0];
+    } else {
+      // 从数据中推断渠道
+      const networks = [...new Set(rawTable.map(r => r.network))];
+      if (networks.includes('facebook')) {
+        currentChannel = 'facebook_ads';
+      } else if (networks.includes('tiktok')) {
+        currentChannel = 'tiktok_ads';
+      } else {
+        currentChannel = 'google_ads';
+      }
     }
 
     let data = rawTable;
@@ -1902,6 +1919,10 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     const showCampaign = !!camp;
     data = aggregateTable(data, showDevice, showNetwork, showCampaign);
     if(dt) dt.destroy();
+    
+    // 获取渠道专用的列定义
+    const columns = getChannelColumns(currentChannel);
+    
     dt = $('#report').DataTable({
       destroy:true,
       pageLength:20,
@@ -1911,31 +1932,18 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       autoWidth: true,
       processing: true,
       responsive: false,
-      columns:[
-        { data:'product', render:(v,t,r)=>{
-            const name = v || r.landing_path || '';
-            return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
-          }, width: '200px' },
-        { data:'device', render: v => v || '', width: '80px' },
-        { data:'network', render: v => v || '', width: '100px' },
-        { data:'campaign', render: v => v || '', width: '120px' },
-        { data:'clicks', render: v => v ?? 0, width: '80px' },
-        { data:'impr', render: v => v ?? 0, width: '80px' },
-        { data:'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '80px' },
-        { data:'avg_cpc', render: v => (v ?? 0).toFixed(2), width: '100px' },
-        { data:'cost', render: v => (v ?? 0).toFixed(2), width: '100px' },
-        { data:'conversions', render: v => v ?? 0, width: '80px' },
-        { data:'cost_per_conv', render: v => (v ?? 0).toFixed(2), width: '100px' },
-        { data:'all_conv', render: v => v ?? 0, width: '80px' },
-        { data:'conv_value', render: v => (v ?? 0).toFixed(2), width: '100px' },
-        { data:'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '120px' },
-        { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' }
-      ]
+      columns: columns
     });
-    // 默认隐藏筛选列，只作为筛选条件
-    dt.column(1).visible(false); // 设备列默认隐藏
-    dt.column(2).visible(false); // 网络列默认隐藏
-    dt.column(3).visible(false); // Campaign列默认隐藏
+    // 根据渠道类型隐藏不同的列
+    if (currentChannel === 'facebook_ads') {
+      // Facebook Ads 列：商品编号、单日、广告系列名称、广告组名称、展示次数、频次、点击量（全部）、链接点击量、点击率（全部）、链接点击率、浏览量、加入购物车、结账发起次数、成效、开始日期、结束日期
+      // Facebook Ads 不需要隐藏列，所有列都显示
+    } else {
+      // 默认列：产品、设备、网络、Campaign、点击、曝光、CTR、Avg CPC、Cost、转化、Cost/Conv、All conv、Conv value、All conv rate、Conv rate
+      dt.column(1).visible(false); // 设备列默认隐藏
+      dt.column(2).visible(false); // 网络列默认隐藏
+      dt.column(3).visible(false); // Campaign列默认隐藏
+    }
     
     // 根据筛选条件显示列
     if (showDevice) dt.column(1).visible(true);
