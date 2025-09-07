@@ -1792,45 +1792,21 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       return [];
     }
     
-    const map = {};
-    data.forEach(r=>{
-      const keyParts=[r.day, r.landing_path];
-      if(showDevice) keyParts.push(r.device||'');
-      if(showNetwork) keyParts.push(r.network||'');
-      if(showCampaign) keyParts.push(r.campaign||'');
-      const key=keyParts.join('|');
-      if(!map[key]){
-        map[key]={
-          product:r.product,
-          landing_path:r.landing_path,
-          landing_url:r.landing_url,
-          day:r.day,
-          device: showDevice ? r.device : '',
-          network: showNetwork ? r.network : '',
-          campaign: showCampaign ? r.campaign : '',
-          clicks:0, impr:0, cost:0, conversions:0, all_conv:0, conv_value:0
-        };
-      }
-      const m=map[key];
-      m.clicks+=r.clicks||0;
-      m.impr+=r.impr||0;
-      m.cost+=r.cost||0;
-      m.conversions+=r.conversions||0;
-      m.all_conv+=r.all_conv||0;
-      m.conv_value+=r.conv_value||0;
+    console.log('aggregateTable调用:', {
+      dataLength: data.length,
+      showDevice,
+      showNetwork, 
+      showCampaign,
+      sampleData: data.slice(0, 2)
     });
-    return Object.values(map).map(m=>{
-      m.ctr = m.impr>0 ? m.clicks/m.impr : 0;
-      m.avg_cpc = m.clicks>0 ? m.cost/m.clicks : 0;
-      m.conv_rate = m.clicks>0 ? m.conversions/m.clicks : 0;
-      m.cost_per_conv = m.conversions>0 ? m.cost/m.conversions : 0;
-      m.all_conv_rate = m.clicks>0 ? m.all_conv/m.clicks : 0;
-      return m;
-    }).sort((a,b)=> {
-      // 安全排序，处理undefined值
-      const dayA = a.day || '';
-      const dayB = b.day || '';
-      return dayB.localeCompare(dayA);
+    
+    // API已经返回聚合好的数据，不需要重新聚合
+    // 直接返回数据，只进行简单的排序
+    return data.sort((a, b) => {
+      // 按产品名称排序
+      const productA = a.product || '';
+      const productB = b.product || '';
+      return productA.localeCompare(productB);
     });
   }
 
