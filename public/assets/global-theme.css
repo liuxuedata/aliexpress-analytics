@@ -72,16 +72,16 @@ body {
 /* 3. KPI卡片系统 */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: var(--space-6);
-  margin: var(--space-6) 0;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-4) 0;
 }
 
 .kpi-card {
   background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   border: 1px solid var(--primary-200);
   border-radius: var(--radius-lg);
-  padding: var(--space-6);
+  padding: var(--space-4);
   box-shadow: var(--shadow-md);
   transition: all 0.3s ease;
   position: relative;
@@ -106,7 +106,7 @@ body {
 
 .kpi-card h4 {
   color: var(--primary-600);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 500;
   margin: 0 0 var(--space-2) 0;
   text-transform: uppercase;
@@ -115,7 +115,7 @@ body {
 
 .kpi-card p {
   color: var(--primary-900);
-  font-size: 1.875rem;
+  font-size: 1.5rem;
   font-weight: 700;
   margin: 0;
   line-height: 1;
@@ -123,7 +123,7 @@ body {
 
 .kpi-card .kpi-comparison {
   margin-top: var(--space-2);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
 }
 
 .kpi-card .delta {
