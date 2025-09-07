@@ -1644,18 +1644,18 @@ function getFacebookAdsColumns() {
     }, width: '200px' },
     { data: 'campaign_name', title: '广告系列名称', render: v => v || '', width: '150px' },
     { data: 'adset_name', title: '广告组名称', render: v => v || '', width: '150px' },
-    { data: 'reach', title: '覆盖人数', render: v => v ?? 0, width: '100px' },
-    { data: 'impr', title: '展示次数', render: v => v ?? 0, width: '100px' },
-    { data: 'page_views', title: '浏览量', render: v => v ?? 0, width: '100px' },
-    { data: 'cost_per_result', title: '单次成效费用', render: v => (v ?? 0).toFixed(2), width: '120px' },
-    { data: 'link_clicks', title: '链接点击量', render: v => v ?? 0, width: '100px' },
-    { data: 'link_ctr', title: '链接点击率', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' },
-    { data: 'clicks', title: '点击量（全部）', render: v => v ?? 0, width: '100px' },
-    { data: 'ctr', title: '点击率（全部）', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' },
-    { data: 'atc_total', title: '加入购物车', render: v => v ?? 0, width: '100px' },
-    { data: 'wishlist_adds', title: '加入心愿单次数', render: v => v ?? 0, width: '120px' },
-    { data: 'ic_total', title: '结账发起次数', render: v => v ?? 0, width: '120px' },
-    { data: 'results', title: '成效', render: v => v ?? 0, width: '100px' },
+    { data: 'reach', title: '覆盖人数', render: v => Number(v ?? 0), width: '100px' },
+    { data: 'impr', title: '展示次数', render: v => Number(v ?? 0), width: '100px' },
+    { data: 'page_views', title: '浏览量', render: v => Number(v ?? 0), width: '100px' },
+    { data: 'cost_per_result', title: '单次成效费用', render: v => Number(v ?? 0).toFixed(2), width: '120px' },
+    { data: 'link_clicks', title: '链接点击量', render: v => Number(v ?? 0), width: '100px' },
+    { data: 'link_ctr', title: '链接点击率', render: v => v != null ? (Number(v)*100).toFixed(2)+'%' : '0%', width: '100px' },
+    { data: 'clicks', title: '点击量（全部）', render: v => Number(v ?? 0), width: '100px' },
+    { data: 'ctr', title: '点击率（全部）', render: v => v != null ? (Number(v)*100).toFixed(2)+'%' : '0%', width: '100px' },
+    { data: 'atc_total', title: '加入购物车', render: v => Number(v ?? 0), width: '100px' },
+    { data: 'wishlist_adds', title: '加入心愿单次数', render: v => Number(v ?? 0), width: '120px' },
+    { data: 'ic_total', title: '结账发起次数', render: v => Number(v ?? 0), width: '120px' },
+    { data: 'results', title: '成效', render: v => Number(v ?? 0), width: '100px' },
   ];
 }
 
@@ -1669,17 +1669,17 @@ function getFacebookAdsColumns() {
       { data: 'device', title: '设备', render: v => v || '', width: '80px' },
       { data: 'network', title: '网络', render: v => v || '', width: '100px' },
       { data: 'campaign', title: 'Campaign', render: v => v || '', width: '120px' },
-      { data: 'clicks', title: '点击', render: v => v ?? 0, width: '80px' },
-      { data: 'impr', title: '曝光', render: v => v ?? 0, width: '80px' },
-      { data: 'ctr', title: 'CTR', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '80px' },
-      { data: 'avg_cpc', title: 'Avg CPC', render: v => (v ?? 0).toFixed(2), width: '100px' },
-      { data: 'cost', title: 'Cost', render: v => (v ?? 0).toFixed(2), width: '100px' },
-      { data: 'conversions', title: '转化', render: v => v ?? 0, width: '80px' },
-      { data: 'cost_per_conv', title: 'Cost/Conv', render: v => (v ?? 0).toFixed(2), width: '100px' },
-      { data: 'all_conv', title: 'All conv', render: v => v ?? 0, width: '80px' },
-      { data: 'conv_value', title: 'Conv value', render: v => (v ?? 0).toFixed(2), width: '100px' },
-      { data: 'all_conv_rate', title: 'All conv rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '120px' },
-      { data: 'conv_rate', title: 'Conv rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' }
+      { data: 'clicks', title: '点击', render: v => Number(v ?? 0), width: '80px' },
+      { data: 'impr', title: '曝光', render: v => Number(v ?? 0), width: '80px' },
+      { data: 'ctr', title: 'CTR', render: v => v != null ? (Number(v)*100).toFixed(2)+'%' : '0%', width: '80px' },
+      { data: 'avg_cpc', title: 'Avg CPC', render: v => Number(v ?? 0).toFixed(2), width: '100px' },
+      { data: 'cost', title: 'Cost', render: v => Number(v ?? 0).toFixed(2), width: '100px' },
+      { data: 'conversions', title: '转化', render: v => Number(v ?? 0), width: '80px' },
+      { data: 'cost_per_conv', title: 'Cost/Conv', render: v => Number(v ?? 0).toFixed(2), width: '100px' },
+      { data: 'all_conv', title: 'All conv', render: v => Number(v ?? 0), width: '80px' },
+      { data: 'conv_value', title: 'Conv value', render: v => Number(v ?? 0).toFixed(2), width: '100px' },
+      { data: 'all_conv_rate', title: 'All conv rate', render: v => v != null ? (Number(v)*100).toFixed(2)+'%' : '0%', width: '120px' },
+      { data: 'conv_rate', title: 'Conv rate', render: v => v != null ? (Number(v)*100).toFixed(2)+'%' : '0%', width: '100px' }
     ];
   }
 
@@ -1813,9 +1813,9 @@ function getFacebookAdsColumns() {
     // API已经返回聚合好的数据，不需要重新聚合
     // 直接返回数据，只进行简单的排序
     return data.sort((a, b) => {
-      // 按产品名称排序
-      const productA = a.product || '';
-      const productB = b.product || '';
+      // 按产品名称排序，兼容不同数据源字段
+      const productA = a.product || a.product_name || a.landing_path || '';
+      const productB = b.product || b.product_name || b.landing_path || '';
       return productA.localeCompare(productB);
     });
   }
