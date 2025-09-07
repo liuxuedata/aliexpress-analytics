@@ -1940,10 +1940,21 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     const channel = channelSel.value;
     const net = networkSel.value;
     const camp = campaignSel.value;
+    
+    console.log('数据过滤前状态:', {
+      rawTableLength: rawTable.length,
+      channel,
+      net,
+      camp,
+      sampleRawData: rawTable.slice(0, 2)
+    });
+    
     if(channel) {
       if(channel === 'google_ads') data = data.filter(r=>r.network==='google');
       else if(channel === 'facebook_ads') data = data.filter(r=>r.network==='facebook');
       else if(channel === 'tiktok_ads') data = data.filter(r=>r.network==='tiktok');
+      
+      console.log('渠道过滤后数据长度:', data.length);
     }
     if(net) data = data.filter(r=>r.network===net);
     if(camp) data = data.filter(r=>r.campaign===camp);
