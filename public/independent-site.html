@@ -2441,6 +2441,11 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
         // 创建Tab页面
         const siteName = getCurrentSiteForAPI();
         createChannelTabs(availableChannels, siteName);
+        
+        // 设置渠道选择器的值
+        if (currentChannel && channelSel) {
+          channelSel.value = currentChannel;
+        }
       } else {
         availableChannels = [];
         currentChannel = null;
