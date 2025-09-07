@@ -1755,7 +1755,10 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
 
     // 根据渠道类型设置列的可见性
     if (channel === 'facebook_ads') {
-      // Facebook Ads 默认显示所有列，不需要隐藏
+      // Facebook Ads 列：隐藏投放状态和投放层级，显示其他所有列
+      // 投放状态列（索引4）和投放层级列（索引5）设置为隐藏
+      window[`dt_${channel}`].column(4).visible(false); // 投放状态
+      window[`dt_${channel}`].column(5).visible(false); // 投放层级
     } else {
       // 默认隐藏筛选列
       window[`dt_${channel}`].column(1).visible(false); // 设备列
@@ -2036,8 +2039,26 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       columnsLength: columns.length,
       currentChannel,
       sampleData: data.slice(0, 1),
-      sampleColumns: columns.slice(0, 2)
+      sampleColumns: columns.slice(0, 2),
+      tableElement: $('#report').length,
+      tableElementExists: document.getElementById('report') !== null
     });
+    
+    // 如果数据为空，输出详细调试信息
+    if (data.length === 0) {
+      console.error('数据为空，详细调试信息:', {
+        rawTableLength: rawTable?.length || 0,
+        rawTableSample: rawTable?.slice(0, 2),
+        channelFilter: channel,
+        networkFilter: net,
+        campaignFilter: camp,
+        isNewProductFilterActive,
+        showDevice,
+        showNetwork,
+        showCampaign,
+        aggregatedDataLength: data.length
+      });
+    }
     
     // 确保数据是数组
     if (!Array.isArray(data)) {
@@ -2062,8 +2083,10 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     });
     // 根据渠道类型隐藏不同的列
     if (currentChannel === 'facebook_ads') {
-      // Facebook Ads 列：商品编号、单日、广告系列名称、广告组名称、展示次数、频次、点击量（全部）、链接点击量、点击率（全部）、链接点击率、浏览量、加入购物车、结账发起次数、成效、开始日期、结束日期
-      // Facebook Ads 不需要隐藏列，所有列都显示
+      // Facebook Ads 列：隐藏投放状态和投放层级，显示其他所有列
+      // 投放状态列（索引4）和投放层级列（索引5）设置为隐藏
+      dt.column(4).visible(false); // 投放状态
+      dt.column(5).visible(false); // 投放层级
     } else {
       // 默认列：产品、设备、网络、Campaign、点击、曝光、CTR、Avg CPC、Cost、转化、Cost/Conv、All conv、Conv value、All conv rate、Conv rate
       dt.column(1).visible(false); // 设备列默认隐藏

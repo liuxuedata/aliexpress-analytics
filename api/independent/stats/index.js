@@ -837,15 +837,24 @@ module.exports = async (req, res) => {
     }
 
     // 计算KPI
+    const total_clicks = table.reduce((sum, r) => sum + r.clicks, 0);
+    const total_impressions = table.reduce((sum, r) => sum + r.impr, 0);
+    const total_cost = table.reduce((sum, r) => sum + r.cost, 0);
+    const total_conversions = table.reduce((sum, r) => sum + r.conversions, 0);
+    const total_all_conv = table.reduce((sum, r) => sum + r.all_conv, 0);
+    const total_conv_value = table.reduce((sum, r) => sum + r.conv_value, 0);
+    
     const kpis = {
-      total_clicks: table.reduce((sum, r) => sum + r.clicks, 0),
-      total_impressions: table.reduce((sum, r) => sum + r.impr, 0),
-      total_cost: table.reduce((sum, r) => sum + r.cost, 0),
-      total_conversions: table.reduce((sum, r) => sum + r.conversions, 0),
-      total_all_conv: table.reduce((sum, r) => sum + r.all_conv, 0),
-      total_conv_value: table.reduce((sum, r) => sum + r.conv_value, 0),
-      avg_ctr: table.length > 0 ? table.reduce((sum, r) => sum + r.ctr, 0) / table.length : 0,
-      avg_conv_rate: table.length > 0 ? table.reduce((sum, r) => sum + r.conv_rate, 0) / table.length : 0,
+      total_clicks: total_clicks,
+      total_impressions: total_impressions,
+      total_cost: total_cost,
+      total_conversions: total_conversions,
+      total_all_conv: total_all_conv,
+      total_conv_value: total_conv_value,
+      // 修复平均点击率计算：总点击数/总曝光数 * 100
+      avg_ctr: total_impressions > 0 ? (total_clicks / total_impressions * 100) : 0,
+      // 修复平均转化率计算：总转化数/总点击数 * 100
+      avg_conv_rate: total_clicks > 0 ? (total_conversions / total_clicks * 100) : 0,
       new_products: table.filter(r => r.is_new).length,
       total_products: productTotal,
       // 商品计数KPI
