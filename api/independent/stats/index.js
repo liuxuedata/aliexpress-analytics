@@ -30,6 +30,17 @@ function safeNum(v){
   return Number.isFinite(n) ? n : 0;
 }
 
+// 将前端传入的站点映射为数据库中的 site_configs.id
+function mapSiteToConfigId(site) {
+  const map = {
+    'poolsvacuum.com': 'independent_poolsvacuum',
+    'independent_poolsvacuum': 'independent_poolsvacuum',
+    'icyberite.com': 'independent_icyberite',
+    'independent_icyberite': 'independent_icyberite'
+  };
+  return map[site] || site;
+}
+
 const PAGE_SIZE = 1000;
 
 function lastWeek() {
@@ -65,11 +76,12 @@ function getDataSource(site) {
 
 // 获取站点渠道配置
 async function getSiteChannels(supabase, site) {
+  const siteId = mapSiteToConfigId(site);
   try {
     const { data: configs, error } = await supabase
       .from('site_channel_configs')
       .select('channel, table_name, is_enabled')
-      .eq('site_id', site)
+      .eq('site_id', siteId)
       .eq('is_enabled', true);
     
     if (error) {
@@ -90,7 +102,7 @@ async function getSiteChannels(supabase, site) {
       table_name: dataSource === 'facebook_ads' ? 'independent_facebook_ads_daily' : 'independent_landing_metrics', 
       is_enabled: true 
     }];
-    console.log('使用默认渠道配置:', defaultConfig, 'for site:', site);
+    console.log('使用默认渠道配置:', defaultConfig, 'for site:', siteId);
     return defaultConfig;
   } catch (error) {
     console.error('获取站点渠道配置失败:', error);
@@ -101,7 +113,7 @@ async function getSiteChannels(supabase, site) {
       table_name: dataSource === 'facebook_ads' ? 'independent_facebook_ads_daily' : 'independent_landing_metrics', 
       is_enabled: true 
     }];
-    console.log('回退到默认渠道配置:', fallbackConfig, 'for site:', site);
+    console.log('回退到默认渠道配置:', fallbackConfig, 'for site:', siteId);
     return fallbackConfig;
   }
 }
@@ -111,10 +123,7 @@ async function queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, 
   const table = [];
   
   // 站点名称映射：将前端使用的站点名映射为数据库中的实际值
-  const siteMapping = {
-    'icyberite.com': 'independent_icyberite'
-  };
-  const dbSite = siteMapping[site] || site;
+  const dbSite = mapSiteToConfigId(site);
   
   // 调试日志：查询参数
   console.log('Facebook Ads查询参数:', {
@@ -321,10 +330,7 @@ async function queryTikTokAdsData(supabase, site, fromDate, toDate, limitNum, ca
   const table = [];
   
   // 站点名称映射：将前端使用的站点名映射为数据库中的实际值
-  const siteMapping = {
-    'icyberite.com': 'independent_icyberite'
-  };
-  const dbSite = siteMapping[site] || site;
+  const dbSite = mapSiteToConfigId(site);
   
   // 调试日志：查询参数
   console.log('TikTok Ads查询参数:', {
@@ -548,22 +554,10 @@ module.exports = async (req, res) => {
         }
         
         console.log(`分批查询first_seen，共${uniqueProductIds.length}个商品ID，分${batches.length}批`);
-        
-        // 根据渠道类型确定数据库站点标识
-        let dbSite = site;
-        if (channel === 'google_ads') {
-          // Google Ads: 使用数据库中的站点标识
-          if (site === 'poolsvacuum.com') {
-            dbSite = 'independent_poolsvacuum';
-          }
-        } else if (channel === 'facebook_ads') {
-          // Facebook Ads: 使用数据库中的站点标识
-          if (site === 'icyberite.com') {
-            dbSite = 'independent_icyberite';
-          }
-        }
-        
-        console.log('站点映射:', { originalSite: site, dbSite: dbSite, channel: channel });
+
+        // 根据站点映射到数据库中的 site_configs.id
+        const dbSite = mapSiteToConfigId(site);
+        console.log('站点映射:', { originalSite: site, dbSite, channel });
         
         // 并行查询所有批次
         const batchPromises = batches.map(batch => 
@@ -604,9 +598,8 @@ module.exports = async (req, res) => {
     // total distinct products ever seen for this site
     let productTotal = 0;
     try {
-      // 直接使用站点名称，不需要映射
-      const dbSite = site;
-      
+      const dbSite = mapSiteToConfigId(site);
+
       const { count: totalCount, error: totalErr } = await supabase
         .from('independent_first_seen')
         .select('product_identifier', { count: 'exact', head: true })
