@@ -435,8 +435,8 @@
       if (num === null || num === undefined) return '0%';
       const n = Number(num);
       if (isNaN(n)) return '0%';
-      if (n <= 1) n *= 100;
-      return n.toFixed(decimals) + '%';
+      const value = n <= 1 ? n * 100 : n;
+      return value.toFixed(decimals) + '%';
     },
 
     // 安全的JSON解析

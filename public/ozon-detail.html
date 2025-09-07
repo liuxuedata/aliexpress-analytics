@@ -165,6 +165,10 @@
     currentStart = startISO;
     currentEnd = endISO;
     try{
+      if(onlyNew){
+        // 切换新品筛选或日期范围时，先刷新新品列表再进行筛选
+        await loadKpi();
+      }
       const url = `/api/ozon/stats?store_id=${encodeURIComponent(storeId)}&start=${startISO}&end=${endISO}`;
       const resp = await fetch(url);
       const json = await resp.json();
@@ -206,7 +210,9 @@
       });
       const dt = initTable();
       dt.clear().rows.add(mapped).draw();
-      loadKpi().catch(err=>console.error(err));
+      if(!onlyNew){
+        loadKpi().catch(err=>console.error(err));
+      }
       setStatus('加载完成');
     }catch(err){
       console.error(err);
