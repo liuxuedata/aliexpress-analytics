@@ -56,6 +56,16 @@
   async function fetchNewProducts(platform, periodEndISO /* may be null */){
     const qs = new URLSearchParams({ platform });
     if (periodEndISO){ qs.set('from',periodEndISO); qs.set('to',periodEndISO); }
+    if (platform === 'indep'){
+      try{
+        const urlParams = new URLSearchParams(window.location.search);
+        let site = urlParams.get('site') || '';
+        if (site && typeof normalizeSite === 'function'){
+          site = normalizeSite(site);
+        }
+        if (site) qs.set('site', site);
+      }catch(e){/* ignore */}
+    }
     const r = await fetch('/api/new-products?' + qs.toString());
     const j = await r.json();
     if (!j.ok) throw new Error(j.msg||'fetch error');
