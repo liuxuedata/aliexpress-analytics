@@ -424,12 +424,12 @@
                 data.forEach((row, index) => {
                     // 调试前3行数据
                     if (index < 3) {
-                        this.updateDebugInfo(`行${index + 1}数据: 访客比=${row.visitor_ratio}, 加购比=${row.cart_ratio}, 支付比=${row.pay_ratio}`);
+                        this.updateDebugInfo(`行${index + 1}数据: 访客比=${row.visitor_ratio}, 加购比=${row.add_to_cart_ratio}, 支付比=${row.payment_ratio}`);
                     }
                     
                     const visitorRatio = parseFloat(row.visitor_ratio) || 0;
-                    const cartRatio = parseFloat(row.cart_ratio) || 0;
-                    const payRatio = parseFloat(row.pay_ratio) || 0;
+                    const cartRatio = parseFloat(row.add_to_cart_ratio) || 0;
+                    const payRatio = parseFloat(row.payment_ratio) || 0;
                     
                     totalVisitorRatio += visitorRatio;
                     totalCartRatio += cartRatio;
@@ -468,9 +468,9 @@
             
             displayKPIs(kpis, changes) {
                 // 更新主要KPI值
-                this.updateKPI('avgVisitor', kpis.avgVisitorRatio.toFixed(2) + '%');
-                this.updateKPI('avgCart', kpis.avgCartRatio.toFixed(2) + '%');
-                this.updateKPI('avgPay', kpis.avgPayRatio.toFixed(2) + '%');
+                this.updateKPI('avgVisitor', this.formatPercentage(kpis.avgVisitorRatio));
+                this.updateKPI('avgCart', this.formatPercentage(kpis.avgCartRatio));
+                this.updateKPI('avgPay', this.formatPercentage(kpis.avgPayRatio));
                 this.updateKPI('totalProducts', kpis.totalProducts);
                 this.updateKPI('cartedProducts', kpis.cartedProducts);
                 this.updateKPI('purchasedProducts', kpis.purchasedProducts);
@@ -527,8 +527,8 @@
                         <td>${row.product_id || '-'}</td>
                         <td>${row.bucket || '-'}</td>
                         <td>${this.formatPercentage(row.visitor_ratio)}</td>
-                        <td>${this.formatPercentage(row.cart_ratio)}</td>
-                        <td>${this.formatPercentage(row.pay_ratio)}</td>
+                        <td>${this.formatPercentage(row.add_to_cart_ratio)}</td>
+                        <td>${this.formatPercentage(row.payment_ratio)}</td>
                         <td>${this.formatNumber(row.exposure)}</td>
                         <td>${this.formatNumber(row.visitors)}</td>
                         <td>${this.formatNumber(row.cart_users)}</td>
