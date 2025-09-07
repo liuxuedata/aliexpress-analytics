@@ -1,6 +1,6 @@
 // /api/test-data-isolation.js
 // 测试数据隔离问题的接口
-const { createClient } = require("@supabase/supabase-js");
+import { createClient } from '@supabase/supabase-js';
 
 function getClient() {
   const url = process.env.SUPABASE_URL;

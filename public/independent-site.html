@@ -809,14 +809,6 @@
         <!-- 单渠道数据表格（默认显示） -->
         <div id="detailContent">
           <table id="report" class="data-table display nowrap" style="width:100%">
-            <thead>
-              <tr>
-                <th>产品</th><th>设备</th><th>网络</th><th>Campaign</th>
-                <th>点击</th><th>曝光</th><th>CTR <span class="help-icon" title="CTR = 总点击 / 总曝光">?</span></th><th>Avg CPC</th><th>Cost</th>
-                <th>转化</th><th>Cost/Conv</th><th>All conv</th><th>Conv value</th>
-                <th>All conv rate <span class="help-icon" title="All conv rate = All conv / 总点击">?</span></th><th>Conv rate <span class="help-icon" title="Conv rate = 转化 / 总点击">?</span></th>
-              </tr>
-            </thead>
             <tbody></tbody>
           </table>
         </div>
@@ -987,6 +979,34 @@ function getDateRange(inputId = 'dateFilter') {
 
 // 更新独立站运营分析KPI
 function updateIndependentAnalysisKPI(data, kpis = {}) {
+  // 如果后端未提供KPI，依据表格数据计算
+  if (!kpis || Object.keys(kpis).length === 0) {
+    const totalImpr = data.reduce((s, r) => s + (r.impr || r.impressions || 0), 0);
+    const totalClicks = data.reduce((s, r) => s + (r.clicks || 0), 0);
+    const totalConv = data.reduce((s, r) => s + (r.conversions || 0), 0);
+    const path = r => getProductPath(r);
+    const exposureSet = new Set();
+    const clickSet = new Set();
+    const convSet = new Set();
+    const newSet = new Set();
+    data.forEach(r => {
+      const p = path(r);
+      if (!p) return;
+      if ((r.impr || r.impressions || 0) > 0) exposureSet.add(p);
+      if ((r.clicks || 0) > 0) clickSet.add(p);
+      if ((r.conversions || 0) > 0) convSet.add(p);
+      if (r.is_new) newSet.add(p);
+    });
+    kpis = {
+      avg_ctr: totalImpr > 0 ? totalClicks / totalImpr * 100 : 0,
+      avg_conv_rate: totalClicks > 0 ? totalConv / totalClicks * 100 : 0,
+      exposure_product_count: exposureSet.size,
+      click_product_count: clickSet.size,
+      conversion_product_count: convSet.size,
+      new_product_count: newSet.size
+    };
+  }
+
   const pct = v => `${Number(v || 0).toFixed(2)}%`;
 
   const avgCtrEl = document.getElementById('avgCtr');
@@ -1142,6 +1162,25 @@ async function getIndependentPreviousPeriodData(inputId = 'dateFilter') {
   return null;
 }
 
+// 统一获取产品的规范化路径
+function getProductPath(row) {
+  if (!row) return '';
+  let p = row.landing_path || row.landing_url || row.product || row.product_name || '';
+  if (!p) return '';
+  // 如果是完整URL，提取路径部分
+  if (p.startsWith('http')) {
+    try { p = new URL(p).pathname; } catch (_) {}
+  }
+  // 去掉查询参数和哈希
+  p = p.split('?')[0].split('#')[0];
+  // 去掉语言前缀，如 /es/
+  p = p.replace(/^\/[a-zA-Z]{2}(?:-[a-zA-Z]{2})?(?=\/)/, '');
+  // 确保以/products/开头
+  p = p.replace(/^\/+/,'');
+  if (!p.startsWith('products/')) p = 'products/' + p.replace(/^products\//,'');
+  return '/' + p;
+}
+
 // 填充独立站产品选择器
 function populateIndependentProductSelect(data, firstMap = {}) {
   const productSelect = document.getElementById('productSelect');
@@ -1151,15 +1190,19 @@ function populateIndependentProductSelect(data, firstMap = {}) {
 
   const seen = new Set();
   const list = [];
+  const domain = getCurrentSiteForAPI() || 'poolsvacuum.com';
+  const base = domain.startsWith('http') ? domain : `https://${domain}`;
   data.forEach(item => {
-    const key = item.landing_path;
-    if (!key || seen.has(key)) return;
-    seen.add(key);
+    const path = getProductPath(item);
+    if (!path || seen.has(path)) return;
+    seen.add(path);
+    const fullUrl = `${base}${path}`;
+    const name = item.product_name || item.product || path;
     list.push({
-      path: key,
-      name: item.product || key,
-      url: item.landing_url || '',
-      firstSeen: firstMap[key] || item.first_seen_date || '',
+      path,
+      name,
+      url: fullUrl,
+      firstSeen: firstMap[path] || item.first_seen_date || '',
       impr: item.impr || 0
     });
   });
@@ -1221,7 +1264,7 @@ async function loadIndependentProductData(landingPath, landingUrl, firstSeen) {
     const json = await res.json();
     if (!json.ok) return;
 
-    const rows = (json.table || []).filter(item => item.landing_path === landingPath);
+    const rows = (json.table || []).filter(item => getProductPath(item) === landingPath);
     if (!rows.length) return;
 
     const totalImpressions = rows.reduce((sum, r) => sum + (r.impr || r.impressions || 0), 0);
@@ -1257,7 +1300,7 @@ async function loadIndependentProductData(landingPath, landingUrl, firstSeen) {
     });
     // 获取上一周期数据
     const prev = await getIndependentPreviousPeriodData('productDate');
-    const prevRows = (prev?.table || []).filter(item => item.landing_path === landingPath);
+    const prevRows = (prev?.table || []).filter(item => getProductPath(item) === landingPath);
     const prevByDay = {};
     prevRows.forEach(r => {
       const d = r.day;
@@ -1559,36 +1602,9 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       const tabContent = document.createElement('div');
       tabContent.className = `tab-content ${index === 0 ? 'active' : ''}`;
       tabContent.id = `tab-${channel}`;
-      
-      // 根据渠道生成不同的表格头部
-      let tableHeaders = '';
-      if (channel === 'facebook_ads') {
-        tableHeaders = `
-          <thead>
-            <tr>
-              <th>商品编号</th><th>单日</th><th>广告系列名称</th><th>广告组名称</th>
-              <th>展示次数</th><th>频次</th><th>点击量（全部）</th><th>链接点击量</th>
-              <th>点击率（全部）</th><th>链接点击率</th><th>浏览量</th><th>加入购物车</th>
-              <th>结账发起次数</th><th>成效</th><th>开始日期</th><th>结束日期</th>
-            </tr>
-          </thead>
-        `;
-      } else {
-        tableHeaders = `
-          <thead>
-            <tr>
-              <th>产品</th><th>设备</th><th>网络</th><th>Campaign</th>
-              <th>点击</th><th>曝光</th><th>CTR <span class="help-icon" title="CTR = 总点击 / 总曝光">?</span></th><th>Avg CPC</th><th>Cost</th>
-              <th>转化</th><th>Cost/Conv</th><th>All conv</th><th>Conv value</th>
-              <th>All conv rate <span class="help-icon" title="All conv rate = All conv / 总点击">?</span></th><th>Conv rate <span class="help-icon" title="Conv rate = 转化 / 总点击">?</span></th>
-            </tr>
-          </thead>
-        `;
-      }
-      
+
       tabContent.innerHTML = `
         <table id="report-${channel}" class="data-table display nowrap" style="width:100%">
-          ${tableHeaders}
           <tbody></tbody>
         </table>
       `;
@@ -1644,18 +1660,18 @@ function getFacebookAdsColumns() {
     }, width: '200px' },
     { data: 'campaign_name', title: '广告系列名称', render: v => v || '', width: '150px' },
     { data: 'adset_name', title: '广告组名称', render: v => v || '', width: '150px' },
-    { data: 'reach', title: '覆盖人数', render: v => v ?? 0, width: '100px' },
-    { data: 'impr', title: '展示次数', render: v => v ?? 0, width: '100px' },
-    { data: 'page_views', title: '浏览量', render: v => v ?? 0, width: '100px' },
-    { data: 'cost_per_result', title: '单次成效费用', render: v => (v ?? 0).toFixed(2), width: '120px' },
-    { data: 'link_clicks', title: '链接点击量', render: v => v ?? 0, width: '100px' },
-    { data: 'link_ctr', title: '链接点击率', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' },
-    { data: 'clicks', title: '点击量（全部）', render: v => v ?? 0, width: '100px' },
-    { data: 'ctr', title: '点击率（全部）', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' },
-    { data: 'atc_total', title: '加入购物车', render: v => v ?? 0, width: '100px' },
-    { data: 'wishlist_adds', title: '加入心愿单次数', render: v => v ?? 0, width: '120px' },
-    { data: 'ic_total', title: '结账发起次数', render: v => v ?? 0, width: '120px' },
-    { data: 'results', title: '成效', render: v => v ?? 0, width: '100px' },
+    { data: 'reach', title: '覆盖人数', render: v => Number(v ?? 0), width: '100px' },
+    { data: 'impr', title: '展示次数', render: v => Number(v ?? 0), width: '100px' },
+    { data: 'page_views', title: '浏览量', render: v => Number(v ?? 0), width: '100px' },
+    { data: 'cost_per_result', title: '单次成效费用', render: v => Number(v ?? 0).toFixed(2), width: '120px' },
+    { data: 'link_clicks', title: '链接点击量', render: v => Number(v ?? 0), width: '100px' },
+    { data: 'link_ctr', title: '链接点击率', render: v => v != null ? (Number(v)*100).toFixed(2)+'%' : '0%', width: '100px' },
+    { data: 'clicks', title: '点击量（全部）', render: v => Number(v ?? 0), width: '100px' },
+    { data: 'ctr', title: '点击率（全部）', render: v => v != null ? (Number(v)*100).toFixed(2)+'%' : '0%', width: '100px' },
+    { data: 'atc_total', title: '加入购物车', render: v => Number(v ?? 0), width: '100px' },
+    { data: 'wishlist_adds', title: '加入心愿单次数', render: v => Number(v ?? 0), width: '120px' },
+    { data: 'ic_total', title: '结账发起次数', render: v => Number(v ?? 0), width: '120px' },
+    { data: 'results', title: '成效', render: v => Number(v ?? 0), width: '100px' },
   ];
 }
 
@@ -1663,23 +1679,27 @@ function getFacebookAdsColumns() {
   function getDefaultColumns() {
     return [
       { data: 'product', title: '产品', render: (v, t, r) => {
-        const name = v || r.landing_path || '';
-        return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
+        const name = r.product_name || v || r.landing_path || '';
+        const path = getProductPath(r);
+        const domain = getCurrentSiteForAPI() || 'poolsvacuum.com';
+        const base = domain.startsWith('http') ? domain : `https://${domain}`;
+        const landingUrl = path.startsWith('http') ? path : `${base}${path}`;
+        return `<a href="${landingUrl}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
       }, width: '200px' },
       { data: 'device', title: '设备', render: v => v || '', width: '80px' },
       { data: 'network', title: '网络', render: v => v || '', width: '100px' },
       { data: 'campaign', title: 'Campaign', render: v => v || '', width: '120px' },
-      { data: 'clicks', title: '点击', render: v => v ?? 0, width: '80px' },
-      { data: 'impr', title: '曝光', render: v => v ?? 0, width: '80px' },
-      { data: 'ctr', title: 'CTR', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '80px' },
-      { data: 'avg_cpc', title: 'Avg CPC', render: v => (v ?? 0).toFixed(2), width: '100px' },
-      { data: 'cost', title: 'Cost', render: v => (v ?? 0).toFixed(2), width: '100px' },
-      { data: 'conversions', title: '转化', render: v => v ?? 0, width: '80px' },
-      { data: 'cost_per_conv', title: 'Cost/Conv', render: v => (v ?? 0).toFixed(2), width: '100px' },
-      { data: 'all_conv', title: 'All conv', render: v => v ?? 0, width: '80px' },
-      { data: 'conv_value', title: 'Conv value', render: v => (v ?? 0).toFixed(2), width: '100px' },
-      { data: 'all_conv_rate', title: 'All conv rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '120px' },
-      { data: 'conv_rate', title: 'Conv rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' }
+      { data: 'clicks', title: '点击', render: v => Number(v ?? 0), width: '80px' },
+      { data: 'impr', title: '曝光', render: v => Number(v ?? 0), width: '80px' },
+      { data: 'ctr', title: 'CTR', render: v => v != null ? (Number(v)*100).toFixed(2)+'%' : '0%', width: '80px' },
+      { data: 'avg_cpc', title: 'Avg CPC', render: v => Number(v ?? 0).toFixed(2), width: '100px' },
+      { data: 'cost', title: 'Cost', render: v => Number(v ?? 0).toFixed(2), width: '100px' },
+      { data: 'conversions', title: '转化', render: v => Number(v ?? 0), width: '80px' },
+      { data: 'cost_per_conv', title: 'Cost/Conv', render: v => Number(v ?? 0).toFixed(2), width: '100px' },
+      { data: 'all_conv', title: 'All conv', render: v => Number(v ?? 0), width: '80px' },
+      { data: 'conv_value', title: 'Conv value', render: v => Number(v ?? 0).toFixed(2), width: '100px' },
+      { data: 'all_conv_rate', title: 'All conv rate', render: v => v != null ? (Number(v)*100).toFixed(2)+'%' : '0%', width: '120px' },
+      { data: 'conv_rate', title: 'Conv rate', render: v => v != null ? (Number(v)*100).toFixed(2)+'%' : '0%', width: '100px' }
     ];
   }
 
@@ -1791,7 +1811,7 @@ function getFacebookAdsColumns() {
       if (!params.get('site')) {
         params.set('site', getCurrentSiteForAPI());
       }
-      params.set('product', row.landing_path);
+      params.set('product', getProductPath(row));
       window.location.href = `independent-site.html?${params.toString()}#products`;
     });
   }
@@ -1813,9 +1833,9 @@ function getFacebookAdsColumns() {
     // API已经返回聚合好的数据，不需要重新聚合
     // 直接返回数据，只进行简单的排序
     return data.sort((a, b) => {
-      // 按产品名称排序
-      const productA = a.product || '';
-      const productB = b.product || '';
+      // 按产品名称排序，兼容不同数据源字段
+      const productA = a.product_name || a.product || getProductPath(a);
+      const productB = b.product_name || b.product || getProductPath(b);
       return productA.localeCompare(productB);
     });
   }
@@ -1910,7 +1930,7 @@ function getFacebookAdsColumns() {
       if (!params.get('site')) {
         params.set('site', getCurrentSiteForAPI());
       }
-      params.set('product', row.landing_path);
+      params.set('product', getProductPath(row));
       window.location.href = `independent-site.html?${params.toString()}#products`;
     });
   }
@@ -2105,14 +2125,15 @@ function getFacebookAdsColumns() {
       dt = null;
     }
     
-    // 确保表格元素存在
-    let $table = $('#report');
+    // 单渠道模式始终使用默认表格
+    const tableId = 'report';
+    let $table = $(`#${tableId}`);
     if ($table.length === 0) {
-      // 如果表格不存在，创建一个
-      $table = $('<table id="report" class="data-table display nowrap" style="width:100%"></table>');
-      $('.table-container').append($table);
+      // 如果默认表格不存在，创建一个并附加到详情容器中
+      $table = $(`<table id="${tableId}" class="data-table display nowrap" style="width:100%"></table>`);
+      $('#detailContent').append($table);
     }
-    
+
     // 清空并重建表格结构
     $table.empty();
     $table.html(`
@@ -2129,7 +2150,7 @@ function getFacebookAdsColumns() {
       console.log('开始初始化DataTables，数据长度:', validatedData.length, '列数:', columns.length);
       console.log('列定义:', columns.map(c => ({ data: c.data, title: c.title })));
       
-      dt = $('#report').DataTable({
+      dt = $table.DataTable({
         destroy: true,
         pageLength: 20,
         data: validatedData,
@@ -2196,7 +2217,7 @@ function getFacebookAdsColumns() {
         if (!params.get('site')) {
           params.set('site', getCurrentSiteForAPI());
         }
-        params.set('product', row.landing_path);
+        params.set('product', getProductPath(row));
         window.location.href = `independent-site.html?${params.toString()}#products`;
       });
     }
