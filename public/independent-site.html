@@ -879,6 +879,33 @@ function normalizeSite(site) {
   return map[site] || site || '';
 }
 
+// 获取当前站点名称用于API调用
+function getCurrentSiteForAPI() {
+  // URL参数优先
+  const urlParams = new URLSearchParams(window.location.search);
+  const siteParam = urlParams.get('site');
+  if (siteParam) {
+    return normalizeSite(siteParam);
+  }
+
+  // 其次尝试页面输入框
+  const input = document.getElementById('site');
+  if (input && input.value.trim()) {
+    return normalizeSite(input.value.trim());
+  }
+
+  // 再尝试localStorage
+  const stored =
+    localStorage.getItem('currentIndepSiteName') ||
+    localStorage.getItem('currentIndepSite');
+  if (stored) {
+    return normalizeSite(stored);
+  }
+
+  // 默认站点
+  return 'poolsvacuum.com';
+}
+
 // 独立站运营分析数据加载
 async function loadIndependentAnalysisData() {
   try {
@@ -2235,25 +2262,6 @@ function getFacebookAdsColumns() {
         }
       }
     }
-  }
-  
-  // 获取当前站点名称用于API调用
-  function getCurrentSiteForAPI() {
-    // 从URL参数获取（优先级最高）
-    const urlParams = new URLSearchParams(window.location.search);
-    const siteParam = urlParams.get('site');
-    if (siteParam) {
-      return normalizeSite(siteParam);
-    }
-
-    // 从页面输入框获取
-    const siteInputValue = siteInput.value.trim();
-    if (siteInputValue) {
-      return normalizeSite(siteInputValue);
-    }
-    
-    // 默认值
-    return 'poolsvacuum.com';
   }
   
   // 默认站点取 url 参数、当前选中的站点或从示例取
