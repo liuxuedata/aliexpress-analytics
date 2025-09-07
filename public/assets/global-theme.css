@@ -67,12 +67,13 @@ body {
   line-height: 1.6;
   color: var(--primary-800);
   background-color: var(--primary-50);
+  font-size: clamp(14px, 1.5vw, 16px);
 }
 
 /* 3. KPI卡片系统 */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--space-6);
   margin: var(--space-6) 0;
 }
@@ -137,6 +138,21 @@ body {
 
 .kpi-card .delta.down {
   color: var(--brand-red);
+}
+
+@media (max-width: 768px) {
+  .kpi-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+  .kpi-card {
+    padding: var(--space-4);
+  }
+  .kpi-card h4 {
+    font-size: 0.75rem;
+  }
+  .kpi-card p {
+    font-size: 1.5rem;
+  }
 }
 
 /* KPI卡片变体 */
