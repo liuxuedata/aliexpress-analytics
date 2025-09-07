@@ -1982,11 +1982,12 @@ function getFacebookAdsColumns() {
       sampleRawData: rawTable.slice(0, 2)
     });
     
-    if(channel) {
-      if(channel === 'google_ads') data = data.filter(r=>r.network==='google');
-      else if(channel === 'facebook_ads') data = data.filter(r=>r.network==='facebook');
-      else if(channel === 'tiktok_ads') data = data.filter(r=>r.network==='tiktok');
-      
+    if (channel) {
+      const match = (val, target) => (val || '').toLowerCase().includes(target);
+      if (channel === 'google_ads') data = data.filter(r => match(r.network, 'google'));
+      else if (channel === 'facebook_ads') data = data.filter(r => match(r.network, 'facebook'));
+      else if (channel === 'tiktok_ads') data = data.filter(r => match(r.network, 'tiktok'));
+
       console.log('渠道过滤后数据长度:', data.length);
     }
     if(net) data = data.filter(r=>r.network===net);
