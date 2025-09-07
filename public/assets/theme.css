@@ -358,6 +358,13 @@ table.dataTable thead th.sorting_desc{
 
 /* Override self-operated KPI sub/delta colors for contrast */
 .kpi .card .sub{ color:#f1f5f9; }
+
+@media (max-width:768px){
+  .stat-card,
+  .kpi .card{ padding:12px; }
+  .stat-card p,
+  .kpi .card p{ font-size:22px; }
+}
 .kpi .card .delta.up{ color:#bbf7d0; }
 .kpi .card .delta.down{ color:#fecaca; }
 .kpi .card a{ color:#fff; text-decoration:underline; }

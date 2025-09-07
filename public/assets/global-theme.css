@@ -389,13 +389,31 @@ body {
   .grid-2, .grid-3, .grid-4 {
     grid-template-columns: 1fr;
   }
-  
+
   .kpi-card {
     padding: var(--space-4);
   }
-  
+
+  .kpi-card h4 {
+    font-size: 0.75rem;
+  }
+
+  .kpi-card p {
+    font-size: 1.5rem;
+  }
+
   .chart-container {
     padding: var(--space-4);
+  }
+}
+
+@media (max-width: 480px) {
+  .kpi-card {
+    padding: var(--space-3);
+  }
+
+  .kpi-card p {
+    font-size: 1.25rem;
   }
 }
 
