@@ -1635,12 +1635,12 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       { data: 'clicks', title: '点击量（全部）', render: v => v ?? 0, width: '100px' },
       { data: 'ctr', title: '点击率（全部）', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' },
       { data: 'atc_total', title: '加入购物车', render: v => v ?? 0, width: '100px' },
-      { data: 'wishlist_adds', title: '加入心愿单次数', render: v => v ?? 0, width: '120px' },
-      { data: 'ic_total', title: '结账发起次数', render: v => v ?? 0, width: '120px' },
-      { data: 'results', title: '成效', render: v => v ?? 0, width: '100px' },
-      { data: 'row_start_date', title: '开始日期', render: v => v || '', width: '100px' },
+      { data: 'wishlist_adds', title: '加入心愿单次数', render: v => v ?? 0, width: '120px' }
       
       // 通过筛选展示的次要字段（默认隐藏）
+      { data: 'ic_total', title: '结账发起次数', render: v => v ?? 0, width: '120px', visible: false },
+      { data: 'results', title: '成效', render: v => v ?? 0, width: '100px', visible: false },
+      { data: 'row_start_date', title: '开始日期', render: v => v || '', width: '100px', visible: false },
       { data: 'store_clicks', title: '店铺点击量', render: v => v ?? 0, width: '100px', visible: false },
       { data: 'unique_link_clicks', title: '链接点击量 - 独立用户', render: v => v ?? 0, width: '150px', visible: false },
       { data: 'unique_clicks', title: '点击量（全部）- 独立用户', render: v => v ?? 0, width: '150px', visible: false },
