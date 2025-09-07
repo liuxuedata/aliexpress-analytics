@@ -2096,12 +2096,37 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       }
     }
     
+    // 完全销毁现有表格
+    if (dt) {
+      dt.destroy();
+      dt = null;
+    }
+    
+    // 清空表格内容
+    $('#report').empty();
+    
+    // 重新创建表格结构
+    const tableHtml = `
+      <table id="report" class="data-table display nowrap" style="width:100%">
+        <thead>
+          <tr>
+            ${columns.map(col => `<th>${col.title}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    `;
+    
+    // 替换表格HTML
+    $('#report').parent().html(tableHtml);
+    
+    // 重新初始化DataTables
     dt = $('#report').DataTable({
-      destroy:true,
-      pageLength:20,
+      destroy: true,
+      pageLength: 20,
       data: validatedData,
       scrollX: false,
-      fixedHeader:true,
+      fixedHeader: true,
       autoWidth: true,
       processing: true,
       responsive: false,
@@ -2111,7 +2136,7 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
         zeroRecords: "没有找到匹配的记录"
       }
     });
-    console.log('DataTables初始化成功');
+    console.log('DataTables重新初始化成功');
     // 根据渠道类型隐藏不同的列
     if (currentChannel === 'facebook_ads') {
       // Facebook Ads 列：所有列都显示（已在列定义中处理）
