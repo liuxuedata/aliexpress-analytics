@@ -31,6 +31,9 @@
 - **Ozon**：俄罗斯市场分析
 - **独立站**：多渠道广告数据统一管理
 
+### 📈 自运营查询 API 更新
+- `/api/ae_query` 现在返回 `visitor_ratio`、`add_to_cart_ratio` 和 `payment_ratio` 等比率字段的原始小数（例如 `0.15` 表示 15%），前端应使用 `formatPercentage` 等工具进行百分比格式化。
+
 ---
 
 ## Facebook Ads 优化记录 (2025-01-07)
