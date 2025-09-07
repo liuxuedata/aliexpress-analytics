@@ -15,10 +15,22 @@ module.exports = async (req, res) => {
       d.setDate(d.getDate() - 90);
       return d.toISOString().slice(0,10);
     })();
+    
+    // Detect existing columns to avoid selecting non-existent fields
+    const probe = await supabase.from('managed_stats').select('*').limit(1);
+    const cols = probe.data && probe.data[0] ? Object.keys(probe.data[0]) : [];
+    const has = (c) => cols.includes(c);
+    const sel = ['period_end', 'uv'];
+    if (has('add_to_cart_users')) sel.push('add_to_cart_users');
+    if (has('add_people')) sel.push('add_people');
+    if (has('pay_buyers')) sel.push('pay_buyers');
+    if (has('pay_items')) sel.push('pay_items');
+    if (has('pay_people')) sel.push('pay_people');
+    const selStr = sel.join(', ');
 
     let { data, error } = await supabase
       .from('managed_stats')
-      .select('period_end, uv, add_to_cart_users, add_people, pay_buyers, pay_items, pay_people')
+      .select(selStr)
       .eq('period_type', 'day')
       .gte('period_end', from)
       .lte('period_end', to)
@@ -26,7 +38,7 @@ module.exports = async (req, res) => {
     if (error || !data || !data.length) {
       const resp = await supabase
         .from('managed_stats')
-        .select('period_end, uv, add_to_cart_users, add_people, pay_buyers, pay_items, pay_people')
+        .select(selStr)
         .eq('period_type', 'week')
         .gte('period_end', from)
         .lte('period_end', to)
