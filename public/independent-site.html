@@ -1740,18 +1740,53 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     // 获取渠道专用的列定义
     const columns = getChannelColumns(channel);
 
-    // 创建新的DataTable
-    window[`dt_${channel}`] = $(`#${tableId}`).DataTable({
-      destroy: true,
-      pageLength: 20,
-      data: aggregatedData,
-      scrollX: false,
-      fixedHeader: true,
-      autoWidth: true,
-      processing: true,
-      responsive: false,
-      columns: columns
+    // 数据验证：确保每条数据都有必需的字段
+    const validatedChannelData = aggregatedData.map(row => {
+      const validatedRow = {};
+      columns.forEach(col => {
+        const fieldName = col.data;
+        validatedRow[fieldName] = row[fieldName] !== undefined ? row[fieldName] : null;
+      });
+      return validatedRow;
     });
+    
+    console.log(`渠道${channel}数据验证结果:`, {
+      originalDataLength: aggregatedData.length,
+      validatedDataLength: validatedChannelData.length,
+      sampleValidatedData: validatedChannelData.slice(0, 1)
+    });
+    
+    try {
+      // 创建新的DataTable
+      window[`dt_${channel}`] = $(`#${tableId}`).DataTable({
+        destroy: true,
+        pageLength: 20,
+        data: validatedChannelData,
+        scrollX: false,
+        fixedHeader: true,
+        autoWidth: true,
+        processing: true,
+        responsive: false,
+        columns: columns
+      });
+      console.log(`渠道${channel} DataTables初始化成功`);
+    } catch (error) {
+      console.error(`渠道${channel} DataTables初始化失败:`, error);
+      // 如果初始化失败，尝试使用简化的列定义
+      const simplifiedColumns = columns.slice(0, 15); // 只使用前15个列
+      window[`dt_${channel}`] = $(`#${tableId}`).DataTable({
+        destroy: true,
+        pageLength: 20,
+        data: validatedChannelData,
+        scrollX: false,
+        fixedHeader: true,
+        autoWidth: true,
+        processing: true,
+        responsive: false,
+        columns: simplifiedColumns
+      });
+      console.log(`渠道${channel}使用简化列定义初始化成功`);
+    }
 
     // 根据渠道类型设置列的可见性
     if (channel === 'facebook_ads') {
@@ -2066,21 +2101,60 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       data = [];
     }
     
-    dt = $('#report').DataTable({
-      destroy:true,
-      pageLength:20,
-      data,
-      scrollX: false,
-      fixedHeader:true,
-      autoWidth: true,
-      processing: true,
-      responsive: false,
-      columns: columns,
-      language: {
-        emptyTable: "暂无数据",
-        zeroRecords: "没有找到匹配的记录"
-      }
+    // 数据验证：确保每条数据都有必需的字段
+    const validatedData = data.map(row => {
+      const validatedRow = {};
+      columns.forEach(col => {
+        const fieldName = col.data;
+        validatedRow[fieldName] = row[fieldName] !== undefined ? row[fieldName] : null;
+      });
+      return validatedRow;
     });
+    
+    console.log('数据验证结果:', {
+      originalDataLength: data.length,
+      validatedDataLength: validatedData.length,
+      sampleValidatedData: validatedData.slice(0, 1)
+    });
+    
+    try {
+      dt = $('#report').DataTable({
+        destroy:true,
+        pageLength:20,
+        data: validatedData,
+        scrollX: false,
+        fixedHeader:true,
+        autoWidth: true,
+        processing: true,
+        responsive: false,
+        columns: columns,
+        language: {
+          emptyTable: "暂无数据",
+          zeroRecords: "没有找到匹配的记录"
+        }
+      });
+      console.log('DataTables初始化成功');
+    } catch (error) {
+      console.error('DataTables初始化失败:', error);
+      // 如果初始化失败，尝试使用简化的列定义
+      const simplifiedColumns = columns.slice(0, 15); // 只使用前15个列
+      dt = $('#report').DataTable({
+        destroy:true,
+        pageLength:20,
+        data: validatedData,
+        scrollX: false,
+        fixedHeader:true,
+        autoWidth: true,
+        processing: true,
+        responsive: false,
+        columns: simplifiedColumns,
+        language: {
+          emptyTable: "暂无数据",
+          zeroRecords: "没有找到匹配的记录"
+        }
+      });
+      console.log('使用简化列定义初始化成功');
+    }
     // 根据渠道类型隐藏不同的列
     if (currentChannel === 'facebook_ads') {
       // Facebook Ads 列：隐藏投放状态和投放层级，显示其他所有列
