@@ -1941,14 +1941,25 @@ function getFacebookAdsColumns() {
         const networks = [...new Set(rawTable.map(r => r.network))];
         if (networks.includes('facebook')) {
           currentChannel = 'facebook_ads';
-        } else if (networks.includes('tiktok')) {
-          currentChannel = 'tiktok_ads';
-        } else {
-          currentChannel = 'google_ads';
-        }
+      } else if (networks.includes('tiktok')) {
+        currentChannel = 'tiktok_ads';
+      } else {
+        currentChannel = 'google_ads';
       }
     }
-    
+  }
+
+    // 如果仍未识别为 Facebook Ads，则根据字段特征自动识别
+    if (currentChannel !== 'facebook_ads') {
+      const firstRow = rawTable[0] || {};
+      const facebookFields = ['product_id', 'campaign_name', 'adset_name', 'reach'];
+      const hasFacebookField = facebookFields.some(key => firstRow[key] !== undefined);
+      if (hasFacebookField) {
+        currentChannel = 'facebook_ads';
+        console.log('根据数据字段自动识别为 Facebook Ads 渠道');
+      }
+    }
+
     console.log('单渠道表格渲染:', {
       currentChannel,
       rawTableLength: rawTable.length,
