@@ -810,27 +810,28 @@ module.exports = async (req, res) => {
             first_seen_date: r.first_seen_date
           });
           } else {
-            // Google Ads 和其他渠道的字段结构（保持原有结构）
-            productMap.set(productIdOnly, {
-              product: key, // 商品标识
-              product_display_name: productName, // 商品显示名称
-              clicks: 0,
-              impr: 0,
-              ctr: 0,
-              avg_cpc: 0,
-              cost: 0,
-              conversions: 0,
-              cost_per_conv: 0,
-              all_conv: 0,
-              conv_value: 0,
-              all_conv_rate: 0,
-              conv_rate: 0,
-              is_new: false,
-              first_seen_date: null
-            });
+          // Google Ads 和其他渠道的字段结构（保持原有结构）
+          productMap.set(productIdOnly, {
+            product: key, // 商品标识
+            product_display_name: productName, // 商品显示名称
+            clicks: 0,
+            impr: 0,
+            ctr: 0,
+            avg_cpc: 0,
+            cost: 0,
+            conversions: 0,
+            cost_per_conv: 0,
+            all_conv: 0,
+            conv_value: 0,
+            all_conv_rate: 0,
+            conv_rate: 0,
+            // 初始化新品状态与首见日期
+            is_new: !!r.is_new,
+            first_seen_date: r.first_seen_date || null
+          });
           }
         }
-        
+
         const existing = productMap.get(productIdOnly);
         // 累加基础指标 - 使用安全的数值处理
         existing.clicks += (r.clicks || 0);
@@ -840,6 +841,12 @@ module.exports = async (req, res) => {
         existing.all_conv += (r.all_conv || 0);
         existing.conv_value += (r.conv_value || 0);
         existing.days += 1;
+
+        // 保留新品标识及最早首见日期
+        existing.is_new = existing.is_new || !!r.is_new;
+        if (!existing.first_seen_date || (r.first_seen_date && new Date(r.first_seen_date) < new Date(existing.first_seen_date))) {
+          existing.first_seen_date = r.first_seen_date;
+        }
         
         // 累加Facebook Ads完整字段（仅对Facebook Ads）
         if (channel === 'facebook_ads') {
