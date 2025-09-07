@@ -143,8 +143,8 @@ WHERE site = 'ae_self_operated_a';
 SELECT 
   '独立站数据查询测试' as test_name,
   COUNT(*) as total_records
-FROM independent_landing_metrics 
-WHERE site = 'poolsvacuum.com'
+FROM independent_landing_metrics
+WHERE site = 'poolsvacuum'
 LIMIT 1;
 
 -- 12. 总结

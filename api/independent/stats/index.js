@@ -69,7 +69,7 @@ module.exports = async (req, res) => {
 
     console.log('独立站查询参数:', { site, from: fromDate, to: toDate, limit, only_new, campaign, network, device, aggregate });
 
-    if (!site) return res.status(400).json({ error: 'missing site param, e.g. ?site=poolsvacuum.com' });
+    if (!site) return res.status(400).json({ error: 'missing site param, e.g. ?site=poolsvacuum' });
 
     // table data (fetch all pages up to limit)
     const limitNum = Math.min(Number(limit) || PAGE_SIZE, 20000);

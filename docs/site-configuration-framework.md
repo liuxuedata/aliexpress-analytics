@@ -12,7 +12,7 @@
 -- 站点基础信息
 CREATE TABLE public.site_configs (
   id          text primary key,
-  name        text not null,                    -- 站点名称（如：icyberite.com）
+  name        text not null,                    -- 站点短名（如：icyberite）
   platform    text not null,                    -- 平台类型
   display_name text not null,                   -- 显示名称
   domain      text,                             -- 域名
@@ -192,6 +192,6 @@ CREATE TABLE public.dynamic_tables (
 - [ ] 实现页面框架自动生成
 
 ### 阶段4：测试和优化
-- [ ] 测试icyberite.com站点
-- [ ] 测试poolsvacuum.com站点
+- [ ] 测试icyberite站点
+- [ ] 测试poolsvacuum站点
 - [ ] 性能优化和错误处理
