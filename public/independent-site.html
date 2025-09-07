@@ -917,12 +917,13 @@ async function loadIndependentAnalysisData() {
       return;
     }
 
-    const dateRange = getDateRange('analysisDate');
-    const params = new URLSearchParams({
-      site: site,
-      from: dateRange.start,
-      to: dateRange.end
-    });
+  const dateRange = getDateRange('analysisDate');
+  const params = new URLSearchParams({
+    site: site,
+    from: dateRange.start,
+    to: dateRange.end,
+    aggregate: 'product'
+  });
 
     // 获取当前周期数据
     const response = await fetch(`/api/independent/stats?${params.toString()}`);
