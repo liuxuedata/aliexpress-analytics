@@ -45,12 +45,12 @@ table.dataTable tbody td,table.dataTable thead th{border-color:#172554!important
 .notice{font-size:12px;color:var(--muted,#9ca3af)}
 
 /* --- KPI grid & cards --- */
-.kpi{display:grid;grid-template-columns:repeat(6,minmax(160px,1fr));gap:10px;margin:10px 16px}
-.card{background:var(--panel,#0f172a);color:#fff;padding:12px;border-radius:12px;min-width:160px;box-shadow:0 0 0 1px rgba(148,163,184,.12) inset}
-.card h4{margin:0 0 6px;font-size:13px;color:#93c5fd;font-weight:600}
-.card p{margin:0;font-size:18px;font-weight:800;letter-spacing:.2px}
-.card .sub{margin-top:4px;font-size:12px;color:#9ca3af}
-.card .delta{margin-left:6px;font-size:12px;font-weight:600}
+.kpi{display:grid;grid-template-columns:repeat(6,minmax(140px,1fr));gap:8px;margin:10px 16px}
+.card{background:var(--panel,#0f172a);color:#fff;padding:10px;border-radius:12px;min-width:140px;box-shadow:0 0 0 1px rgba(148,163,184,.12) inset}
+.card h4{margin:0 0 6px;font-size:11px;color:#93c5fd;font-weight:600}
+.card p{margin:0;font-size:16px;font-weight:800;letter-spacing:.2px}
+.card .sub{margin-top:4px;font-size:10px;color:#9ca3af}
+.card .delta{margin-left:6px;font-size:10px;font-weight:600}
 .card .delta.up{color:#10b981}
 .card .delta.down{color:#ef4444}
 
@@ -67,7 +67,7 @@ table.dataTable tbody td,table.dataTable thead th{border-color:#172554!important
 input[type="file"]{display:none !important}
 
 /* --- Responsive adjustments for KPI grid --- */
-@media (max-width:1280px){.kpi{grid-template-columns:repeat(4,minmax(160px,1fr))}}
-@media (max-width:1024px){.kpi{grid-template-columns:repeat(3,minmax(160px,1fr))}}
-@media (max-width:768px){.kpi{grid-template-columns:repeat(2,minmax(160px,1fr))}}
-@media (max-width:480px){.kpi{grid-template-columns:repeat(1,minmax(160px,1fr))}}
+@media (max-width:1280px){.kpi{grid-template-columns:repeat(4,minmax(140px,1fr))}}
+@media (max-width:1024px){.kpi{grid-template-columns:repeat(3,minmax(140px,1fr))}}
+@media (max-width:768px){.kpi{grid-template-columns:repeat(2,minmax(140px,1fr))}}
+@media (max-width:480px){.kpi{grid-template-columns:repeat(1,minmax(140px,1fr))}}

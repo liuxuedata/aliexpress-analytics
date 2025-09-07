@@ -193,11 +193,11 @@ table.dataTable td{
 /* ------ KPI Cards (managed.html) ------ */
 .stat-card{
   background:var(--kpi-bg); border:1px solid var(--kpi-border);
-  border-radius:14px; padding:12px 14px; box-shadow:var(--shadow);
+  border-radius:14px; padding:8px 10px; box-shadow:var(--shadow);
 }
-.stat-card h4{ margin:0 0 6px; color:#334155; font-size:12px; letter-spacing:.2px }
-.stat-card p{ margin:0; color:#0f172a; font-size:28px; font-weight:900; line-height:1.1 }
-#kpi{ display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px }
+.stat-card h4{ margin:0 0 6px; color:#334155; font-size:10px; letter-spacing:.2px }
+.stat-card p{ margin:0; color:#0f172a; font-size:22px; font-weight:900; line-height:1.1 }
+#kpi{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px }
 
 /* ------ Tables: DataTables High-Contrast Light ------ */
 #report_wrapper{ background:#fff; border-radius:12px; padding:8px; border:1px solid var(--panel-border); box-shadow:var(--shadow) }
@@ -279,7 +279,7 @@ table.dataTable thead th.sorting_desc{
 */
 .kpi{
   display:flex;
-  gap:12px;
+  gap:8px;
   padding:0 12px;
   margin:10px 0;
   overflow:auto;           /* allow horizontal scroll if viewport too narrow */
@@ -292,15 +292,15 @@ table.dataTable thead th.sorting_desc{
   background:var(--kpi-bg);
   border:1px solid var(--kpi-border);
   border-radius:14px;
-  padding:12px 14px;
-  min-width:200px;         /* keep readable width */
+  padding:8px 10px;
+  min-width:160px;         /* keep readable width */
   box-shadow: var(--shadow);
   flex:0 0 1;              /* fixed width cards for single-row layout */
 }
-.kpi .card h4{ margin:0 0 6px; color:#334155; font-size:12px; letter-spacing:.2px }
-.kpi .card p{ margin:0; color:#0f172a; font-size:22px; font-weight:900; line-height:1.1 }
-.kpi .card .sub{ margin-top:4px; font-size:12px; color:#6b7280 }
-.kpi .card .delta{ margin-left:6px; font-size:12px; font-weight:700 }
+.kpi .card h4{ margin:0 0 6px; color:#334155; font-size:10px; letter-spacing:.2px }
+.kpi .card p{ margin:0; color:#0f172a; font-size:18px; font-weight:900; line-height:1.1 }
+.kpi .card .sub{ margin-top:4px; font-size:10px; color:#6b7280 }
+.kpi .card .delta{ margin-left:6px; font-size:10px; font-weight:700 }
 .kpi .card .delta.up{ color:#10b981 }
 .kpi .card .delta.down{ color:#ef4444 }
 
@@ -351,8 +351,8 @@ table.dataTable thead th.sorting_desc{
   background:linear-gradient(135deg,#9d174d,#db2777);
 }
 
-#kpi .stat-card .sub{ margin-top:4px; font-size:12px; color:#f1f5f9; }
-#kpi .stat-card .delta{ margin-left:6px; font-size:12px; font-weight:700; }
+#kpi .stat-card .sub{ margin-top:4px; font-size:10px; color:#f1f5f9; }
+#kpi .stat-card .delta{ margin-left:6px; font-size:10px; font-weight:700; }
 #kpi .stat-card .delta.up{ color:#bbf7d0; }
 #kpi .stat-card .delta.down{ color:#fecaca; }
 
