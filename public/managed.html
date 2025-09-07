@@ -166,8 +166,16 @@
       <div id="funnel" style="width:100%;height:320px;"></div>
     </div>
     <div class="panel">
-      <h3>周期对比（曝光 / 加购件数 / 支付订单数）</h3>
-      <div id="sumCompareBar" style="width:100%;height:320px;"></div>
+      <h3>曝光周期对比</h3>
+      <div id="expCompareBar" style="width:100%;height:320px;"></div>
+    </div>
+    <div class="panel">
+      <h3>加购件数对比</h3>
+      <div id="addCompareBar" style="width:100%;height:320px;"></div>
+    </div>
+    <div class="panel">
+      <h3>支付订单数对比</h3>
+      <div id="payCompareBar" style="width:100%;height:320px;"></div>
     </div>
     <div class="panel">
       <h3>Top10 访客比（UV/曝光）</h3>
@@ -725,24 +733,30 @@
     }
   }catch(e){ console.warn(e); }
 
-  // Grouped sum comparison
-  try{
-    const el = document.getElementById('sumCompareBar');
-    if (el){
-      const option = {
-        tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
-        legend:{ data:[nameA,nameB], textStyle:{color:'#374151'} },
-        xAxis:{ type:'category', data:['总展示数','详情页访客数','加购次数','订购次数','有加购商品数'], axisLabel:{color:'#374151'} },
-        yAxis:{ type:'value', axisLabel:{color:'#374151'} },
-        series:[
-          { name:nameA, type:'bar', data:[A.exp, A.uv, A.atc_qty, A.pay_orders, A.atc_products], barMaxWidth:28, label:{show:true, position:'top'}, itemStyle:{color:COLOR_A} },
-          { name:nameB, type:'bar', data:[B.exp, B.uv, B.atc_qty, B.pay_orders, B.atc_products], barMaxWidth:28, label:{show:true, position:'top'}, itemStyle:{color:COLOR_B} }
-        ],
-        grid:{ left:40, right:20, top:30, bottom:40 }
-      };
-      initResponsiveChart(el, option);
-    }
-  }catch(e){ console.warn(e); }
+  // Period comparison charts
+  const renderCompare = (elId, label, curVal, prevVal) => {
+    try{
+      const el = document.getElementById(elId);
+      if (el){
+        const option = {
+          tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+          legend:{ data:[nameA,nameB], textStyle:{color:'#374151'} },
+          xAxis:{ type:'category', data:[label], axisLabel:{color:'#374151'} },
+          yAxis:{ type:'value', axisLabel:{color:'#374151'} },
+          series:[
+            { name:nameA, type:'bar', data:[curVal], barMaxWidth:28, label:{show:true, position:'top'}, itemStyle:{color:COLOR_A} },
+            { name:nameB, type:'bar', data:[prevVal], barMaxWidth:28, label:{show:true, position:'top'}, itemStyle:{color:COLOR_B} }
+          ],
+          grid:{ left:40, right:20, top:30, bottom:40 }
+        };
+        initResponsiveChart(el, option);
+      }
+    }catch(e){ console.warn(e); }
+  };
+
+  renderCompare('expCompareBar','曝光',A.exp,B.exp);
+  renderCompare('addCompareBar','加购件数',A.atc_qty,B.atc_qty);
+  renderCompare('payCompareBar','支付订单数',A.pay_orders,B.pay_orders);
 
   // Top charts for A
   function topByRate(rows, denKey, numKey, elId, minDen){
