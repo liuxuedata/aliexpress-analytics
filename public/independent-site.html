@@ -808,17 +808,7 @@
         
         <!-- 单渠道数据表格（默认显示） -->
         <div id="detailContent">
-          <table id="report" class="data-table display nowrap" style="width:100%">
-            <thead>
-              <tr>
-                <th>产品</th><th>设备</th><th>网络</th><th>Campaign</th>
-                <th>点击</th><th>曝光</th><th>CTR <span class="help-icon" title="CTR = 总点击 / 总曝光">?</span></th><th>Avg CPC</th><th>Cost</th>
-                <th>转化</th><th>Cost/Conv</th><th>All conv</th><th>Conv value</th>
-                <th>All conv rate <span class="help-icon" title="All conv rate = All conv / 总点击">?</span></th><th>Conv rate <span class="help-icon" title="Conv rate = 转化 / 总点击">?</span></th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
+          <table id="report" class="data-table display nowrap" style="width:100%"></table>
         </div>
       </div>
     </section>
@@ -1240,8 +1230,12 @@ async function loadIndependentProductData(landingPath, landingUrl, firstSeen) {
 
     const linkEl = document.getElementById('productLink');
     if (linkEl && landingUrl) {
-      linkEl.href = landingUrl;
-      linkEl.textContent = landingUrl;
+      const domain = getCurrentSiteForAPI();
+      const fullUrl = landingUrl.startsWith('http')
+        ? landingUrl
+        : `https://${domain}${landingPath.startsWith('/') ? landingPath : '/' + landingPath}`;
+      linkEl.href = fullUrl;
+      linkEl.textContent = fullUrl;
       linkEl.style.display = '';
     }
     const dateEl = document.getElementById('productListingDate');
@@ -1560,37 +1554,9 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       tabContent.className = `tab-content ${index === 0 ? 'active' : ''}`;
       tabContent.id = `tab-${channel}`;
       
-      // 根据渠道生成不同的表格头部
-      let tableHeaders = '';
-      if (channel === 'facebook_ads') {
-        tableHeaders = `
-          <thead>
-            <tr>
-              <th>商品编号</th><th>单日</th><th>广告系列名称</th><th>广告组名称</th>
-              <th>展示次数</th><th>频次</th><th>点击量（全部）</th><th>链接点击量</th>
-              <th>点击率（全部）</th><th>链接点击率</th><th>浏览量</th><th>加入购物车</th>
-              <th>结账发起次数</th><th>成效</th><th>开始日期</th><th>结束日期</th>
-            </tr>
-          </thead>
-        `;
-      } else {
-        tableHeaders = `
-          <thead>
-            <tr>
-              <th>产品</th><th>设备</th><th>网络</th><th>Campaign</th>
-              <th>点击</th><th>曝光</th><th>CTR <span class="help-icon" title="CTR = 总点击 / 总曝光">?</span></th><th>Avg CPC</th><th>Cost</th>
-              <th>转化</th><th>Cost/Conv</th><th>All conv</th><th>Conv value</th>
-              <th>All conv rate <span class="help-icon" title="All conv rate = All conv / 总点击">?</span></th><th>Conv rate <span class="help-icon" title="Conv rate = 转化 / 总点击">?</span></th>
-            </tr>
-          </thead>
-        `;
-      }
-      
+      // 创建空表格，列头由 DataTables 根据列定义生成
       tabContent.innerHTML = `
-        <table id="report-${channel}" class="data-table display nowrap" style="width:100%">
-          ${tableHeaders}
-          <tbody></tbody>
-        </table>
+        <table id="report-${channel}" class="data-table display nowrap" style="width:100%"></table>
       `;
       tabContents.appendChild(tabContent);
     });
@@ -1664,7 +1630,12 @@ function getFacebookAdsColumns() {
     return [
       { data: 'product', title: '产品', render: (v, t, r) => {
         const name = v || r.landing_path || '';
-        return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
+        const domain = getCurrentSiteForAPI();
+        const path = r.landing_path || '';
+        const url = r.landing_url && r.landing_url.startsWith('http')
+          ? r.landing_url
+          : `https://${domain}${path.startsWith('/') ? path : '/' + path}`;
+        return `<a href="${url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
       }, width: '200px' },
       { data: 'device', title: '设备', render: v => v || '', width: '80px' },
       { data: 'network', title: '网络', render: v => v || '', width: '100px' },
