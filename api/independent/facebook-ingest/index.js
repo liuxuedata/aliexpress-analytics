@@ -585,7 +585,7 @@ export default async function handler(req, res) {
     const { data, error } = await supabase
       .from(tableName)
       .upsert(records, {
-        onConflict: 'site,day,campaign_name,adset_name'
+        onConflict: 'site,day,campaign_name,adset_name,ad_name'
       });
 
     if (error) {
