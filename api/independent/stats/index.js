@@ -308,9 +308,82 @@ async function queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, ca
     if (!data.length || data.length < PAGE_SIZE) break;
   }
   
+  // 转换 Google Ads 数据格式为统一格式
+  const transformedData = table.map(r => ({
+    site: site, // 使用原始的site值，而不是数据库中的值
+    day: r.day,
+    product_id: r.product_id || '', // 商品编号
+    product_name: r.product_name || '', // 商品名称
+    landing_path: r.landing_path || '',
+    landing_url: r.landing_url || '',
+    campaign: r.campaign,
+    network: r.network || 'google',
+    device: r.device || 'all',
+    
+    // 核心指标字段
+    clicks: safeNum(r.clicks),
+    impr: safeNum(r.impressions),
+    ctr: safeNum(r.ctr),
+    avg_cpc: safeNum(r.avg_cpc),
+    cost: safeNum(r.cost),
+    conversions: safeNum(r.conversions),
+    cost_per_conv: r.conversions > 0 ? safeNum(r.cost / r.conversions) : 0,
+    all_conv: safeNum(r.all_conv),
+    conv_value: safeNum(r.conv_value),
+    all_conv_rate: r.impressions > 0 ? safeNum(r.all_conv / r.impressions * 100) : 0,
+    conv_rate: r.clicks > 0 ? safeNum(r.conversions / r.clicks * 100) : 0,
+    
+    // Google Ads 完整字段映射
+    campaign_name: r.campaign || '',
+    adset_name: '', // Google Ads 没有 adset_name
+    ad_name: '', // Google Ads 没有 ad_name
+    delivery_status: '', // Google Ads 没有 delivery_status
+    delivery_level: '', // Google Ads 没有 delivery_level
+    attribution_setting: '', // Google Ads 没有 attribution_setting
+    objective: '', // Google Ads 没有 objective
+    reach: 0, // Google Ads 没有 reach
+    frequency: 0, // Google Ads 没有 frequency
+    link_clicks: safeNum(r.clicks), // Google Ads 使用 clicks 作为 link_clicks
+    unique_link_clicks: safeNum(r.clicks), // Google Ads 没有 unique_link_clicks
+    unique_clicks: safeNum(r.clicks), // Google Ads 没有 unique_clicks
+    link_ctr: safeNum(r.ctr), // Google Ads 使用 ctr 作为 link_ctr
+    unique_ctr_all: safeNum(r.ctr), // Google Ads 没有 unique_ctr_all
+    cpm: r.impressions > 0 ? safeNum(r.cost / r.impressions * 1000) : 0,
+    cpc_link: safeNum(r.avg_cpc), // Google Ads 使用 avg_cpc 作为 cpc_link
+    results: safeNum(r.conversions), // Google Ads 使用 conversions 作为 results
+    cost_per_result: r.conversions > 0 ? safeNum(r.cost / r.conversions) : 0,
+    atc_total: safeNum(r.atc_total || 0),
+    atc_web: safeNum(r.atc_web || 0),
+    atc_meta: 0, // Google Ads 没有 atc_meta
+    wishlist_adds: safeNum(r.wishlist_adds || 0),
+    ic_total: safeNum(r.ic_total || 0),
+    ic_web: safeNum(r.ic_web || 0),
+    ic_meta: 0, // Google Ads 没有 ic_meta
+    purchases: safeNum(r.purchases || 0),
+    purchases_web: safeNum(r.purchases_web || 0),
+    purchases_meta: 0, // Google Ads 没有 purchases_meta
+    store_clicks: safeNum(r.store_clicks || 0),
+    page_views: safeNum(r.page_views || 0),
+    row_start_date: r.day,
+    row_end_date: r.day,
+    report_start_date: r.day,
+    report_end_date: r.day,
+    ad_link: r.ad_link || '',
+    image_name: r.image_name || '',
+    video_name: r.video_name || '',
+    _raw: r // 保留原始数据
+  }));
+  
+  // 调试日志：数据转换结果
+  console.log('Google Ads数据转换结果:', {
+    originalDataLength: table.length,
+    transformedDataLength: transformedData.length,
+    sampleTransformedData: transformedData.slice(0, 2)
+  });
+  
   // 返回与queryFacebookAdsData相同的结构，但useLatestData始终为false
   return {
-    data: table,
+    data: transformedData,
     useLatestData: false,
     actualDateRange: { from: fromDate, to: toDate }
   };
@@ -720,7 +793,7 @@ module.exports = async (req, res) => {
         } else {
           // 其他情况，使用原始值
           productIdOnly = key;
-          productName = r.product_name || '';
+          productName = r.product_name || r.product_display_name || '';
         }
         
         if (!productMap.has(productIdOnly)) {
