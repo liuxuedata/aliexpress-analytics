@@ -1639,8 +1639,8 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       { data: 'days', title: '天数', render: v => v ?? 0, width: '80px' },
       { data: 'campaign_name', title: '广告系列名称', render: v => v || '', width: '150px' },
       { data: 'adset_name', title: '广告组名称', render: v => v || '', width: '150px' },
-      { data: 'delivery_status', title: '投放状态', render: v => v || '', width: '100px' },
-      { data: 'delivery_level', title: '投放层级', render: v => v || '', width: '100px' },
+      { data: 'delivery_status', title: '投放状态', render: v => v || '', width: '100px', visible: false },
+      { data: 'delivery_level', title: '投放层级', render: v => v || '', width: '100px', visible: false },
       { data: 'reach', title: '覆盖人数', render: v => v ?? 0, width: '100px' },
       { data: 'impr', title: '展示次数', render: v => v ?? 0, width: '100px' },
       { data: 'page_views', title: '浏览量', render: v => v ?? 0, width: '100px' },
@@ -1653,9 +1653,9 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       { data: 'wishlist_adds', title: '加入心愿单次数', render: v => v ?? 0, width: '120px' },
       
       // 通过筛选展示的次要字段（默认隐藏）
-      { data: 'ic_total', title: '结账发起次数', render: v => v ?? 0, width: '120px', visible: false },
-      { data: 'results', title: '成效', render: v => v ?? 0, width: '100px', visible: false },
-      { data: 'row_start_date', title: '开始日期', render: v => v || '', width: '100px', visible: false },
+      { data: 'ic_total', title: '结账发起次数', render: v => v ?? 0, width: '120px' },
+      { data: 'results', title: '成效', render: v => v ?? 0, width: '100px' },
+      { data: 'row_start_date', title: '开始日期', render: v => v || '', width: '100px' },
       { data: 'store_clicks', title: '店铺点击量', render: v => v ?? 0, width: '100px', visible: false },
       { data: 'unique_link_clicks', title: '链接点击量 - 独立用户', render: v => v ?? 0, width: '150px', visible: false },
       { data: 'unique_clicks', title: '点击量（全部）- 独立用户', render: v => v ?? 0, width: '150px', visible: false },
@@ -2486,6 +2486,17 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
         availableChannels: json.availableChannels,
         sampleData: rawTable.slice(0, 2)
       });
+      
+      // 详细调试：检查数据结构
+      if (rawTable && rawTable.length > 0) {
+        console.log('数据详细检查:', {
+          firstRow: rawTable[0],
+          hasProduct: !!rawTable[0]?.product,
+          hasNetwork: !!rawTable[0]?.network,
+          networkValue: rawTable[0]?.network,
+          allNetworks: [...new Set(rawTable.map(r => r.network))]
+        });
+      }
       
   // 处理API返回的消息提示
   if (json.message) {
