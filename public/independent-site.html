@@ -1642,7 +1642,6 @@ function getFacebookAdsColumns() {
       const shortName = productName.length > 50 ? productName.substring(0, 50) + '...' : productName;
       return `<span class="product-name" title="${productName}">${shortName}</span>`;
     }, width: '200px' },
-    { data: 'days', title: '天数', render: v => v ?? 0, width: '80px', visible: false },
     { data: 'campaign_name', title: '广告系列名称', render: v => v || '', width: '150px' },
     { data: 'adset_name', title: '广告组名称', render: v => v || '', width: '150px' },
     { data: 'reach', title: '覆盖人数', render: v => v ?? 0, width: '100px' },
@@ -1657,8 +1656,6 @@ function getFacebookAdsColumns() {
     { data: 'wishlist_adds', title: '加入心愿单次数', render: v => v ?? 0, width: '120px' },
     { data: 'ic_total', title: '结账发起次数', render: v => v ?? 0, width: '120px' },
     { data: 'results', title: '成效', render: v => v ?? 0, width: '100px' },
-    { data: 'row_start_date', title: '开始日期', render: v => v || '', width: '100px', visible: false },
-    { data: 'cost', title: '花费', render: v => (v ?? 0).toFixed(2), width: '100px', visible: false }
   ];
 }
 
@@ -2129,6 +2126,9 @@ function getFacebookAdsColumns() {
     
     // 重新初始化DataTables - 简化配置避免错误
     try {
+      console.log('开始初始化DataTables，数据长度:', validatedData.length, '列数:', columns.length);
+      console.log('列定义:', columns.map(c => ({ data: c.data, title: c.title })));
+      
       dt = $('#report').DataTable({
         destroy: true,
         pageLength: 20,
