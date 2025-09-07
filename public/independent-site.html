@@ -1614,27 +1614,44 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     }
   }
 
-  // Facebook Ads 专用列定义 - 严格按照用户要求的15个字段
+  // Facebook Ads 专用列定义 - 默认展示主要字段，次要字段通过筛选显示
   function getFacebookAdsColumns() {
     return [
+      // 默认展示的主要字段
       { data: 'product', title: '商品编号', render: (v, t, r) => {
         const name = v || r.landing_path || '';
         return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
       }, width: '120px' },
-      { data: 'days', title: '天数', render: v => v || 0, width: '80px' },
       { data: 'campaign_name', title: '广告系列名称', render: v => v || '', width: '150px' },
       { data: 'adset_name', title: '广告组名称', render: v => v || '', width: '150px' },
       { data: 'delivery_status', title: '投放状态', render: v => v || '', width: '100px' },
       { data: 'delivery_level', title: '投放层级', render: v => v || '', width: '100px' },
       { data: 'reach', title: '覆盖人数', render: v => v ?? 0, width: '100px' },
       { data: 'impr', title: '展示次数', render: v => v ?? 0, width: '100px' },
-      { data: 'frequency', title: '频次', render: v => (v ?? 0).toFixed(2), width: '80px' },
-      { data: 'attribution_setting', title: '归因设置', render: v => v || '', width: '100px' },
-      { data: 'objective', title: '成效类型', render: v => v || '', width: '100px' },
-      { data: 'results', title: '成效', render: v => v ?? 0, width: '100px' },
-      { data: 'spend_usd', title: '已花费金额 (USD)', render: v => (v ?? 0).toFixed(2), width: '120px' },
+      { data: 'page_views', title: '浏览量', render: v => v ?? 0, width: '100px' },
       { data: 'cost_per_result', title: '单次成效费用', render: v => (v ?? 0).toFixed(2), width: '120px' },
-      { data: 'row_start_date', title: '开始日期', render: v => v || '', width: '100px' }
+      { data: 'link_clicks', title: '链接点击量', render: v => v ?? 0, width: '100px' },
+      { data: 'link_ctr', title: '链接点击率', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' },
+      { data: 'clicks', title: '点击量（全部）', render: v => v ?? 0, width: '100px' },
+      { data: 'ctr', title: '点击率（全部）', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' },
+      { data: 'atc_total', title: '加入购物车', render: v => v ?? 0, width: '100px' },
+      { data: 'wishlist_adds', title: '加入心愿单次数', render: v => v ?? 0, width: '120px' },
+      { data: 'ic_total', title: '结账发起次数', render: v => v ?? 0, width: '120px' },
+      { data: 'results', title: '成效', render: v => v ?? 0, width: '100px' },
+      { data: 'row_start_date', title: '开始日期', render: v => v || '', width: '100px' },
+      
+      // 通过筛选展示的次要字段（默认隐藏）
+      { data: 'store_clicks', title: '店铺点击量', render: v => v ?? 0, width: '100px', visible: false },
+      { data: 'unique_link_clicks', title: '链接点击量 - 独立用户', render: v => v ?? 0, width: '150px', visible: false },
+      { data: 'unique_clicks', title: '点击量（全部）- 独立用户', render: v => v ?? 0, width: '150px', visible: false },
+      { data: 'unique_ctr_all', title: '点击率（全部）- 独立用户', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '150px', visible: false },
+      { data: 'ad_link', title: '链接（广告设置）', render: v => v || '', width: '150px', visible: false },
+      { data: 'landing_url', title: '网址', render: v => v || '', width: '150px', visible: false },
+      { data: 'image_name', title: '图片名称', render: v => v || '', width: '150px', visible: false },
+      { data: 'video_name', title: '视频名称', render: v => v || '', width: '150px', visible: false },
+      { data: 'purchases', title: '购物次数', render: v => v ?? 0, width: '100px', visible: false },
+      { data: 'attribution_setting', title: '归因设置', render: v => v || '', width: '100px', visible: false },
+      { data: 'objective', title: '成效类型', render: v => v || '', width: '100px', visible: false }
     ];
   }
 
