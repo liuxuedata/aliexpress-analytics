@@ -2379,7 +2379,9 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       
       // 获取当前周期数据
       const channel = channelSel.value;
+      console.log('API调用前的渠道参数:', { channel, channelSelValue: channelSel.value });
       const currentUrl = `/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${from}&to=${to}&aggregate=product${channel ? `&channel=${encodeURIComponent(channel)}` : ''}`;
+      console.log('API调用URL:', currentUrl);
       
       // 计算上一周期日期范围
       const currentFrom = new Date(from);
@@ -2444,7 +2446,11 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
         
         // 设置渠道选择器的值
         if (currentChannel && channelSel) {
+          console.log('设置渠道选择器值:', { currentChannel, channelSelValue: channelSel.value });
           channelSel.value = currentChannel;
+          console.log('渠道选择器值已设置:', { newValue: channelSel.value });
+        } else {
+          console.log('无法设置渠道选择器值:', { currentChannel, channelSel: !!channelSel });
         }
       } else {
         availableChannels = [];
