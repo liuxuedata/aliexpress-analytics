@@ -819,6 +819,13 @@ module.exports = async (req, res) => {
         existing.purchases_meta += r.purchases_meta || 0;
         existing.spend_usd += r.spend_usd || 0;
         existing.results += r.results || 0;
+        // 累加文本字段（取第一个非空值）
+        if (!existing.attribution_setting && r.attribution_setting) {
+          existing.attribution_setting = r.attribution_setting;
+        }
+        if (!existing.objective && r.objective) {
+          existing.objective = r.objective;
+        }
       });
       
       // 重新计算比率

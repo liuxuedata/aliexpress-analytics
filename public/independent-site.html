@@ -1614,7 +1614,7 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     }
   }
 
-  // Facebook Ads 专用列定义
+  // Facebook Ads 专用列定义 - 严格按照用户要求的15个字段
   function getFacebookAdsColumns() {
     return [
       { data: 'product', title: '商品编号', render: (v, t, r) => {
@@ -1634,35 +1634,7 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       { data: 'results', title: '成效', render: v => v ?? 0, width: '100px' },
       { data: 'spend_usd', title: '已花费金额 (USD)', render: v => (v ?? 0).toFixed(2), width: '120px' },
       { data: 'cost_per_result', title: '单次成效费用', render: v => (v ?? 0).toFixed(2), width: '120px' },
-      { data: 'row_start_date', title: '开始日期', render: v => v || '', width: '100px' },
-      { data: 'row_end_date', title: '结束日期', render: v => v || '', width: '100px' },
-      { data: 'link_clicks', title: '链接点击量', render: v => v ?? 0, width: '100px' },
-      { data: 'ctr', title: '点击率（全部）', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' },
-      { data: 'page_views', title: '浏览量', render: v => v ?? 0, width: '100px' },
-      { data: 'clicks', title: '点击量（全部）', render: v => v ?? 0, width: '100px' },
-      { data: 'link_ctr', title: '链接点击率', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' },
-      { data: 'atc_total', title: '加入购物车', render: v => v ?? 0, width: '100px' },
-      { data: 'wishlist_adds', title: '加入心愿单次数', render: v => v ?? 0, width: '120px' },
-      { data: 'ic_total', title: '结账发起次数', render: v => v ?? 0, width: '120px' },
-      { data: 'store_clicks', title: '店铺点击量', render: v => v ?? 0, width: '100px' },
-      { data: 'unique_link_clicks', title: '链接点击量 - 独立用户', render: v => v ?? 0, width: '150px' },
-      { data: 'unique_clicks', title: '点击量（全部）- 独立用户', render: v => v ?? 0, width: '150px' },
-      { data: 'unique_ctr_all', title: '点击率（全部）- 独立用户', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '150px' },
-      { data: 'cpc_link', title: '单次链接点击费用', render: v => (v ?? 0).toFixed(2), width: '150px' },
-      { data: 'atc_web', title: '网站加入购物车', render: v => v ?? 0, width: '120px' },
-      { data: 'atc_meta', title: 'Meta 加入购物车', render: v => v ?? 0, width: '120px' },
-      { data: 'ic_web', title: '网站结账发起次数', render: v => v ?? 0, width: '150px' },
-      { data: 'ic_meta', title: 'Meta 结账发起次数', render: v => v ?? 0, width: '150px' },
-      { data: 'purchases_web', title: '网站购物', render: v => v ?? 0, width: '100px' },
-      { data: 'purchases_meta', title: 'Meta 内购物次数', render: v => v ?? 0, width: '150px' },
-      { data: 'report_start_date', title: '报告开始日期', render: v => v || '', width: '120px' },
-      { data: 'report_end_date', title: '报告结束日期', render: v => v || '', width: '120px' },
-      { data: 'ad_name', title: '广告组名称', render: v => v || '', width: '150px' },
-      { data: 'ad_link', title: '链接（广告设置）', render: v => v || '', width: '150px' },
-      { data: 'landing_url', title: '网址', render: v => v || '', width: '150px' },
-      { data: 'image_name', title: '图片名称', render: v => v || '', width: '150px' },
-      { data: 'video_name', title: '视频名称', render: v => v || '', width: '150px' },
-      { data: 'purchases', title: '购物次数', render: v => v ?? 0, width: '100px' }
+      { data: 'row_start_date', title: '开始日期', render: v => v || '', width: '100px' }
     ];
   }
 
