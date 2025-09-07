@@ -1147,10 +1147,13 @@ function populateIndependentProductSelect(data, firstMap = {}) {
     const key = item.landing_path;
     if (!key || seen.has(key)) return;
     seen.add(key);
+    const domain = getCurrentSiteForAPI();
+    const base = domain ? (domain.startsWith('http') ? domain : `https://${domain}`) : '';
+    const fullUrl = key.startsWith('http') ? key : `${base}${key}`;
     list.push({
       path: key,
       name: item.product || key,
-      url: item.landing_url || '',
+      url: fullUrl,
       firstSeen: firstMap[key] || item.first_seen_date || '',
       impr: item.impr || 0
     });
@@ -1231,9 +1234,12 @@ async function loadIndependentProductData(landingPath, landingUrl, firstSeen) {
     }
 
     const linkEl = document.getElementById('productLink');
-    if (linkEl && landingUrl) {
-      linkEl.href = landingUrl;
-      linkEl.textContent = landingUrl;
+    if (linkEl) {
+      const domain = getCurrentSiteForAPI();
+      const base = domain ? (domain.startsWith('http') ? domain : `https://${domain}`) : '';
+      const finalUrl = landingUrl && landingUrl.startsWith('http') ? landingUrl : `${base}${landingPath || ''}`;
+      linkEl.href = finalUrl;
+      linkEl.textContent = finalUrl;
       linkEl.style.display = '';
     }
     const dateEl = document.getElementById('productListingDate');
@@ -1631,7 +1637,8 @@ function getFacebookAdsColumns() {
         const name = v || r.landing_path || '';
         const domain = getCurrentSiteForAPI();
         const base = domain ? (domain.startsWith('http') ? domain : `https://${domain}`) : '';
-        const landingUrl = `${base}${r.landing_path || ''}`;
+        const path = r.landing_path || '';
+        const landingUrl = path.startsWith('http') ? path : `${base}${path}`;
         return `<a href="${landingUrl}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
       }, width: '200px' },
       { data: 'device', title: '设备', render: v => v || '', width: '80px' },
@@ -2073,12 +2080,11 @@ function getFacebookAdsColumns() {
       dt = null;
     }
     
-    // 根据当前渠道确定表格ID
-    const tableId = currentChannel ? `report-${currentChannel}` : 'report';
-    let $table = $(`#${tableId}`);
+    // 单渠道使用固定表格，清理其他残留表格
+    $('#detailContent table').not('#report').remove();
+    let $table = $('#report');
     if ($table.length === 0) {
-      // 如果表格不存在，创建一个并附加到详情容器中
-      $table = $(`<table id="${tableId}" class="data-table display nowrap" style="width:100%"></table>`);
+      $table = $('<table id="report" class="data-table display nowrap" style="width:100%"></table>');
       $('#detailContent').append($table);
     }
 
@@ -2158,7 +2164,7 @@ function getFacebookAdsColumns() {
     }
     // 双击行跳转到产品分析 - 只有在DataTables初始化成功后才绑定事件
     if (dt && dt.row) {
-      $('#report tbody').off('dblclick').on('dblclick', 'tr', function() {
+      $table.find('tbody').off('dblclick').on('dblclick', 'tr', function() {
         const row = dt.row(this).data();
         if (!row) return;
         const params = new URLSearchParams(window.location.search);
