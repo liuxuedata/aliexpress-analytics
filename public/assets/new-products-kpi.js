@@ -53,9 +53,10 @@
     return null;
   }
 
-  async function fetchNewProducts(platform, periodEndISO /* may be null */){
+  async function fetchNewProducts(platform, periodEndISO /* may be null */, site /* may be null */){
     const qs = new URLSearchParams({ platform });
     if (periodEndISO){ qs.set('from',periodEndISO); qs.set('to',periodEndISO); }
+    if (site) qs.set('site', site);
     const r = await fetch('/api/new-products?' + qs.toString());
     const j = await r.json();
     if (!j.ok) throw new Error(j.msg||'fetch error');
@@ -158,14 +159,19 @@
     const pidIdx = detectAndTagProductIdColumn(table);
 
     const host = ensureKpiRow(table);
-    const idPrefix = platform==='self' ? 'kpi-new-self' : 'kpi-new-managed';
+    const idPrefix = platform==='self' ? 'kpi-new-self' : (platform==='indep' ? 'kpi-new-indep' : 'kpi-new-managed');
     const { box, count, clear } = makeKpiCard(idPrefix);
     host.appendChild(box);
 
     let periodEndISO = currentPeriodFromGlobals(platform);
+    let site = null;
+    if (platform==='self' || platform==='indep'){
+      try{ site = localStorage.getItem('currentSite'); }catch(e){}
+      if (!site){ try{ site = window.pageManager && window.pageManager.currentSite; }catch(e){} }
+    }
     let data;
     try{
-      data = await fetchNewProducts(platform, periodEndISO);
+      data = await fetchNewProducts(platform, periodEndISO, site);
       count.textContent = data.new_count;
       count.title = data.range ? (data.range.from===data.range.to ? '周期：'+data.range.from : `周期：${data.range.from} ~ ${data.range.to}`) : '';
     }catch(e){
