@@ -631,8 +631,16 @@
             <div id="analysisFunnel" style="width:100%;height:320px;"></div>
           </div>
           <div class="panel">
-            <h3>周期对比（曝光 / 加购件数 / 支付订单数）</h3>
-            <div id="analysisCompareBar" style="width:100%;height:320px;"></div>
+            <h3>曝光周期对比</h3>
+            <div id="analysisExposureCompare" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>加购件数对比</h3>
+            <div id="analysisCartCompare" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>支付订单数对比</h3>
+            <div id="analysisPayCompare" style="width:100%;height:320px;"></div>
           </div>
           <div class="panel">
             <h3>Top10 访客比（UV/曝光）</h3>
@@ -1128,7 +1136,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
       if (currentData.ok && currentData.rows && prevData.ok && prevData.rows) {
         renderAnalysisCharts(currentData.rows, prevData.rows);
-        renderSummaryBarChart(currentData.rows, prevData.rows);
+        renderPeriodComparisonCharts(currentData.rows, prevData.rows);
         renderFunnelChart(currentData.rows, prevData.rows);
         renderTopCharts(currentData.rows);
       } else {
@@ -1480,7 +1488,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     initResponsiveChart(id, option);
   }
 
-  function renderSummaryBarChart(currentRows, previousRows) {
+  function renderPeriodComparisonCharts(currentRows, previousRows) {
     const sum = rows => ({
       exp: rows.reduce((t, r) => t + (r.exposure || 0), 0),
       add: rows.reduce((t, r) => t + (r.add_people || 0), 0),
@@ -1488,18 +1496,24 @@ document.addEventListener('DOMContentLoaded', ()=>{
     });
     const cur = sum(currentRows);
     const prev = sum(previousRows);
-    const cats = ['曝光','加购件数','支付订单数'];
-    const option = {
-      tooltip:{ trigger:'axis', axisPointer:{ type:'shadow' } },
-      legend:{ data:['本期','上期'], textStyle:{ color:'#374151' } },
-      xAxis:{ type:'category', data: cats, axisLabel:{ color:'#374151' } },
-      yAxis:{ type:'value', axisLabel:{ color:'#374151' } },
-      series:[
-        { name:'本期', type:'bar', data:[cur.exp, cur.add, cur.pay], label:{show:true, position:'top'} },
-        { name:'上期', type:'bar', data:[prev.exp, prev.add, prev.pay], label:{show:true, position:'top'} }
-      ]
+
+    const render = (id, label, curVal, prevVal) => {
+      const option = {
+        tooltip:{ trigger:'axis', axisPointer:{ type:'shadow' } },
+        legend:{ data:['本期','上期'], textStyle:{ color:'#374151' } },
+        xAxis:{ type:'category', data:[label], axisLabel:{ color:'#374151' } },
+        yAxis:{ type:'value', axisLabel:{ color:'#374151' } },
+        series:[
+          { name:'本期', type:'bar', data:[curVal], label:{show:true, position:'top'} },
+          { name:'上期', type:'bar', data:[prevVal], label:{show:true, position:'top'} }
+        ]
+      };
+      initResponsiveChart(id, option);
     };
-    initResponsiveChart('analysisCompareBar', option);
+
+    render('analysisExposureCompare', '曝光', cur.exp, prev.exp);
+    render('analysisCartCompare', '加购件数', cur.add, prev.add);
+    render('analysisPayCompare', '支付订单数', cur.pay, prev.pay);
   }
 
   function renderFunnelChart(currentRows, previousRows) {
