@@ -7,3 +7,10 @@
 .kpi-card .kpi-clear{display:none;margin-left:.5rem;font-size:12px;color:#2563eb;text-decoration:underline;cursor:pointer}
 .kpi-row{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin:.5rem 0 1rem}
 .kpi-inserted{margin-bottom:.75rem}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width:600px){
+  .kpi-card{padding:.5rem .75rem;font-size:12px;}
+  .kpi-card .kpi-count{font-size:16px;}
+  .kpi-row{gap:.5rem;}
+}

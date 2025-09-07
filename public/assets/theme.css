@@ -420,3 +420,16 @@ table.dataTable thead th.sorting_desc{
 .loading-overlay .progress{ width:200px;height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden; }
 .loading-overlay .progress .bar{ width:0;height:100%;background:var(--brand);transition:width .3s ease; }
 .loading-overlay .loading-text{ margin-top:12px;font-size:14px;color:#334155; }
+
+/* Responsive adjustments for smaller screens */
+@media (max-width:600px){
+  .stat-card{padding:8px 10px;}
+  .stat-card h4{font-size:11px;}
+  .stat-card p{font-size:22px;}
+  #kpi{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;}
+  .kpi .card{padding:8px 10px;min-width:150px;}
+  .kpi .card h4{font-size:11px;}
+  .kpi .card p{font-size:20px;}
+  .kpi .card .sub,
+  .kpi .card .delta{font-size:10px;}
+}
