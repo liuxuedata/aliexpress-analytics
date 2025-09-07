@@ -326,25 +326,27 @@
         });
         
         // 修复计算逻辑：使用与index.html一致的字段名
-        const vr = sum.exposure > 0 ? ((sum.visitors / sum.exposure) * 100) : 0;
-        const cr = sum.visitors > 0 ? ((sum.add_people / sum.visitors) * 100) : 0;  // 使用 add_people
-        const pr = sum.add_people > 0 ? ((sum.pay_buyers / sum.add_people) * 100) : 0;  // 使用 add_people 和 pay_buyers
+        const vr = sum.exposure > 0 ? (sum.visitors / sum.exposure) : 0;
+        const cr = sum.visitors > 0 ? (sum.add_people / sum.visitors) : 0;  // 使用 add_people
+        const pr = sum.add_people > 0 ? (sum.pay_buyers / sum.add_people) : 0;  // 使用 add_people 和 pay_buyers
         
         console.log('KPI计算调试 - 计算结果:', { vr, cr, pr, total: products.size, pe, pc, pp });
 
         return {vr, cr, pr, total: products.size, pe, pc, pp, newProducts: 0}; // 暂时返回0，后续计算
       }
       
-      function setDelta(id, diff, isPercent) {
+      const setDelta = (id, diff, isPercent) => {
         const el = document.getElementById(id);
         if (!el) return;
-        
+
         const arrow = diff >= 0 ? '↑' : '↓';
         const cls = diff >= 0 ? 'delta up' : 'delta down';
-        const val = isPercent ? Math.abs(diff).toFixed(2) + '%' : Math.abs(diff).toString();
-        
+        const val = isPercent
+          ? this.formatPercentage(Math.abs(diff))
+          : Math.abs(diff).toString();
+
         el.innerHTML = `<span class="${cls}">${arrow} ${val}</span>`;
-      }
+      };
       
       const cur = summarize(rows);
       const prev = summarize(prevRows || []);
@@ -368,9 +370,9 @@
       });
       
       // 更新KPI值
-      this.updateKPI('avgVisitor', cur.vr.toFixed(2) + '%');
-      this.updateKPI('avgCart', cur.cr.toFixed(2) + '%');
-      this.updateKPI('avgPay', cur.pr.toFixed(2) + '%');
+      this.updateKPI('avgVisitor', this.formatPercentage(cur.vr));
+      this.updateKPI('avgCart', this.formatPercentage(cur.cr));
+      this.updateKPI('avgPay', this.formatPercentage(cur.pr));
       this.updateKPI('totalProducts', cur.total);
       this.updateKPI('exposedProducts', cur.pe);
       this.updateKPI('cartedProducts', cur.pc);
@@ -391,9 +393,9 @@
       
       // 调试：输出KPI更新结果
       console.log('KPI更新结果:', {
-        avgVisitor: cur.vr.toFixed(2) + '%',
-        avgCart: cur.cr.toFixed(2) + '%',
-        avgPay: cur.pr.toFixed(2) + '%',
+        avgVisitor: this.formatPercentage(cur.vr),
+        avgCart: this.formatPercentage(cur.cr),
+        avgPay: this.formatPercentage(cur.pr),
         totalProducts: cur.total,
         exposedProducts: cur.pe,
         cartedProducts: cur.pc,
@@ -524,9 +526,9 @@
           const visitors = row.visitors || 0;
           const exposure = row.exposure || 0;
           const payItems = row.pay_items || 0;
-          const visitorRatio = exposure > 0 ? (visitors / exposure) * 100 : 0;
-          const addToCartRatio = visitors > 0 ? (addPeople / visitors) * 100 : 0;
-          const paymentRatio = addPeople > 0 ? (payItems / addPeople) * 100 : 0;
+          const visitorRatio = exposure > 0 ? (visitors / exposure) : 0;
+          const addToCartRatio = visitors > 0 ? (addPeople / visitors) : 0;
+          const paymentRatio = addPeople > 0 ? (payItems / addPeople) : 0;
 
           // 调试：输出前3行的详细数据
           if (index < 3) {
