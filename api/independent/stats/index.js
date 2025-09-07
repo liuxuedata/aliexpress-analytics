@@ -851,14 +851,20 @@ module.exports = async (req, res) => {
     }
 
     // 总是返回渠道信息，让前端能够正确识别渠道类型
+    // 如果没有指定渠道但有可用渠道，使用第一个可用渠道
+    let finalCurrentChannel = channel;
+    if (!finalCurrentChannel && availableChannels.length === 1) {
+      finalCurrentChannel = availableChannels[0];
+    }
+    
     const response = {
       ok: true,
       table: table,
       kpis: kpis,
-      dataSource: channel || (table.length > 0 ? 'multi_channel' : getDataSource(site)),
+      dataSource: finalCurrentChannel || (table.length > 0 ? 'multi_channel' : getDataSource(site)),
       query: { site, from: fromDate, to: toDate, limit, only_new, campaign, network, device, aggregate, channel },
       availableChannels: availableChannels,
-      currentChannel: channel || null,
+      currentChannel: finalCurrentChannel || null,
       isMultiChannel: availableChannels.length > 1
     };
     
@@ -873,7 +879,7 @@ module.exports = async (req, res) => {
       tableLength: table.length,
       kpisKeys: Object.keys(kpis),
       availableChannels,
-      currentChannel: channel || null,
+      currentChannel: finalCurrentChannel || null,
       sampleTableData: table.slice(0, 2)
     });
 
