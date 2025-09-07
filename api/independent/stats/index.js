@@ -526,8 +526,11 @@ module.exports = async (req, res) => {
     // 统一的商品标识提取函数
     function extractProductId(record, channel) {
       if (channel === 'facebook_ads') {
-        // Facebook Ads: 从landing_url中提取商品ID，或使用campaign_name作为商品标识
-        // 如果landing_url包含数字ID，提取它；否则使用campaign_name
+        // Facebook Ads: 优先使用product_id字段
+        if (record.product_id) {
+          return record.product_id;
+        }
+        // 如果没有product_id，从landing_url中提取商品ID
         const landingUrl = record.landing_url || '';
         const productIdMatch = landingUrl.match(/(\d{10,})/); // 匹配10位以上的数字
         if (productIdMatch) {
