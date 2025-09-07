@@ -1863,8 +1863,10 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       const site = urlParams.get('site');
       if (site === 'icyberite.com') {
         currentChannel = 'facebook_ads';
-      } else {
+      } else if (site === 'poolsvacuum.com') {
         currentChannel = 'google_ads';
+      } else {
+        currentChannel = 'google_ads'; // 默认
       }
     }
     
@@ -1936,14 +1938,23 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     if (availableChannels && availableChannels.length === 1) {
       currentChannel = availableChannels[0];
     } else {
-      // 从数据中推断渠道（向后兼容）
-      const networks = [...new Set(rawTable.map(r => r.network))];
-      if (networks.includes('facebook')) {
+      // 从URL参数推断渠道（更可靠的方式）
+      const urlParams = new URLSearchParams(window.location.search);
+      const site = urlParams.get('site');
+      if (site === 'icyberite.com') {
         currentChannel = 'facebook_ads';
-      } else if (networks.includes('tiktok')) {
-        currentChannel = 'tiktok_ads';
-      } else {
+      } else if (site === 'poolsvacuum.com') {
         currentChannel = 'google_ads';
+      } else {
+        // 从数据中推断渠道（向后兼容）
+        const networks = [...new Set(rawTable.map(r => r.network))];
+        if (networks.includes('facebook')) {
+          currentChannel = 'facebook_ads';
+        } else if (networks.includes('tiktok')) {
+          currentChannel = 'tiktok_ads';
+        } else {
+          currentChannel = 'google_ads';
+        }
       }
     }
     
@@ -2238,12 +2249,25 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       return;
     }
     
-    // 填充渠道选择器
-    const channels = Array.from(new Set(rawTable.map(r=>r.network).filter(Boolean))).sort();
+    // 填充渠道选择器 - 根据站点确定可用渠道
+    const urlParams = new URLSearchParams(window.location.search);
+    const site = urlParams.get('site');
     const channelOptions = ['<option value="">全部</option>'];
-    if (channels.includes('google')) channelOptions.push('<option value="google_ads">Google Ads</option>');
-    if (channels.includes('facebook')) channelOptions.push('<option value="facebook_ads">Facebook Ads</option>');
-    if (channels.includes('tiktok')) channelOptions.push('<option value="tiktok_ads">TikTok Ads</option>');
+    
+    if (site === 'icyberite.com') {
+      // icyberite.com 只显示 Facebook Ads
+      channelOptions.push('<option value="facebook_ads">Facebook Ads</option>');
+    } else if (site === 'poolsvacuum.com') {
+      // poolsvacuum.com 只显示 Google Ads
+      channelOptions.push('<option value="google_ads">Google Ads</option>');
+    } else {
+      // 其他站点根据数据动态填充
+      const channels = Array.from(new Set(rawTable.map(r=>r.network).filter(Boolean))).sort();
+      if (channels.includes('google')) channelOptions.push('<option value="google_ads">Google Ads</option>');
+      if (channels.includes('facebook')) channelOptions.push('<option value="facebook_ads">Facebook Ads</option>');
+      if (channels.includes('tiktok')) channelOptions.push('<option value="tiktok_ads">TikTok Ads</option>');
+    }
+    
     channelSel.innerHTML = channelOptions.join('');
     
     const nets = Array.from(new Set(rawTable.map(r=>r.network).filter(Boolean))).sort();

@@ -55,7 +55,11 @@ function getDataSource(site) {
   if (site === 'icyberite.com' || site === 'independent_icyberite') {
     return 'facebook_ads';
   }
-  // 其他站点使用 Google Ads 数据
+  // poolsvacuum.com 使用 Google Ads 数据
+  if (site === 'poolsvacuum.com' || site === 'independent_poolsvacuum') {
+    return 'google_ads';
+  }
+  // 其他站点默认使用 Google Ads 数据
   return 'google_ads';
 }
 
@@ -86,7 +90,7 @@ async function getSiteChannels(supabase, site) {
       table_name: dataSource === 'facebook_ads' ? 'independent_facebook_ads_daily' : 'independent_landing_metrics', 
       is_enabled: true 
     }];
-    console.log('使用默认渠道配置:', defaultConfig);
+    console.log('使用默认渠道配置:', defaultConfig, 'for site:', site);
     return defaultConfig;
   } catch (error) {
     console.error('获取站点渠道配置失败:', error);
@@ -97,7 +101,7 @@ async function getSiteChannels(supabase, site) {
       table_name: dataSource === 'facebook_ads' ? 'independent_facebook_ads_daily' : 'independent_landing_metrics', 
       is_enabled: true 
     }];
-    console.log('回退到默认渠道配置:', fallbackConfig);
+    console.log('回退到默认渠道配置:', fallbackConfig, 'for site:', site);
     return fallbackConfig;
   }
 }
@@ -886,10 +890,12 @@ module.exports = async (req, res) => {
     }
 
     // 总是返回渠道信息，让前端能够正确识别渠道类型
-    // 如果没有指定渠道但有可用渠道，使用第一个可用渠道
     let finalCurrentChannel = channel;
-    if (!finalCurrentChannel && availableChannels.length === 1) {
-      finalCurrentChannel = availableChannels[0];
+    if (!finalCurrentChannel) {
+      // 如果没有指定渠道，根据站点确定默认渠道
+      const dataSource = getDataSource(site);
+      finalCurrentChannel = dataSource;
+      console.log('未指定渠道，使用站点默认渠道:', finalCurrentChannel, 'for site:', site);
     }
     
     const response = {
