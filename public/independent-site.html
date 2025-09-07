@@ -988,16 +988,16 @@ function updateIndependentAnalysisKPI(data, kpis = {}) {
   if (avgConvEl) avgConvEl.textContent = pct(kpis.avg_conv_rate);
 
   const exposureEl = document.getElementById('exposureProducts');
-  if (exposureEl) exposureEl.textContent = (kpis.exposure_product_count || 0).toLocaleString();
+  if (exposureEl) exposureEl.textContent = Number(kpis.exposure_product_count || 0).toLocaleString();
 
   const clickEl = document.getElementById('clickedProducts');
-  if (clickEl) clickEl.textContent = (kpis.click_product_count || 0).toLocaleString();
+  if (clickEl) clickEl.textContent = Number(kpis.click_product_count || 0).toLocaleString();
 
   const convEl = document.getElementById('convertedProducts');
-  if (convEl) convEl.textContent = (kpis.conversion_product_count || 0).toLocaleString();
+  if (convEl) convEl.textContent = Number(kpis.conversion_product_count || 0).toLocaleString();
 
   const newEl = document.getElementById('newProducts');
-  if (newEl) newEl.textContent = (kpis.new_product_count || 0).toLocaleString();
+  if (newEl) newEl.textContent = Number(kpis.new_product_count || 0).toLocaleString();
 }
 
 // 渲染独立站运营分析对比图表
@@ -1007,25 +1007,25 @@ async function renderIndependentAnalysisCharts(data, kpis = {}) {
 
   // 计算当前周期数据
   const currentData = {
-    impressions: data.reduce((sum, item) => sum + (item.impressions || item.impr || 0), 0),
-    clicks: data.reduce((sum, item) => sum + (item.clicks || 0), 0),
-    conversions: data.reduce((sum, item) => sum + (item.conversions || 0), 0),
+    impressions: data.reduce((sum, item) => sum + Number(item.impressions || item.impr || 0), 0),
+    clicks: data.reduce((sum, item) => sum + Number(item.clicks || 0), 0),
+    conversions: data.reduce((sum, item) => sum + Number(item.conversions || 0), 0),
     ctr: 0,
     clickedProducts: kpis.click_product_count != null
-      ? kpis.click_product_count
-      : new Set(data.filter(item => (item.clicks || 0) > 0).map(item => item.product)).size
+      ? Number(kpis.click_product_count)
+      : new Set(data.filter(item => Number(item.clicks || 0) > 0).map(item => item.product)).size
   };
   currentData.ctr = currentData.impressions > 0 ? currentData.clicks / currentData.impressions * 100 : 0;
 
   // 计算上一周期数据
   const previousDataCalculated = previousData ? {
-    impressions: previousData.table.reduce((sum, item) => sum + (item.impressions || item.impr || 0), 0),
-    clicks: previousData.table.reduce((sum, item) => sum + (item.clicks || 0), 0),
-    conversions: previousData.table.reduce((sum, item) => sum + (item.conversions || 0), 0),
+    impressions: previousData.table.reduce((sum, item) => sum + Number(item.impressions || item.impr || 0), 0),
+    clicks: previousData.table.reduce((sum, item) => sum + Number(item.clicks || 0), 0),
+    conversions: previousData.table.reduce((sum, item) => sum + Number(item.conversions || 0), 0),
     ctr: 0,
     clickedProducts: previousData.kpis?.click_product_count != null
-      ? previousData.kpis.click_product_count
-      : new Set(previousData.table.filter(item => (item.clicks || 0) > 0).map(item => item.product)).size
+      ? Number(previousData.kpis.click_product_count)
+      : new Set(previousData.table.filter(item => Number(item.clicks || 0) > 0).map(item => item.product)).size
   } : null;
   if (previousDataCalculated) {
     previousDataCalculated.ctr = previousDataCalculated.impressions > 0
@@ -1053,7 +1053,9 @@ async function renderIndependentAnalysisCharts(data, kpis = {}) {
 // 渲染独立站对比柱状图
 function renderIndependentComparisonChart(chartId, currentValue, previousValue, label) {
   const chart = echarts.init(document.getElementById(chartId));
-  const formatVal = v => label.includes('CTR') ? v.toFixed(2) + '%' : v.toLocaleString();
+  const curr = Number(currentValue) || 0;
+  const prev = Number(previousValue) || 0;
+  const formatVal = v => label.includes('CTR') ? v.toFixed(2) + '%' : Number(v).toLocaleString();
   const option = {
     tooltip: {
       trigger: 'axis',
@@ -1078,7 +1080,7 @@ function renderIndependentComparisonChart(chartId, currentValue, previousValue, 
     series: [
       {
         name: '当前周期',
-        data: [currentValue, null],
+        data: [curr, null],
         type: 'bar',
         itemStyle: { color: '#3B82F6' },
         barWidth: '40%',
@@ -1086,7 +1088,7 @@ function renderIndependentComparisonChart(chartId, currentValue, previousValue, 
       },
       {
         name: '上一周期',
-        data: [null, previousValue],
+        data: [null, prev],
         type: 'bar',
         itemStyle: { color: '#10B981' },
         barWidth: '40%',
@@ -1688,12 +1690,13 @@ function getFacebookAdsColumns() {
     // 获取该渠道的数据
     let channelTableData = rawTable;
     if (channel) {
+      const netLower = n => (n || '').toLowerCase();
       if (channel === 'google_ads') {
-        channelTableData = rawTable.filter(r => r.network === 'google');
+        channelTableData = rawTable.filter(r => netLower(r.network).includes('google'));
       } else if (channel === 'facebook_ads') {
-        channelTableData = rawTable.filter(r => r.network === 'facebook');
+        channelTableData = rawTable.filter(r => netLower(r.network).includes('facebook'));
       } else if (channel === 'tiktok_ads') {
-        channelTableData = rawTable.filter(r => r.network === 'tiktok');
+        channelTableData = rawTable.filter(r => netLower(r.network).includes('tiktok'));
       }
     }
 
