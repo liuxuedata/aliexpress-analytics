@@ -17,6 +17,7 @@
   - `/api/independent/tiktok-ingest` - TikTok Ads数据上传
   - `/api/independent/ingest` - Google Ads数据上传
   - `/api/independent/stats?channel=<channel>` - 多渠道数据查询
+  - `/api/ae_query` - 速卖通自运营数据查询（`visitor_ratio`、`add_to_cart_ratio`、`payment_ratio` 等比率字段以0-1的小数返回）
 
 ### 📊 数据分析功能
 - **运营分析**：KPI对比、趋势分析、周期对比
@@ -177,7 +178,7 @@
 1. 从模板中提取导航、头部、卡片、面板、表格容器结构，应用到 `index.html` 与 `self-operated.html`
 2. 不改动以下 DOM/ID：
    - DataTables 容器：`#report`
-   - ECharts 容器：`#funnel`, `#sumCompareBar`, `#vrBar`, `#payBar` 等
+   - ECharts 容器：`#funnel`, `#expCompareBar`, `#addCompareBar`, `#payOrderCompareBar`, `#vrBar`, `#payBar` 等
    - 自运营 `.kpi .card` 布局（单行横向滚动）
 3. `assets/theme.css` 必须在所有第三方 CSS 之后加载
 4. 保留现有侧边栏导航结构与展开/高亮逻辑

@@ -193,11 +193,11 @@ table.dataTable td{
 /* ------ KPI Cards (managed.html) ------ */
 .stat-card{
   background:var(--kpi-bg); border:1px solid var(--kpi-border);
-  border-radius:14px; padding:12px 14px; box-shadow:var(--shadow);
+  border-radius:14px; padding:8px 10px; box-shadow:var(--shadow);
 }
-.stat-card h4{ margin:0 0 6px; color:#334155; font-size:12px; letter-spacing:.2px }
-.stat-card p{ margin:0; color:#0f172a; font-size:28px; font-weight:900; line-height:1.1 }
-#kpi{ display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px }
+.stat-card h4{ margin:0 0 6px; color:#334155; font-size:11px; letter-spacing:.2px }
+.stat-card p{ margin:0; color:#0f172a; font-size:24px; font-weight:900; line-height:1.1 }
+#kpi{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px }
 
 /* ------ Tables: DataTables High-Contrast Light ------ */
 #report_wrapper{ background:#fff; border-radius:12px; padding:8px; border:1px solid var(--panel-border); box-shadow:var(--shadow) }
