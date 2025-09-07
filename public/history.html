@@ -53,6 +53,14 @@
   </table>
 
 <script>
+function formatPercentage(num) {
+  if (num === null || num === undefined) return '0%';
+  let n = Number(num);
+  if (isNaN(n)) return '0%';
+  if (n <= 1) n *= 100;
+  return n.toFixed(2) + '%';
+}
+
 const dt = $('#tb').DataTable({
   pageLength: 50,
   columns: [
@@ -64,7 +72,7 @@ const dt = $('#tb').DataTable({
     { data:'visitors' },
     { data:'add_people' },
     { data:'pay_orders' },
-    { data:'visitor_ratio' },
+    { data:'visitor_ratio', render: data => formatPercentage(data) },
     { data:'updated_at' },
   ]
 });
