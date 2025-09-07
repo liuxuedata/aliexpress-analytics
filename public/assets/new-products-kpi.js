@@ -53,8 +53,9 @@
     return null;
   }
 
-  async function fetchNewProducts(platform, periodEndISO /* may be null */){
+  async function fetchNewProducts(platform, site, periodEndISO /* may be null */){
     const qs = new URLSearchParams({ platform });
+    if (site) qs.set('site', site);
     if (periodEndISO){ qs.set('from',periodEndISO); qs.set('to',periodEndISO); }
     const r = await fetch('/api/new-products?' + qs.toString());
     const j = await r.json();
@@ -163,9 +164,13 @@
     host.appendChild(box);
 
     let periodEndISO = currentPeriodFromGlobals(platform);
+    let site = null;
+    try{
+      site = localStorage.getItem('currentIndepSite') || (window.pageManager && window.pageManager.currentSite) || null;
+    }catch(e){}
     let data;
     try{
-      data = await fetchNewProducts(platform, periodEndISO);
+      data = await fetchNewProducts(platform, site, periodEndISO);
       count.textContent = data.new_count;
       count.title = data.range ? (data.range.from===data.range.to ? '周期：'+data.range.from : `周期：${data.range.from} ~ ${data.range.to}`) : '';
     }catch(e){
