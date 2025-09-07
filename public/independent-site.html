@@ -1936,6 +1936,16 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       networks: [...new Set(rawTable.map(r => r.network))],
       sampleRawData: rawTable.slice(0, 2)
     });
+    
+    // 调试日志：检查列定义
+    const columns = getChannelColumns(currentChannel);
+    console.log('列定义检查:', {
+      currentChannel,
+      columnsLength: columns ? columns.length : 0,
+      columns: columns ? columns.slice(0, 3) : null, // 只显示前3列
+      hasColumns: !!columns,
+      isArray: Array.isArray(columns)
+    });
 
     let data = rawTable;
     const channel = channelSel.value;
@@ -1989,6 +1999,21 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     if (!columns || !Array.isArray(columns)) {
       console.error('无法获取列定义，使用默认列');
       return;
+    }
+    
+    // 调试日志：DataTables初始化前的最后检查
+    console.log('DataTables初始化前检查:', {
+      dataLength: data.length,
+      columnsLength: columns.length,
+      currentChannel,
+      sampleData: data.slice(0, 1),
+      sampleColumns: columns.slice(0, 2)
+    });
+    
+    // 确保数据是数组
+    if (!Array.isArray(data)) {
+      console.error('数据不是数组:', typeof data, data);
+      data = [];
     }
     
     dt = $('#report').DataTable({
