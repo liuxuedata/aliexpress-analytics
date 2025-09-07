@@ -524,9 +524,10 @@
           const visitors = row.visitors || 0;
           const exposure = row.exposure || 0;
           const payItems = row.pay_items || 0;
-          const visitorRatio = exposure > 0 ? (visitors / exposure) * 100 : 0;
-          const addToCartRatio = visitors > 0 ? (addPeople / visitors) * 100 : 0;
-          const paymentRatio = addPeople > 0 ? (payItems / addPeople) * 100 : 0;
+          // 各类比率在此仅计算基础比例，百分比转换交由格式化函数处理
+          const visitorRatio = exposure > 0 ? (visitors / exposure) : 0;
+          const addToCartRatio = visitors > 0 ? (addPeople / visitors) : 0;
+          const paymentRatio = addPeople > 0 ? (payItems / addPeople) : 0;
 
           // 调试：输出前3行的详细数据
           if (index < 3) {
@@ -661,6 +662,7 @@
       if (num === null || num === undefined) return '0%';
       let n = Number(num);
       if (isNaN(n)) return '0%';
+      // 当传入小于等于1的值时，视为比例并转换为百分比
       if (n <= 1) n *= 100;
       return n.toFixed(2) + '%';
     }
