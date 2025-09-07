@@ -16,21 +16,45 @@ module.exports = async (req, res) => {
       return d.toISOString().slice(0,10);
     })();
 
+    const colsWithAdd = 'period_end, uv, add_to_cart_users, add_people, pay_buyers, pay_items, pay_people';
+    const colsNoAdd = 'period_end, uv, add_to_cart_users, pay_buyers, pay_items, pay_people';
+
     let { data, error } = await supabase
       .from('managed_stats')
-      .select('period_end, uv, add_to_cart_users, add_people, pay_buyers, pay_items, pay_people')
+      .select(colsWithAdd)
       .eq('period_type', 'day')
       .gte('period_end', from)
       .lte('period_end', to)
       .order('period_end', { ascending: true });
-    if (error || !data || !data.length) {
-      const resp = await supabase
+
+    if (error && error.code === '42703') {
+      ({ data, error } = await supabase
         .from('managed_stats')
-        .select('period_end, uv, add_to_cart_users, add_people, pay_buyers, pay_items, pay_people')
+        .select(colsNoAdd)
+        .eq('period_type', 'day')
+        .gte('period_end', from)
+        .lte('period_end', to)
+        .order('period_end', { ascending: true }));
+    }
+    if (error) throw error;
+
+    if (!data || !data.length) {
+      let resp = await supabase
+        .from('managed_stats')
+        .select(colsWithAdd)
         .eq('period_type', 'week')
         .gte('period_end', from)
         .lte('period_end', to)
         .order('period_end', { ascending: true });
+      if (resp.error && resp.error.code === '42703') {
+        resp = await supabase
+          .from('managed_stats')
+          .select(colsNoAdd)
+          .eq('period_type', 'week')
+          .gte('period_end', from)
+          .lte('period_end', to)
+          .order('period_end', { ascending: true });
+      }
       if (resp.error) throw resp.error;
       data = resp.data || [];
     }
