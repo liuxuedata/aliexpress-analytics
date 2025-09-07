@@ -873,6 +873,11 @@ function getParam(name) {
 }
 // 站点参数统一为完整域名
 function normalizeSite(site) {
+  // 如果是自运营站点，直接返回空字符串，避免错误映射
+  if (site && site.includes('ae_self_operated')) {
+    return '';
+  }
+  
   const map = {
     'poolsvacuum': 'poolsvacuum.com',
     'independent_poolsvacuum': 'poolsvacuum.com',
@@ -1644,7 +1649,7 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       { data: 'clicks', title: '点击量（全部）', render: v => v ?? 0, width: '100px' },
       { data: 'ctr', title: '点击率（全部）', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' },
       { data: 'atc_total', title: '加入购物车', render: v => v ?? 0, width: '100px' },
-      { data: 'wishlist_adds', title: '加入心愿单次数', render: v => v ?? 0, width: '120px' }
+      { data: 'wishlist_adds', title: '加入心愿单次数', render: v => v ?? 0, width: '120px' },
       
       // 通过筛选展示的次要字段（默认隐藏）
       { data: 'ic_total', title: '结账发起次数', render: v => v ?? 0, width: '120px', visible: false },
@@ -2155,24 +2160,33 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
   
   // 获取当前站点名称用于API调用
   function getCurrentSiteForAPI() {
+    // 从URL参数获取（优先级最高）
+    const urlParams = new URLSearchParams(window.location.search);
+    const siteParam = urlParams.get('site');
+    if (siteParam) {
+      return normalizeSite(siteParam);
+    }
+
+    // 检查localStorage中的独立站站点信息
     const currentIndepSiteId = localStorage.getItem('currentIndepSite');
     const currentIndepSiteName = localStorage.getItem('currentIndepSiteName');
 
     // 如果有站点名称，使用站点名称（这是数据库中的site字段值）
     if (currentIndepSiteName) {
-      return normalizeSite(currentIndepSiteName);
+      const normalized = normalizeSite(currentIndepSiteName);
+      // 确保是独立站站点，不是自运营站点
+      if (normalized && !normalized.includes('ae_self_operated')) {
+        return normalized;
+      }
     }
 
     // 如果有站点ID，根据ID映射到站点名称
     if (currentIndepSiteId) {
-      return normalizeSite(currentIndepSiteId) || 'poolsvacuum.com';
-    }
-
-    // 从URL参数获取
-    const urlParams = new URLSearchParams(window.location.search);
-    const siteParam = urlParams.get('site');
-    if (siteParam) {
-      return normalizeSite(siteParam);
+      const normalized = normalizeSite(currentIndepSiteId);
+      // 确保是独立站站点，不是自运营站点
+      if (normalized && !normalized.includes('ae_self_operated')) {
+        return normalized;
+      }
     }
     
     // 默认值
