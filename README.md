@@ -178,7 +178,7 @@
 1. 从模板中提取导航、头部、卡片、面板、表格容器结构，应用到 `index.html` 与 `self-operated.html`
 2. 不改动以下 DOM/ID：
    - DataTables 容器：`#report`
-   - ECharts 容器：`#funnel`, `#sumCompareBar`, `#vrBar`, `#payBar` 等
+   - ECharts 容器：`#funnel`, `#expCompareBar`, `#addCompareBar`, `#payCompareBar`, `#vrBar`, `#payBar` 等
    - 自运营 `.kpi .card` 布局（单行横向滚动）
 3. `assets/theme.css` 必须在所有第三方 CSS 之后加载
 4. 保留现有侧边栏导航结构与展开/高亮逻辑
