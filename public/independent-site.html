@@ -1566,10 +1566,10 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
         tableHeaders = `
           <thead>
             <tr>
-              <th>商品编号</th><th>单日</th><th>广告系列名称</th><th>广告组名称</th>
-              <th>展示次数</th><th>频次</th><th>点击量（全部）</th><th>链接点击量</th>
-              <th>点击率（全部）</th><th>链接点击率</th><th>浏览量</th><th>加入购物车</th>
-              <th>结账发起次数</th><th>成效</th><th>开始日期</th><th>结束日期</th>
+              <th>商品ID</th><th>商品名称</th><th>广告系列名称</th><th>广告组名称</th>
+              <th>覆盖人数</th><th>展示次数</th><th>浏览量</th><th>单次成效费用</th>
+              <th>链接点击量</th><th>链接点击率</th><th>点击量（全部）</th><th>点击率（全部）</th>
+              <th>加入购物车</th><th>加入心愿单次数</th><th>结账发起次数</th><th>成效</th>
             </tr>
           </thead>
         `;
@@ -1760,12 +1760,7 @@ function getFacebookAdsColumns() {
     console.log(`渠道${channel} DataTables初始化成功`);
 
     // 根据渠道类型设置列的可见性
-    if (channel === 'facebook_ads') {
-      // Facebook Ads 列：隐藏投放状态和投放层级，显示其他所有列
-      // 投放状态列（索引4）和投放层级列（索引5）设置为隐藏
-      window[`dt_${channel}`].column(4).visible(false); // 投放状态
-      window[`dt_${channel}`].column(5).visible(false); // 投放层级
-    } else {
+    if (channel !== 'facebook_ads') {
       // 默认隐藏筛选列
       window[`dt_${channel}`].column(1).visible(false); // 设备列
       window[`dt_${channel}`].column(2).visible(false); // 网络列
