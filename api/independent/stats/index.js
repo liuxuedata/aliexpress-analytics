@@ -636,6 +636,20 @@ module.exports = async (req, res) => {
       console.error('independent_first_seen count failed', e.message);
     }
 
+    // 如果没有指定渠道，使用默认渠道
+    if (!channel && table.length > 0) {
+      // 从数据中推断渠道
+      const networks = [...new Set(table.map(r => r.network))];
+      if (networks.includes('facebook')) {
+        channel = 'facebook_ads';
+      } else if (networks.includes('tiktok')) {
+        channel = 'tiktok_ads';
+      } else {
+        channel = 'google_ads';
+      }
+      console.log('未指定渠道，使用默认渠道:', channel, '基于网络:', networks);
+    }
+
     // 调试日志：数据映射前的状态
     console.log('数据映射前状态:', {
       originalTableLength: table.length,

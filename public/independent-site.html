@@ -2167,26 +2167,10 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       return normalizeSite(siteParam);
     }
 
-    // 检查localStorage中的独立站站点信息
-    const currentIndepSiteId = localStorage.getItem('currentIndepSite');
-    const currentIndepSiteName = localStorage.getItem('currentIndepSiteName');
-
-    // 如果有站点名称，使用站点名称（这是数据库中的site字段值）
-    if (currentIndepSiteName) {
-      const normalized = normalizeSite(currentIndepSiteName);
-      // 确保是独立站站点，不是自运营站点
-      if (normalized && !normalized.includes('ae_self_operated')) {
-        return normalized;
-      }
-    }
-
-    // 如果有站点ID，根据ID映射到站点名称
-    if (currentIndepSiteId) {
-      const normalized = normalizeSite(currentIndepSiteId);
-      // 确保是独立站站点，不是自运营站点
-      if (normalized && !normalized.includes('ae_self_operated')) {
-        return normalized;
-      }
+    // 从页面输入框获取
+    const siteInputValue = siteInput.value.trim();
+    if (siteInputValue) {
+      return normalizeSite(siteInputValue);
     }
     
     // 默认值
@@ -2463,7 +2447,18 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       console.log('独立站查询参数:', { siteName, siteParam, from, to });
       
       // 获取当前周期数据
-      const channel = channelSel.value;
+      let channel = channelSel.value;
+      
+      // 如果渠道选择器没有值，根据站点推断渠道
+      if (!channel) {
+        if (siteParam === 'icyberite.com') {
+          channel = 'facebook_ads';
+        } else if (siteParam === 'poolsvacuum.com') {
+          channel = 'google_ads';
+        }
+        console.log('渠道选择器为空，根据站点推断渠道:', { siteParam, inferredChannel: channel });
+      }
+      
       console.log('API调用前的渠道参数:', { channel, channelSelValue: channelSel.value });
       const currentUrl = `/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${from}&to=${to}&aggregate=product${channel ? `&channel=${encodeURIComponent(channel)}` : ''}`;
       console.log('API调用URL:', currentUrl);
