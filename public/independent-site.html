@@ -1830,92 +1830,113 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
   }
 
   function buildTable(){
-    // 安全处理空数据
-    if (!rawTable || !Array.isArray(rawTable) || rawTable.length === 0) {
-      // 确定当前渠道（用于空数据情况下的列定义）
-      let currentChannel = null;
-      if (availableChannels && availableChannels.length === 1) {
-        currentChannel = availableChannels[0];
-      } else {
-        // 从URL参数或其他方式推断渠道
-        const urlParams = new URLSearchParams(window.location.search);
-        const site = urlParams.get('site');
-        if (site === 'icyberite.com') {
-          currentChannel = 'facebook_ads';
-        } else {
-          currentChannel = 'google_ads';
-        }
-      }
-      
-      if(dt) dt.destroy();
-      
-      // 获取列定义，确保不为空
-      const columns = getChannelColumns(currentChannel);
-      if (!columns || !Array.isArray(columns)) {
-        console.error('无法获取列定义，使用默认列');
-        return;
-      }
-      
-      dt = $('#report').DataTable({
-        destroy:true,
-        pageLength:20,
-        data: [],
-        scrollX: false,
-        fixedHeader:true,
-        autoWidth: true,
-        processing: true,
-        responsive: false,
-        columns: columns,
-        language: {
-          emptyTable: "暂无数据",
-          zeroRecords: "没有找到匹配的记录"
-        }
-      });
-      
-      // 根据渠道类型隐藏不同的列
-      if (currentChannel === 'facebook_ads') {
-        // Facebook Ads 不需要隐藏列，所有列都显示
-      } else {
-        // 默认列隐藏设备、网络、Campaign列
-        dt.column(1).visible(false); // 设备列
-        dt.column(2).visible(false); // 网络列
-        dt.column(3).visible(false); // Campaign列
-      }
+    console.log('buildTable调用 - 架构检查:', {
+      availableChannels,
+      shouldShowTabs: shouldShowTabs(availableChannels),
+      rawTableLength: rawTable?.length || 0
+    });
 
-      // 强制重新计算列宽，确保对齐
-      setTimeout(() => {
-        dt.columns.adjust();
-        dt.fixedHeader.adjust();
-      }, 100);
-      // 双击行跳转到产品分析
-      $('#report tbody').off('dblclick').on('dblclick', 'tr', function() {
-        const row = dt.row(this).data();
-        if (!row) return;
-        const params = new URLSearchParams(window.location.search);
-        if (!params.get('site')) {
-          params.set('site', getCurrentSiteForAPI());
-        }
-        params.set('product', row.landing_path);
-        window.location.href = `independent-site.html?${params.toString()}#products`;
-      });
-
-      return;
-    }
-
-    // 如果有多渠道，构建所有渠道的表格
+    // 统一架构：根据渠道数量决定渲染方式
     if (shouldShowTabs(availableChannels)) {
+      // 多渠道模式：为每个渠道创建独立的表格
+      console.log('多渠道模式：创建Tab表格');
       availableChannels.forEach(channel => {
         buildChannelTable(channel);
       });
       return;
     }
 
-    // 单渠道情况：确定当前渠道
+    // 单渠道模式：使用统一的表格渲染逻辑
+    console.log('单渠道模式：使用统一表格');
+    buildUnifiedTable();
+  }
+
+  // 创建空表格的函数
+  function createEmptyTable() {
+    // 确定当前渠道（用于空数据情况下的列定义）
     let currentChannel = null;
     if (availableChannels && availableChannels.length === 1) {
       currentChannel = availableChannels[0];
     } else {
-      // 从数据中推断渠道
+      // 从URL参数或其他方式推断渠道
+      const urlParams = new URLSearchParams(window.location.search);
+      const site = urlParams.get('site');
+      if (site === 'icyberite.com') {
+        currentChannel = 'facebook_ads';
+      } else {
+        currentChannel = 'google_ads';
+      }
+    }
+    
+    if(dt) dt.destroy();
+    
+    // 获取列定义，确保不为空
+    const columns = getChannelColumns(currentChannel);
+    if (!columns || !Array.isArray(columns)) {
+      console.error('无法获取列定义，使用默认列');
+      return;
+    }
+    
+    dt = $('#report').DataTable({
+      destroy:true,
+      pageLength:20,
+      data: [],
+      scrollX: false,
+      fixedHeader:true,
+      autoWidth: true,
+      processing: true,
+      responsive: false,
+      columns: columns,
+      language: {
+        emptyTable: "暂无数据",
+        zeroRecords: "没有找到匹配的记录"
+      }
+    });
+    
+    // 根据渠道类型隐藏不同的列
+    if (currentChannel === 'facebook_ads') {
+      // Facebook Ads 不需要隐藏列，所有列都显示
+    } else {
+      // 默认列隐藏设备、网络、Campaign列
+      dt.column(1).visible(false); // 设备列
+      dt.column(2).visible(false); // 网络列
+      dt.column(3).visible(false); // Campaign列
+    }
+
+    // 强制重新计算列宽，确保对齐
+    setTimeout(() => {
+      dt.columns.adjust();
+      dt.fixedHeader.adjust();
+    }, 100);
+    
+    // 双击行跳转到产品分析
+    $('#report tbody').off('dblclick').on('dblclick', 'tr', function() {
+      const row = dt.row(this).data();
+      if (!row) return;
+      const params = new URLSearchParams(window.location.search);
+      if (!params.get('site')) {
+        params.set('site', getCurrentSiteForAPI());
+      }
+      params.set('product', row.landing_path);
+      window.location.href = `independent-site.html?${params.toString()}#products`;
+    });
+  }
+
+  // 统一的单渠道表格渲染函数
+  function buildUnifiedTable() {
+    // 安全处理空数据
+    if (!rawTable || !Array.isArray(rawTable) || rawTable.length === 0) {
+      console.log('数据为空，创建空表格');
+      createEmptyTable();
+      return;
+    }
+
+    // 确定当前渠道
+    let currentChannel = null;
+    if (availableChannels && availableChannels.length === 1) {
+      currentChannel = availableChannels[0];
+    } else {
+      // 从数据中推断渠道（向后兼容）
       const networks = [...new Set(rawTable.map(r => r.network))];
       if (networks.includes('facebook')) {
         currentChannel = 'facebook_ads';
@@ -1925,6 +1946,12 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
         currentChannel = 'google_ads';
       }
     }
+    
+    console.log('单渠道表格渲染:', {
+      currentChannel,
+      rawTableLength: rawTable.length,
+      networks: [...new Set(rawTable.map(r => r.network))]
+    });
     
     // 调试日志：检查渠道和数据
     console.log('buildTable调试信息:', {
