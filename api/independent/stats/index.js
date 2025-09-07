@@ -764,6 +764,14 @@ module.exports = async (req, res) => {
             results: 0, // 成效
             cost_per_result: 0, // 单次成效费用
             conversion_value: 0, // 转化价值
+            // 添加缺失的字段初始化
+            conversions: 0, // 转化次数
+            all_conv: 0, // 所有转化
+            conv_value: 0, // 转化价值
+            avg_cpc: 0, // 平均点击成本
+            cost_per_conv: 0, // 单次转化成本
+            all_conv_rate: 0, // 所有转化率
+            conv_rate: 0, // 转化率
             row_start_date: r.row_start_date || '', // 开始日期
             row_end_date: r.row_end_date || '', // 结束日期
             report_start_date: r.report_start_date || '', // 报告开始日期
@@ -782,13 +790,13 @@ module.exports = async (req, res) => {
         }
         
         const existing = productMap.get(key);
-        // 累加基础指标
-        existing.clicks += r.clicks;
-        existing.impr += r.impr;
-        existing.cost += r.cost;
-        existing.conversions += r.conversions;
-        existing.all_conv += r.all_conv;
-        existing.conv_value += r.conv_value;
+        // 累加基础指标 - 使用安全的数值处理
+        existing.clicks += (r.clicks || 0);
+        existing.impr += (r.impr || 0);
+        existing.cost += (r.cost || 0);
+        existing.conversions += (r.conversions || 0);
+        existing.all_conv += (r.all_conv || 0);
+        existing.conv_value += (r.conv_value || 0);
         existing.days += 1;
         
         // 累加Facebook Ads完整字段
