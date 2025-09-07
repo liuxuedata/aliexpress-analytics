@@ -57,7 +57,7 @@ module.exports = async (req, res) => {
       from = to = iso;
     }
 
-    const idCol = platform === 'indep' ? 'landing_path' : 'product_id';
+    const idCol = platform === 'indep' ? 'product_identifier' : 'product_id';
     const firstSeenCol = platform === 'indep' ? 'first_seen_date' : 'first_seen';
 
     // managed_new_products 视图不包含 site 列

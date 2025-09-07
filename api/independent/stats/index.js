@@ -548,11 +548,8 @@ module.exports = async (req, res) => {
         
         console.log(`分批查询first_seen，共${uniqueProductIds.length}个商品ID，分${batches.length}批`);
         
-        // 使用站点名称映射
-        const siteMapping = {
-          'icyberite.com': 'independent_icyberite'
-        };
-        const dbSite = siteMapping[site] || site;
+        // 直接使用站点名称，不需要映射
+        const dbSite = site;
         
         // 并行查询所有批次
         const batchPromises = batches.map(batch => 
@@ -590,11 +587,8 @@ module.exports = async (req, res) => {
     // total distinct products ever seen for this site
     let productTotal = 0;
     try {
-      // 使用站点名称映射
-      const siteMapping = {
-        'icyberite.com': 'independent_icyberite'
-      };
-      const dbSite = siteMapping[site] || site;
+      // 直接使用站点名称，不需要映射
+      const dbSite = site;
       
       const { count: totalCount, error: totalErr } = await supabase
         .from('independent_first_seen')
