@@ -468,9 +468,9 @@
             
             displayKPIs(kpis, changes) {
                 // 更新主要KPI值
-                this.updateKPI('avgVisitor', kpis.avgVisitorRatio.toFixed(2) + '%');
-                this.updateKPI('avgCart', kpis.avgCartRatio.toFixed(2) + '%');
-                this.updateKPI('avgPay', kpis.avgPayRatio.toFixed(2) + '%');
+                this.updateKPI('avgVisitor', this.formatPercentage(kpis.avgVisitorRatio));
+                this.updateKPI('avgCart', this.formatPercentage(kpis.avgCartRatio));
+                this.updateKPI('avgPay', this.formatPercentage(kpis.avgPayRatio));
                 this.updateKPI('totalProducts', kpis.totalProducts);
                 this.updateKPI('cartedProducts', kpis.cartedProducts);
                 this.updateKPI('purchasedProducts', kpis.purchasedProducts);

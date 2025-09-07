@@ -1421,17 +1421,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const vr = sorted.map(r => {
         const exposure = r.exposure || 0;
         const visitors = r.visitors || 0;
-        return exposure > 0 ? (visitors / exposure * 100) : 0;
+        return exposure > 0 ? (visitors / exposure) : 0;
       });
       const cr = sorted.map(r => {
         const visitors = r.visitors || 0;
         const add = r.add_people || 0;
-        return visitors > 0 ? (add / visitors * 100) : 0;
+        return visitors > 0 ? (add / visitors) : 0;
       });
       const pr = sorted.map(r => {
         const add = r.add_people || 0;
         const pay = r.pay_buyers || 0;
-        return add > 0 ? (pay / add * 100) : 0;
+        return add > 0 ? (pay / add) : 0;
       });
       return { dates, vr, cr, pr };
     }
@@ -1467,11 +1467,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // 渲染折线图
   function renderRateChart(id, dates, currentSeries, prevSeries) {
     const option = {
-      tooltip: { trigger: 'axis', valueFormatter: v => `${v.toFixed(2)}%` },
+      tooltip: { trigger: 'axis', valueFormatter: v => PageUtils.formatPercentage(v) },
       legend: { data: ['当前周期', '上一周期'], textStyle: { color: '#374151' } },
       grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
       xAxis: { type: 'category', data: dates, axisLabel: { color: '#374151' } },
-      yAxis: { type: 'value', axisLabel: { formatter: v => v.toFixed(2) + '%', color: '#374151' } },
+      yAxis: { type: 'value', max: 1, axisLabel: { formatter: v => PageUtils.formatPercentage(v), color: '#374151' } },
       series: [
         { name: '当前周期', type: 'line', data: currentSeries },
         { name: '上一周期', type: 'line', data: prevSeries }
@@ -1546,11 +1546,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
         return { id:String(x.product_id), rate: den>0? num/den:0, den };
       }).filter(o => o.den >= (minDen||1)).sort((a,b)=>b.rate-a.rate).slice(0,10);
       const names = arr.map(o => o.id);
-      const vals = arr.map(o => Number((o.rate*100).toFixed(2)));
+      const vals = arr.map(o => Number(o.rate.toFixed(4)));
       const option = {
-        tooltip:{ trigger:'axis', axisPointer:{ type:'shadow' }, formatter:p=> p[0].name+': '+p[0].value+'%' },
+        tooltip:{ trigger:'axis', axisPointer:{ type:'shadow' }, formatter:p=> p[0].name+': '+PageUtils.formatPercentage(p[0].value) },
         xAxis:{ type:'category', data:names, axisLabel:{ color:'#374151', rotate:45 } },
-        yAxis:{ type:'value', axisLabel:{ color:'#374151', formatter:'{value}%' } },
+        yAxis:{ type:'value', max:1, axisLabel:{ color:'#374151', formatter: v => PageUtils.formatPercentage(v) } },
         series:[{ type:'bar', data:vals, barMaxWidth:24, itemStyle:{ color:'#3B82F6' } }],
         grid:{ left:40, right:20, top:30, bottom:60 }
       };
@@ -1673,9 +1673,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const currentTotalPayItems = data.reduce((sum, item) => sum + (item.pay_items || 0), 0);
       
              // 计算当前周期比率
-       const currentAvgVisitorRate = currentTotalExposure > 0 ? (currentTotalVisitors / currentTotalExposure * 100).toFixed(2) : 0;
-       const currentAvgCartRate = currentTotalVisitors > 0 ? (currentTotalAddPeople / currentTotalVisitors * 100).toFixed(2) : 0; // 使用add_people计算加购比
-       const currentAvgPayRate = currentTotalAddPeople > 0 ? (currentTotalPayItems / currentTotalAddPeople * 100).toFixed(2) : 0; // 使用add_people计算支付比
+       const currentAvgVisitorRate = currentTotalExposure > 0 ? (currentTotalVisitors / currentTotalExposure) : 0;
+       const currentAvgCartRate = currentTotalVisitors > 0 ? (currentTotalAddPeople / currentTotalVisitors) : 0; // 使用add_people计算加购比
+       const currentAvgPayRate = currentTotalAddPeople > 0 ? (currentTotalPayItems / currentTotalAddPeople) : 0; // 使用add_people计算支付比
 
       let comparisonData = {};
       if (previousData && previousData.length > 0) {
@@ -1685,25 +1685,25 @@ document.addEventListener('DOMContentLoaded', ()=>{
          const previousTotalPayItems = previousData.reduce((sum, item) => sum + (item.pay_items || 0), 0);
          const previousTotalPayBuyers = previousData.reduce((sum, item) => sum + (item.pay_buyers || 0), 0);
          
-         const previousAvgVisitorRate = previousTotalExposure > 0 ? (previousTotalVisitors / previousTotalExposure * 100).toFixed(2) : 0;
-         const previousAvgCartRate = previousTotalVisitors > 0 ? (previousTotalAddPeople / previousTotalVisitors * 100).toFixed(2) : 0; // 使用add_people计算加购比
-         const previousAvgPayRate = previousTotalAddPeople > 0 ? (previousTotalPayItems / previousTotalAddPeople * 100).toFixed(2) : 0; // 使用add_people计算支付比
+         const previousAvgVisitorRate = previousTotalExposure > 0 ? (previousTotalVisitors / previousTotalExposure) : 0;
+         const previousAvgCartRate = previousTotalVisitors > 0 ? (previousTotalAddPeople / previousTotalVisitors) : 0; // 使用add_people计算加购比
+         const previousAvgPayRate = previousTotalAddPeople > 0 ? (previousTotalPayItems / previousTotalAddPeople) : 0; // 使用add_people计算支付比
         
         comparisonData = {
           avgVisitorRate: {
-            current: parseFloat(currentAvgVisitorRate),
-            previous: parseFloat(previousAvgVisitorRate),
-            change: parseFloat(currentAvgVisitorRate) - parseFloat(previousAvgVisitorRate)
+            current: currentAvgVisitorRate,
+            previous: previousAvgVisitorRate,
+            change: currentAvgVisitorRate - previousAvgVisitorRate
           },
           avgCartRate: {
-            current: parseFloat(currentAvgCartRate),
-            previous: parseFloat(previousAvgCartRate),
-            change: parseFloat(currentAvgCartRate) - parseFloat(previousAvgCartRate)
+            current: currentAvgCartRate,
+            previous: previousAvgCartRate,
+            change: currentAvgCartRate - previousAvgCartRate
           },
           avgPayRate: {
-            current: parseFloat(currentAvgPayRate),
-            previous: parseFloat(previousAvgPayRate),
-            change: parseFloat(currentAvgPayRate) - parseFloat(previousAvgPayRate)
+            current: currentAvgPayRate,
+            previous: previousAvgPayRate,
+            change: currentAvgPayRate - previousAvgPayRate
           },
           totalExposure: {
             current: currentTotalExposure,
@@ -1740,9 +1740,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
       });
       
       // 更新KPI显示
-      document.getElementById('productAvgVisitor').textContent = currentAvgVisitorRate + '%';
-      document.getElementById('productAvgCart').textContent = currentAvgCartRate + '%';
-      document.getElementById('productAvgPay').textContent = currentAvgPayRate + '%';
+      document.getElementById('productAvgVisitor').textContent = PageUtils.formatPercentage(currentAvgVisitorRate);
+      document.getElementById('productAvgCart').textContent = PageUtils.formatPercentage(currentAvgCartRate);
+      document.getElementById('productAvgPay').textContent = PageUtils.formatPercentage(currentAvgPayRate);
       document.getElementById('productTotalExposure').textContent = currentTotalExposure.toLocaleString();
       document.getElementById('productTotalVisitors').textContent = currentTotalVisitors.toLocaleString();
       document.getElementById('productTotalAddPeople').textContent = currentTotalAddPeople.toLocaleString();
@@ -1770,22 +1770,22 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const visitorChange = comparisonData.avgVisitorRate.change;
       const visitorSymbol = visitorChange > 0 ? '↑' : visitorChange < 0 ? '↓' : '';
       const visitorColor = visitorChange > 0 ? 'text-green-600' : visitorChange < 0 ? 'text-red-600' : 'text-gray-500';
-      document.getElementById('productAvgVisitorComparison').innerHTML = 
-        `<span class="${visitorColor}">${visitorSymbol} ${Math.abs(visitorChange).toFixed(2)}%</span>`;
+      document.getElementById('productAvgVisitorComparison').innerHTML =
+        `<span class="${visitorColor}">${visitorSymbol} ${PageUtils.formatPercentage(Math.abs(visitorChange))}</span>`;
       
       // 更新平均加购比对比
       const cartChange = comparisonData.avgCartRate.change;
       const cartSymbol = cartChange > 0 ? '↑' : cartChange < 0 ? '↓' : '';
       const cartColor = cartChange > 0 ? 'text-green-600' : cartChange < 0 ? 'text-red-600' : 'text-gray-500';
-      document.getElementById('productAvgCartComparison').innerHTML = 
-        `<span class="${cartColor}">${cartSymbol} ${Math.abs(cartChange).toFixed(2)}%</span>`;
+      document.getElementById('productAvgCartComparison').innerHTML =
+        `<span class="${cartColor}">${cartSymbol} ${PageUtils.formatPercentage(Math.abs(cartChange))}</span>`;
       
       // 更新平均支付比对比
       const payChange = comparisonData.avgPayRate.change;
       const paySymbol = payChange > 0 ? '↑' : payChange < 0 ? '↓' : '';
       const payColor = payChange > 0 ? 'text-green-600' : payChange < 0 ? 'text-red-600' : 'text-gray-500';
-      document.getElementById('productAvgPayComparison').innerHTML = 
-        `<span class="${payColor}">${cartSymbol} ${Math.abs(payChange).toFixed(2)}%</span>`;
+      document.getElementById('productAvgPayComparison').innerHTML =
+        `<span class="${payColor}">${paySymbol} ${PageUtils.formatPercentage(Math.abs(payChange))}</span>`;
       
       // 更新总曝光量对比
       const exposureChange = comparisonData.totalExposure.change;
@@ -1911,7 +1911,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
     // 访客比趋势图
     const productVisitorRateOption = {
-      tooltip: { trigger: 'axis' },
+      tooltip: { trigger: 'axis', valueFormatter: v => PageUtils.formatPercentage(v) },
       legend: { data: [curLabel, prevLabel], textStyle: { color: '#374151' } },
       xAxis: {
         type: 'category',
@@ -1920,7 +1920,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
       },
       yAxis: {
         type: 'value',
-        axisLabel: { color: '#374151', fontSize: 12, formatter: '{value}%' }
+        max: 1,
+        axisLabel: { color: '#374151', fontSize: 12, formatter: v => PageUtils.formatPercentage(v) }
       },
       series: [
         {
@@ -1928,7 +1929,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
           data: data.map(item => {
             const exposure = item.exposure || 0;
             const visitors = item.visitors || 0;
-            return exposure > 0 ? ((visitors / exposure) * 100).toFixed(2) : 0;
+            return exposure > 0 ? (visitors / exposure) : 0;
           }),
           type: 'line',
           smooth: true,
@@ -1940,7 +1941,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
             const item = previousData[i] || {};
             const exposure = item.exposure || 0;
             const visitors = item.visitors || 0;
-            return exposure > 0 ? ((visitors / exposure) * 100).toFixed(2) : 0;
+            return exposure > 0 ? (visitors / exposure) : 0;
           }),
           type: 'line',
           smooth: true,
@@ -1952,7 +1953,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
     // 加购比趋势图
     const productAddRateOption = {
-       tooltip: { trigger: 'axis' },
+       tooltip: { trigger: 'axis', valueFormatter: v => PageUtils.formatPercentage(v) },
        legend: { data: [curLabel, prevLabel], textStyle: { color: '#374151' } },
        xAxis: {
          type: 'category',
@@ -1961,7 +1962,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
        },
        yAxis: {
          type: 'value',
-         axisLabel: { color: '#374151', fontSize: 12, formatter: '{value}%' }
+         max: 1,
+         axisLabel: { color: '#374151', fontSize: 12, formatter: v => PageUtils.formatPercentage(v) }
        },
        series: [
          {
@@ -1969,7 +1971,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
            data: data.map(item => {
              const visitors = item.visitors || 0;
              const addPeople = item.add_people || 0;
-             return visitors > 0 ? ((addPeople / visitors) * 100).toFixed(2) : 0;
+             return visitors > 0 ? (addPeople / visitors) : 0;
            }),
            type: 'line',
            smooth: true,
@@ -1981,7 +1983,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
              const item = previousData[i] || {};
              const visitors = item.visitors || 0;
              const addPeople = item.add_people || 0;
-             return visitors > 0 ? ((addPeople / visitors) * 100).toFixed(2) : 0;
+             return visitors > 0 ? (addPeople / visitors) : 0;
            }),
            type: 'line',
            smooth: true,
@@ -1993,7 +1995,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
     // 支付比趋势图
     const productPayRateOption = {
-       tooltip: { trigger: 'axis' },
+       tooltip: { trigger: 'axis', valueFormatter: v => PageUtils.formatPercentage(v) },
        legend: { data: [curLabel, prevLabel], textStyle: { color: '#374151' } },
        xAxis: {
          type: 'category',
@@ -2002,7 +2004,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
        },
        yAxis: {
          type: 'value',
-         axisLabel: { color: '#374151', fontSize: 12, formatter: '{value}%' }
+         max: 1,
+         axisLabel: { color: '#374151', fontSize: 12, formatter: v => PageUtils.formatPercentage(v) }
        },
        series: [
          {
@@ -2010,7 +2013,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
            data: data.map(item => {
              const addPeople = item.add_people || 0;
              const payItems = item.pay_items || 0;
-             return addPeople > 0 ? ((payItems / addPeople) * 100).toFixed(2) : 0;
+             return addPeople > 0 ? (payItems / addPeople) : 0;
            }),
            type: 'line',
            smooth: true,
@@ -2022,7 +2025,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
              const item = previousData[i] || {};
              const addPeople = item.add_people || 0;
              const payItems = item.pay_items || 0;
-             return addPeople > 0 ? ((payItems / addPeople) * 100).toFixed(2) : 0;
+             return addPeople > 0 ? (payItems / addPeople) : 0;
            }),
            type: 'line',
            smooth: true,

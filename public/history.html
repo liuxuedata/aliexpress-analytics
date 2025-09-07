@@ -64,7 +64,7 @@ const dt = $('#tb').DataTable({
     { data:'visitors' },
     { data:'add_people' },
     { data:'pay_orders' },
-    { data:'visitor_ratio' },
+    { data:'visitor_ratio', render: v => v != null ? (Number(v)*100).toFixed(2)+'%' : '' },
     { data:'updated_at' },
   ]
 });
