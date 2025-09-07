@@ -1,6 +1,6 @@
 // /api/test-site-configs.js
 // 测试站点配置API的简单端点
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
 function getClient() {
   const url = process.env.SUPABASE_URL;
