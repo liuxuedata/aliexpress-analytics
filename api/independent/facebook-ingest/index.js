@@ -8,26 +8,74 @@ const XLSX = require('xlsx');
 // 统一的商品标识提取函数
 function extractProductId(record, channel) {
   if (channel === 'facebook_ads') {
-    // Facebook Ads: 从landing_url中提取商品ID，或使用campaign_name作为商品标识
+    // Facebook Ads: 优先使用product_id字段，如果没有则从其他字段提取
+    if (record.product_id) {
+      return record.product_id;
+    }
+    
+    // 从landing_url中提取商品ID
     const landingUrl = record.landing_url || '';
     const productIdMatch = landingUrl.match(/(\d{10,})/); // 匹配10位以上的数字
     if (productIdMatch) {
       return productIdMatch[1];
     }
+    
     // 如果campaign_name包含商品ID格式，使用它
     const campaignName = record.campaign_name || '';
     const campaignIdMatch = campaignName.match(/(\d{10,})/);
     if (campaignIdMatch) {
       return campaignIdMatch[1];
     }
-    // 否则使用campaign_name作为标识
+    
+    // 最后回退到campaign_name
     return campaignName;
   } else if (channel === 'tiktok_ads') {
     // TikTok Ads: 类似Facebook的处理
+    if (record.product_id) {
+      return record.product_id;
+    }
+    
     const landingUrl = record.landing_url || '';
     const productIdMatch = landingUrl.match(/(\d{10,})/);
     if (productIdMatch) {
       return productIdMatch[1];
+    }
+    return record.campaign_name || record.adgroup_name || '';
+  } else {
+    // Google Ads: 使用landing_path
+    return record.landing_path || '';
+  }
+}
+
+// 新增函数：提取商品名称
+function extractProductName(record, channel) {
+  if (channel === 'facebook_ads') {
+    // Facebook Ads: 优先使用product_name字段
+    if (record.product_name) {
+      return record.product_name;
+    }
+    
+    // 如果product_id字段包含逗号分隔的格式，提取商品名称
+    if (record.product_id && record.product_id.includes(',')) {
+      const parts = record.product_id.split(',');
+      if (parts.length >= 2) {
+        return parts.slice(1).join(',').trim();
+      }
+    }
+    
+    // 从campaign_name中提取商品名称（去除数字ID部分）
+    const campaignName = record.campaign_name || '';
+    const cleanedName = campaignName.replace(/^\d{10,}\s*,\s*/, '').trim();
+    if (cleanedName && cleanedName !== campaignName) {
+      return cleanedName;
+    }
+    
+    // 最后回退到campaign_name
+    return campaignName;
+  } else if (channel === 'tiktok_ads') {
+    // TikTok Ads: 类似Facebook的处理
+    if (record.product_name) {
+      return record.product_name;
     }
     return record.campaign_name || record.adgroup_name || '';
   } else {
@@ -42,7 +90,13 @@ async function updateFirstSeen(supabase, site, records, channel) {
     const firstSeenUpdates = [];
     
     for (const record of records) {
-      const productId = extractProductId(record, channel);
+      // 对于Facebook Ads，直接使用record.product_id，确保是纯数字ID
+      let productId;
+      if (channel === 'facebook_ads' && record.product_id) {
+        productId = record.product_id;
+      } else {
+        productId = extractProductId(record, channel);
+      }
       if (!productId) continue;
       
       // 检查是否已存在
@@ -405,10 +459,31 @@ async function handleFile(filePath, filename, siteId) {
       continue;
     }
 
+    // 处理商品ID和商品名的拆分
+    let productId = '';
+    let productName = '';
+    
+    // 如果第一列包含逗号分隔的格式，拆分它
+    const firstColumn = String(row[0] || '').trim();
+    if (firstColumn.includes(',')) {
+      const parts = firstColumn.split(',');
+      if (parts.length >= 2) {
+        productId = parts[0].trim();
+        productName = parts.slice(1).join(',').trim();
+      } else {
+        productId = firstColumn;
+        productName = '';
+      }
+    } else {
+      productId = firstColumn;
+      productName = '';
+    }
+    
     const record = {
       site: siteId,
       day: dayStr,
-      product_id: String(row[0] || '').trim(), // 商品编号
+      product_id: productId, // 商品ID
+      product_name: productName, // 商品名称
       campaign_name: campaign,
       adset_name: adset,
       ad_name: '', // 广告名称
