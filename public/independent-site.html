@@ -1563,14 +1563,11 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       // 根据渠道生成不同的表格头部
       let tableHeaders = '';
       if (channel === 'facebook_ads') {
+        const fbHeads = getChannelColumns('facebook_ads').filter(Boolean)
+          .map(col => `<th>${col.title}</th>`).join('');
         tableHeaders = `
           <thead>
-            <tr>
-              <th>商品编号</th><th>单日</th><th>广告系列名称</th><th>广告组名称</th>
-              <th>展示次数</th><th>频次</th><th>点击量（全部）</th><th>链接点击量</th>
-              <th>点击率（全部）</th><th>链接点击率</th><th>浏览量</th><th>加入购物车</th>
-              <th>结账发起次数</th><th>成效</th><th>开始日期</th><th>结束日期</th>
-            </tr>
+            <tr>${fbHeads}</tr>
           </thead>
         `;
       } else {
@@ -1644,18 +1641,18 @@ function getFacebookAdsColumns() {
     }, width: '200px' },
     { data: 'campaign_name', title: '广告系列名称', render: v => v || '', width: '150px' },
     { data: 'adset_name', title: '广告组名称', render: v => v || '', width: '150px' },
-    { data: 'reach', title: '覆盖人数', render: v => v ?? 0, width: '100px' },
-    { data: 'impr', title: '展示次数', render: v => v ?? 0, width: '100px' },
-    { data: 'page_views', title: '浏览量', render: v => v ?? 0, width: '100px' },
-    { data: 'cost_per_result', title: '单次成效费用', render: v => (v ?? 0).toFixed(2), width: '120px' },
-    { data: 'link_clicks', title: '链接点击量', render: v => v ?? 0, width: '100px' },
-    { data: 'link_ctr', title: '链接点击率', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' },
-    { data: 'clicks', title: '点击量（全部）', render: v => v ?? 0, width: '100px' },
-    { data: 'ctr', title: '点击率（全部）', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' },
-    { data: 'atc_total', title: '加入购物车', render: v => v ?? 0, width: '100px' },
-    { data: 'wishlist_adds', title: '加入心愿单次数', render: v => v ?? 0, width: '120px' },
-    { data: 'ic_total', title: '结账发起次数', render: v => v ?? 0, width: '120px' },
-    { data: 'results', title: '成效', render: v => v ?? 0, width: '100px' },
+    { data: 'reach', title: '覆盖人数', render: v => Number(v ?? 0), width: '100px' },
+    { data: 'impr', title: '展示次数', render: v => Number(v ?? 0), width: '100px' },
+    { data: 'page_views', title: '浏览量', render: v => Number(v ?? 0), width: '100px' },
+    { data: 'cost_per_result', title: '单次成效费用', render: v => Number(v ?? 0).toFixed(2), width: '120px' },
+    { data: 'link_clicks', title: '链接点击量', render: v => Number(v ?? 0), width: '100px' },
+    { data: 'link_ctr', title: '链接点击率', render: v => v != null ? (Number(v)*100).toFixed(2)+'%' : '0%', width: '100px' },
+    { data: 'clicks', title: '点击量（全部）', render: v => Number(v ?? 0), width: '100px' },
+    { data: 'ctr', title: '点击率（全部）', render: v => v != null ? (Number(v)*100).toFixed(2)+'%' : '0%', width: '100px' },
+    { data: 'atc_total', title: '加入购物车', render: v => Number(v ?? 0), width: '100px' },
+    { data: 'wishlist_adds', title: '加入心愿单次数', render: v => Number(v ?? 0), width: '120px' },
+    { data: 'ic_total', title: '结账发起次数', render: v => Number(v ?? 0), width: '120px' },
+    { data: 'results', title: '成效', render: v => Number(v ?? 0), width: '100px' },
   ];
 }
 
@@ -1669,17 +1666,17 @@ function getFacebookAdsColumns() {
       { data: 'device', title: '设备', render: v => v || '', width: '80px' },
       { data: 'network', title: '网络', render: v => v || '', width: '100px' },
       { data: 'campaign', title: 'Campaign', render: v => v || '', width: '120px' },
-      { data: 'clicks', title: '点击', render: v => v ?? 0, width: '80px' },
-      { data: 'impr', title: '曝光', render: v => v ?? 0, width: '80px' },
-      { data: 'ctr', title: 'CTR', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '80px' },
-      { data: 'avg_cpc', title: 'Avg CPC', render: v => (v ?? 0).toFixed(2), width: '100px' },
-      { data: 'cost', title: 'Cost', render: v => (v ?? 0).toFixed(2), width: '100px' },
-      { data: 'conversions', title: '转化', render: v => v ?? 0, width: '80px' },
-      { data: 'cost_per_conv', title: 'Cost/Conv', render: v => (v ?? 0).toFixed(2), width: '100px' },
-      { data: 'all_conv', title: 'All conv', render: v => v ?? 0, width: '80px' },
-      { data: 'conv_value', title: 'Conv value', render: v => (v ?? 0).toFixed(2), width: '100px' },
-      { data: 'all_conv_rate', title: 'All conv rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '120px' },
-      { data: 'conv_rate', title: 'Conv rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' }
+      { data: 'clicks', title: '点击', render: v => Number(v ?? 0), width: '80px' },
+      { data: 'impr', title: '曝光', render: v => Number(v ?? 0), width: '80px' },
+      { data: 'ctr', title: 'CTR', render: v => v != null ? (Number(v)*100).toFixed(2)+'%' : '0%', width: '80px' },
+      { data: 'avg_cpc', title: 'Avg CPC', render: v => Number(v ?? 0).toFixed(2), width: '100px' },
+      { data: 'cost', title: 'Cost', render: v => Number(v ?? 0).toFixed(2), width: '100px' },
+      { data: 'conversions', title: '转化', render: v => Number(v ?? 0), width: '80px' },
+      { data: 'cost_per_conv', title: 'Cost/Conv', render: v => Number(v ?? 0).toFixed(2), width: '100px' },
+      { data: 'all_conv', title: 'All conv', render: v => Number(v ?? 0), width: '80px' },
+      { data: 'conv_value', title: 'Conv value', render: v => Number(v ?? 0).toFixed(2), width: '100px' },
+      { data: 'all_conv_rate', title: 'All conv rate', render: v => v != null ? (Number(v)*100).toFixed(2)+'%' : '0%', width: '120px' },
+      { data: 'conv_rate', title: 'Conv rate', render: v => v != null ? (Number(v)*100).toFixed(2)+'%' : '0%', width: '100px' }
     ];
   }
 
@@ -1726,8 +1723,8 @@ function getFacebookAdsColumns() {
       window[`dt_${channel}`].destroy();
     }
 
-    // 获取渠道专用的列定义
-    const columns = getChannelColumns(channel);
+    // 获取渠道专用的列定义并过滤无效项
+    const columns = getChannelColumns(channel).filter(Boolean);
 
     // 数据验证：确保每条数据都有必需的字段
     const validatedChannelData = aggregatedData.map(row => {
@@ -1813,9 +1810,9 @@ function getFacebookAdsColumns() {
     // API已经返回聚合好的数据，不需要重新聚合
     // 直接返回数据，只进行简单的排序
     return data.sort((a, b) => {
-      // 按产品名称排序
-      const productA = a.product || '';
-      const productB = b.product || '';
+      // 按产品名称排序，兼容不同数据源字段
+      const productA = a.product || a.product_name || a.landing_path || '';
+      const productB = b.product || b.product_name || b.landing_path || '';
       return productA.localeCompare(productB);
     });
   }
@@ -1864,7 +1861,8 @@ function getFacebookAdsColumns() {
     if(dt) dt.destroy();
     
     // 获取列定义，确保不为空
-    const columns = getChannelColumns(currentChannel);
+    // 获取列定义并过滤无效项
+    const columns = getChannelColumns(currentChannel).filter(Boolean);
     if (!columns || !Array.isArray(columns)) {
       console.error('无法获取列定义，使用默认列');
       return;
@@ -2033,7 +2031,7 @@ function getFacebookAdsColumns() {
     if(dt) dt.destroy();
     
     // 获取渠道专用的列定义
-    const columns = getChannelColumns(currentChannel);
+    const columns = getChannelColumns(currentChannel).filter(Boolean);
     if (!columns || !Array.isArray(columns)) {
       console.error('无法获取列定义，使用默认列');
       return;
@@ -2115,23 +2113,26 @@ function getFacebookAdsColumns() {
     
     // 清空并重建表格结构
     $table.empty();
-    $table.html(`
-      <thead>
-        <tr>
-          ${columns.map(col => `<th>${col.title}</th>`).join('')}
-        </tr>
-      </thead>
-      <tbody></tbody>
-    `);
-    
+    const thead = $('<thead><tr></tr></thead>');
+    columns.forEach(col => thead.find('tr').append(`<th>${col.title}</th>`));
+    $table.append(thead);
+    $table.append('<tbody></tbody>');
+
+    // 如果表头列数与列定义不符，输出警告并终止初始化
+    if ($table.find('thead th').length !== columns.length) {
+      console.error('表头列数与列定义不匹配', $table.find('thead th').length, columns.length);
+      return;
+    }
+
     // 重新初始化DataTables - 简化配置避免错误
     try {
       console.log('开始初始化DataTables，数据长度:', validatedData.length, '列数:', columns.length);
       console.log('列定义:', columns.map(c => ({ data: c.data, title: c.title })));
-      
+
       dt = $('#report').DataTable({
         destroy: true,
         pageLength: 20,
+        autoWidth: false,
         data: validatedData,
         columns: columns,
         language: {
@@ -2143,20 +2144,11 @@ function getFacebookAdsColumns() {
     } catch (error) {
       console.error('DataTables初始化失败:', error);
       // 显示错误信息给用户
-      $table.html(`
-        <thead>
-          <tr>
-            ${columns.map(col => `<th>${col.title}</th>`).join('')}
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td colspan="${columns.length}" style="text-align: center; color: red;">
-              表格初始化失败: ${error.message}
-            </td>
-          </tr>
-        </tbody>
-      `);
+      $table.empty();
+      const errHead = $('<thead><tr></tr></thead>');
+      columns.forEach(col => errHead.find('tr').append(`<th>${col.title}</th>`));
+      const errBody = $(`<tbody><tr><td colspan="${columns.length}" style="text-align: center; color: red;">表格初始化失败: ${error.message}</td></tr></tbody>`);
+      $table.append(errHead).append(errBody);
     }
     
     // 只有在DataTables初始化成功后才进行列显示控制
