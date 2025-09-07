@@ -549,8 +549,21 @@ module.exports = async (req, res) => {
         
         console.log(`分批查询first_seen，共${uniqueProductIds.length}个商品ID，分${batches.length}批`);
         
-        // 直接使用站点名称，不需要映射
-        const dbSite = site;
+        // 根据渠道类型确定数据库站点标识
+        let dbSite = site;
+        if (channel === 'google_ads') {
+          // Google Ads: 使用数据库中的站点标识
+          if (site === 'poolsvacuum.com') {
+            dbSite = 'independent_poolsvacuum';
+          }
+        } else if (channel === 'facebook_ads') {
+          // Facebook Ads: 使用数据库中的站点标识
+          if (site === 'icyberite.com') {
+            dbSite = 'independent_icyberite';
+          }
+        }
+        
+        console.log('站点映射:', { originalSite: site, dbSite: dbSite, channel: channel });
         
         // 并行查询所有批次
         const batchPromises = batches.map(batch => 
@@ -575,10 +588,13 @@ module.exports = async (req, res) => {
         // 调试日志
         console.log('firstSeen查询结果:', {
           site,
+          dbSite,
+          channel,
           totalProductIds: uniqueProductIds.length,
           batches: batches.length,
           fsRowsCount: firstSeenMap.size,
-          sampleFirstSeen: Array.from(firstSeenMap.entries()).slice(0, 3)
+          sampleFirstSeen: Array.from(firstSeenMap.entries()).slice(0, 3),
+          sampleProductIds: uniqueProductIds.slice(0, 5)
         });
       } catch (e) {
         console.error('independent_first_seen lookup failed', e.message);
@@ -647,6 +663,15 @@ module.exports = async (req, res) => {
             toDate,
             toDateObj: toDateObj.toISOString(),
             is_new
+          });
+        }
+      } else {
+        // 添加调试日志：没有找到first_seen记录
+        if (table.length < 3) {
+          console.log('未找到first_seen记录:', {
+            productId,
+            channel,
+            firstSeenMapSize: firstSeenMap.size
           });
         }
       }
