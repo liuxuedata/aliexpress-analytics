@@ -879,6 +879,17 @@ function normalizeSite(site) {
   return map[site] || site || '';
 }
 
+function buildProductUrl(domain, path) {
+  const base = domain.startsWith('http') ? domain : `https://${domain}`;
+  if (!path) return base;
+  if (path.startsWith('http')) return path;
+
+  let linkPath = path.startsWith('/') ? path : `/${path}`;
+  const idx = linkPath.indexOf('/products/');
+  linkPath = idx >= 0 ? linkPath.slice(idx) : `/products${linkPath}`;
+  return `${base}${linkPath}`;
+}
+
 // 独立站运营分析数据加载
 async function loadIndependentAnalysisData() {
   try {
@@ -1144,12 +1155,11 @@ function populateIndependentProductSelect(data, firstMap = {}) {
   const seen = new Set();
   const list = [];
   const domain = getCurrentSiteForAPI() || 'poolsvacuum.com';
-  const base = domain.startsWith('http') ? domain : `https://${domain}`;
   data.forEach(item => {
     const key = item.landing_path;
     if (!key || seen.has(key)) return;
     seen.add(key);
-    const fullUrl = key.startsWith('http') ? key : `${base}${key.startsWith('/') ? key : '/' + key}`;
+    const fullUrl = buildProductUrl(domain, key);
     list.push({
       path: key,
       name: item.product || key,
@@ -1634,8 +1644,7 @@ function getFacebookAdsColumns() {
         const name = v || r.landing_path || '';
         const path = r.landing_path || '';
         const domain = getCurrentSiteForAPI() || 'poolsvacuum.com';
-        const base = domain.startsWith('http') ? domain : `https://${domain}`;
-        const landingUrl = path.startsWith('http') ? path : `${base}${path.startsWith('/') ? path : '/' + path}`;
+        const landingUrl = buildProductUrl(domain, path);
         return `<a href="${landingUrl}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
       }, width: '200px' },
       { data: 'device', title: '设备', render: v => v || '', width: '80px' },
