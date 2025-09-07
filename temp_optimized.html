@@ -1,0 +1,43 @@
+    // 重新初始化DataTables - 添加错误处理
+    try {
+      dt = $('#report').DataTable({
+        destroy: true,
+        pageLength: 20,
+        data: validatedData,
+        scrollX: false,
+        fixedHeader: true,
+        autoWidth: true,
+        processing: true,
+        responsive: false,
+        columns: columns,
+        language: {
+          emptyTable: "暂无数据",
+          zeroRecords: "没有找到匹配的记录"
+        },
+        error: function(xhr, error, thrown) {
+          console.error('DataTables初始化错误:', {
+            xhr: xhr,
+            error: error,
+            thrown: thrown
+          });
+        }
+      });
+      console.log('DataTables重新初始化成功');
+    } catch (error) {
+      console.error('DataTables初始化失败:', error);
+      // 显示错误信息给用户
+      $table.html(`
+        <thead>
+          <tr>
+            ${columns.map(col => `<th>${col.title}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="${columns.length}" style="text-align: center; color: red;">
+              表格初始化失败: ${error.message}
+            </td>
+          </tr>
+        </tbody>
+      `);
+    }

@@ -519,14 +519,11 @@
             `<a href="https://www.aliexpress.com/item/${productId}.html" target="_blank" class="product-link">${productId}</a>` : 
             '';
           
-          // 计算比率，优先使用 add_people
+          // API 直接返回比率字段（小数形式）
           const addPeople = row.add_people || 0;
-          const visitors = row.visitors || 0;
-          const exposure = row.exposure || 0;
-          const payItems = row.pay_items || 0;
-          const visitorRatio = exposure > 0 ? (visitors / exposure) * 100 : 0;
-          const addToCartRatio = visitors > 0 ? (addPeople / visitors) * 100 : 0;
-          const paymentRatio = addPeople > 0 ? (payItems / addPeople) * 100 : 0;
+          const visitorRatio = row.visitor_ratio || 0;
+          const addToCartRatio = row.add_to_cart_ratio || 0;
+          const paymentRatio = row.payment_ratio || 0;
 
           // 调试：输出前3行的详细数据
           if (index < 3) {

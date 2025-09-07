@@ -79,8 +79,19 @@ export default async function handler(req, res) {
       site: siteConfig.name
     }));
 
-    // 确定目标表名
-    const tableName = `${siteId}_${siteConfig.data_source}_daily`;
+    // 确定目标表名 - 使用统一表架构
+    let tableName;
+    if (siteConfig.data_source === 'google_ads') {
+      tableName = 'independent_landing_metrics'; // Google Ads 统一表
+    } else if (siteConfig.data_source === 'facebook_ads') {
+      tableName = 'independent_facebook_ads_daily'; // Facebook Ads 统一表
+    } else if (siteConfig.data_source === 'tiktok_ads') {
+      tableName = 'independent_tiktok_ads_daily'; // TikTok Ads 统一表
+    } else {
+      tableName = `${siteId}_${siteConfig.data_source}_daily`; // 其他数据源保持原有逻辑
+    }
+
+    console.log(`站点 ${siteId} 使用表: ${tableName}`);
 
     // 上传数据到对应的表
     const { data, error: insertError } = await supabase

@@ -1,0 +1,321 @@
+// /api/independent/stats/index.js
+const { createClient } = require('@supabase/supabase-js');
+function getClient() {
+  const url = process.env.SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE;
+  if (!url || !key) throw new Error('Supabase env not configured');
+  return createClient(url, key);
+}
+
+function parseDate(s, fallback) {
+  const d = s ? new Date(s) : null;
+  return d && !isNaN(d.getTime()) ? d.toISOString().slice(0,10) : fallback;
+}
+
+function extractName(url) {
+  try {
+    const u = new URL(url);
+    return u.pathname.split('/').pop() || u.pathname || url;
+  } catch {
+    return url;
+  }
+}
+
+function safeNum(v){
+  if (v === null || v === undefined || v === '') return 0;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+const PAGE_SIZE = 1000;
+
+function lastWeek() {
+  const today = new Date();
+  const dow = today.getDay();
+  // Monday of this week
+  const mondayThisWeek = new Date(today);
+  mondayThisWeek.setDate(today.getDate() - ((dow + 6) % 7));
+  // Previous week's Monday and Sunday
+  const from = new Date(mondayThisWeek);
+  from.setDate(mondayThisWeek.getDate() - 7);
+  const to = new Date(from);
+  to.setDate(from.getDate() + 6);
+  return {
+    from: from.toISOString().slice(0,10),
+    to: to.toISOString().slice(0,10)
+  };
+}
+
+// 判断站点使用哪个数据源
+function getDataSource(site) {
+  // icyberite.com 使用 Facebook Ads 数据
+  if (site === 'icyberite.com' || site === 'independent_icyberite') {
+    return 'facebook_ads';
+  }
+  // 其他站点使用 Google Ads 数据
+  return 'google_ads';
+}
+
+// 查询 Facebook Ads 数据
+async function queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device) {
+  const table = [];
+  
+  for (let fromIdx = 0; table.length < limitNum; fromIdx += PAGE_SIZE) {
+    const toIdx = Math.min(fromIdx + PAGE_SIZE - 1, limitNum - 1);
+    let query = supabase
+      .from('independent_facebook_ads_daily')
+      .select('*')
+      .eq('site', site)
+      .gte('day', fromDate).lte('day', toDate)
+      .order('day', { ascending: false });
+    
+    if (campaign) query = query.eq('campaign_name', campaign);
+    // Facebook Ads 没有 network 和 device 字段，跳过这些过滤
+    
+    const { data, error } = await query.range(fromIdx, toIdx);
+    if (error) throw new Error(`Facebook Ads query error: ${error.message}`);
+    
+    table.push(...data);
+    if (!data.length || data.length < PAGE_SIZE) break;
+  }
+  
+  // 转换 Facebook Ads 数据格式为统一格式
+  return table.map(r => ({
+    site: r.site,
+    day: r.day,
+    landing_path: r.landing_url || '',
+    landing_url: r.landing_url || '',
+    campaign: r.campaign_name,
+    network: 'facebook', // Facebook Ads 固定为 facebook
+    device: 'all', // Facebook Ads 没有设备区分
+    clicks: safeNum(r.clicks),
+    impr: safeNum(r.impressions),
+    ctr: safeNum(r.all_ctr),
+    avg_cpc: safeNum(r.cpc_all),
+    cost: safeNum(r.spend_usd),
+    conversions: safeNum(r.atc_total), // 使用加购作为转化
+    cost_per_conv: r.atc_total > 0 ? safeNum(r.spend_usd / r.atc_total) : 0,
+    all_conv: safeNum(r.atc_total),
+    conv_value: safeNum(r.conversion_value),
+    all_conv_rate: r.impressions > 0 ? safeNum(r.atc_total / r.impressions * 100) : 0,
+    conv_rate: r.clicks > 0 ? safeNum(r.atc_total / r.clicks * 100) : 0,
+    // Facebook Ads 特有字段
+    reach: safeNum(r.reach),
+    frequency: safeNum(r.frequency),
+    link_clicks: safeNum(r.link_clicks),
+    link_ctr: safeNum(r.link_ctr),
+    cpm: safeNum(r.cpm),
+    // 原始数据保留
+    _raw: r
+  }));
+}
+
+// 查询 Google Ads 数据（原有逻辑）
+async function queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device) {
+  const table = [];
+  
+  for (let fromIdx = 0; table.length < limitNum; fromIdx += PAGE_SIZE) {
+    const toIdx = Math.min(fromIdx + PAGE_SIZE - 1, limitNum - 1);
+    let query = supabase
+      .from('independent_landing_metrics')
+      .select('*')
+      .eq('site', site)
+      .gte('day', fromDate).lte('day', toDate)
+      .order('day', { ascending: false });
+    
+    if (campaign) query = query.eq('campaign', campaign);
+    if (network) query = query.eq('network', network);
+    if (device) query = query.eq('device', device);
+    
+    const { data, error } = await query.range(fromIdx, toIdx);
+    if (error) throw new Error(`Google Ads query error: ${error.message}`);
+    
+    table.push(...data);
+    if (!data.length || data.length < PAGE_SIZE) break;
+  }
+  
+  return table;
+}
+
+module.exports = async (req, res) => {
+  // 设置CORS头
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  // 处理OPTIONS请求
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  try {
+    const supabase = getClient();
+    const { site, from, to, limit = '20000', only_new, campaign, network, device, aggregate } = req.query;
+    const def = lastWeek();
+    const toDate = parseDate(to, def.to);
+    const fromDate = parseDate(from, def.from);
+    const onlyNew = String(only_new || '') === '1';
+    const isProductAggregate = String(aggregate || '') === 'product';
+
+    console.log('独立站查询参数:', { site, from: fromDate, to: toDate, limit, only_new, campaign, network, device, aggregate });
+
+    if (!site) return res.status(400).json({ error: 'missing site param, e.g. ?site=poolsvacuum.com' });
+
+    // 根据站点选择数据源
+    const dataSource = getDataSource(site);
+    console.log('数据源:', dataSource, 'for site:', site);
+
+    // table data (fetch all pages up to limit)
+    const limitNum = Math.min(Number(limit) || PAGE_SIZE, 20000);
+    let table = [];
+
+    if (dataSource === 'facebook_ads') {
+      // 查询 Facebook Ads 数据
+      table = await queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
+    } else {
+      // 查询 Google Ads 数据
+      table = await queryGoogleAdsData(supabase, site, fromDate, toDate, limitNum, campaign, network, device);
+    }
+
+    // lookup first seen dates for all landing paths in the result set
+    const paths = Array.from(new Set(table.map(r => r.landing_path))).filter(Boolean);
+    const firstSeenMap = new Map();
+    if (paths.length) {
+      try {
+        const { data: fsRows, error: fsErr } = await supabase
+          .from('independent_first_seen')
+          .select('landing_path, first_seen_date')
+          .eq('site', site)
+          .in('landing_path', paths);
+        if (fsErr) throw fsErr;
+        (fsRows || []).forEach(r => firstSeenMap.set(r.landing_path, r.first_seen_date));
+      } catch (e) {
+        console.error('independent_first_seen lookup failed', e.message);
+      }
+    }
+
+    // total distinct products ever seen for this site
+    let productTotal = 0;
+    try {
+      const { count: totalCount, error: totalErr } = await supabase
+        .from('independent_first_seen')
+        .select('landing_path', { count: 'exact', head: true })
+        .eq('site', site);
+      if (totalErr) throw totalErr;
+      productTotal = totalCount || 0;
+    } catch (e) {
+      console.error('independent_first_seen count failed', e.message);
+    }
+
+    table = (table || []).map(r => {
+      const firstSeen = firstSeenMap.get(r.landing_path) || null;
+      return {
+        ...r,
+        product: extractName(r.landing_path),
+        clicks: safeNum(r.clicks),
+        impr: safeNum(r.impr),
+        ctr: safeNum(r.ctr),
+        avg_cpc: safeNum(r.avg_cpc),
+        cost: safeNum(r.cost),
+        conversions: safeNum(r.conversions),
+        cost_per_conv: safeNum(r.cost_per_conv),
+        all_conv: safeNum(r.all_conv),
+        conv_value: safeNum(r.conv_value),
+        all_conv_rate: safeNum(r.all_conv_rate),
+        conv_rate: safeNum(r.conv_rate),
+        is_new: firstSeen ? firstSeen >= fromDate && firstSeen <= toDate : false,
+        first_seen_date: firstSeen
+      };
+    });
+
+    if (onlyNew) {
+      table = table.filter(r => r.is_new);
+    }
+
+    // 如果请求产品聚合，按产品聚合数据
+    if (isProductAggregate) {
+      const productMap = new Map();
+      table.forEach(r => {
+        const key = r.landing_path || r.product;
+        if (!key) return;
+        
+        if (!productMap.has(key)) {
+          productMap.set(key, {
+            product: r.product,
+            landing_path: r.landing_path,
+            landing_url: r.landing_url,
+            campaign: r.campaign,
+            network: r.network,
+            device: r.device,
+            clicks: 0,
+            impr: 0,
+            ctr: 0,
+            avg_cpc: 0,
+            cost: 0,
+            conversions: 0,
+            cost_per_conv: 0,
+            all_conv: 0,
+            conv_value: 0,
+            all_conv_rate: 0,
+            conv_rate: 0,
+            is_new: r.is_new,
+            first_seen_date: r.first_seen_date,
+            days: 0
+          });
+        }
+        
+        const existing = productMap.get(key);
+        existing.clicks += r.clicks;
+        existing.impr += r.impr;
+        existing.cost += r.cost;
+        existing.conversions += r.conversions;
+        existing.all_conv += r.all_conv;
+        existing.conv_value += r.conv_value;
+        existing.days += 1;
+      });
+      
+      // 重新计算比率
+      productMap.forEach(p => {
+        p.ctr = p.impr > 0 ? (p.clicks / p.impr * 100) : 0;
+        p.avg_cpc = p.clicks > 0 ? (p.cost / p.clicks) : 0;
+        p.cost_per_conv = p.conversions > 0 ? (p.cost / p.conversions) : 0;
+        p.all_conv_rate = p.impr > 0 ? (p.all_conv / p.impr * 100) : 0;
+        p.conv_rate = p.clicks > 0 ? (p.all_conv / p.clicks * 100) : 0;
+      });
+      
+      table = Array.from(productMap.values());
+    }
+
+    // 计算KPI
+    const kpis = {
+      total_clicks: table.reduce((sum, r) => sum + r.clicks, 0),
+      total_impressions: table.reduce((sum, r) => sum + r.impr, 0),
+      total_cost: table.reduce((sum, r) => sum + r.cost, 0),
+      total_conversions: table.reduce((sum, r) => sum + r.conversions, 0),
+      total_all_conv: table.reduce((sum, r) => sum + r.all_conv, 0),
+      total_conv_value: table.reduce((sum, r) => sum + r.conv_value, 0),
+      avg_ctr: table.length > 0 ? table.reduce((sum, r) => sum + r.ctr, 0) / table.length : 0,
+      avg_conv_rate: table.length > 0 ? table.reduce((sum, r) => sum + r.conv_rate, 0) / table.length : 0,
+      new_products: table.filter(r => r.is_new).length,
+      total_products: productTotal
+    };
+
+    return res.json({
+      ok: true,
+      table: table,
+      kpis: kpis,
+      dataSource: dataSource,
+      query: { site, from: fromDate, to: toDate, limit, only_new, campaign, network, device, aggregate }
+    });
+
+  } catch (error) {
+    console.error('独立站查询错误:', error);
+    return res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
+};

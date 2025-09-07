@@ -1,146 +1,10 @@
 // /api/independent/facebook-ingest/index.js
-// 简化版本 - 直接插入数据，不检查表结构
+// Upload Facebook Ads export (xlsx or csv) and upsert into Supabase
+// Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (recommended) or SUPABASE_ANON_KEY (insert allowed by RLS)
 const { createClient } = require('@supabase/supabase-js');
 const formidable = require('formidable').default;
 const fs = require('fs');
 const XLSX = require('xlsx');
-
-// 统一的商品标识提取函数
-function extractProductId(record, channel) {
-  if (channel === 'facebook_ads') {
-    // Facebook Ads: 优先使用product_id字段，如果没有则从其他字段提取
-    if (record.product_id) {
-      return record.product_id;
-    }
-    
-    // 从landing_url中提取商品ID
-    const landingUrl = record.landing_url || '';
-    const productIdMatch = landingUrl.match(/(\d{10,})/); // 匹配10位以上的数字
-    if (productIdMatch) {
-      return productIdMatch[1];
-    }
-    
-    // 如果campaign_name包含商品ID格式，使用它
-    const campaignName = record.campaign_name || '';
-    const campaignIdMatch = campaignName.match(/(\d{10,})/);
-    if (campaignIdMatch) {
-      return campaignIdMatch[1];
-    }
-    
-    // 最后回退到campaign_name
-    return campaignName;
-  } else if (channel === 'tiktok_ads') {
-    // TikTok Ads: 类似Facebook的处理
-    if (record.product_id) {
-      return record.product_id;
-    }
-    
-    const landingUrl = record.landing_url || '';
-    const productIdMatch = landingUrl.match(/(\d{10,})/);
-    if (productIdMatch) {
-      return productIdMatch[1];
-    }
-    return record.campaign_name || record.adgroup_name || '';
-  } else {
-    // Google Ads: 使用landing_path
-    return record.landing_path || '';
-  }
-}
-
-// 新增函数：提取商品名称
-function extractProductName(record, channel) {
-  if (channel === 'facebook_ads') {
-    // Facebook Ads: 优先使用product_name字段
-    if (record.product_name) {
-      return record.product_name;
-    }
-    
-    // 如果product_id字段包含逗号分隔的格式，提取商品名称
-    if (record.product_id && record.product_id.includes(',')) {
-      const parts = record.product_id.split(',');
-      if (parts.length >= 2) {
-        return parts.slice(1).join(',').trim();
-      }
-    }
-    
-    // 从campaign_name中提取商品名称（去除数字ID部分）
-    const campaignName = record.campaign_name || '';
-    const cleanedName = campaignName.replace(/^\d{10,}\s*,\s*/, '').trim();
-    if (cleanedName && cleanedName !== campaignName) {
-      return cleanedName;
-    }
-    
-    // 最后回退到campaign_name
-    return campaignName;
-  } else if (channel === 'tiktok_ads') {
-    // TikTok Ads: 类似Facebook的处理
-    if (record.product_name) {
-      return record.product_name;
-    }
-    return record.campaign_name || record.adgroup_name || '';
-  } else {
-    // Google Ads: 使用landing_path
-    return record.landing_path || '';
-  }
-}
-
-// 更新first_seen表的函数
-async function updateFirstSeen(supabase, site, records, channel) {
-  try {
-    const firstSeenUpdates = [];
-    
-    for (const record of records) {
-      // 对于Facebook Ads，直接使用record.product_id，确保是纯数字ID
-      let productId;
-      if (channel === 'facebook_ads' && record.product_id) {
-        productId = record.product_id;
-      } else {
-        productId = extractProductId(record, channel);
-      }
-      if (!productId) continue;
-      
-      // 检查是否已存在
-      const { data: existing, error: checkError } = await supabase
-        .from('independent_first_seen')
-        .select('first_seen_date')
-        .eq('site', site)
-        .eq('product_identifier', productId)
-        .single();
-      
-      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
-        console.error('检查first_seen记录失败:', checkError);
-        continue;
-      }
-      
-      // 如果不存在，添加新记录
-      if (!existing) {
-        firstSeenUpdates.push({
-          site: site,
-          product_identifier: productId,
-          first_seen_date: record.day
-        });
-      }
-    }
-    
-    // 批量插入新记录
-    if (firstSeenUpdates.length > 0) {
-      const { error: insertError } = await supabase
-        .from('independent_first_seen')
-        .upsert(firstSeenUpdates, { 
-          onConflict: 'site,product_identifier',
-          ignoreDuplicates: true 
-        });
-      
-      if (insertError) {
-        console.error('插入first_seen记录失败:', insertError);
-      } else {
-        console.log(`成功更新 ${firstSeenUpdates.length} 条first_seen记录`);
-      }
-    }
-  } catch (error) {
-    console.error('更新first_seen表失败:', error);
-  }
-}
 
 function getClient() {
   const url = process.env.SUPABASE_URL;
@@ -378,32 +242,10 @@ async function handleFile(filePath, filename, siteId) {
   const reachCol = col('reach', '覆盖人数');
   const frequencyCol = col('frequency', '频次');
   const landingUrlCol = col('landing page', 'website url', 'url', 'landingpage', 'websiteurl', '链接（广告设置）', '网址');
-  
-  // 新增字段的列索引查找
-  const linkClicksCol = col('link clicks', 'linkclicks', '链接点击量');
-  const uniqueLinkClicksCol = col('unique link clicks', 'uniquelinkclicks', '链接点击量 - 独立用户');
-  const uniqueClicksCol = col('unique clicks', 'uniqueclicks', '点击量（全部）- 独立用户');
-  const linkCtrCol = col('link ctr', 'linkctr', '链接点击率');
-  const uniqueCtrCol = col('unique ctr', 'uniquectr', '点击率（全部）- 独立用户');
-  const cpcLinkCol = col('cpc link', 'cpclink', '单次链接点击费用');
-  const pageViewsCol = col('page views', 'pageviews', '浏览量');
-  const atcTotalCol = col('add to cart', 'addtocart', '加入购物车');
-  const atcWebCol = col('website add to cart', 'websiteaddtocart', '网站加入购物车');
-  const atcMetaCol = col('meta add to cart', 'metaaddtocart', 'Meta 加入购物车');
-  const wishlistCol = col('wishlist adds', 'wishlistadds', '加入心愿单次数');
-  const icTotalCol = col('initiate checkout', 'initiatecheckout', '结账发起次数');
-  const icWebCol = col('website initiate checkout', 'websiteinitiatecheckout', '网站结账发起次数');
-  const icMetaCol = col('meta initiate checkout', 'metainitiatecheckout', 'Meta 结账发起次数');
-  const storeClicksCol = col('store clicks', 'storeclicks', '店铺点击量');
-  const purchasesCol = col('purchases', 'purchase', 'purchase_value', '网站购物', 'Meta 内购物次数', '购物次数');
-  const purchasesWebCol = col('website purchases', 'websitepurchases', '网站购物');
-  const purchasesMetaCol = col('meta purchases', 'metapurchases', 'Meta 内购物次数');
-  const resultsCol = col('results', '成效');
-  const costPerResultCol = col('cost per result', 'costperresult', '单次成效费用');
-  const conversionValueCol = col('conversion value', 'conversionvalue', 'value', 'conversion_value', 'conversion_value_usd');
-  
-  // 兼容旧字段名
+  // icyberite特有字段
   const conversionsCol = col('conversions', 'conversion', 'conversion_value', '加入购物车', '网站加入购物车', 'Meta 加入购物车');
+  const conversionValueCol = col('conversion value', 'conversionvalue', 'value', 'conversion_value', 'conversion_value_usd');
+  const purchasesCol = col('purchases', 'purchase', 'purchase_value', '网站购物', 'Meta 内购物次数', '购物次数');
   const addToCartCol = col('add to cart', 'addtocart', 'add to cart conversions', '加入购物车', '网站加入购物车');
 
   if (campaignCol === -1 || dateCol === -1) {
@@ -459,76 +301,36 @@ async function handleFile(filePath, filename, siteId) {
       continue;
     }
 
-    // 处理商品ID和商品名的拆分
-    let productId = '';
-    let productName = '';
-    
-    // 如果第一列包含逗号分隔的格式，拆分它
-    const firstColumn = String(row[0] || '').trim();
-    if (firstColumn.includes(',')) {
-      const parts = firstColumn.split(',');
-      if (parts.length >= 2) {
-        productId = parts[0].trim();
-        productName = parts.slice(1).join(',').trim();
-      } else {
-        productId = firstColumn;
-        productName = '';
-      }
-    } else {
-      productId = firstColumn;
-      productName = '';
-    }
-    
     const record = {
       site: siteId,
       day: dayStr,
-      product_id: productId, // 商品ID
-      product_name: productName, // 商品名称
       campaign_name: campaign,
       adset_name: adset,
-      ad_name: '', // 广告名称
-      delivery_status: '', // 投放状态
-      delivery_level: '', // 投放层级
-      attribution_setting: '', // 归因设置
-      objective: '', // 成效类型
+      landing_url: landingUrl,
       impressions: coerceNum(row[impressionsCol]),
-      reach: coerceNum(row[reachCol]),
-      frequency: coerceNum(row[frequencyCol]),
+      clicks: coerceNum(row[clicksCol]),
       spend_usd: coerceNum(row[spendCol]),
       cpm: coerceNum(row[cpmCol]),
       cpc_all: coerceNum(row[cpcCol]),
-      ctr_all: coerceNum(row[ctrCol]),
-      // Facebook Ads specific fields - 匹配新的数据库表结构
-      clicks: coerceNum(row[clicksCol]), // 点击量（全部）
-      link_clicks: coerceNum(row[linkClicksCol] || 0), // 链接点击量
-      unique_link_clicks: coerceNum(row[uniqueLinkClicksCol] || 0), // 链接点击量 - 独立用户
-      unique_clicks: coerceNum(row[uniqueClicksCol] || 0), // 点击量（全部）- 独立用户
-      link_ctr: coerceNum(row[linkCtrCol] || 0), // 链接点击率
-      unique_ctr_all: coerceNum(row[uniqueCtrCol] || 0), // 点击率（全部）- 独立用户
-      cpc_link: coerceNum(row[cpcLinkCol] || 0), // 单次链接点击费用
-      page_views: coerceNum(row[pageViewsCol] || 0), // 浏览量
-      atc_total: coerceNum(row[atcTotalCol] || 0), // 加入购物车
-      atc_web: coerceNum(row[atcWebCol] || 0), // 网站加入购物车
-      atc_meta: coerceNum(row[atcMetaCol] || 0), // Meta 加入购物车
-      wishlist_adds: coerceNum(row[wishlistCol] || 0), // 加入心愿单次数
-      ic_total: coerceNum(row[icTotalCol] || 0), // 结账发起次数
-      ic_web: coerceNum(row[icWebCol] || 0), // 网站结账发起次数
-      ic_meta: coerceNum(row[icMetaCol] || 0), // Meta 结账发起次数
-      store_clicks: coerceNum(row[storeClicksCol] || 0), // 店铺点击量
-      purchases: coerceNum(row[purchasesCol] || 0), // 购物次数
-      purchases_web: coerceNum(row[purchasesWebCol] || 0), // 网站购物
-      purchases_meta: coerceNum(row[purchasesMetaCol] || 0), // Meta 内购物次数
-      results: coerceNum(row[resultsCol] || 0), // 成效
-      cost_per_result: coerceNum(row[costPerResultCol] || 0), // 单次成效费用
-      conversion_value: coerceNum(row[conversionValueCol] || 0), // 转化价值
+      all_ctr: coerceNum(row[ctrCol]),
+      reach: coerceNum(row[reachCol]),
+      frequency: coerceNum(row[frequencyCol]),
+      // Facebook Ads specific fields
+      all_clicks: coerceNum(row[clicksCol]),
+      link_clicks: coerceNum(row[clicksCol]),
+      ic_web: 0, // 需要根据实际数据调整
+      ic_meta: 0, // 需要根据实际数据调整
+      ic_total: coerceNum(row[clicksCol]),
+      atc_web: conversionsCol !== -1 ? coerceNum(row[conversionsCol]) : 0, // 使用conversions字段
+      atc_meta: 0, // 需要根据实际数据调整
+      atc_total: conversionsCol !== -1 ? coerceNum(row[conversionsCol]) : 0, // 使用conversions字段
+      purchase_web: purchasesCol !== -1 ? coerceNum(row[purchasesCol]) : 0, // 使用purchases字段
+      purchase_meta: 0, // 需要根据实际数据调整
+      cpa_purchase_web: 0, // 需要根据实际数据调整
+      link_ctr: coerceNum(row[ctrCol]),
+      conversion_value: conversionValueCol !== -1 ? coerceNum(row[conversionValueCol]) : 0, // 新增转化价值字段
       row_start_date: dayStr,
       row_end_date: dayStr,
-      report_start_date: dayStr,
-      report_end_date: dayStr,
-      ad_link: '', // 链接（广告设置）
-      landing_url: landingUrl, // 网址
-      image_name: '', // 图片名称
-      video_name: '', // 视频名称
       inserted_at: new Date().toISOString()
     };
 
@@ -653,14 +455,69 @@ export default async function handler(req, res) {
     console.log('目标表名:', tableName);
     console.log('站点ID:', currentIndepSiteId);
     console.log('使用统一表架构');
+    
+    // 检查表是否存在 - 使用原生SQL查询
+    const { data: tableExists, error: tableCheckError } = await supabase
+      .rpc('exec_sql', {
+        sql: `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '${tableName}'`
+      });
+
+    if (tableCheckError) {
+      console.error('检查表存在性失败:', tableCheckError);
+      return res.status(500).json({ 
+        error: 'Failed to check table existence', 
+        details: tableCheckError.message 
+      });
+    }
+
+    if (!tableExists || tableExists.length === 0) {
+      console.error('表不存在:', tableName);
+      return res.status(500).json({ 
+        error: `Table ${tableName} does not exist. Please run the create_unified_facebook_ads_table.sql script first.`,
+        suggestion: 'Contact administrator to create the unified table'
+      });
+    }
+
+    // 检查关键字段是否存在 - 使用原生SQL查询
+    const { data: columns, error: columnError } = await supabase
+      .rpc('exec_sql', {
+        sql: `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '${tableName}'`
+      });
+
+    if (columnError) {
+      console.error('检查表结构失败:', columnError);
+      return res.status(500).json({ 
+        error: 'Failed to check table structure', 
+        details: columnError.message 
+      });
+    }
+
+    const columnNames = columns.map(col => col.column_name);
+    const hasInsertedAt = columnNames.includes('inserted_at');
+
+    console.log('表结构检查结果:', {
+      tableExists: true,
+      hasInsertedAt,
+      allColumns: columnNames
+    });
+
+    if (!hasInsertedAt) {
+      console.error('表结构不完整，缺少关键字段:', { hasInsertedAt });
+      return res.status(500).json({ 
+        error: `Table structure is incomplete. Missing field: inserted_at=${hasInsertedAt}`,
+        suggestion: 'Please recreate the table with the correct schema'
+      });
+    }
+
+    console.log('使用预创建的统一表:', tableName);
     console.log('准备插入记录数:', records.length);
     console.log('第一条记录示例:', records[0]);
 
-    // 直接插入数据，不检查表结构
+    // 插入数据
     const { data, error } = await supabase
       .from(tableName)
       .upsert(records, {
-        onConflict: 'site,day,campaign_name,adset_name,ad_name'
+        onConflict: 'site,day,campaign_name,adset_name'
       });
 
     if (error) {
@@ -678,9 +535,6 @@ export default async function handler(req, res) {
         code: error.code
       });
     }
-
-    // 更新first_seen表
-    await updateFirstSeen(supabase, currentIndepSiteId, records, 'facebook_ads');
 
     // 清理临时文件
     try {

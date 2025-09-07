@@ -481,6 +481,149 @@
       font-size: 14px;
       margin: 0;
     }
+    
+    /* 新品KPI卡片样式 */
+    .new-product-card {
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    
+    .new-product-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .clear-filter-btn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: #ff4757;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 2px 8px;
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .clear-filter-btn:hover {
+      background: #ff3742;
+      transform: scale(1.05);
+    }
+    
+    /* 上传状态栏样式 */
+    #uploadStatus {
+      margin-left: 10px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      transition: all 0.3s ease;
+    }
+    
+    #uploadStatus:not(:empty) {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+    }
+    
+    /* 成功状态样式 */
+    #uploadStatus.success {
+      background: #d4edda;
+      border-color: #c3e6cb;
+      color: #155724;
+    }
+    
+    /* 错误状态样式 */
+    #uploadStatus.error {
+      background: #f8d7da;
+      border-color: #f5c6cb;
+      color: #721c24;
+    }
+    
+    /* 多Tab页面样式 */
+    .channel-tabs {
+      display: none; /* 默认隐藏，只有多渠道时才显示 */
+      background: white;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e5e7eb;
+    }
+    
+    .channel-tabs.show {
+      display: block;
+    }
+    
+    .tab-header {
+      display: flex;
+      border-bottom: 1px solid #e5e7eb;
+      background: #f8f9fa;
+      border-radius: 12px 12px 0 0;
+    }
+    
+    .tab-button {
+      flex: 1;
+      padding: 16px 20px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: #6b7280;
+      transition: all 0.3s ease;
+      border-radius: 12px 12px 0 0;
+      position: relative;
+    }
+    
+    .tab-button:hover {
+      background: rgba(59, 130, 246, 0.1);
+      color: #3b82f6;
+    }
+    
+    .tab-button.active {
+      background: white;
+      color: #3b82f6;
+      border-bottom: 2px solid #3b82f6;
+    }
+    
+    .tab-button.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: white;
+    }
+    
+    .tab-content {
+      display: none;
+      padding: 20px;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .channel-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    
+    .channel-indicator.google_ads {
+      background: #4285f4;
+    }
+    
+    .channel-indicator.facebook_ads {
+      background: #1877f2;
+    }
+    
+    .channel-indicator.tiktok_ads {
+      background: #000000;
+    }
   </style>
   <!-- DataTables & ECharts CDN -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
@@ -568,6 +711,8 @@
           <input type="text" id="site" value="" placeholder="如：poolsvacuum.com">
           <span>日期：</span>
           <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
+          <label>渠道：</label>
+          <select id="channelSel"><option value="">全部</option></select>
           <label>网络：</label>
           <select id="networkSel"><option value="">全部</option></select>
           <label>Campaign：</label>
@@ -649,9 +794,19 @@
     <!-- 明细表 -->
     <section id="detail" class="content-pad">
       <div class="chart-container">
-        <h3>Landing Pages 明细</h3>
+        <h3 id="detailTitle">Landing Pages 明细</h3>
         
-        <!-- 数据表格 -->
+        <!-- 多Tab页面容器 -->
+        <div id="channelTabs" class="channel-tabs">
+          <div class="tab-header" id="tabHeader">
+            <!-- Tab按钮将通过JavaScript动态生成 -->
+          </div>
+          <div id="tabContents">
+            <!-- Tab内容将通过JavaScript动态生成 -->
+          </div>
+        </div>
+        
+        <!-- 单渠道数据表格（默认显示） -->
         <div id="detailContent">
           <table id="report" class="data-table display nowrap" style="width:100%">
             <thead>
@@ -718,6 +873,11 @@ function getParam(name) {
 }
 // 站点参数统一为完整域名
 function normalizeSite(site) {
+  // 如果是自运营站点，直接返回空字符串，避免错误映射
+  if (site && site.includes('ae_self_operated')) {
+    return '';
+  }
+  
   const map = {
     'poolsvacuum': 'poolsvacuum.com',
     'independent_poolsvacuum': 'poolsvacuum.com',
@@ -1172,6 +1332,7 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
   const toInput = document.getElementById('to');
   const columnMenu = document.getElementById('columnMenu');
   const columnToggle = document.getElementById('columnToggle');
+  const channelSel = document.getElementById('channelSel');
   const networkSel = document.getElementById('networkSel');
   const campaignSel = document.getElementById('campaignSel');
   const optionalCols = [
@@ -1187,6 +1348,11 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
   });
   let dt;
   let rawTable = [];
+  let isNewProductFilterActive = false; // 跟踪新品筛选状态
+  let currentKPIs = {}; // 保存当前KPI数据
+  let availableChannels = []; // 可用渠道列表
+  let currentChannel = null; // 当前选中的渠道
+  let channelData = {}; // 各渠道的数据缓存
 
   function card(title,val){
     return `<div class="stat-card"><h4>${title}</h4><p>${val}</p></div>`;
@@ -1228,12 +1394,406 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       }
     ];
     
-    kpiEl.innerHTML = cards.map(card => `
-      <div class="kpi-card ${card.type}">
-        <h4>${card.title}</h4>
-        <p>${card.value}</p>
-      </div>
-    `).join('');
+    kpiEl.innerHTML = cards.map(card => {
+      // 为新品卡片添加特殊样式和双击事件
+      if (card.title === '本周期新品数') {
+        return `
+          <div class="kpi-card ${card.type} new-product-card" style="cursor: pointer;" title="单击筛选新品数据">
+            <h4>${card.title}</h4>
+            <p>${card.value}</p>
+            ${isNewProductFilterActive ? '<button class="clear-filter-btn" id="clearFilterBtn" title="清除筛选">清除筛选</button>' : ''}
+          </div>
+        `;
+      }
+      return `
+        <div class="kpi-card ${card.type}">
+          <h4>${card.title}</h4>
+          <p>${card.value}</p>
+        </div>
+      `;
+    }).join('');
+    
+    // 为新品卡片添加单击事件监听器
+    const newProductCard = document.querySelector('.new-product-card');
+    if (newProductCard) {
+      newProductCard.addEventListener('click', function() {
+        filterNewProducts();
+      });
+    }
+    
+    // 为清除筛选按钮添加事件监听器
+    const clearFilterBtn = document.getElementById('clearFilterBtn');
+    if (clearFilterBtn) {
+      clearFilterBtn.addEventListener('click', function(e) {
+        e.stopPropagation(); // 阻止事件冒泡到父元素
+        clearNewProductFilter();
+      });
+    }
+  }
+
+  // 筛选新品数据
+  function filterNewProducts() {
+    if (!rawTable || rawTable.length === 0) {
+      alert('没有数据可供筛选');
+      return;
+    }
+    
+    // 筛选出新品数据
+    const newProducts = rawTable.filter(item => item.is_new === true);
+    
+    if (newProducts.length === 0) {
+      alert('本周期没有新品数据');
+      return;
+    }
+    
+    // 设置筛选状态
+    isNewProductFilterActive = true;
+    
+    // 重新构建表格
+    buildTable();
+    
+    // 重新渲染KPI卡片以显示清除筛选按钮
+    renderKPI(currentKPIs || {});
+    
+    console.log(`筛选出 ${newProducts.length} 个新品`);
+  }
+
+  // 清除新品筛选
+  function clearNewProductFilter() {
+    console.log('清除筛选前状态:', {
+      isNewProductFilterActive,
+      rawTableLength: rawTable?.length || 0
+    });
+    
+    isNewProductFilterActive = false;
+    
+    // 重新构建表格显示所有数据
+    buildTable();
+    
+    // 重新渲染KPI卡片以隐藏清除筛选按钮
+    renderKPI(currentKPIs || {});
+    
+    console.log('已清除新品筛选，当前状态:', {
+      isNewProductFilterActive,
+      rawTableLength: rawTable?.length || 0
+    });
+  }
+
+  // 将清除筛选函数设为全局函数，供HTML调用
+  window.clearNewProductFilter = clearNewProductFilter;
+
+  // 生成渠道名称
+  function getChannelDisplayName(channel, siteName) {
+    const channelNames = {
+      'google_ads': 'Google Ads',
+      'facebook_ads': 'Facebook Ads',
+      'tiktok_ads': 'TikTok Ads'
+    };
+    const channelName = channelNames[channel] || channel;
+    return `${siteName} - ${channelName}`;
+  }
+
+  // 判断是否应该显示Tab
+  function shouldShowTabs(channels) {
+    return channels && channels.length > 1;
+  }
+
+  // 创建Tab页面
+  function createChannelTabs(channels, siteName) {
+    const tabsContainer = document.getElementById('channelTabs');
+    const tabHeader = document.getElementById('tabHeader');
+    const tabContents = document.getElementById('tabContents');
+    const detailContent = document.getElementById('detailContent');
+    const detailTitle = document.getElementById('detailTitle');
+
+    if (!shouldShowTabs(channels)) {
+      // 单渠道，隐藏Tab，显示默认表格，更新标题
+      tabsContainer.classList.remove('show');
+      detailContent.style.display = 'block';
+      
+      // 更新单渠道标题
+      if (channels && channels.length === 1) {
+        const channel = channels[0];
+        const channelName = getChannelDisplayName(channel, siteName);
+        if (detailTitle) {
+          detailTitle.textContent = channelName;
+        }
+      }
+      
+      // 单渠道情况下，确保表格元素存在
+      const reportTable = document.getElementById('report');
+      if (!reportTable) {
+        console.error('单渠道表格元素不存在');
+        return;
+      }
+      
+      console.log('单渠道模式，表格元素存在:', !!reportTable);
+      return;
+    }
+
+    // 多渠道，显示Tab
+    tabsContainer.classList.add('show');
+    detailContent.style.display = 'none';
+    
+    // 更新多渠道标题
+    if (detailTitle) {
+      detailTitle.textContent = `${siteName} - 多渠道数据`;
+    }
+
+    // 清空现有内容
+    tabHeader.innerHTML = '';
+    tabContents.innerHTML = '';
+
+    // 创建Tab按钮
+    channels.forEach((channel, index) => {
+      const tabButton = document.createElement('button');
+      tabButton.className = `tab-button ${index === 0 ? 'active' : ''}`;
+      tabButton.innerHTML = `
+        <span class="channel-indicator ${channel}"></span>
+        ${getChannelDisplayName(channel, siteName)}
+      `;
+      tabButton.addEventListener('click', () => switchTab(channel, index));
+      tabHeader.appendChild(tabButton);
+
+      // 创建Tab内容
+      const tabContent = document.createElement('div');
+      tabContent.className = `tab-content ${index === 0 ? 'active' : ''}`;
+      tabContent.id = `tab-${channel}`;
+      
+      // 根据渠道生成不同的表格头部
+      let tableHeaders = '';
+      if (channel === 'facebook_ads') {
+        tableHeaders = `
+          <thead>
+            <tr>
+              <th>商品编号</th><th>单日</th><th>广告系列名称</th><th>广告组名称</th>
+              <th>展示次数</th><th>频次</th><th>点击量（全部）</th><th>链接点击量</th>
+              <th>点击率（全部）</th><th>链接点击率</th><th>浏览量</th><th>加入购物车</th>
+              <th>结账发起次数</th><th>成效</th><th>开始日期</th><th>结束日期</th>
+            </tr>
+          </thead>
+        `;
+      } else {
+        tableHeaders = `
+          <thead>
+            <tr>
+              <th>产品</th><th>设备</th><th>网络</th><th>Campaign</th>
+              <th>点击</th><th>曝光</th><th>CTR <span class="help-icon" title="CTR = 总点击 / 总曝光">?</span></th><th>Avg CPC</th><th>Cost</th>
+              <th>转化</th><th>Cost/Conv</th><th>All conv</th><th>Conv value</th>
+              <th>All conv rate <span class="help-icon" title="All conv rate = All conv / 总点击">?</span></th><th>Conv rate <span class="help-icon" title="Conv rate = 转化 / 总点击">?</span></th>
+            </tr>
+          </thead>
+        `;
+      }
+      
+      tabContent.innerHTML = `
+        <table id="report-${channel}" class="data-table display nowrap" style="width:100%">
+          ${tableHeaders}
+          <tbody></tbody>
+        </table>
+      `;
+      tabContents.appendChild(tabContent);
+    });
+
+    // 设置默认选中的渠道
+    if (channels.length > 0) {
+      currentChannel = channels[0];
+    }
+  }
+
+  // 切换Tab
+  function switchTab(channel, index) {
+    // 更新按钮状态
+    document.querySelectorAll('.tab-button').forEach((btn, i) => {
+      btn.classList.toggle('active', i === index);
+    });
+
+    // 更新内容显示
+    document.querySelectorAll('.tab-content').forEach((content, i) => {
+      content.classList.toggle('active', i === index);
+    });
+
+    currentChannel = channel;
+    
+    // 重新构建当前渠道的表格
+    buildChannelTable(channel);
+  }
+
+  // 获取渠道专用的表格列定义
+  function getChannelColumns(channel) {
+    if (channel === 'facebook_ads') {
+      return getFacebookAdsColumns();
+    } else {
+      return getDefaultColumns();
+    }
+  }
+
+  // Facebook Ads 专用列定义 - 简化版本，只使用确实存在的字段
+function getFacebookAdsColumns() {
+  return [
+    // 商品ID列 - 新增
+    { data: 'product_id', title: '商品ID', render: (v, t, r) => {
+      const productId = r.product_id || '';
+      return `<span class="product-id" title="${productId}">${productId}</span>`;
+    }, width: '120px' },
+    // 商品名称列 - 新增
+    { data: 'product_name', title: '商品名称', render: (v, t, r) => {
+      const productName = r.product_name || '';
+      const shortName = productName.length > 50 ? productName.substring(0, 50) + '...' : productName;
+      return `<span class="product-name" title="${productName}">${shortName}</span>`;
+    }, width: '200px' },
+    { data: 'campaign_name', title: '广告系列名称', render: v => v || '', width: '150px' },
+    { data: 'adset_name', title: '广告组名称', render: v => v || '', width: '150px' },
+    { data: 'reach', title: '覆盖人数', render: v => v ?? 0, width: '100px' },
+    { data: 'impr', title: '展示次数', render: v => v ?? 0, width: '100px' },
+    { data: 'page_views', title: '浏览量', render: v => v ?? 0, width: '100px' },
+    { data: 'cost_per_result', title: '单次成效费用', render: v => (v ?? 0).toFixed(2), width: '120px' },
+    { data: 'link_clicks', title: '链接点击量', render: v => v ?? 0, width: '100px' },
+    { data: 'link_ctr', title: '链接点击率', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' },
+    { data: 'clicks', title: '点击量（全部）', render: v => v ?? 0, width: '100px' },
+    { data: 'ctr', title: '点击率（全部）', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' },
+    { data: 'atc_total', title: '加入购物车', render: v => v ?? 0, width: '100px' },
+    { data: 'wishlist_adds', title: '加入心愿单次数', render: v => v ?? 0, width: '120px' },
+    { data: 'ic_total', title: '结账发起次数', render: v => v ?? 0, width: '120px' },
+    { data: 'results', title: '成效', render: v => v ?? 0, width: '100px' },
+  ];
+}
+
+  // 默认列定义（Google Ads等）
+  function getDefaultColumns() {
+    return [
+      { data: 'product', title: '产品', render: (v, t, r) => {
+        const name = v || r.landing_path || '';
+        return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
+      }, width: '200px' },
+      { data: 'device', title: '设备', render: v => v || '', width: '80px' },
+      { data: 'network', title: '网络', render: v => v || '', width: '100px' },
+      { data: 'campaign', title: 'Campaign', render: v => v || '', width: '120px' },
+      { data: 'clicks', title: '点击', render: v => v ?? 0, width: '80px' },
+      { data: 'impr', title: '曝光', render: v => v ?? 0, width: '80px' },
+      { data: 'ctr', title: 'CTR', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '80px' },
+      { data: 'avg_cpc', title: 'Avg CPC', render: v => (v ?? 0).toFixed(2), width: '100px' },
+      { data: 'cost', title: 'Cost', render: v => (v ?? 0).toFixed(2), width: '100px' },
+      { data: 'conversions', title: '转化', render: v => v ?? 0, width: '80px' },
+      { data: 'cost_per_conv', title: 'Cost/Conv', render: v => (v ?? 0).toFixed(2), width: '100px' },
+      { data: 'all_conv', title: 'All conv', render: v => v ?? 0, width: '80px' },
+      { data: 'conv_value', title: 'Conv value', render: v => (v ?? 0).toFixed(2), width: '100px' },
+      { data: 'all_conv_rate', title: 'All conv rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '120px' },
+      { data: 'conv_rate', title: 'Conv rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' }
+    ];
+  }
+
+  // 构建指定渠道的表格
+  function buildChannelTable(channel) {
+    const tableId = `report-${channel}`;
+    const tableElement = document.getElementById(tableId);
+    
+    if (!tableElement) {
+      console.warn(`表格元素 ${tableId} 不存在`);
+      return;
+    }
+
+    // 获取该渠道的数据
+    let channelTableData = rawTable;
+    if (channel) {
+      if (channel === 'google_ads') {
+        channelTableData = rawTable.filter(r => r.network === 'google');
+      } else if (channel === 'facebook_ads') {
+        channelTableData = rawTable.filter(r => r.network === 'facebook');
+      } else if (channel === 'tiktok_ads') {
+        channelTableData = rawTable.filter(r => r.network === 'tiktok');
+      }
+    }
+
+    // 应用新品筛选
+    if (isNewProductFilterActive) {
+      channelTableData = channelTableData.filter(r => r.is_new === true);
+    }
+
+    // 应用其他筛选条件
+    const net = networkSel.value;
+    const camp = campaignSel.value;
+    if (net) channelTableData = channelTableData.filter(r => r.network === net);
+    if (camp) channelTableData = channelTableData.filter(r => r.campaign === camp);
+
+    const showDevice = $('#columnMenu input[data-col=1]').prop('checked');
+    const showNetwork = !!net;
+    const showCampaign = !!camp;
+    const aggregatedData = aggregateTable(channelTableData, showDevice, showNetwork, showCampaign);
+
+    // 销毁现有DataTable
+    if (window[`dt_${channel}`]) {
+      window[`dt_${channel}`].destroy();
+    }
+
+    // 获取渠道专用的列定义
+    const columns = getChannelColumns(channel);
+
+    // 数据验证：确保每条数据都有必需的字段
+    const validatedChannelData = aggregatedData.map(row => {
+      const validatedRow = {};
+      columns.forEach(col => {
+        const fieldName = col.data;
+        validatedRow[fieldName] = row[fieldName] !== undefined ? row[fieldName] : null;
+      });
+      return validatedRow;
+    });
+    
+    console.log(`渠道${channel}数据验证结果:`, {
+      originalDataLength: aggregatedData.length,
+      validatedDataLength: validatedChannelData.length,
+      sampleValidatedData: validatedChannelData.slice(0, 1)
+    });
+    
+    // 创建新的DataTable
+    window[`dt_${channel}`] = $(`#${tableId}`).DataTable({
+      destroy: true,
+      pageLength: 20,
+      data: validatedChannelData,
+      scrollX: false,
+      fixedHeader: true,
+      autoWidth: true,
+      processing: true,
+      responsive: false,
+      columns: columns
+    });
+    console.log(`渠道${channel} DataTables初始化成功`);
+
+    // 根据渠道类型设置列的可见性
+    if (channel === 'facebook_ads') {
+      // Facebook Ads 列：隐藏投放状态和投放层级，显示其他所有列
+      // 投放状态列（索引4）和投放层级列（索引5）设置为隐藏
+      window[`dt_${channel}`].column(4).visible(false); // 投放状态
+      window[`dt_${channel}`].column(5).visible(false); // 投放层级
+    } else {
+      // 默认隐藏筛选列
+      window[`dt_${channel}`].column(1).visible(false); // 设备列
+      window[`dt_${channel}`].column(2).visible(false); // 网络列
+      window[`dt_${channel}`].column(3).visible(false); // Campaign列
+
+      // 根据筛选条件显示列
+      if (showDevice) window[`dt_${channel}`].column(1).visible(true);
+      if (showNetwork) window[`dt_${channel}`].column(2).visible(true);
+      if (showCampaign) window[`dt_${channel}`].column(3).visible(true);
+    }
+
+    // 强制重新计算列宽
+    setTimeout(() => {
+      window[`dt_${channel}`].columns.adjust();
+      window[`dt_${channel}`].fixedHeader.adjust();
+    }, 100);
+
+    // 双击行跳转到产品分析
+    $(`#${tableId} tbody`).off('dblclick').on('dblclick', 'tr', function() {
+      const row = window[`dt_${channel}`].row(this).data();
+      if (!row) return;
+      const params = new URLSearchParams(window.location.search);
+      if (!params.get('site')) {
+        params.set('site', getCurrentSiteForAPI());
+      }
+      params.set('product', row.landing_path);
+      window.location.href = `independent-site.html?${params.toString()}#products`;
+    });
   }
 
   function aggregateTable(data, showDevice, showNetwork, showCampaign){
@@ -1242,163 +1802,106 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       return [];
     }
     
-    const map = {};
-    data.forEach(r=>{
-      const keyParts=[r.day, r.landing_path];
-      if(showDevice) keyParts.push(r.device||'');
-      if(showNetwork) keyParts.push(r.network||'');
-      if(showCampaign) keyParts.push(r.campaign||'');
-      const key=keyParts.join('|');
-      if(!map[key]){
-        map[key]={
-          product:r.product,
-          landing_path:r.landing_path,
-          landing_url:r.landing_url,
-          day:r.day,
-          device: showDevice ? r.device : '',
-          network: showNetwork ? r.network : '',
-          campaign: showCampaign ? r.campaign : '',
-          clicks:0, impr:0, cost:0, conversions:0, all_conv:0, conv_value:0
-        };
-      }
-      const m=map[key];
-      m.clicks+=r.clicks||0;
-      m.impr+=r.impr||0;
-      m.cost+=r.cost||0;
-      m.conversions+=r.conversions||0;
-      m.all_conv+=r.all_conv||0;
-      m.conv_value+=r.conv_value||0;
+    console.log('aggregateTable调用:', {
+      dataLength: data.length,
+      showDevice,
+      showNetwork, 
+      showCampaign,
+      sampleData: data.slice(0, 2)
     });
-    return Object.values(map).map(m=>{
-      m.ctr = m.impr>0 ? m.clicks/m.impr : 0;
-      m.avg_cpc = m.clicks>0 ? m.cost/m.clicks : 0;
-      m.conv_rate = m.clicks>0 ? m.conversions/m.clicks : 0;
-      m.cost_per_conv = m.conversions>0 ? m.cost/m.conversions : 0;
-      m.all_conv_rate = m.clicks>0 ? m.all_conv/m.clicks : 0;
-      return m;
-    }).sort((a,b)=> {
-      // 安全排序，处理undefined值
-      const dayA = a.day || '';
-      const dayB = b.day || '';
-      return dayB.localeCompare(dayA);
+    
+    // API已经返回聚合好的数据，不需要重新聚合
+    // 直接返回数据，只进行简单的排序
+    return data.sort((a, b) => {
+      // 按产品名称排序
+      const productA = a.product || '';
+      const productB = b.product || '';
+      return productA.localeCompare(productB);
     });
   }
 
   function buildTable(){
-    // 安全处理空数据
-    if (!rawTable || !Array.isArray(rawTable) || rawTable.length === 0) {
-      if(dt) dt.destroy();
-      dt = $('#report').DataTable({
-        destroy:true,
-        pageLength:20,
-        data: [],
-        scrollX: false,
-        fixedHeader:true,
-        autoWidth: true,
-        processing: true,
-        responsive: false,
-        columns:[
-                  { data:'product', render:(v,t,r)=>{
-            const name = v || r.landing_path || '';
-            return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
-          }, width: '200px' },
-          { data:'device', render: v => v || '', width: '80px' },
-          { data:'network', render: v => v || '', width: '100px' },
-          { data:'campaign', render: v => v || '', width: '120px' },
-          { data:'clicks', render: v => v ?? 0, width: '80px' },
-          { data:'impr', render: v => v ?? 0, width: '80px' },
-          { data:'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '80px' },
-          { data:'avg_cpc', render: v => (v ?? 0).toFixed(2), width: '100px' },
-          { data:'cost', render: v => (v ?? 0).toFixed(2), width: '100px' },
-          { data:'conversions', render: v => v ?? 0, width: '80px' },
-          { data:'cost_per_conv', render: v => (v ?? 0).toFixed(2), width: '100px' },
-          { data:'all_conv', render: v => v ?? 0, width: '80px' },
-          { data:'conv_value', render: v => (v ?? 0).toFixed(2), width: '100px' },
-          { data:'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '120px' },
-          { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' }
-        ]
-      });
-      
-      // 默认隐藏筛选列
-      dt.column(1).visible(false); // 设备列
-      dt.column(2).visible(false); // 网络列
-      dt.column(3).visible(false); // Campaign列
+    console.log('buildTable调用 - 架构检查:', {
+      availableChannels,
+      shouldShowTabs: shouldShowTabs(availableChannels),
+      rawTableLength: rawTable?.length || 0
+    });
 
-      // 强制重新计算列宽，确保对齐
-      setTimeout(() => {
-        dt.columns.adjust();
-        dt.fixedHeader.adjust();
-      }, 100);
-      // 双击行跳转到产品分析
-      $('#report tbody').off('dblclick').on('dblclick', 'tr', function() {
-        const row = dt.row(this).data();
-        if (!row) return;
-        const params = new URLSearchParams(window.location.search);
-        if (!params.get('site')) {
-          params.set('site', getCurrentSiteForAPI());
-        }
-        params.set('product', row.landing_path);
-        window.location.href = `independent-site.html?${params.toString()}#products`;
+    // 统一架构：根据渠道数量决定渲染方式
+    if (shouldShowTabs(availableChannels)) {
+      // 多渠道模式：为每个渠道创建独立的表格
+      console.log('多渠道模式：创建Tab表格');
+      availableChannels.forEach(channel => {
+        buildChannelTable(channel);
       });
-
       return;
     }
 
-    let data = rawTable;
-    const net = networkSel.value;
-    const camp = campaignSel.value;
-    if(net) data = data.filter(r=>r.network===net);
-    if(camp) data = data.filter(r=>r.campaign===camp);
-    const showDevice = $('#columnMenu input[data-col=1]').prop('checked');
-    const showNetwork = !!net;
-    const showCampaign = !!camp;
-    data = aggregateTable(data, showDevice, showNetwork, showCampaign);
+    // 单渠道模式：使用统一的表格渲染逻辑
+    console.log('单渠道模式：使用统一表格');
+    buildUnifiedTable();
+  }
+
+  // 创建空表格的函数
+  function createEmptyTable() {
+    // 确定当前渠道（用于空数据情况下的列定义）
+    let currentChannel = null;
+    if (availableChannels && availableChannels.length === 1) {
+      currentChannel = availableChannels[0];
+    } else {
+      // 从URL参数或其他方式推断渠道
+      const urlParams = new URLSearchParams(window.location.search);
+      const site = urlParams.get('site');
+      if (site === 'icyberite.com') {
+        currentChannel = 'facebook_ads';
+      } else if (site === 'poolsvacuum.com') {
+        currentChannel = 'google_ads';
+      } else {
+        currentChannel = 'google_ads'; // 默认
+      }
+    }
+    
     if(dt) dt.destroy();
+    
+    // 获取列定义，确保不为空
+    const columns = getChannelColumns(currentChannel);
+    if (!columns || !Array.isArray(columns)) {
+      console.error('无法获取列定义，使用默认列');
+      return;
+    }
+    
     dt = $('#report').DataTable({
       destroy:true,
       pageLength:20,
-      data,
+      data: [],
       scrollX: false,
       fixedHeader:true,
       autoWidth: true,
       processing: true,
       responsive: false,
-      columns:[
-        { data:'product', render:(v,t,r)=>{
-            const name = v || r.landing_path || '';
-            return `<a href="${r.landing_url}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
-          }, width: '200px' },
-        { data:'device', render: v => v || '', width: '80px' },
-        { data:'network', render: v => v || '', width: '100px' },
-        { data:'campaign', render: v => v || '', width: '120px' },
-        { data:'clicks', render: v => v ?? 0, width: '80px' },
-        { data:'impr', render: v => v ?? 0, width: '80px' },
-        { data:'ctr', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '80px' },
-        { data:'avg_cpc', render: v => (v ?? 0).toFixed(2), width: '100px' },
-        { data:'cost', render: v => (v ?? 0).toFixed(2), width: '100px' },
-        { data:'conversions', render: v => v ?? 0, width: '80px' },
-        { data:'cost_per_conv', render: v => (v ?? 0).toFixed(2), width: '100px' },
-        { data:'all_conv', render: v => v ?? 0, width: '80px' },
-        { data:'conv_value', render: v => (v ?? 0).toFixed(2), width: '100px' },
-        { data:'all_conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '120px' },
-        { data:'conv_rate', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' }
-      ]
+      columns: columns,
+      language: {
+        emptyTable: "暂无数据",
+        zeroRecords: "没有找到匹配的记录"
+      }
     });
-    // 默认隐藏筛选列，只作为筛选条件
-    dt.column(1).visible(false); // 设备列默认隐藏
-    dt.column(2).visible(false); // 网络列默认隐藏
-    dt.column(3).visible(false); // Campaign列默认隐藏
     
-    // 根据筛选条件显示列
-    if (showDevice) dt.column(1).visible(true);
-    if (showNetwork) dt.column(2).visible(true);
-    if (showCampaign) dt.column(3).visible(true);
+    // 根据渠道类型隐藏不同的列
+    if (currentChannel === 'facebook_ads') {
+      // Facebook Ads 不需要隐藏列，所有列都显示
+    } else {
+      // 默认列隐藏设备、网络、Campaign列
+      dt.column(1).visible(false); // 设备列
+      dt.column(2).visible(false); // 网络列
+      dt.column(3).visible(false); // Campaign列
+    }
 
     // 强制重新计算列宽，确保对齐
     setTimeout(() => {
       dt.columns.adjust();
       dt.fixedHeader.adjust();
     }, 100);
+    
     // 双击行跳转到产品分析
     $('#report tbody').off('dblclick').on('dblclick', 'tr', function() {
       const row = dt.row(this).data();
@@ -1412,7 +1915,295 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     });
   }
 
+  // 统一的单渠道表格渲染函数
+  function buildUnifiedTable() {
+    // 安全处理空数据
+    if (!rawTable || !Array.isArray(rawTable) || rawTable.length === 0) {
+      console.log('数据为空，创建空表格');
+      createEmptyTable();
+      return;
+    }
+
+    // 确定当前渠道
+    let currentChannel = null;
+    if (availableChannels && availableChannels.length === 1) {
+      currentChannel = availableChannels[0];
+    } else {
+      // 从URL参数推断渠道（更可靠的方式）
+      const urlParams = new URLSearchParams(window.location.search);
+      const site = urlParams.get('site');
+      if (site === 'icyberite.com') {
+        currentChannel = 'facebook_ads';
+      } else if (site === 'poolsvacuum.com') {
+        currentChannel = 'google_ads';
+      } else {
+        // 从数据中推断渠道（向后兼容）
+        const networks = [...new Set(rawTable.map(r => r.network))];
+        if (networks.includes('facebook')) {
+          currentChannel = 'facebook_ads';
+        } else if (networks.includes('tiktok')) {
+          currentChannel = 'tiktok_ads';
+        } else {
+          currentChannel = 'google_ads';
+        }
+      }
+    }
+    
+    console.log('单渠道表格渲染:', {
+      currentChannel,
+      rawTableLength: rawTable.length,
+      networks: [...new Set(rawTable.map(r => r.network))]
+    });
+    
+    // 调试日志：检查渠道和数据
+    console.log('buildTable调试信息:', {
+      availableChannels,
+      currentChannel,
+      rawTableLength: rawTable.length,
+      networks: [...new Set(rawTable.map(r => r.network))],
+      sampleRawData: rawTable.slice(0, 2)
+    });
+    
+    // 调试日志：检查列定义
+    const debugColumns = getChannelColumns(currentChannel);
+    console.log('列定义检查:', {
+      currentChannel,
+      columnsLength: debugColumns ? debugColumns.length : 0,
+      columns: debugColumns ? debugColumns.slice(0, 3) : null, // 只显示前3列
+      hasColumns: !!debugColumns,
+      isArray: Array.isArray(debugColumns)
+    });
+
+    let data = rawTable;
+    const channel = channelSel.value;
+    const net = networkSel.value;
+    const camp = campaignSel.value;
+    
+    console.log('数据过滤前状态:', {
+      rawTableLength: rawTable.length,
+      channel,
+      net,
+      camp,
+      sampleRawData: rawTable.slice(0, 2)
+    });
+    
+    if(channel) {
+      if(channel === 'google_ads') data = data.filter(r=>r.network==='google');
+      else if(channel === 'facebook_ads') data = data.filter(r=>r.network==='facebook');
+      else if(channel === 'tiktok_ads') data = data.filter(r=>r.network==='tiktok');
+      
+      console.log('渠道过滤后数据长度:', data.length);
+    }
+    if(net) data = data.filter(r=>r.network===net);
+    if(camp) data = data.filter(r=>r.campaign===camp);
+    
+    // 应用新品筛选
+    console.log('buildTable筛选状态:', {
+      isNewProductFilterActive,
+      dataLengthBefore: data.length,
+      rawTableLength: rawTable?.length || 0
+    });
+    
+    if (isNewProductFilterActive) {
+      data = data.filter(r => r.is_new === true);
+      console.log('应用新品筛选后数据长度:', data.length);
+    } else {
+      console.log('未应用新品筛选，显示所有数据');
+    }
+    const showDevice = $('#columnMenu input[data-col=1]').prop('checked');
+    const showNetwork = !!net;
+    const showCampaign = !!camp;
+    
+    // 调试日志：聚合前的数据
+    console.log('aggregateTable前数据:', {
+      dataLength: data.length,
+      showDevice,
+      showNetwork,
+      showCampaign,
+      sampleData: data.slice(0, 2)
+    });
+    
+    data = aggregateTable(data, showDevice, showNetwork, showCampaign);
+    
+    // 调试日志：聚合后的数据
+    console.log('aggregateTable后数据:', {
+      dataLength: data.length,
+      sampleData: data.slice(0, 2)
+    });
+    if(dt) dt.destroy();
+    
+    // 获取渠道专用的列定义
+    const columns = getChannelColumns(currentChannel);
+    if (!columns || !Array.isArray(columns)) {
+      console.error('无法获取列定义，使用默认列');
+      return;
+    }
+    
+    // 调试日志：DataTables初始化前的最后检查
+    console.log('DataTables初始化前检查:', {
+      dataLength: data.length,
+      columnsLength: columns.length,
+      currentChannel,
+      sampleData: data.slice(0, 1),
+      sampleColumns: columns.slice(0, 2),
+      tableElement: $('#report').length,
+      tableElementExists: document.getElementById('report') !== null
+    });
+    
+    // 如果数据为空，输出详细调试信息
+    if (data.length === 0) {
+      console.error('数据为空，详细调试信息:', {
+        rawTableLength: rawTable?.length || 0,
+        rawTableSample: rawTable?.slice(0, 2),
+        channelFilter: channel,
+        networkFilter: net,
+        campaignFilter: camp,
+        isNewProductFilterActive,
+        showDevice,
+        showNetwork,
+        showCampaign,
+        aggregatedDataLength: data.length
+      });
+    }
+    
+    // 确保数据是数组
+    if (!Array.isArray(data)) {
+      console.error('数据不是数组:', typeof data, data);
+      data = [];
+    }
+    
+    // 数据验证：确保每条数据都有必需的字段
+    const validatedData = data.map(row => {
+      const validatedRow = {};
+      columns.forEach(col => {
+        const fieldName = col.data;
+        validatedRow[fieldName] = row[fieldName] !== undefined ? row[fieldName] : null;
+      });
+      return validatedRow;
+    });
+    
+    console.log('数据验证结果:', {
+      originalDataLength: data.length,
+      validatedDataLength: validatedData.length,
+      sampleValidatedData: validatedData.slice(0, 1),
+      columnsCount: columns.length,
+      columnNames: columns.map(col => col.data)
+    });
+    
+    // 检查数据中缺失的字段
+    if (validatedData.length > 0) {
+      const firstRow = validatedData[0];
+      const missingFields = columns.filter(col => firstRow[col.data] === undefined);
+      if (missingFields.length > 0) {
+        console.warn('数据中缺失的字段:', missingFields.map(col => col.data));
+      }
+    }
+    
+    // 完全销毁现有表格
+    if (dt) {
+      dt.destroy();
+      dt = null;
+    }
+    
+    // 确保表格元素存在
+    let $table = $('#report');
+    if ($table.length === 0) {
+      // 如果表格不存在，创建一个
+      $table = $('<table id="report" class="data-table display nowrap" style="width:100%"></table>');
+      $('.table-container').append($table);
+    }
+    
+    // 清空并重建表格结构
+    $table.empty();
+    $table.html(`
+      <thead>
+        <tr>
+          ${columns.map(col => `<th>${col.title}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `);
+    
+    // 重新初始化DataTables - 简化配置避免错误
+    try {
+      console.log('开始初始化DataTables，数据长度:', validatedData.length, '列数:', columns.length);
+      console.log('列定义:', columns.map(c => ({ data: c.data, title: c.title })));
+      
+      dt = $('#report').DataTable({
+        destroy: true,
+        pageLength: 20,
+        data: validatedData,
+        columns: columns,
+        language: {
+          emptyTable: "暂无数据",
+          zeroRecords: "没有找到匹配的记录"
+        }
+      });
+      console.log('DataTables重新初始化成功');
+    } catch (error) {
+      console.error('DataTables初始化失败:', error);
+      // 显示错误信息给用户
+      $table.html(`
+        <thead>
+          <tr>
+            ${columns.map(col => `<th>${col.title}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="${columns.length}" style="text-align: center; color: red;">
+              表格初始化失败: ${error.message}
+            </td>
+          </tr>
+        </tbody>
+      `);
+    }
+    
+    // 只有在DataTables初始化成功后才进行列显示控制
+    if (dt && dt.column) {
+      // 根据渠道类型隐藏不同的列
+      if (currentChannel === 'facebook_ads') {
+        // Facebook Ads 列：所有列都显示（已在列定义中处理）
+        console.log('Facebook Ads渠道，显示所有列');
+      } else {
+        // 默认列：产品、设备、网络、Campaign、点击、曝光、CTR、Avg CPC、Cost、转化、Cost/Conv、All conv、Conv value、All conv rate、Conv rate
+        dt.column(1).visible(false); // 设备列默认隐藏
+        dt.column(2).visible(false); // 网络列默认隐藏
+        dt.column(3).visible(false); // Campaign列默认隐藏
+      }
+    }
+    
+    // 根据筛选条件显示列 - 只有在DataTables初始化成功后才执行
+    if (dt && dt.column) {
+      if (showDevice) dt.column(1).visible(true);
+      if (showNetwork) dt.column(2).visible(true);
+      if (showCampaign) dt.column(3).visible(true);
+    }
+
+    // 强制重新计算列宽，确保对齐 - 只有在DataTables初始化成功后才执行
+    if (dt && dt.columns) {
+      setTimeout(() => {
+        if (dt.columns && dt.columns.adjust) dt.columns.adjust();
+        if (dt.fixedHeader && dt.fixedHeader.adjust) dt.fixedHeader.adjust();
+      }, 100);
+    }
+    // 双击行跳转到产品分析 - 只有在DataTables初始化成功后才绑定事件
+    if (dt && dt.row) {
+      $('#report tbody').off('dblclick').on('dblclick', 'tr', function() {
+        const row = dt.row(this).data();
+        if (!row) return;
+        const params = new URLSearchParams(window.location.search);
+        if (!params.get('site')) {
+          params.set('site', getCurrentSiteForAPI());
+        }
+        params.set('product', row.landing_path);
+        window.location.href = `independent-site.html?${params.toString()}#products`;
+      });
+    }
+  }
+
   $('#columnMenu').on('change','input[type=checkbox]', buildTable);
+  channelSel.addEventListener('change', buildTable);
   networkSel.addEventListener('change', buildTable);
   campaignSel.addEventListener('change', buildTable);
 
@@ -1454,24 +2245,17 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
   
   // 获取当前站点名称用于API调用
   function getCurrentSiteForAPI() {
-    const currentIndepSiteId = localStorage.getItem('currentIndepSite');
-    const currentIndepSiteName = localStorage.getItem('currentIndepSiteName');
-
-    // 如果有站点名称，使用站点名称（这是数据库中的site字段值）
-    if (currentIndepSiteName) {
-      return normalizeSite(currentIndepSiteName);
-    }
-
-    // 如果有站点ID，根据ID映射到站点名称
-    if (currentIndepSiteId) {
-      return normalizeSite(currentIndepSiteId) || 'poolsvacuum.com';
-    }
-
-    // 从URL参数获取
+    // 从URL参数获取（优先级最高）
     const urlParams = new URLSearchParams(window.location.search);
     const siteParam = urlParams.get('site');
     if (siteParam) {
       return normalizeSite(siteParam);
+    }
+
+    // 从页面输入框获取
+    const siteInputValue = siteInput.value.trim();
+    if (siteInputValue) {
+      return normalizeSite(siteInputValue);
     }
     
     // 默认值
@@ -1542,10 +2326,32 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
   function populateFilters(){
     // 安全处理空数据
     if (!rawTable || !Array.isArray(rawTable) || rawTable.length === 0) {
+      channelSel.innerHTML = '<option value="">全部</option>';
       networkSel.innerHTML = '<option value="">全部</option>';
       campaignSel.innerHTML = '<option value="">全部</option>';
       return;
     }
+    
+    // 填充渠道选择器 - 根据站点确定可用渠道
+    const urlParams = new URLSearchParams(window.location.search);
+    const site = urlParams.get('site');
+    const channelOptions = ['<option value="">全部</option>'];
+    
+    if (site === 'icyberite.com') {
+      // icyberite.com 只显示 Facebook Ads
+      channelOptions.push('<option value="facebook_ads">Facebook Ads</option>');
+    } else if (site === 'poolsvacuum.com') {
+      // poolsvacuum.com 只显示 Google Ads
+      channelOptions.push('<option value="google_ads">Google Ads</option>');
+    } else {
+      // 其他站点根据数据动态填充
+      const channels = Array.from(new Set(rawTable.map(r=>r.network).filter(Boolean))).sort();
+      if (channels.includes('google')) channelOptions.push('<option value="google_ads">Google Ads</option>');
+      if (channels.includes('facebook')) channelOptions.push('<option value="facebook_ads">Facebook Ads</option>');
+      if (channels.includes('tiktok')) channelOptions.push('<option value="tiktok_ads">TikTok Ads</option>');
+    }
+    
+    channelSel.innerHTML = channelOptions.join('');
     
     const nets = Array.from(new Set(rawTable.map(r=>r.network).filter(Boolean))).sort();
     networkSel.innerHTML = '<option value="">全部</option>' + nets.map(n=>`<option value="${n}">${n}</option>`).join('');
@@ -1574,7 +2380,13 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     const current = data.kpis || {};
     const previous = data.previous?.kpis || {};
     
-    const chart = echarts.init(document.getElementById('compareBar'));
+    const chartElement = document.getElementById('compareBar');
+    if (!chartElement) {
+      console.warn('图表容器 compareBar 不存在，跳过渲染');
+      return;
+    }
+    
+    const chart = echarts.init(chartElement);
     chart.setOption({
       tooltip: { trigger: 'axis' },
       legend: { data: ['本周期', '上一周期'] },
@@ -1615,7 +2427,13 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     const current = data.series || [];
     const previous = data.previous?.series || [];
     
-    const chart = echarts.init(document.getElementById('ctrChart'));
+    const chartElement = document.getElementById('ctrChart');
+    if (!chartElement) {
+      console.warn('图表容器 ctrChart 不存在，跳过渲染');
+      return;
+    }
+    
+    const chart = echarts.init(chartElement);
     chart.setOption({
       tooltip: { trigger: 'axis' },
       legend: { data: ['本周期', '上一周期'] },
@@ -1655,7 +2473,13 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     const current = data.series || [];
     const previous = data.previous?.series || [];
     
-    const chart = echarts.init(document.getElementById('convChart'));
+    const chartElement = document.getElementById('convChart');
+    if (!chartElement) {
+      console.warn('图表容器 convChart 不存在，跳过渲染');
+      return;
+    }
+    
+    const chart = echarts.init(chartElement);
     chart.setOption({
       tooltip: { trigger: 'axis' },
       legend: { data: ['本周期', '上一周期'] },
@@ -1708,7 +2532,21 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       console.log('独立站查询参数:', { siteName, siteParam, from, to });
       
       // 获取当前周期数据
-      const currentUrl = `/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${from}&to=${to}&aggregate=product`;
+      let channel = channelSel.value;
+      
+      // 如果渠道选择器没有值，根据站点推断渠道
+      if (!channel) {
+        if (siteParam === 'icyberite.com') {
+          channel = 'facebook_ads';
+        } else if (siteParam === 'poolsvacuum.com') {
+          channel = 'google_ads';
+        }
+        console.log('渠道选择器为空，根据站点推断渠道:', { siteParam, inferredChannel: channel });
+      }
+      
+      console.log('API调用前的渠道参数:', { channel, channelSelValue: channelSel.value });
+      const currentUrl = `/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${from}&to=${to}&aggregate=product${channel ? `&channel=${encodeURIComponent(channel)}` : ''}`;
+      console.log('API调用URL:', currentUrl);
       
       // 计算上一周期日期范围
       const currentFrom = new Date(from);
@@ -1728,7 +2566,7 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       // 并行获取两个周期的数据
       const [currentRes, prevRes] = await Promise.all([
         fetch(currentUrl),
-        fetch(`/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${prevFromStr}&to=${prevToStr}&aggregate=product`)
+        fetch(`/api/independent/stats?site=${encodeURIComponent(siteParam)}&from=${prevFromStr}&to=${prevToStr}&aggregate=product${channel ? `&channel=${encodeURIComponent(channel)}` : ''}`)
       ]);
       
       if (!currentRes.ok) throw new Error(`当前周期 HTTP ${currentRes.status}`);
@@ -1747,7 +2585,62 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       };
 
       rawTable = json.table || [];
-      renderKPI(json.kpis || {});
+      currentKPIs = json.kpis || {}; // 保存KPI数据
+      
+      // 调试日志：检查数据
+      console.log('API返回的数据:', {
+        tableLength: rawTable.length,
+        kpis: currentKPIs,
+        availableChannels: json.availableChannels,
+        sampleData: rawTable.slice(0, 2)
+      });
+      
+      // 详细调试：检查数据结构
+      if (rawTable && rawTable.length > 0) {
+        console.log('数据详细检查:', {
+          firstRow: rawTable[0],
+          hasProduct: !!rawTable[0]?.product,
+          hasNetwork: !!rawTable[0]?.network,
+          networkValue: rawTable[0]?.network,
+          allNetworks: [...new Set(rawTable.map(r => r.network))]
+        });
+      }
+      
+  // 处理API返回的消息提示
+  if (json.message) {
+    showStatusMessage(json.message, 'info');
+  }
+      
+      // 处理渠道信息
+      if (json.availableChannels && json.availableChannels.length > 0) {
+        availableChannels = json.availableChannels;
+        currentChannel = json.currentChannel;
+        
+        // 创建Tab页面
+        const siteName = getCurrentSiteForAPI();
+        createChannelTabs(availableChannels, siteName);
+        
+        // 设置渠道选择器的值
+        if (currentChannel && channelSel) {
+          console.log('设置渠道选择器值:', { currentChannel, channelSelValue: channelSel.value });
+          channelSel.value = currentChannel;
+          console.log('渠道选择器值已设置:', { newValue: channelSel.value });
+        } else {
+          console.log('无法设置渠道选择器值:', { currentChannel, channelSel: !!channelSel });
+        }
+      } else {
+        availableChannels = [];
+        currentChannel = null;
+        
+        // 没有渠道信息时，只显示站点名
+        const detailTitle = document.getElementById('detailTitle');
+        if (detailTitle) {
+          const siteName = getCurrentSiteForAPI();
+          detailTitle.textContent = siteName;
+        }
+      }
+      
+      renderKPI(currentKPIs);
       populateFilters();
       buildTable();
 
@@ -1755,7 +2648,7 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       renderAnalysisCharts(json);
       
       // Top landing pages
-      const topRows = json.topList.map(r => [
+      const topRows = (json.topList || []).map(r => [
         shorten(r.product || r.path), r.clicks, r.impr, (r.ctr*100).toFixed(2)+'%', r.conversions, r.cost, r.conv_value, r.cpa.toFixed(2), r.roas.toFixed(2)
       ]);
       $('#topTable').DataTable({ destroy:true, paging:false, searching:false, info:false, data: topRows, scrollX:true, autoWidth:false });
@@ -1766,10 +2659,55 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       // 移除产品行点击事件绑定，因为产品分析功能已移至外部页面
     } catch(e) {
       console.error(e);
-      alert(e.message || '加载失败');
+      // 在状态栏显示错误信息，而不是弹窗
+      showStatusMessage(e.message || '加载失败', 'error');
       // 隐藏加载状态
       hideLoading();
     }
+  }
+
+  // 显示状态消息函数
+  function showStatusMessage(message, type = 'info') {
+    // 查找或创建状态显示元素
+    let statusEl = document.getElementById('statusMessage');
+    if (!statusEl) {
+      statusEl = document.createElement('div');
+      statusEl.id = 'statusMessage';
+      statusEl.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 6px;
+        color: white;
+        font-size: 14px;
+        z-index: 10000;
+        max-width: 400px;
+        word-wrap: break-word;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: all 0.3s ease;
+      `;
+      document.body.appendChild(statusEl);
+    }
+    
+    // 设置样式和内容
+    statusEl.textContent = message;
+    statusEl.className = type;
+    
+    if (type === 'error') {
+      statusEl.style.backgroundColor = '#ef4444';
+    } else if (type === 'info') {
+      statusEl.style.backgroundColor = '#3b82f6';
+    } else {
+      statusEl.style.backgroundColor = '#10b981';
+    }
+    
+    // 3秒后自动隐藏
+    setTimeout(() => {
+      if (statusEl && statusEl.parentNode) {
+        statusEl.parentNode.removeChild(statusEl);
+      }
+    }, 3000);
   }
 
   document.getElementById('refreshBtn').addEventListener('click', () => {
@@ -1808,16 +2746,23 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     
     try {
       statusEl.textContent = '导入中...';
+      statusEl.className = '';
       uploadBtn.disabled = true;
       
       // 根据站点ID选择正确的API
       let apiUrl = '/api/independent/ingest'; // 默认Google Ads API
       
-      // 如果是icyberite.com，使用Facebook Ads API
+      // 根据站点ID选择API
       if (uploadSiteId === 'independent_icyberite') {
         apiUrl = '/api/independent/facebook-ingest';
         console.log('使用Facebook Ads API:', apiUrl);
+      } else if (uploadSiteId === 'independent_poolsvacuum') {
+        // poolsvacuum默认使用Google Ads，但可以根据需要扩展
+        apiUrl = '/api/independent/ingest';
+        console.log('使用Google Ads API:', apiUrl);
       } else {
+        // 其他站点默认使用Google Ads
+        apiUrl = '/api/independent/ingest';
         console.log('使用Google Ads API:', apiUrl);
       }
       
@@ -1843,17 +2788,21 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       if (!json.ok) throw new Error(json.error || '上传失败');
       
       statusEl.textContent = '导入完成，加载中...';
+      statusEl.className = '';
       await load();
-      statusEl.textContent = '完成';
-      alert(`上传成功，记录数: ${json.inserted}`);
+      statusEl.textContent = `✅ 上传成功，记录数: ${json.inserted}`;
+      statusEl.className = 'success';
     } catch(e) {
       console.error('上传错误:', e);
-      statusEl.textContent = `上传失败: ${e.message}`;
-      alert(`上传失败: ${e.message}`);
+      statusEl.textContent = `❌ 上传失败: ${e.message}`;
+      statusEl.className = 'error';
     } finally {
       fileInput.value = '';
       uploadBtn.disabled = false;
-      setTimeout(() => { statusEl.textContent = ''; }, 3000);
+      setTimeout(() => { 
+        statusEl.textContent = ''; 
+        statusEl.className = '';
+      }, 5000); // 延长显示时间到5秒
     }
   });
   

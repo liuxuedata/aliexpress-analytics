@@ -337,6 +337,26 @@
     </div>
   </div>
 
+  <!-- 统一表架构说明 -->
+  <div class="config-section" style="margin-top: 30px;">
+    <h3>🏗️ 统一表架构说明</h3>
+    <div class="template-preview">
+      <strong>架构优势：</strong><br>
+      • <strong>零维护成本：</strong>新站点无需创建新表<br>
+      • <strong>无限扩展：</strong>支持任意数量站点<br>
+      • <strong>统一管理：</strong>所有数据集中存储<br>
+      • <strong>查询优化：</strong>跨站点分析更容易<br><br>
+      
+      <strong>表结构：</strong><br>
+      • Facebook Ads → independent_facebook_ads_daily<br>
+      • Google Ads → independent_landing_metrics<br>
+      • TikTok Ads → independent_tiktok_ads_daily<br><br>
+      
+      <strong>数据区分：</strong>通过 site 字段区分不同站点<br>
+      <strong>新站点添加：</strong>只需在站点配置中添加记录，立即可用！
+    </div>
+  </div>
+
   <!-- 数据上传测试区域 -->
   <div class="config-section" style="margin-top: 30px;">
     <h3>📤 数据上传测试</h3>
@@ -567,21 +587,27 @@ function updateTemplatePreview() {
     return;
   }
   
-  const template = currentTemplates.find(t => t.source_type === dataSource);
-  console.log('找到的模板:', template);
+  // 显示统一表架构信息
+  const tableMapping = {
+    'facebook_ads': 'independent_facebook_ads_daily',
+    'google_ads': 'independent_landing_metrics',
+    'tiktok_ads': 'independent_tiktok_ads_daily'
+  };
   
-  if (template) {
-    templatePreview.innerHTML = `
-      <strong>模板：${template.name}</strong><br>
-      <strong>字段映射：</strong><br>
-      ${Object.entries(template.fields_json.mappings || {}).map(([key, value]) => 
-        `  ${key} → ${value}`
-      ).join('<br>')}
-    `;
-  } else {
-    templatePreview.textContent = `未找到匹配的模板配置 (数据源: ${dataSource})`;
-    console.log('未找到模板，可用的数据源类型:', currentTemplates.map(t => t.source_type));
-  }
+  const tableName = tableMapping[dataSource];
+  
+  templatePreview.innerHTML = `
+    <strong>🏗️ 统一表架构</strong><br>
+    <strong>数据源：</strong>${getDataSourceDisplayName(dataSource)}<br>
+    <strong>存储表：</strong>${tableName}<br>
+    <strong>优势：</strong>零维护、无限扩展、统一管理<br>
+    <strong>说明：</strong>所有站点共享同一张表，通过site字段区分<br><br>
+    <strong>架构特点：</strong><br>
+    • 新站点无需创建新表<br>
+    • 支持无限站点数量<br>
+    • 跨站点分析更容易<br>
+    • 统一的数据管理
+  `;
 }
 
 // 全局变量
@@ -841,8 +867,29 @@ async function testDataUpload() {
     console.log('上传文件:', fileInput.files[0].name);
     console.log('文件大小:', fileInput.files[0].size, 'bytes');
     
-    const response = await fetch(`/api/dynamic-ingest/${encodeURIComponent(siteId)}`, {
+    // 根据数据源类型选择正确的API端点
+    const site = currentSites.find(s => s.id === siteId);
+    let apiEndpoint;
+    let headers = {};
+    
+    if (site.data_source === 'facebook_ads') {
+      // 使用统一的Facebook Ads API
+      apiEndpoint = '/api/universal-ingest/facebook-ads';
+      headers['X-Site-ID'] = siteId;
+    } else if (site.data_source === 'google_ads') {
+      // 使用动态摄入API
+      apiEndpoint = `/api/dynamic-ingest/${encodeURIComponent(siteId)}`;
+    } else {
+      // 默认使用动态摄入API
+      apiEndpoint = `/api/dynamic-ingest/${encodeURIComponent(siteId)}`;
+    }
+    
+    console.log('使用API端点:', apiEndpoint);
+    console.log('请求头:', headers);
+    
+    const response = await fetch(apiEndpoint, {
       method: 'POST',
+      headers: headers,
       body: formData
     });
     
