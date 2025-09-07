@@ -705,10 +705,29 @@ module.exports = async (req, res) => {
         
         if (!key || key === 'unknown') return;
         
-        if (!productMap.has(key)) {
-          productMap.set(key, {
+        // 拆分product_identifier为product_id和product_name
+        let productIdOnly = key;
+        let productName = '';
+        
+        if (channel === 'facebook_ads' && key.includes(',')) {
+          // Facebook Ads格式: "50073860800824, XREAL One AR Glasses | 3DoF Floating Display..."
+          const parts = key.split(',');
+          if (parts.length >= 2) {
+            productIdOnly = parts[0].trim();
+            productName = parts.slice(1).join(',').trim();
+          }
+        } else {
+          // 其他情况，使用原始值
+          productIdOnly = key;
+          productName = r.product_name || r.product_display_name || '';
+        }
+        
+        if (!productMap.has(productIdOnly)) {
+          productMap.set(productIdOnly, {
             // 与前端Facebook Ads表格列名匹配的字段
-            product: key, // 商品编号
+            product_id: productIdOnly, // 商品ID
+            product_name: productName, // 商品名称
+            product: key, // 商品编号（保留原始值用于兼容性）
             days: 0, // 天数
             campaign_name: r.campaign_name || r.campaign, // 广告系列名称
             adset_name: r.adset_name || '', // 广告组名称
@@ -771,7 +790,7 @@ module.exports = async (req, res) => {
           });
         }
         
-        const existing = productMap.get(key);
+        const existing = productMap.get(productIdOnly);
         // 累加基础指标 - 使用安全的数值处理
         existing.clicks += (r.clicks || 0);
         existing.impr += (r.impr || 0);

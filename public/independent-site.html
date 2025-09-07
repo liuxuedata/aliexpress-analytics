@@ -1629,32 +1629,37 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
   }
 
   // Facebook Ads 专用列定义 - 简化版本，只使用确实存在的字段
-  function getFacebookAdsColumns() {
-    return [
-      // 核心字段 - 确保这些字段在数据中存在
-      { data: 'product', title: '商品编号', render: (v, t, r) => {
-        const name = v || r.landing_path || '';
-        return `<a href="${r.landing_url || '#'}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
-      }, width: '120px' },
-      { data: 'days', title: '天数', render: v => v ?? 0, width: '80px' },
-      { data: 'campaign_name', title: '广告系列名称', render: v => v || '', width: '150px' },
-      { data: 'adset_name', title: '广告组名称', render: v => v || '', width: '150px' },
-      { data: 'reach', title: '覆盖人数', render: v => v ?? 0, width: '100px' },
-      { data: 'impr', title: '展示次数', render: v => v ?? 0, width: '100px' },
-      { data: 'page_views', title: '浏览量', render: v => v ?? 0, width: '100px' },
-      { data: 'cost_per_result', title: '单次成效费用', render: v => (v ?? 0).toFixed(2), width: '120px' },
-      { data: 'link_clicks', title: '链接点击量', render: v => v ?? 0, width: '100px' },
-      { data: 'link_ctr', title: '链接点击率', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' },
-      { data: 'clicks', title: '点击量（全部）', render: v => v ?? 0, width: '100px' },
-      { data: 'ctr', title: '点击率（全部）', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' },
-      { data: 'atc_total', title: '加入购物车', render: v => v ?? 0, width: '100px' },
-      { data: 'wishlist_adds', title: '加入心愿单次数', render: v => v ?? 0, width: '120px' },
-      { data: 'ic_total', title: '结账发起次数', render: v => v ?? 0, width: '120px' },
-      { data: 'results', title: '成效', render: v => v ?? 0, width: '100px' },
-      { data: 'row_start_date', title: '开始日期', render: v => v || '', width: '100px' },
-      { data: 'cost', title: '花费', render: v => (v ?? 0).toFixed(2), width: '100px' }
-    ];
-  }
+function getFacebookAdsColumns() {
+  return [
+    // 商品ID列 - 新增
+    { data: 'product_id', title: '商品ID', render: (v, t, r) => {
+      const productId = r.product_id || '';
+      return `<span class="product-id" title="${productId}">${productId}</span>`;
+    }, width: '120px' },
+    // 商品名称列 - 新增
+    { data: 'product_name', title: '商品名称', render: (v, t, r) => {
+      const productName = r.product_name || '';
+      return `<span class="product-name" title="${productName}">${shorten(productName, 50)}</span>`;
+    }, width: '200px' },
+    { data: 'days', title: '天数', render: v => v ?? 0, width: '80px' },
+    { data: 'campaign_name', title: '广告系列名称', render: v => v || '', width: '150px' },
+    { data: 'adset_name', title: '广告组名称', render: v => v || '', width: '150px' },
+    { data: 'reach', title: '覆盖人数', render: v => v ?? 0, width: '100px' },
+    { data: 'impr', title: '展示次数', render: v => v ?? 0, width: '100px' },
+    { data: 'page_views', title: '浏览量', render: v => v ?? 0, width: '100px' },
+    { data: 'cost_per_result', title: '单次成效费用', render: v => (v ?? 0).toFixed(2), width: '120px' },
+    { data: 'link_clicks', title: '链接点击量', render: v => v ?? 0, width: '100px' },
+    { data: 'link_ctr', title: '链接点击率', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' },
+    { data: 'clicks', title: '点击量（全部）', render: v => v ?? 0, width: '100px' },
+    { data: 'ctr', title: '点击率（全部）', render: v => v != null ? (v*100).toFixed(2)+'%' : '0%', width: '100px' },
+    { data: 'atc_total', title: '加入购物车', render: v => v ?? 0, width: '100px' },
+    { data: 'wishlist_adds', title: '加入心愿单次数', render: v => v ?? 0, width: '120px' },
+    { data: 'ic_total', title: '结账发起次数', render: v => v ?? 0, width: '120px' },
+    { data: 'results', title: '成效', render: v => v ?? 0, width: '100px' },
+    { data: 'row_start_date', title: '开始日期', render: v => v || '', width: '100px' },
+    { data: 'cost', title: '花费', render: v => (v ?? 0).toFixed(2), width: '100px' }
+  ];
+}
 
   // 默认列定义（Google Ads等）
   function getDefaultColumns() {
@@ -2102,23 +2107,24 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
       dt = null;
     }
     
-    // 清空表格内容
-    $('#report').empty();
+    // 确保表格元素存在
+    let $table = $('#report');
+    if ($table.length === 0) {
+      // 如果表格不存在，创建一个
+      $table = $('<table id="report" class="data-table display nowrap" style="width:100%"></table>');
+      $('.table-container').append($table);
+    }
     
-    // 重新创建表格结构
-    const tableHtml = `
-      <table id="report" class="data-table display nowrap" style="width:100%">
-        <thead>
-          <tr>
-            ${columns.map(col => `<th>${col.title}</th>`).join('')}
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    `;
-    
-    // 替换表格HTML
-    $('#report').parent().html(tableHtml);
+    // 清空并重建表格结构
+    $table.empty();
+    $table.html(`
+      <thead>
+        <tr>
+          ${columns.map(col => `<th>${col.title}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `);
     
     // 重新初始化DataTables
     dt = $('#report').DataTable({
