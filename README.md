@@ -33,6 +33,83 @@
 
 ---
 
+## Facebook Ads 优化记录 (2025-01-07)
+
+### 🎯 优化目标
+解决 Facebook Ads 数据显示问题，实现商品ID和商品名的分离显示，同时确保不影响现有 `poolsvacuum` 站点的功能。
+
+### 🔧 核心优化内容
+
+#### 1. 数据库结构优化
+- **新增字段**：为 `independent_facebook_ads_daily` 表添加 `product_name` 字段
+- **数据格式统一**：修复 `independent_first_seen` 表使用纯数字商品ID作为唯一标识
+- **字段映射**：
+  ```sql
+  -- 新增字段
+  ALTER TABLE public.independent_facebook_ads_daily 
+  ADD COLUMN IF NOT EXISTS product_name TEXT;
+  
+  -- 修复first_seen表数据格式
+  UPDATE independent_first_seen 
+  SET product_identifier = TRIM(SPLIT_PART(product_identifier, ',', 1))
+  WHERE product_identifier LIKE '%,%' 
+    AND TRIM(SPLIT_PART(product_identifier, ',', 1)) ~ '^\d{10,}$';
+  ```
+
+#### 2. 后端API优化
+- **数据上传逻辑**：自动拆分 `product_identifier` 为 `product_id` 和 `product_name`
+  ```javascript
+  // 拆分逻辑示例
+  if (firstColumn.includes(',')) {
+    const parts = firstColumn.split(',');
+    productId = parts[0].trim();        // "50073860800824"
+    productName = parts.slice(1).join(',').trim(); // "XREAL One AR Glasses..."
+  }
+  ```
+- **商品标识提取**：优化 `extractProductId` 函数，优先使用 `product_id` 字段
+- **产品聚合逻辑**：支持商品ID和商品名分离存储和查询
+- **first_seen表更新**：确保使用纯数字商品ID作为唯一标识
+
+#### 3. 前端显示优化
+- **列定义更新**：Facebook Ads表格新增商品ID和商品名列
+  ```javascript
+  // 新增列定义
+  { data: 'product_id', title: '商品ID', width: '120px' },
+  { data: 'product_name', title: '商品名称', width: '200px' }
+  ```
+- **错误处理增强**：DataTables初始化失败时显示详细错误信息
+- **调试信息优化**：添加详细的控制台输出帮助定位问题
+- **表格渲染优化**：确保表格元素正确创建和初始化
+
+#### 4. 兼容性保证
+- **poolsvacuum站点保护**：所有优化都确保不影响现有Google Ads数据展示
+- **向后兼容**：保留原有的 `product` 字段用于兼容性
+- **渠道隔离**：Facebook Ads和Google Ads使用不同的数据处理逻辑
+
+### 📁 相关文件
+- `api/independent/facebook-ingest/index.js` - Facebook Ads数据上传逻辑
+- `api/independent/stats/index.js` - 数据查询和聚合逻辑
+- `public/independent-site.html` - 前端表格显示逻辑
+- `add_product_name_column.sql` - 数据库字段添加脚本
+- `fix_independent_first_seen_table.sql` - first_seen表修复脚本
+
+### 🚀 部署记录
+- **分支**：`feature/facebook-ads-complete-fields`
+- **提交记录**：
+  - 修复independent_first_seen表结构不一致问题
+  - 修复Facebook Ads商品ID和商品名处理逻辑
+  - 直接应用Facebook Ads显示优化
+- **测试状态**：已部署到Vercel，等待功能验证
+
+### 🔍 故障排除
+如果遇到问题，请检查：
+1. 浏览器控制台的详细错误信息
+2. 网络请求是否成功返回数据
+3. 数据库中的数据格式是否正确
+4. 前端列定义与后端数据字段是否匹配
+
+---
+
 ## TailAdmin UI 优化施工指令
 
 ## 目标
@@ -76,7 +153,7 @@
 - 全托管产品分析页从商品上架周起展示曝光、访客、加购与支付的周趋势，并提供平均访客比、平均加购比、平均支付比及总曝光/访客/加购/支付买家数等 KPI 卡片，含上一周期对比与站点占比
 - 全托管运营分析页提供过去三个月访客总数、加购总数、支付总数三条独立曲线
 - 全托管产品分析页在商品选择行提供与数据明细页一致的周末日时间控件，并在该视图下隐藏顶部上传与周期栏
-- 自运营与全托管数据明细页新增“曝光商品数”KPI，统计当前周期内曝光量大于 0 的商品数量并与上周期对比
+- 自运营与全托管数据明细页新增"曝光商品数"KPI，统计当前周期内曝光量大于 0 的商品数量并与上周期对比
 - 独立站运营分析页展示平均点击率、平均转化率、曝光/点击/转化商品总数及本周期新品数等 KPI
   - 独立站产品分析以 landing page 作为产品维度，默认展示本周期曝光量最高的产品，选中后显示曝光、点击、转化总数与 CTR KPI 以及对应链接和首次上架日期
   - 运营分析与产品分析模块各自提供顶部时间控件，原先页面顶部的日期与上传栏已移除
@@ -158,7 +235,7 @@
 site, day, campaign_name, impressions, clicks, spend_usd, conversions
 
 -- Facebook Ads特有
-adset_name, reach, frequency, cpm, cpc_all, all_ctr
+adset_name, reach, frequency, cpm, cpc_all, all_ctr, product_id, product_name
 
 -- TikTok Ads特有  
 adgroup_name, ctr, cpc, conversion_value
@@ -238,6 +315,13 @@ INSERT INTO public.site_channel_configs (site_id, site_name, channel, table_name
 
 ## 更新日志
 
+### v2.1.0 (2025-01-07)
+- ✨ Facebook Ads商品ID和商品名分离显示
+- 🔧 优化数据上传逻辑，自动拆分product_identifier
+- 🛡️ 增强错误处理和调试信息
+- 🔒 确保poolsvacuum站点功能不受影响
+- 📚 完善Facebook Ads优化文档
+
 ### v2.0.0 (2025-01-06)
 - ✨ 新增多渠道架构支持
 - ✨ 支持Google Ads、Facebook Ads、TikTok Ads
@@ -245,5 +329,3 @@ INSERT INTO public.site_channel_configs (site_id, site_name, channel, table_name
 - ✨ 站点渠道配置管理
 - 🔧 保持向后兼容性
 - 📚 完善技术文档
-
-
