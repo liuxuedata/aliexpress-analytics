@@ -1514,6 +1514,15 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
           detailTitle.textContent = channelName;
         }
       }
+      
+      // 单渠道情况下，确保表格元素存在
+      const reportTable = document.getElementById('report');
+      if (!reportTable) {
+        console.error('单渠道表格元素不存在');
+        return;
+      }
+      
+      console.log('单渠道模式，表格元素存在:', !!reportTable);
       return;
     }
 
