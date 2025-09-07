@@ -2082,8 +2082,19 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     console.log('数据验证结果:', {
       originalDataLength: data.length,
       validatedDataLength: validatedData.length,
-      sampleValidatedData: validatedData.slice(0, 1)
+      sampleValidatedData: validatedData.slice(0, 1),
+      columnsCount: columns.length,
+      columnNames: columns.map(col => col.data)
     });
+    
+    // 检查数据中缺失的字段
+    if (validatedData.length > 0) {
+      const firstRow = validatedData[0];
+      const missingFields = columns.filter(col => firstRow[col.data] === undefined);
+      if (missingFields.length > 0) {
+        console.warn('数据中缺失的字段:', missingFields.map(col => col.data));
+      }
+    }
     
     dt = $('#report').DataTable({
       destroy:true,
