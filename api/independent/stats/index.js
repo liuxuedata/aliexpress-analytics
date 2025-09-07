@@ -184,6 +184,7 @@ async function queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, 
     site: site, // 使用原始的site值，而不是数据库中的值
     day: r.day,
     product_id: r.product_id || '', // 商品编号
+    product_name: r.product_name || '', // 商品名称
     landing_path: r.landing_url || '',
     landing_url: r.landing_url || '',
     campaign: r.campaign_name,
@@ -719,7 +720,7 @@ module.exports = async (req, res) => {
         } else {
           // 其他情况，使用原始值
           productIdOnly = key;
-          productName = r.product_name || r.product_display_name || '';
+          productName = r.product_name || '';
         }
         
         if (!productMap.has(productIdOnly)) {

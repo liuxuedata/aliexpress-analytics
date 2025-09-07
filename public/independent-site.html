@@ -1639,7 +1639,8 @@ function getFacebookAdsColumns() {
     // 商品名称列 - 新增
     { data: 'product_name', title: '商品名称', render: (v, t, r) => {
       const productName = r.product_name || '';
-      return `<span class="product-name" title="${productName}">${shorten(productName, 50)}</span>`;
+      const shortName = productName.length > 50 ? productName.substring(0, 50) + '...' : productName;
+      return `<span class="product-name" title="${productName}">${shortName}</span>`;
     }, width: '200px' },
     { data: 'days', title: '天数', render: v => v ?? 0, width: '80px', visible: false },
     { data: 'campaign_name', title: '广告系列名称', render: v => v || '', width: '150px' },
