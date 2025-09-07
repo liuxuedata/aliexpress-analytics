@@ -1641,7 +1641,7 @@ function getFacebookAdsColumns() {
       const productName = r.product_name || '';
       return `<span class="product-name" title="${productName}">${shorten(productName, 50)}</span>`;
     }, width: '200px' },
-    { data: 'days', title: '天数', render: v => v ?? 0, width: '80px' },
+    { data: 'days', title: '天数', render: v => v ?? 0, width: '80px', visible: false },
     { data: 'campaign_name', title: '广告系列名称', render: v => v || '', width: '150px' },
     { data: 'adset_name', title: '广告组名称', render: v => v || '', width: '150px' },
     { data: 'reach', title: '覆盖人数', render: v => v ?? 0, width: '100px' },
@@ -1656,8 +1656,8 @@ function getFacebookAdsColumns() {
     { data: 'wishlist_adds', title: '加入心愿单次数', render: v => v ?? 0, width: '120px' },
     { data: 'ic_total', title: '结账发起次数', render: v => v ?? 0, width: '120px' },
     { data: 'results', title: '成效', render: v => v ?? 0, width: '100px' },
-    { data: 'row_start_date', title: '开始日期', render: v => v || '', width: '100px' },
-    { data: 'cost', title: '花费', render: v => (v ?? 0).toFixed(2), width: '100px' }
+    { data: 'row_start_date', title: '开始日期', render: v => v || '', width: '100px', visible: false },
+    { data: 'cost', title: '花费', render: v => (v ?? 0).toFixed(2), width: '100px', visible: false }
   ];
 }
 
@@ -2126,28 +2126,16 @@ function getFacebookAdsColumns() {
       <tbody></tbody>
     `);
     
-    // 重新初始化DataTables - 添加错误处理
+    // 重新初始化DataTables - 简化配置避免错误
     try {
       dt = $('#report').DataTable({
         destroy: true,
         pageLength: 20,
         data: validatedData,
-        scrollX: false,
-        fixedHeader: true,
-        autoWidth: true,
-        processing: true,
-        responsive: false,
         columns: columns,
         language: {
           emptyTable: "暂无数据",
           zeroRecords: "没有找到匹配的记录"
-        },
-        error: function(xhr, error, thrown) {
-          console.error('DataTables初始化错误:', {
-            xhr: xhr,
-            error: error,
-            thrown: thrown
-          });
         }
       });
       console.log('DataTables重新初始化成功');
@@ -2169,38 +2157,48 @@ function getFacebookAdsColumns() {
         </tbody>
       `);
     }
-    // 根据渠道类型隐藏不同的列
-    if (currentChannel === 'facebook_ads') {
-      // Facebook Ads 列：所有列都显示（已在列定义中处理）
-      console.log('Facebook Ads渠道，显示所有列');
-    } else {
-      // 默认列：产品、设备、网络、Campaign、点击、曝光、CTR、Avg CPC、Cost、转化、Cost/Conv、All conv、Conv value、All conv rate、Conv rate
-      dt.column(1).visible(false); // 设备列默认隐藏
-      dt.column(2).visible(false); // 网络列默认隐藏
-      dt.column(3).visible(false); // Campaign列默认隐藏
+    
+    // 只有在DataTables初始化成功后才进行列显示控制
+    if (dt && dt.column) {
+      // 根据渠道类型隐藏不同的列
+      if (currentChannel === 'facebook_ads') {
+        // Facebook Ads 列：所有列都显示（已在列定义中处理）
+        console.log('Facebook Ads渠道，显示所有列');
+      } else {
+        // 默认列：产品、设备、网络、Campaign、点击、曝光、CTR、Avg CPC、Cost、转化、Cost/Conv、All conv、Conv value、All conv rate、Conv rate
+        dt.column(1).visible(false); // 设备列默认隐藏
+        dt.column(2).visible(false); // 网络列默认隐藏
+        dt.column(3).visible(false); // Campaign列默认隐藏
+      }
     }
     
-    // 根据筛选条件显示列
-    if (showDevice) dt.column(1).visible(true);
-    if (showNetwork) dt.column(2).visible(true);
-    if (showCampaign) dt.column(3).visible(true);
+    // 根据筛选条件显示列 - 只有在DataTables初始化成功后才执行
+    if (dt && dt.column) {
+      if (showDevice) dt.column(1).visible(true);
+      if (showNetwork) dt.column(2).visible(true);
+      if (showCampaign) dt.column(3).visible(true);
+    }
 
-    // 强制重新计算列宽，确保对齐
-    setTimeout(() => {
-      dt.columns.adjust();
-      dt.fixedHeader.adjust();
-    }, 100);
-    // 双击行跳转到产品分析
-    $('#report tbody').off('dblclick').on('dblclick', 'tr', function() {
-      const row = dt.row(this).data();
-      if (!row) return;
-      const params = new URLSearchParams(window.location.search);
-      if (!params.get('site')) {
-        params.set('site', getCurrentSiteForAPI());
-      }
-      params.set('product', row.landing_path);
-      window.location.href = `independent-site.html?${params.toString()}#products`;
-    });
+    // 强制重新计算列宽，确保对齐 - 只有在DataTables初始化成功后才执行
+    if (dt && dt.columns) {
+      setTimeout(() => {
+        if (dt.columns && dt.columns.adjust) dt.columns.adjust();
+        if (dt.fixedHeader && dt.fixedHeader.adjust) dt.fixedHeader.adjust();
+      }, 100);
+    }
+    // 双击行跳转到产品分析 - 只有在DataTables初始化成功后才绑定事件
+    if (dt && dt.row) {
+      $('#report tbody').off('dblclick').on('dblclick', 'tr', function() {
+        const row = dt.row(this).data();
+        if (!row) return;
+        const params = new URLSearchParams(window.location.search);
+        if (!params.get('site')) {
+          params.set('site', getCurrentSiteForAPI());
+        }
+        params.set('product', row.landing_path);
+        window.location.href = `independent-site.html?${params.toString()}#products`;
+      });
+    }
   }
 
   $('#columnMenu').on('change','input[type=checkbox]', buildTable);
