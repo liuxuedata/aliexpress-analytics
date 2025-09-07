@@ -144,46 +144,16 @@ async function queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, 
     });
   }
   
-  // 如果指定日期范围内没有数据，查询最新的7天数据
+  // 使用用户指定的日期范围，不进行自动回退
   let actualFromDate = fromDate;
   let actualToDate = toDate;
   let useLatestData = false;
   
-  if (siteCheck && siteCheck.length > 0) {
-    // 检查指定日期范围内是否有数据
-    const { data: dateRangeCheck } = await supabase
-      .from('independent_facebook_ads_daily')
-      .select('day')
-      .eq('site', dbSite)
-      .gte('day', fromDate)
-      .lte('day', toDate)
-      .limit(1);
-    
-    if (!dateRangeCheck || dateRangeCheck.length === 0) {
-      // 指定日期范围内没有数据，查询最新的7天数据
-      const { data: latestData } = await supabase
-        .from('independent_facebook_ads_daily')
-        .select('day')
-        .eq('site', dbSite)
-        .order('day', { ascending: false })
-        .limit(7);
-      
-      if (latestData && latestData.length > 0) {
-        const latestDate = new Date(latestData[0].day);
-        const earliestDate = new Date(latestData[latestData.length - 1].day);
-        
-        actualFromDate = earliestDate.toISOString().slice(0, 10);
-        actualToDate = latestDate.toISOString().slice(0, 10);
-        useLatestData = true;
-        
-        console.log('指定日期范围内无数据，使用最新7天数据:', {
-          originalRange: `${fromDate} to ${toDate}`,
-          actualRange: `${actualFromDate} to ${actualToDate}`,
-          latestDays: latestData.map(d => d.day)
-        });
-      }
-    }
-  }
+  console.log('使用用户指定的日期范围:', {
+    fromDate,
+    toDate,
+    dbSite
+  });
   
   for (let fromIdx = 0; table.length < limitNum; fromIdx += PAGE_SIZE) {
     const toIdx = Math.min(fromIdx + PAGE_SIZE - 1, limitNum - 1);
@@ -305,7 +275,7 @@ async function queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, 
   
   return {
     data: transformedData,
-    useLatestData: useLatestData,
+    useLatestData: false,
     actualDateRange: { from: actualFromDate, to: actualToDate }
   };
 }
@@ -923,11 +893,7 @@ module.exports = async (req, res) => {
       isMultiChannel: availableChannels.length > 1
     };
     
-    // 如果使用了最新数据，添加提示信息
-    if (useLatestData) {
-      response.message = `指定日期范围内无数据，已显示最新7天数据 (${actualDateRange.from} 至 ${actualDateRange.to})`;
-      response.actualDateRange = actualDateRange;
-    }
+    // 移除useLatestData消息，因为不再使用回退逻辑
 
     // 调试日志：最终返回的数据
     console.log('API最终返回数据:', {
