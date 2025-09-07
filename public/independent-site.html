@@ -2105,14 +2105,15 @@ function getFacebookAdsColumns() {
       dt = null;
     }
     
-    // 确保表格元素存在
-    let $table = $('#report');
+    // 根据当前渠道确定表格ID
+    const tableId = currentChannel ? `report-${currentChannel}` : 'report';
+    let $table = $(`#${tableId}`);
     if ($table.length === 0) {
-      // 如果表格不存在，创建一个
-      $table = $('<table id="report" class="data-table display nowrap" style="width:100%"></table>');
-      $('.table-container').append($table);
+      // 如果表格不存在，创建一个并附加到详情容器中
+      $table = $(`<table id="${tableId}" class="data-table display nowrap" style="width:100%"></table>`);
+      $('#detailContent').append($table);
     }
-    
+
     // 清空并重建表格结构
     $table.empty();
     $table.html(`
@@ -2129,7 +2130,7 @@ function getFacebookAdsColumns() {
       console.log('开始初始化DataTables，数据长度:', validatedData.length, '列数:', columns.length);
       console.log('列定义:', columns.map(c => ({ data: c.data, title: c.title })));
       
-      dt = $('#report').DataTable({
+      dt = $table.DataTable({
         destroy: true,
         pageLength: 20,
         data: validatedData,
