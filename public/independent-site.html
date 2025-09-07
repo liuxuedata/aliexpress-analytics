@@ -1629,10 +1629,12 @@ function getFacebookAdsColumns() {
     return [
       { data: 'product', title: '产品', render: (v, t, r) => {
         const name = v || r.landing_path || '';
-        const path = r.landing_path || '';
-        const domain = getCurrentSiteForAPI() || 'poolsvacuum.com';
+        let path = r.landing_path || '';
+        // 如果 landing_path 中包含了域名，先剥离，只保留路径部分
+        path = path.replace(/^https?:\/\/[^/]+/, '');
+        const domain = r.domain || getCurrentSiteForAPI() || 'poolsvacuum.com';
         const base = domain.startsWith('http') ? domain : `https://${domain}`;
-        const landingUrl = path.startsWith('http') ? path : `${base}${path.startsWith('/') ? path : '/' + path}`;
+        const landingUrl = `${base}${path.startsWith('/') ? path : '/' + path}`;
         return `<a href="${landingUrl}" target="_blank" class="name" title="${name}">${shorten(name)}</a>`;
       }, width: '200px' },
       { data: 'device', title: '设备', render: v => v || '', width: '80px' },
