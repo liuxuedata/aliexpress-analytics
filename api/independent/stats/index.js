@@ -209,6 +209,7 @@ async function queryFacebookAdsData(supabase, site, fromDate, toDate, limitNum, 
   const transformedData = table.map(r => ({
     site: site, // 使用原始的site值，而不是数据库中的值
     day: r.day,
+    product_id: r.product_id || '', // 商品编号
     landing_path: r.landing_url || '',
     landing_url: r.landing_url || '',
     campaign: r.campaign_name,
@@ -699,8 +700,8 @@ module.exports = async (req, res) => {
     if (isProductAggregate) {
       const productMap = new Map();
       table.forEach(r => {
-        // 使用landing_path或campaign作为商品标识
-        const key = r.landing_path || r.campaign || r.landing_url || 'unknown';
+        // 优先使用product_id作为商品标识，如果没有则使用landing_path或campaign
+        const key = r.product_id || r.landing_path || r.campaign || r.landing_url || 'unknown';
         if (!key || key === 'unknown') return;
         
         if (!productMap.has(key)) {
