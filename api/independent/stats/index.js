@@ -700,8 +700,24 @@ module.exports = async (req, res) => {
     if (isProductAggregate) {
       const productMap = new Map();
       table.forEach(r => {
-        // 优先使用product_id作为商品标识，如果没有则使用landing_path或campaign
-        const key = r.product_id || r.landing_path || r.campaign || r.landing_url || 'unknown';
+        // 根据数据源确定商品标识
+        let key;
+        if (r.product_id) {
+          // Facebook Ads数据：优先使用product_id
+          key = r.product_id;
+        } else if (r.landing_path) {
+          // Google Ads数据：使用landing_path
+          key = r.landing_path;
+        } else if (r.campaign) {
+          // 回退到campaign
+          key = r.campaign;
+        } else if (r.landing_url) {
+          // 最后回退到landing_url
+          key = r.landing_url;
+        } else {
+          key = 'unknown';
+        }
+        
         if (!key || key === 'unknown') return;
         
         if (!productMap.has(key)) {

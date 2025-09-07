@@ -1938,13 +1938,13 @@ function renderComparisonLineChart(id, title, dates, current, previous) {
     });
     
     // 调试日志：检查列定义
-    const columns = getChannelColumns(currentChannel);
+    const debugColumns = getChannelColumns(currentChannel);
     console.log('列定义检查:', {
       currentChannel,
-      columnsLength: columns ? columns.length : 0,
-      columns: columns ? columns.slice(0, 3) : null, // 只显示前3列
-      hasColumns: !!columns,
-      isArray: Array.isArray(columns)
+      columnsLength: debugColumns ? debugColumns.length : 0,
+      columns: debugColumns ? debugColumns.slice(0, 3) : null, // 只显示前3列
+      hasColumns: !!debugColumns,
+      isArray: Array.isArray(debugColumns)
     });
 
     let data = rawTable;
