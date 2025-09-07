@@ -416,7 +416,8 @@ module.exports = async (req, res) => {
 
   try {
     const supabase = getClient();
-    const { site, from, to, limit = '20000', only_new, campaign, network, device, aggregate, channel } = req.query;
+    const { site, from, to, limit = '20000', only_new, campaign, network, device, aggregate } = req.query;
+    let channel = req.query.channel;
     const def = lastWeek();
     const toDate = parseDate(to, def.to);
     const fromDate = parseDate(from, def.from);
