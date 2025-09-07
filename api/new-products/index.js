@@ -10,6 +10,13 @@ function supa() {
 const pad2 = n => (n < 10 ? "0" + n : "" + n);
 const toMMDD = iso => { const d = new Date(iso + "T00:00:00Z"); return pad2(d.getUTCMonth()+1)+pad2(d.getUTCDate()); };
 
+// 映射独立站域名与数据库 site_id
+const INDEP_SITE_MAP = {
+  'poolsvacuum.com': 'independent_poolsvacuum',
+  'icyberite.com': 'independent_icyberite'
+};
+const SITE_ID_TO_DOMAIN = Object.fromEntries(Object.entries(INDEP_SITE_MAP).map(([domain, id]) => [id, domain]));
+
   function viewOf(platform){
     if (platform === "managed") return "managed_new_products";
     if (platform === "self")    return "ae_self_new_products";
@@ -29,7 +36,7 @@ module.exports = async (req, res) => {
   try {
     const platform = String(req.query.platform||"").trim();
     if (!platform) throw new Error("Missing platform");
-    const site = String(req.query.site||"").trim(); // 新增：站点参数
+    const siteParam = String(req.query.site||"").trim(); // 站点参数（域名或site_id）
     const view = viewOf(platform);
     const statsTable = statsTableOf(platform);
 
@@ -71,8 +78,9 @@ module.exports = async (req, res) => {
       .lte(firstSeenCol, to);
 
     // 仅在视图包含 site 列时才应用站点过滤
-    if (hasSite && site) {
-      query = query.eq('site', site);
+    if (hasSite && siteParam) {
+      const dbSite = platform === 'indep' ? (INDEP_SITE_MAP[siteParam] || siteParam) : siteParam;
+      query = query.eq('site', dbSite);
     }
     
     let { data, error } = await query
@@ -118,9 +126,16 @@ module.exports = async (req, res) => {
 
     const items = (data||[]).map(r => {
       const first = r[firstSeenCol];
-      const id = platform === 'indep' ? `https://${r.site}${r[idCol]}` : r[idCol];
+      if (platform === 'indep') {
+        const domain = SITE_ID_TO_DOMAIN[r.site] || r.site;
+        return {
+          product_id: `https://${domain}${r[idCol]}`,
+          first_seen: first,
+          first_seen_mmdd: toMMDD(first)
+        };
+      }
       return {
-        product_id: id,
+        product_id: r[idCol],
         first_seen: first,
         first_seen_mmdd: toMMDD(first)
       };
