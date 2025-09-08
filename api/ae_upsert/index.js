@@ -184,7 +184,7 @@ export default async function handler(req, res) {
       info.dateMap.get(r.site).add(r.stat_date);
     });
 
-    // 先检查是否有 product 已存在于其他站点，若存在则整批不写入
+    // 先检查是否有 product_id 已存在于其他站点，若存在则整批不写入
     const crossSite = [];
     for (const row of rows) {
       const info = existMap.get(row.product_id);
@@ -195,7 +195,7 @@ export default async function handler(req, res) {
     if (crossSite.length > 0) {
       return res.status(200).json({
         ok: false,
-        skipped: 'product exists in other site',
+        error: '数据表格站点有误。',
         product_ids: [...new Set(crossSite)],
       });
     }
@@ -241,7 +241,11 @@ export default async function handler(req, res) {
         .upsert(newProducts, { onConflict: 'site,product_id', ignoreDuplicates: true });
     }
 
-    return res.status(200).json({ ok: true, upserted: inserted });
+    return res.status(200).json({
+      ok: true,
+      message: `上传完成，成功上传${inserted}组数据`,
+      upserted: inserted,
+    });
   } catch (e) {
     // 任何异常都返回 JSON
     return res.status(500).json({ error: e?.message || 'Unknown error' });
