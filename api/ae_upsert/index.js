@@ -155,24 +155,96 @@ export default async function handler(req, res) {
       if (!row.product_id || !row.stat_date || !row.site) continue;
       map.set(row.site + '__' + row.product_id + '__' + row.stat_date, row);
     }
-    const rows = Array.from(map.values());
+    const rows = Array.from(map.values()).sort((a,b)=>a.stat_date.localeCompare(b.stat_date));
 
     if (isDry) {
       return res.status(200).json({ ok: true, dry_run: true, count: rows.length, sample: rows.slice(0, 10) });
     }
 
+    // 检查数据库中已存在的记录，用于跨站点及同日重复判断
+    const productIds = [...new Set(rows.map(r => r.product_id))];
+    const { data: existing, error: existErr } = await supabase
+      .from(TABLE)
+      .select('product_id, site, stat_date')
+      .in('product_id', productIds);
+    if (existErr) {
+      return res.status(500).json({ error: existErr.message });
+    }
+
+    // 构建现有数据映射
+    const existMap = new Map();
+    (existing || []).forEach(r => {
+      let info = existMap.get(r.product_id);
+      if (!info) {
+        info = { sites: new Set(), dateMap: new Map() };
+        existMap.set(r.product_id, info);
+      }
+      info.sites.add(r.site);
+      if (!info.dateMap.has(r.site)) info.dateMap.set(r.site, new Set());
+      info.dateMap.get(r.site).add(r.stat_date);
+    });
+
+    // 检查是否存在跨站点冲突（数据库或上传数据自身）
+    const incomingSiteMap = new Map();
+    const conflictProducts = new Set();
+    for (const row of rows) {
+      let set = incomingSiteMap.get(row.product_id);
+      if (!set) { set = new Set(); incomingSiteMap.set(row.product_id, set); }
+      set.add(row.site);
+
+      const info = existMap.get(row.product_id);
+      if (info && (!info.sites.has(row.site) || info.sites.size > 1)) {
+        conflictProducts.add(row.product_id);
+      }
+    }
+    for (const [pid, sites] of incomingSiteMap.entries()) {
+      if (sites.size > 1) conflictProducts.add(pid);
+    }
+    if (conflictProducts.size > 0) {
+      return res.status(409).json({ error: 'product already exists in another site', conflicts: [...conflictProducts] });
+    }
+
+    // 通过跨站点检查后，处理同站点同日重复
+    const toInsert = [];
+    const newProducts = [];
+    for (const row of rows) {
+      let info = existMap.get(row.product_id);
+      if (info) {
+        const dates = info.dateMap.get(row.site);
+        if (dates && dates.has(row.stat_date)) continue;
+      } else {
+        newProducts.push({ site: row.site, product_id: row.product_id, first_seen: row.stat_date });
+        info = { sites: new Set(), dateMap: new Map() };
+        existMap.set(row.product_id, info);
+      }
+      info.sites.add(row.site);
+      if (!info.dateMap.has(row.site)) info.dateMap.set(row.site, new Set());
+      info.dateMap.get(row.site).add(row.stat_date);
+      toInsert.push(row);
+    }
+
+    // 插入每日数据，忽略冲突
     const CHUNK = 1000;
-    let upserted = 0;
-    for (let i = 0; i < rows.length; i += CHUNK) {
-      const chunk = rows.slice(i, i + CHUNK);
-              const { error } = await supabase.from(TABLE).upsert(chunk, { onConflict: 'site,product_id,stat_date' });
+    let inserted = 0;
+    for (let i = 0; i < toInsert.length; i += CHUNK) {
+      const chunk = toInsert.slice(i, i + CHUNK);
+      const { error } = await supabase
+        .from(TABLE)
+        .upsert(chunk, { onConflict: 'site,product_id,stat_date', ignoreDuplicates: true });
       if (error) {
-        // 把错误返回成 JSON，避免前端提示 “不是 JSON ”
         return res.status(500).json({ error: error.message, chunk_from: i, chunk_to: i + CHUNK });
       }
-      upserted += chunk.length;
+      inserted += chunk.length;
     }
-    return res.status(200).json({ ok: true, upserted });
+
+    // 插入新品记录（如果存在）
+    if (newProducts.length > 0) {
+      await supabase
+        .from('ae_self_new_products')
+        .upsert(newProducts, { onConflict: 'site,product_id', ignoreDuplicates: true });
+    }
+
+    return res.status(200).json({ ok: true, upserted: inserted });
   } catch (e) {
     // 任何异常都返回 JSON
     return res.status(500).json({ error: e?.message || 'Unknown error' });
