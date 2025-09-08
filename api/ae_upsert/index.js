@@ -184,29 +184,40 @@ export default async function handler(req, res) {
       info.dateMap.get(r.site).add(r.stat_date);
     });
 
+    // 先检查是否有 product 已存在于其他站点，若存在则整批不写入
+    const crossSite = [];
+    for (const row of rows) {
+      const info = existMap.get(row.product_id);
+      if (info && (!info.sites.has(row.site) || info.sites.size > 1)) {
+        crossSite.push(row.product_id);
+      }
+    }
+    if (crossSite.length > 0) {
+      return res.status(200).json({
+        ok: false,
+        skipped: 'product exists in other site',
+        product_ids: [...new Set(crossSite)],
+      });
+    }
+
     const toInsert = [];
     const newProducts = [];
     for (const row of rows) {
       const info = existMap.get(row.product_id);
       if (info) {
-        // 如果该 product_id 已存在于其他 site，直接跳过
-        if (!info.sites.has(row.site) && info.sites.size > 0) continue;
         const dates = info.dateMap.get(row.site);
         // 如果同一个 site 同一天已有记录，则跳过
         if (dates && dates.has(row.stat_date)) continue;
+        info.sites.add(row.site);
+        if (!info.dateMap.has(row.site)) info.dateMap.set(row.site, new Set());
+        info.dateMap.get(row.site).add(row.stat_date);
+        toInsert.push(row);
       } else {
         // 完全新的 product_id，记录到新品表
         newProducts.push({ site: row.site, product_id: row.product_id, first_seen: row.stat_date });
         existMap.set(row.product_id, { sites: new Set([row.site]), dateMap: new Map([[row.site, new Set([row.stat_date])]]) });
         toInsert.push(row);
-        continue;
       }
-
-      // 通过上述检查后，记录可写入
-      info.sites.add(row.site);
-      if (!info.dateMap.has(row.site)) info.dateMap.set(row.site, new Set());
-      info.dateMap.get(row.site).add(row.stat_date);
-      toInsert.push(row);
     }
 
     // 插入每日数据，忽略冲突
