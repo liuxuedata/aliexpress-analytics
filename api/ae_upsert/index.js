@@ -161,18 +161,66 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, dry_run: true, count: rows.length, sample: rows.slice(0, 10) });
     }
 
+    // 先查询这些 product_id 已存在的记录，用于检查跨站点和同日期重复
+    const productIds = [...new Set(rows.map(r => r.product_id))];
+    let { data: existingRows, error: queryErr } = await supabase
+      .from(TABLE)
+      .select('product_id,site,stat_date')
+      .in('product_id', productIds);
+    if (queryErr) {
+      return res.status(500).json({ error: queryErr.message });
+    }
+    const existingMap = new Map();
+    for (const r of existingRows || []) {
+      const arr = existingMap.get(r.product_id) || [];
+      arr.push({ site: r.site, stat_date: r.stat_date });
+      existingMap.set(r.product_id, arr);
+    }
+
+    // 按日期排序，确保首条记录先处理
+    rows.sort((a, b) => a.stat_date.localeCompare(b.stat_date));
+
+    const toInsert = [];
+    const newProducts = [];
+    for (const row of rows) {
+      const exist = existingMap.get(row.product_id) || [];
+      // 若该 product_id 已存在于其他 site，则跳过
+      if (exist.some(e => e.site !== row.site)) {
+        continue;
+      }
+      // 若同 site 同日期已存在，跳过
+      if (exist.some(e => e.site === row.site && e.stat_date === row.stat_date)) {
+        continue;
+      }
+      // 允许插入
+      toInsert.push(row);
+      // 如该产品在此站点首次出现，记录到 newProducts
+      if (!exist.some(e => e.site === row.site)) {
+        newProducts.push({ site: row.site, product_id: row.product_id, first_seen: row.stat_date });
+      }
+      exist.push({ site: row.site, stat_date: row.stat_date });
+      existingMap.set(row.product_id, exist);
+    }
+
     const CHUNK = 1000;
-    let upserted = 0;
-    for (let i = 0; i < rows.length; i += CHUNK) {
-      const chunk = rows.slice(i, i + CHUNK);
-              const { error } = await supabase.from(TABLE).upsert(chunk, { onConflict: 'site,product_id,stat_date' });
+    let inserted = 0;
+    for (let i = 0; i < toInsert.length; i += CHUNK) {
+      const chunk = toInsert.slice(i, i + CHUNK);
+      const { error } = await supabase.from(TABLE).insert(chunk);
       if (error) {
-        // 把错误返回成 JSON，避免前端提示 “不是 JSON ”
         return res.status(500).json({ error: error.message, chunk_from: i, chunk_to: i + CHUNK });
       }
-      upserted += chunk.length;
+      inserted += chunk.length;
     }
-    return res.status(200).json({ ok: true, upserted });
+
+    if (newProducts.length > 0) {
+      const { error: npErr } = await supabase.from('ae_self_new_products').insert(newProducts);
+      if (npErr) {
+        return res.status(500).json({ error: npErr.message, stage: 'insert_new_products' });
+      }
+    }
+
+    return res.status(200).json({ ok: true, upserted: inserted, skipped: rows.length - inserted, new_products: newProducts.length });
   } catch (e) {
     // 任何异常都返回 JSON
     return res.status(500).json({ error: e?.message || 'Unknown error' });
