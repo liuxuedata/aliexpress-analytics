@@ -907,7 +907,9 @@ module.exports = async (req, res) => {
     const total_conversions = table.reduce((sum, r) => sum + r.conversions, 0);
     const total_all_conv = table.reduce((sum, r) => sum + r.all_conv, 0);
     const total_conv_value = table.reduce((sum, r) => sum + r.conv_value, 0);
-    
+    // 统计新品ID集合，确保去重
+    const newProductIds = new Set(table.filter(r => r.is_new).map(r => r.product_id));
+
     const kpis = {
       total_clicks: total_clicks,
       total_impressions: total_impressions,
@@ -919,13 +921,14 @@ module.exports = async (req, res) => {
       avg_ctr: total_impressions > 0 ? (total_clicks / total_impressions * 100) : 0,
       // 修复平均转化率计算：总转化数/总点击数 * 100
       avg_conv_rate: total_clicks > 0 ? (total_conversions / total_clicks * 100) : 0,
-      new_products: table.filter(r => r.is_new).length,
+      // 以产品ID去重后的新品数量
+      new_products: newProductIds.size,
       total_products: productTotal,
       // 商品计数KPI
       exposure_product_count: table.filter(r => r.impr > 0).length,
       click_product_count: table.filter(r => r.clicks > 0).length,
       conversion_product_count: table.filter(r => r.conversions > 0).length,
-      new_product_count: table.filter(r => r.is_new).length
+      new_product_count: newProductIds.size
     };
 
     // 获取可用渠道列表
