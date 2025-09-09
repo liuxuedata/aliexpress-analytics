@@ -16,21 +16,30 @@ module.exports = async (req, res) => {
       return d.toISOString().slice(0,10);
     })();
 
-    let { data, error } = await supabase
-      .from('managed_stats')
-      .select('period_end, uv, add_to_cart_users, add_people, pay_buyers, pay_items, pay_people')
-      .eq('period_type', 'day')
-      .gte('period_end', from)
-      .lte('period_end', to)
-      .order('period_end', { ascending: true });
-    if (error || !data || !data.length) {
-      const resp = await supabase
+    async function fetch(period, userField) {
+      return supabase
         .from('managed_stats')
-        .select('period_end, uv, add_to_cart_users, add_people, pay_buyers, pay_items, pay_people')
-        .eq('period_type', 'week')
+        .select(`period_end, uv, ${userField}, pay_buyers, pay_items, pay_people`)
+        .eq('period_type', period)
         .gte('period_end', from)
         .lte('period_end', to)
         .order('period_end', { ascending: true });
+    }
+
+    // 尝试优先使用新字段 add_to_cart_users
+    let userField = 'add_to_cart_users';
+    let { data, error } = await fetch('day', userField);
+    if (error && error.code === '42703') {
+      userField = 'add_people';
+      ({ data, error } = await fetch('day', userField));
+    }
+
+    if (error || !data || !data.length) {
+      let resp = await fetch('week', userField);
+      if (resp.error && resp.error.code === '42703' && userField === 'add_to_cart_users') {
+        userField = 'add_people';
+        resp = await fetch('week', userField);
+      }
       if (resp.error) throw resp.error;
       data = resp.data || [];
     }
