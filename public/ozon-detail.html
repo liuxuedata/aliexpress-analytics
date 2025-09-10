@@ -95,7 +95,6 @@
                   <th>从商品详情页加入购物车</th>
                   <th>已订购商品数</th>
                   <th>已订购商品总金额</th>
-                  <th>产品详情</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -130,8 +129,7 @@
       });
       $('#report tbody').on('dblclick','td',function(){
         const col = table.cell(this).index().column;
-        const last = table.columns().count()-1;
-        if(col===0 || col===last) return;
+        if(col===0) return;
         const pid = $(this).closest('tr').find('a[data-pid]').data('pid');
         if(pid) window.open('ozon-product-insights.html?pid='+pid,'_blank');
       });
@@ -200,8 +198,7 @@
           Number(r.voronka_prodazh_dobavleniya_iz_poiska_i_kataloge_v_korzinu)||0,
           Number(r.voronka_prodazh_dobavleniya_iz_kartochki_v_korzinu)||0,
           pay,
-          Number(r.prodazhi_zakazano_na_summu)||0,
-          `<a href="ozon-product-insights.html?pid=${r.product_id}" target="_blank">详情</a>`
+          Number(r.prodazhi_zakazano_na_summu)||0
         ];
       });
       const dt = initTable();
