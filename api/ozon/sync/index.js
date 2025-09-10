@@ -11,7 +11,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
  * 解析日期参数：
  * - ?date=2025-08-21&days=7   => [2025-08-15 .. 2025-08-21]
  * - ?from=2025-08-15&to=2025-08-21
- * - 默认：只同步今天（UTC）
+ * - 默认：只同步前一日（UTC）
  */
 function parseDateRange(query) {
   const pad = n => String(n).padStart(2, '0');
@@ -23,7 +23,7 @@ function parseDateRange(query) {
     return `${y}-${m}-${dd}`;
   };
 
-  const today = new Date();
+  const today = new Date(Date.now() - 86400000);
   const defaultDay = asISO(today);
 
   let from = query.from || '';
