@@ -81,6 +81,9 @@
                 <tr>
                   <th>产品名</th>
                   <th>型号</th>
+                  <th>访客比<span class="help" onclick="alert('访客比 = 浏览过商品详情页的独立访客 / 总展示次数')">?</span></th>
+                  <th>加购比<span class="help" onclick="alert('加购比 = 总加入购物车次数 / 浏览过商品详情页的独立访客')">?</span></th>
+                  <th>支付比</th>
                   <th>总展示次数</th>
                   <th>在搜索和目录中的展示次数</th>
                   <th>商品详情页展示次数</th>
@@ -92,9 +95,6 @@
                   <th>从商品详情页加入购物车</th>
                   <th>已订购商品数</th>
                   <th>已订购商品总金额</th>
-                  <th>访客比<span class="help" onclick="alert('访客比 = 浏览过商品详情页的独立访客 / 总展示次数')">?</span></th>
-                  <th>加购比<span class="help" onclick="alert('加购比 = 总加入购物车次数 / 浏览过商品详情页的独立访客')">?</span></th>
-                  <th>支付比</th>
                   <th>产品详情</th>
                 </tr>
               </thead>
@@ -122,7 +122,7 @@
         paging:true,
         searching:true,
         info:true,
-        order:[[5,'desc']],
+        order:[[8,'desc']],
         scrollY:'60vh',
         scrollCollapse:true,
         autoWidth:false,
@@ -187,6 +187,9 @@
         return [
           `<a data-pid="${r.product_id}" href="https://ozon.ru/product/${r.product_id}" target="_blank" rel="noopener" title="${title}">${title}</a>`,
           r.model || '',
+          (visitorRate*100).toFixed(2)+'%',
+          (cartRate*100).toFixed(2)+'%',
+          (payRate*100).toFixed(2)+'%',
           exposure,
           Number(r.voronka_prodazh_pokazy_v_poiske_i_kataloge)||0,
           Number(r.voronka_prodazh_pokazy_na_kartochke_tovara)||0,
@@ -198,9 +201,6 @@
           Number(r.voronka_prodazh_dobavleniya_iz_kartochki_v_korzinu)||0,
           pay,
           Number(r.prodazhi_zakazano_na_summu)||0,
-          (visitorRate*100).toFixed(2)+'%',
-          (cartRate*100).toFixed(2)+'%',
-          (payRate*100).toFixed(2)+'%',
           `<a href="ozon-product-insights.html?pid=${r.product_id}" target="_blank">详情</a>`
         ];
       });
