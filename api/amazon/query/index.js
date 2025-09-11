@@ -6,23 +6,29 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const TABLE = process.env.AMZ_TABLE_NAME || 'amazon_daily_by_asin';
-  if (!SUPABASE_URL || !SERVICE_ROLE) {
-    return res.status(500).json({ error: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables.' });
-  }
-  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
-
-  const { start, end } = req.query;
-  const granularity = (req.query.granularity || 'day').toLowerCase();
-  if (!start || !end) return res.status(400).json({ error: 'Missing start or end' });
-  if (!['day','week','month'].includes(granularity)) return res.status(400).json({ error: 'Invalid granularity' });
-
   try {
+    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const TABLE = process.env.AMZ_TABLE_NAME || 'amazon_daily_by_asin';
+    
+    if (!SUPABASE_URL || !SERVICE_ROLE) {
+      console.error('Missing environment variables:', { SUPABASE_URL: !!SUPABASE_URL, SERVICE_ROLE: !!SERVICE_ROLE });
+      return res.status(500).json({ error: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables.' });
+    }
+    
+    const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+
+    const { start, end } = req.query;
+    const granularity = (req.query.granularity || 'day').toLowerCase();
+    if (!start || !end) return res.status(400).json({ error: 'Missing start or end' });
+    if (!['day','week','month'].includes(granularity)) return res.status(400).json({ error: 'Invalid granularity' });
+
+    console.log(`[Amazon Query] Querying data from ${start} to ${end}, granularity: ${granularity}, table: ${TABLE}`);
+    
     const pageSize = 1000;
     let from = 0, to = pageSize - 1;
     const out = [];
+    
     while (true) {
       const { data, error } = await supabase
         .from(TABLE)
@@ -32,11 +38,18 @@ export default async function handler(req, res) {
         .order('asin', { ascending: true })
         .order('stat_date', { ascending: true })
         .range(from, to);
-      if (error) return res.status(500).json({ error: error.message });
+        
+      if (error) {
+        console.error(`[Amazon Query] Database error:`, error);
+        return res.status(500).json({ error: error.message, table: TABLE });
+      }
+      
       out.push(...(data || []));
       if (!data || data.length < pageSize) break;
       from += pageSize; to += pageSize;
     }
+    
+    console.log(`[Amazon Query] Retrieved ${out.length} rows from database`);
 
     function bucketKey(dateISO, g) {
       const d = new Date(dateISO + 'T00:00:00Z');
@@ -102,8 +115,12 @@ export default async function handler(req, res) {
       };
     });
 
+    console.log(`[Amazon Query] Returning ${rows.length} processed rows`);
     return res.status(200).json({ ok: true, rows });
+    
   } catch (e) {
-    return res.status(500).json({ error: e?.message || 'Unknown error' });
+    console.error(`[Amazon Query] Unexpected error:`, e);
+    return res.status(500).json({ error: e?.message || 'Unknown error', stack: e?.stack });
   }
 }
+

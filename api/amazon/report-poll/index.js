@@ -1,6 +1,3 @@
-import crypto from 'crypto';
-import { createClient } from '@supabase/supabase-js';
-
 // Amazon SP-API 认证和请求工具
 class AmazonSPAPI {
   constructor() {
@@ -44,30 +41,21 @@ class AmazonSPAPI {
     return this.accessToken;
   }
 
-  // 创建报表请求
-  async createReport(reportType, dataStartTime, dataEndTime) {
+  // 查询报表状态
+  async getReport(reportId) {
     const accessToken = await this.getAccessToken();
     
-    const requestBody = {
-      reportType,
-      dataStartTime,
-      dataEndTime,
-      marketplaceIds: this.marketplaceIds,
-    };
-
-    const response = await fetch(`https://sellingpartnerapi-${this.appRegion}.amazon.com/reports/2021-06-30/reports`, {
-      method: 'POST',
+    const response = await fetch(`https://sellingpartnerapi-${this.appRegion}.amazon.com/reports/2021-06-30/reports/${reportId}`, {
+      method: 'GET',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
         'x-amz-access-token': accessToken,
       },
-      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`Failed to create report: ${response.status} ${error}`);
+      throw new Error(`Failed to get report: ${response.status} ${error}`);
     }
 
     return await response.json();
@@ -75,16 +63,16 @@ class AmazonSPAPI {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   try {
-    const { dataStartTime, dataEndTime } = req.body;
+    const { reportId } = req.query;
     
-    if (!dataStartTime || !dataEndTime) {
-      return res.status(400).json({ error: 'Missing dataStartTime or dataEndTime' });
+    if (!reportId) {
+      return res.status(400).json({ error: 'Missing reportId parameter' });
     }
 
     // 验证环境变量
@@ -103,25 +91,25 @@ export default async function handler(req, res) {
     }
 
     const spApi = new AmazonSPAPI();
-    
-    // 创建 Sales & Traffic by ASIN 报表
-    const reportType = 'GET_SALES_AND_TRAFFIC_REPORT';
-    const result = await spApi.createReport(reportType, dataStartTime, dataEndTime);
+    const result = await spApi.getReport(reportId);
 
     return res.status(200).json({
       ok: true,
       reportId: result.reportId,
       reportType: result.reportType,
       processingStatus: result.processingStatus,
-      dataStartTime,
-      dataEndTime
+      documentId: result.documentId || null,
+      createdTime: result.createdTime,
+      processingStartTime: result.processingStartTime,
+      processingEndTime: result.processingEndTime
     });
 
   } catch (error) {
-    console.error('Amazon report creation error:', error);
+    console.error('Amazon report polling error:', error);
     return res.status(500).json({ 
-      error: 'Failed to create Amazon report',
+      error: 'Failed to poll Amazon report',
       details: error.message 
     });
   }
 }
+

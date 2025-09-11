@@ -17,7 +17,8 @@
 - **2025-01-XX**: ✅ 完成SP-API核心功能实现（report-create, report-poll, report-download）
 - **2025-01-XX**: ✅ 完成定时任务配置（vercel.json cron配置）
 - **2025-01-XX**: ✅ 完成前端页面完善（amazon-overview.html）
-- **2025-01-XX**: 🔄 开始API集成测试
+- **2025-01-XX**: ✅ 完成API集成测试
+- **2025-01-XX**: 🔧 修复Vercel API路由结构问题
 
 ## 二、环境变量配置（Vercel → Project → Settings → Environment Variables）
 ```
@@ -144,10 +145,37 @@ curl "/api/amazon/report-poll?reportId=YOUR_REPORT_ID"
 curl "/api/amazon/report-download?documentId=YOUR_DOCUMENT_ID"
 ```
 
-## 六、常见问题
+## 六、常见问题与故障排除
+
+### 6.1 重要：Vercel API路由结构要求
+**问题**: API返回HTML页面而不是JSON，错误信息如 "Unexpected token 'T', 'The page c'..."
+
+**原因**: Vercel要求每个API端点必须是一个目录，包含`index.js`文件，不能直接使用`.js`文件
+
+**错误结构**:
+```
+api/amazon/
+├── query.js          ❌ 错误
+├── report-create.js  ❌ 错误
+└── report-poll.js    ❌ 错误
+```
+
+**正确结构**:
+```
+api/amazon/
+├── query/index.js          ✅ 正确
+├── report-create/index.js  ✅ 正确
+└── report-poll/index.js    ✅ 正确
+```
+
+**解决方案**: 将`.js`文件移动到对应的目录中，并重命名为`index.js`
+
+### 6.2 其他常见问题
 - **报错 Missing SUPABASE_URL**：请确认 Vercel 环境变量已配置。
 - **SP‑API 报错 Unauthorized**：检查 IAM 角色、Refresh Token 是否正确。
 - **重复入库**：`upsert` 使用 `(asin, stat_date, marketplace_id)` 主键，确保幂等。
+- **数据库表不存在**：确认 `amazon_daily_by_asin` 表已创建。
+- **环境变量缺失**：使用 `/api/amazon/debug` 端点检查环境变量配置。
 
 ## 七、部署指南
 
