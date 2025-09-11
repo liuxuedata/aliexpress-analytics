@@ -55,22 +55,36 @@ class AmazonSPAPI {
       marketplaceIds: this.marketplaceIds,
     };
 
-    const response = await fetch(`https://sellingpartnerapi-${this.appRegion}.amazon.com/reports/2021-06-30/reports`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        'x-amz-access-token': accessToken,
-      },
-      body: JSON.stringify(requestBody),
-    });
+    const url = `https://sellingpartnerapi-${this.appRegion}.amazon.com/reports/2021-06-30/reports`;
+    console.log(`[SP-API] Creating report at: ${url}`);
+    console.log(`[SP-API] Request body:`, JSON.stringify(requestBody, null, 2));
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'x-amz-access-token': accessToken,
+        },
+        body: JSON.stringify(requestBody),
+      });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to create report: ${response.status} ${error}`);
+      console.log(`[SP-API] Response status: ${response.status}`);
+      
+      if (!response.ok) {
+        const error = await response.text();
+        console.error(`[SP-API] Error response:`, error);
+        throw new Error(`Failed to create report: ${response.status} ${error}`);
+      }
+
+      const result = await response.json();
+      console.log(`[SP-API] Success response:`, result);
+      return result;
+    } catch (fetchError) {
+      console.error(`[SP-API] Fetch error:`, fetchError);
+      throw new Error(`Fetch failed: ${fetchError.message}`);
     }
-
-    return await response.json();
   }
 }
 
