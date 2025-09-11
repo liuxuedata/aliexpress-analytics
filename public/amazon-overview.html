@@ -23,8 +23,7 @@
   <link rel="stylesheet" href="assets/theme.css?v=20250810b">
   <link rel="stylesheet" href="assets/global-theme.css">
   <script src="assets/site-nav.js"></script>
-  <script src="assets/page-template.js"></script>
-  <script src="assets/self-operated.js"></script>
+  <!-- Amazon页面不需要page-template.js和self-operated.js -->
   <style>
     /* Amazon专用样式 */
     .amazon-kpi-grid {
@@ -468,6 +467,15 @@ $(window).resize(function() {
   if (trendChart) {
     trendChart.resize();
   }
+});
+
+// 页面初始化
+$(document).ready(function() {
+  console.log('Amazon页面初始化开始...');
+  initializePage();
+  initializeDataTable();
+  initializeChart();
+  console.log('Amazon页面初始化完成');
 });
 </script>
 
