@@ -11,7 +11,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
  * 解析日期参数：
  * - ?date=2025-08-21&days=7   => [2025-08-15 .. 2025-08-21]
  * - ?from=2025-08-15&to=2025-08-21
- * - 默认：只同步今天（UTC）
+ * - 默认：只同步前一日（北京时间）
  */
 function parseDateRange(query) {
   const pad = n => String(n).padStart(2, '0');
@@ -23,8 +23,11 @@ function parseDateRange(query) {
     return `${y}-${m}-${dd}`;
   };
 
-  const today = new Date();
-  const defaultDay = asISO(today);
+  // 按北京时间计算“昨日”
+  const tzOffset = 8 * 60; // UTC+8
+  const now = new Date(Date.now() + tzOffset * 60_000);
+  const yesterday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1));
+  const defaultDay = asISO(yesterday);
 
   let from = query.from || '';
   let to = query.to || '';
