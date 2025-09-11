@@ -4,18 +4,44 @@ export default async function handler(req, res) {
     const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
     
     // 测试query API
-    const queryTest = await fetch(`${baseUrl}/api/amazon/query?start=2025-01-01&end=2025-01-02&granularity=day`)
-      .then(r => ({ status: r.status, ok: r.ok, text: r.text() }))
-      .catch(e => ({ error: e.message }));
+    const queryResponse = await fetch(`${baseUrl}/api/amazon/query?start=2025-01-01&end=2025-01-02&granularity=day`);
+    const queryText = await queryResponse.text();
+    const queryTest = {
+      status: queryResponse.status,
+      ok: queryResponse.ok,
+      text: queryText,
+      isJson: false
+    };
+    
+    try {
+      const queryJson = JSON.parse(queryText);
+      queryTest.isJson = true;
+      queryTest.json = queryJson;
+    } catch (e) {
+      queryTest.parseError = e.message;
+    }
     
     // 测试upsert API
-    const upsertTest = await fetch(`${baseUrl}/api/amazon/upsert`, {
+    const upsertResponse = await fetch(`${baseUrl}/api/amazon/upsert`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rows: [] })
-    })
-      .then(r => ({ status: r.status, ok: r.ok, text: r.text() }))
-      .catch(e => ({ error: e.message }));
+    });
+    const upsertText = await upsertResponse.text();
+    const upsertTest = {
+      status: upsertResponse.status,
+      ok: upsertResponse.ok,
+      text: upsertText,
+      isJson: false
+    };
+    
+    try {
+      const upsertJson = JSON.parse(upsertText);
+      upsertTest.isJson = true;
+      upsertTest.json = upsertJson;
+    } catch (e) {
+      upsertTest.parseError = e.message;
+    }
 
     return res.status(200).json({
       baseUrl,
