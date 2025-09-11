@@ -78,6 +78,25 @@
     .asin-link:hover {
       text-decoration: underline;
     }
+    
+    .btn-secondary {
+      background: #6b7280;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .btn-secondary:hover {
+      background: #4b5563;
+    }
+    
+    .btn-secondary:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body class="fm">
@@ -117,6 +136,7 @@
         <span>至</span>
         <input type="text" id="endDate" placeholder="结束日期" readonly>
         <button id="loadData" class="btn-primary">查询数据</button>
+        <button id="pullTestData" class="btn-secondary" style="margin-left: 10px;">拉取测试数据</button>
       </div>
     </div>
 
@@ -202,6 +222,7 @@ function initializeDatePicker() {
   });
   
   $("#loadData").click(loadData);
+  $("#pullTestData").click(pullTestData);
 }
 
 // 初始化数据表格
@@ -471,6 +492,50 @@ function hideLoading() {
 // 显示错误
 function showError(message) {
   alert(message);
+}
+
+// 拉取测试数据
+async function pullTestData() {
+  if (!confirm('这将拉取2025-09-09之前的Amazon测试数据，可能需要几分钟时间。确定继续吗？')) {
+    return;
+  }
+  
+  try {
+    $("#pullTestData").prop('disabled', true).text('拉取中...');
+    
+    console.log('开始拉取Amazon测试数据...');
+    
+    // 调用cron-daily API来拉取数据
+    const response = await fetch('/api/amazon/cron-daily', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        testMode: true,
+        targetDate: '2025-09-09' // 拉取9号之前的数据
+      })
+    });
+    
+    const result = await response.json();
+    console.log('拉取结果:', result);
+    
+    if (result.ok) {
+      alert('数据拉取成功！请点击"查询数据"按钮查看结果。');
+      // 自动刷新数据
+      setTimeout(() => {
+        loadData();
+      }, 2000);
+    } else {
+      alert('数据拉取失败: ' + (result.error || '未知错误'));
+    }
+    
+  } catch (error) {
+    console.error('拉取数据时出错:', error);
+    alert('拉取数据时出错: ' + error.message);
+  } finally {
+    $("#pullTestData").prop('disabled', false).text('拉取测试数据');
+  }
 }
 
 // 窗口大小改变时重新调整图表
