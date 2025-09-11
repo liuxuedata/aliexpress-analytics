@@ -206,6 +206,12 @@ function initializeDatePicker() {
 
 // 初始化数据表格
 function initializeDataTable() {
+  // 检查是否已经初始化过
+  if ($.fn.DataTable.isDataTable('#amazonDataTable')) {
+    amazonDataTable = $('#amazonDataTable').DataTable();
+    return;
+  }
+  
   amazonDataTable = $("#amazonDataTable").DataTable({
     pageLength: 25,
     order: [[1, 'desc']],
@@ -344,14 +350,19 @@ async function loadData() {
   try {
     showLoading();
     
+    console.log('正在查询数据:', { startDate, endDate });
     const response = await fetch(`/api/amazon/query?start=${startDate}&end=${endDate}&granularity=day`);
     const data = await response.json();
     
+    console.log('API响应:', data);
+    
     if (data.ok && data.rows) {
+      console.log('数据行数:', data.rows.length);
       updateKPIs(data.rows);
       updateChart(data.rows);
       updateTable(data.rows);
     } else {
+      console.error('数据加载失败:', data);
       showError('数据加载失败: ' + (data.error || '未知错误'));
     }
   } catch (error) {
