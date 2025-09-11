@@ -145,6 +145,9 @@ curl "/api/amazon/report-download?documentId=YOUR_DOCUMENT_ID"
 ```
 
 ## 六、常见问题
+- **API返回401错误，显示"Authentication Required"页面**：
+  - **原因**: Vercel项目启用了部署保护功能
+  - **解决方案**: 登录Vercel Dashboard → 项目设置 → Security/Deployment Protection → 禁用部署保护
 - **报错 Missing SUPABASE_URL**：请确认 Vercel 环境变量已配置。
 - **SP‑API 报错 Unauthorized**：检查 IAM 角色、Refresh Token 是否正确。
 - **重复入库**：`upsert` 使用 `(asin, stat_date, marketplace_id)` 主键，确保幂等。
