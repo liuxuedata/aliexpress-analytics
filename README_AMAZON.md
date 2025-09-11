@@ -8,6 +8,17 @@
 - 数据表：`amazon_daily_by_asin`（主表），可选 `amazon_product_catalog`。
 - 定时任务：每日 SGT 08:00 拉取 T-1 日数据。
 
+## 二、项目状态更新记录
+- **2025-01-XX**: 项目启动，创建amazon-api-integration分支
+- **2025-01-XX**: 确认数据库表已创建，环境变量已配置
+- **2025-01-XX**: 确认SP-API权限范围（USA marketplace，基础seller数据权限）
+- **2025-01-XX**: 确认数据拉取频率（每日拉取前一天数据）
+- **2025-01-XX**: 确认UI风格要求（与整个站点保持一致）
+- **2025-01-XX**: ✅ 完成SP-API核心功能实现（report-create, report-poll, report-download）
+- **2025-01-XX**: ✅ 完成定时任务配置（vercel.json cron配置）
+- **2025-01-XX**: ✅ 完成前端页面完善（amazon-overview.html）
+- **2025-01-XX**: 🔄 开始API集成测试
+
 ## 二、环境变量配置（Vercel → Project → Settings → Environment Variables）
 ```
 SUPABASE_URL=...
@@ -39,6 +50,31 @@ create table if not exists amazon_daily_by_asin (
 ```
 
 ## 四、开发与调试
+
+### 实施计划（按优先级排序）
+
+#### 阶段1：SP-API核心功能实现 ✅ 进行中
+1. **实现 report-create.js** - 创建Amazon报表请求
+2. **实现 report-poll.js** - 轮询报表处理状态  
+3. **实现 report-download.js** - 下载并解析报表数据
+4. **测试完整流程** - create→poll→download→upsert
+
+#### 阶段2：定时任务配置
+1. **更新 vercel.json** - 添加Amazon cron配置
+2. **实现 cron-daily.js** - 串行调度完整流程
+3. **测试定时任务** - 验证每日自动拉取
+
+#### 阶段3：前端页面完善
+1. **完善 amazon-overview.html** - 基于self-operated.html
+2. **实现数据展示** - KPI、图表、表格
+3. **测试前端功能** - 确保数据正确显示
+
+#### 阶段4：生产部署
+1. **环境测试** - 验证所有功能正常
+2. **性能优化** - 确保API响应速度
+3. **监控配置** - 设置错误告警
+
+### 开发调试步骤
 1. **本地 CSV 测试**
    - 准备包含 asin/stat_date/sessions/page_views/units_ordered 等字段的 CSV。
    - POST 至 `/api/amazon/upsert` → 数据入库 Supabase。
@@ -59,18 +95,99 @@ create table if not exists amazon_daily_by_asin (
    ```
    - 日志中可查看执行结果。
 
-## 五、页面调试
-- 打开 `amazon-overview.html`，选择日期范围，验证 KPI、图表、表格是否能正确展示。
-- 明细表第一列 ASIN 链接跳转到 Amazon 商品页。
+## 五、测试与验证
+
+### 集成测试
+运行完整的集成测试来验证所有组件：
+```bash
+# 访问测试端点
+GET /api/amazon/test-integration
+```
+
+测试内容包括：
+- ✅ 环境变量检查
+- ✅ 数据库连接测试
+- ✅ API端点功能测试
+- ✅ SP-API认证测试
+
+### 手动测试步骤
+1. **数据库测试**
+   ```bash
+   # 测试数据入库
+   curl -X POST /api/amazon/upsert \
+     -H 'Content-Type: application/json' \
+     -d '{"rows":[{"marketplace_id":"ATVPDKIKX0DER","asin":"TEST123","stat_date":"2025-01-01","sessions":100,"page_views":250,"units_ordered":5,"ordered_product_sales":99.99,"buy_box_pct":0.85}]}'
+   ```
+
+2. **数据查询测试**
+   ```bash
+   # 测试数据查询
+   curl "/api/amazon/query?start=2025-01-01&end=2025-01-07&granularity=day"
+   ```
+
+3. **前端页面测试**
+   - 打开 `amazon-overview.html`
+   - 选择日期范围，验证 KPI、图表、表格是否能正确展示
+   - 明细表第一列 ASIN 链接跳转到 Amazon 商品页
+
+### SP-API 完整流程测试
+```bash
+# 1. 创建报表
+curl -X POST /api/amazon/report-create \
+  -H 'Content-Type: application/json' \
+  -d '{"dataStartTime":"2025-01-01T00:00:00Z","dataEndTime":"2025-01-01T23:59:59Z"}'
+
+# 2. 轮询状态（使用返回的reportId）
+curl "/api/amazon/report-poll?reportId=YOUR_REPORT_ID"
+
+# 3. 下载数据（使用返回的documentId）
+curl "/api/amazon/report-download?documentId=YOUR_DOCUMENT_ID"
+```
 
 ## 六、常见问题
 - **报错 Missing SUPABASE_URL**：请确认 Vercel 环境变量已配置。
 - **SP‑API 报错 Unauthorized**：检查 IAM 角色、Refresh Token 是否正确。
 - **重复入库**：`upsert` 使用 `(asin, stat_date, marketplace_id)` 主键，确保幂等。
 
-## 七、回滚与禁用
-- 临时禁用定时：在 `vercel.json` 中移除/注释掉 `cron-daily`。
-- 或设置 `AMZ_PRECOMPUTE=false`，只保留手动查询。
+## 七、部署指南
+
+### 生产环境部署
+1. **代码部署**
+   ```bash
+   # 提交代码到主分支
+   git add .
+   git commit -m "feat: Amazon API integration complete"
+   git push origin amazon-api-integration
+   
+   # 合并到主分支
+   git checkout main
+   git merge amazon-api-integration
+   git push origin main
+   ```
+
+2. **Vercel自动部署**
+   - 代码推送到main分支后，Vercel会自动触发部署
+   - 检查Vercel Dashboard确认部署状态
+   - 验证环境变量是否正确配置
+
+3. **功能验证**
+   ```bash
+   # 部署后运行集成测试
+   curl https://your-domain.vercel.app/api/amazon/test-integration
+   
+   # 测试前端页面
+   https://your-domain.vercel.app/amazon-overview.html
+   ```
+
+### 监控与维护
+- **定时任务监控**: 检查Vercel Functions日志，确认每日定时任务执行情况
+- **数据质量监控**: 定期检查数据库中的数据完整性
+- **API性能监控**: 监控SP-API调用频率和响应时间
+
+## 八、回滚与禁用
+- **临时禁用定时**: 在 `vercel.json` 中移除/注释掉 `cron-daily`
+- **禁用预聚合**: 设置 `AMZ_PRECOMPUTE=false`，只保留手动查询
+- **完全禁用**: 删除相关环境变量或注释掉相关代码
 ```
 
 
