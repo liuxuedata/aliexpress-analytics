@@ -12,17 +12,25 @@ export default async function handler(req, res) {
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
 
   try {
-    // 检查表结构
-    const { data: tableInfo, error: tableError } = await supabase
-      .from('information_schema.columns')
-      .select('column_name, data_type, is_nullable')
-      .eq('table_name', TABLE);
-    
-    if (tableError) {
-      return res.status(500).json({ 
-        error: 'Failed to get table info', 
-        details: tableError.message 
-      });
+    // 检查表结构 - 使用Supabase的RPC或者直接查询表
+    let tableInfo = [];
+    try {
+      // 尝试直接查询表来获取结构信息
+      const { data: sampleData, error: sampleError } = await supabase
+        .from(TABLE)
+        .select('*')
+        .limit(1);
+      
+      if (!sampleError && sampleData && sampleData.length > 0) {
+        // 从样本数据推断表结构
+        tableInfo = Object.keys(sampleData[0]).map(key => ({
+          column_name: key,
+          data_type: typeof sampleData[0][key],
+          is_nullable: 'YES'
+        }));
+      }
+    } catch (e) {
+      console.log('Could not get table structure:', e.message);
     }
     
     // 检查是否有数据
