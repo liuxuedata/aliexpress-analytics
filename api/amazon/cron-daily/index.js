@@ -47,16 +47,17 @@ export default async function handler(req, res) {
 
 // 拉取单天数据（正常模式）
 async function pullSingleDayData(baseUrl, dateStr, res) {
-  // 步骤1: 创建报表请求
-  console.log(`[Amazon Cron] Step 1: Creating report for ${dateStr}`);
-  const createResponse = await fetch(`${baseUrl}/api/amazon/report-create`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ 
-      dataStartTime: `${dateStr}T00:00:00Z`, 
-      dataEndTime: `${dateStr}T23:59:59Z` 
-    })
-  });
+  try {
+    // 步骤1: 创建报表请求
+    console.log(`[Amazon Cron] Step 1: Creating report for ${dateStr}`);
+    const createResponse = await fetch(`${baseUrl}/api/amazon/report-create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        dataStartTime: `${dateStr}T00:00:00Z`, 
+        dataEndTime: `${dateStr}T23:59:59Z` 
+      })
+    });
 
     if (!createResponse.ok) {
       throw new Error(`Report creation failed: ${createResponse.status}`);
@@ -121,20 +122,18 @@ async function pullSingleDayData(baseUrl, dateStr, res) {
     const downloadResult = await downloadResponse.json();
     console.log(`[Amazon Cron] Downloaded ${downloadResult.totalRows} rows`);
 
-    if (!Array.isArray(downloadResult.rows) || downloadResult.rows.length === 0) {
-      console.log(`[Amazon Cron] No data rows to upsert`);
+    if (!downloadResult.rows || downloadResult.rows.length === 0) {
+      console.log(`[Amazon Cron] No data rows to upsert for ${dateStr}`);
       return res.status(200).json({ 
         ok: true, 
-        message: 'No data to process',
+        message: 'No data to sync',
         date: dateStr,
-        create: createResult,
-        poll: pollResult,
-        download: downloadResult
+        summary: { totalRows: 0, upsertedRows: 0 }
       });
     }
 
-    // 步骤4: 数据入库
-    console.log(`[Amazon Cron] Step 4: Upserting ${downloadResult.rows.length} rows to database`);
+    // 步骤4: 保存数据到数据库
+    console.log(`[Amazon Cron] Step 4: Upserting data to database`);
     const upsertResponse = await fetch(`${baseUrl}/api/amazon/upsert`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
