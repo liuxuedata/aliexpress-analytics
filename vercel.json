@@ -83,7 +83,7 @@
   ],
   "crons": [
     {
-      "path": "/api/ozon/ingest",
+      "path": "/api/ozon/sync",
       "schedule": "0 2 * * *"
     },
     {
