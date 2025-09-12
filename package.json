@@ -12,6 +12,7 @@
     "multiparty": "^4.2.3",
     "formidable": "^3.5.1",
     "node-fetch": "^2.6.7",
-    "cheerio": "^1.0.0-rc.12"
+    "cheerio": "^1.0.0-rc.12",
+    "@aws-sdk/client-sts": "^3.0.0"
   }
 }
