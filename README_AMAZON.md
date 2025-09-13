@@ -14,7 +14,7 @@
 - **2025-01-XX**: 确认SP-API权限范围（USA marketplace，基础seller数据权限）
 - **2025-01-XX**: 确认数据拉取频率（每日拉取前一天数据）
 - **2025-01-XX**: 确认UI风格要求（与整个站点保持一致）
-- **2025-01-XX**: ✅ 完成SP-API核心功能实现（report-create, report-poll, report-download）
+- **2025-09-13**: ✅ 完成SP-API核心功能实现（report-create, report-poll, report-download）
 - **2025-01-XX**: ✅ 完成定时任务配置（vercel.json cron配置）
 - **2025-01-XX**: ✅ 完成前端页面完善（amazon-overview.html）
 - **2025-01-XX**: ✅ 完成API集成测试
