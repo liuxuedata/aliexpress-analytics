@@ -142,7 +142,7 @@ curl -X POST /api/amazon/report-create \
 curl "/api/amazon/report-poll?reportId=YOUR_REPORT_ID"
 
 # 3. 下载数据（使用返回的documentId）
-curl "/api/amazon/report-download?documentId=YOUR_DOCUMENT_ID"
+curl "/api/amazon/report-download?documentId=YOUR_DOCUMENT_ID" # 返回解密后的 JSON 或文本
 ```
 
 ## 六、常见问题与故障排除
@@ -319,7 +319,7 @@ curl -X POST http://localhost:3000/api/amazon/upsert \
 ## 6. 接口契约
 - `POST /api/amazon/report-create` → `{ reportId }`
 - `GET  /api/amazon/report-poll?reportId=...` → `{ processingStatus, documentId? }`
-- `GET  /api/amazon/report-download?documentId=...` → `{ rows:[...] }`
+- `GET  /api/amazon/report-download?documentId=...` → `{ ok:true, rows:[...] }` 或原始文本
 - `POST /api/amazon/upsert` → `{ ok:true, upserted }`
 - `GET  /api/amazon/query?start=YYYY-MM-DD&end=YYYY-MM-DD&granularity=day|week|month` → `{ ok:true, rows:[...] }`
 - `GET  /api/amazon/healthz` → `{ ok:true, time }`
