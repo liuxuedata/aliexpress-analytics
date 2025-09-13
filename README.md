@@ -303,6 +303,10 @@ INSERT INTO public.site_channel_configs (site_id, site_name, channel, table_name
 - 支持多渠道数据对比分析
 - 自动聚合不同渠道的KPI指标
 
+### 测试页面
+- `test-facebook-api.html`：验证独立站 Facebook Ads 上传接口
+- `test-amazon-api.html`：顺序调用 `/api/amazon/report-create` → `/api/amazon/report-poll` → `/api/amazon/report-download`，并在页面展示返回值与错误信息
+
 ---
 
 ## 贡献 & 反馈

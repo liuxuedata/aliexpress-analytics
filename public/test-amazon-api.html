@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon API 测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .test-result {
+            background: #f5f5f5;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>Amazon API 测试页面</h1>
+    <button onclick="runTest()" id="run-btn">开始测试</button>
+
+    <div class="test-section">
+        <h2>1. /api/amazon/report-create</h2>
+        <div id="create-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. /api/amazon/report-poll</h2>
+        <div id="poll-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. /api/amazon/report-download</h2>
+        <div id="download-result" class="test-result"></div>
+    </div>
+
+    <script>
+        function log(elementId, message, isError = false) {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = isError ? 'error' : 'success';
+            element.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+        }
+
+        function clearLog(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+
+        async function fetchJSON(url, options, resultId) {
+            try {
+                const response = await fetch(url, options);
+                const text = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    data = text;
+                }
+                log(resultId, `状态: ${response.status} ${response.statusText}`);
+                log(resultId, typeof data === 'string' ? data : JSON.stringify(data, null, 2), !response.ok);
+                if (!response.ok) {
+                    throw new Error(text);
+                }
+                return data;
+            } catch (error) {
+                log(resultId, `错误: ${error.message}`, true);
+                throw error;
+            }
+        }
+
+        async function runTest() {
+            const button = document.getElementById('run-btn');
+            button.disabled = true;
+            clearLog('create-result');
+            clearLog('poll-result');
+            clearLog('download-result');
+
+            try {
+                const yesterday = new Date();
+                yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+                const start = new Date(Date.UTC(yesterday.getUTCFullYear(), yesterday.getUTCMonth(), yesterday.getUTCDate(), 0, 0, 0)).toISOString();
+                const end = new Date(Date.UTC(yesterday.getUTCFullYear(), yesterday.getUTCMonth(), yesterday.getUTCDate(), 23, 59, 59)).toISOString();
+
+                log('create-result', `请求参数: {dataStartTime: ${start}, dataEndTime: ${end}}`);
+                const createData = await fetchJSON('/api/amazon/report-create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dataStartTime: start, dataEndTime: end })
+                }, 'create-result');
+
+                const reportId = createData.reportId || createData.report_id;
+                if (!reportId) {
+                    throw new Error('缺少 reportId');
+                }
+
+                log('poll-result', `使用 reportId: ${reportId}`);
+                const pollData = await fetchJSON(`/api/amazon/report-poll?reportId=${encodeURIComponent(reportId)}`, {}, 'poll-result');
+
+                const documentId = pollData.documentId || pollData.reportDocumentId;
+                if (!documentId) {
+                    throw new Error('缺少 documentId');
+                }
+
+                log('download-result', `使用 documentId: ${documentId}`);
+                await fetchJSON(`/api/amazon/report-download?documentId=${encodeURIComponent(documentId)}`, {}, 'download-result');
+            } catch (error) {
+                log('download-result', `流程中断: ${error.message}`, true);
+            } finally {
+                button.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
