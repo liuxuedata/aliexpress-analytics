@@ -131,6 +131,11 @@ GET /api/amazon/test-integration
    - 选择日期范围，验证 KPI、图表、表格是否能正确展示
    - 明细表第一列 ASIN 链接跳转到 Amazon 商品页
 
+4. **API 测试页面**
+   - 打开 `test-amazon-api.html`
+   - 点击“开始测试”，页面会依次调用 `/api/amazon/report-create` → `/api/amazon/report-poll` → `/api/amazon/report-download`
+   - 界面实时显示每一步的返回值或错误信息，确认完整流程是否正常
+
 ### SP-API 完整流程测试
 ```bash
 # 1. 创建报表
