@@ -26,7 +26,7 @@
 
 ### 🏪 平台支持
 - **速卖通**：全托管、自运营
-- **亚马逊**：数据导入与分析
+- **亚马逊**：接入 SP-API（report-create、report-poll、report-download、upsert、query、cron-daily），详见 [README_AMAZON.md](README_AMAZON.md)
 - **TikTok Shop**：广告数据分析
 - **Temu**：平台数据整合
 - **Ozon**：俄罗斯市场分析
