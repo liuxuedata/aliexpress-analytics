@@ -1,0 +1,14 @@
+{
+  "info": { "name": "Amazon Module QA", "_postman_id": "auto", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "item": [
+    { "name": "healthz", "request": { "method": "GET", "url": "https://aliexpress-analytics.vercel.app/api/amazon/healthz" } },
+    { "name": "report-create", "request": { "method": "POST", "header":[{"key":"Content-Type","value":"application/json"}], "url": "https://aliexpress-analytics.vercel.app/api/amazon/report-create", "body": { "mode":"raw", "raw": "{\"marketplaceIds\":[\"ATVPDKIKX0DER\"]}" } } },
+    { "name": "report-poll", "request": { "method": "GET", "url": "https://aliexpress-analytics.vercel.app/api/amazon/report-poll?reportId={{reportId}}" } },
+    { "name": "report-download", "request": { "method": "GET", "url": "https://aliexpress-analytics.vercel.app/api/amazon/report-download?documentId={{documentId}}" } },
+    { "name": "upsert", "request": { "method":"POST", "header":[{"key":"Content-Type","value":"application/json"}], "url":"https://aliexpress-analytics.vercel.app/api/amazon/upsert", "body":{"mode":"raw","raw":"{\"rows\": []}"}} }
+  ],
+  "variable": [
+    { "key": "reportId", "value": "" },
+    { "key": "documentId", "value": "" }
+  ]
+}
