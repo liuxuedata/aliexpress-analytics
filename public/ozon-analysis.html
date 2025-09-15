@@ -7,9 +7,7 @@
   <title>Ozon 运营分析</title>
   <link rel="stylesheet" href="assets/login.css">
   <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
   <style>.kpi-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:12px}</style>
 </head>
@@ -48,7 +46,6 @@
   <main class="main">
     <div class="content">
       <section class="content-pad">
-        <div class="controls" style="margin-bottom:12px;"><input id="dateRange" class="date-filter" placeholder="选择日期范围"></div>
         <div class="kpi-row"><div class="stat-card"><h4>产品总数</h4><p id="prodTotal">--</p></div></div>
         <div class="grid grid-2">
           <div class="panel"><h3>总展示数</h3><div id="expChart" style="width:100%;height:260px;"></div></div>
@@ -59,9 +56,9 @@
           <div class="panel"><h3>有加购商品数</h3><div id="cartProdChart" style="width:100%;height:260px;"></div></div>
           <div class="panel"><h3>有支付商品数</h3><div id="payProdChart" style="width:100%;height:260px;"></div></div>
         </div>
-        <div class="panel" style="margin-top:16px;"><h3>访客比</h3><div id="visitorRateChart" style="width:100%;height:260px;"></div></div>
-        <div class="panel" style="margin-top:16px;"><h3>加购比</h3><div id="cartRateChart" style="width:100%;height:260px;"></div></div>
-        <div class="panel" style="margin-top:16px;"><h3>支付比</h3><div id="payRateChart" style="width:100%;height:260px;"></div></div>
+        <div class="panel"><h3>访客比</h3><div id="visitRateChart" style="width:100%;height:260px;"></div></div>
+        <div class="panel"><h3>加购比</h3><div id="cartRateChart" style="width:100%;height:260px;"></div></div>
+        <div class="panel"><h3>支付比</h3><div id="payRateChart" style="width:100%;height:260px;"></div></div>
       </section>
     </div>
   </main>
@@ -70,62 +67,32 @@
 <script>
 (function(){
   const storeId='demo';
-  const input=document.getElementById('dateRange');
-  const fp=flatpickr(input,{mode:'range',dateFormat:'Y-m-d',onClose:ds=>{
-    if(ds.length===2){
-      const s=ds[0].toISOString().slice(0,10);
-      const e=ds[1].toISOString().slice(0,10);
-      localStorage.setItem('ozonRange', `${s} to ${e}`);
-      loadData();
-    }
-  }});
-  const stored=localStorage.getItem('ozonRange');
-  if(stored && stored.includes(' to ')){
-    input.value=stored;
-    fp.setDate(stored.split(' to '), true, 'Y-m-d');
-  }else{
-    const today=new Date();
-    const endDef=today.toISOString().slice(0,10);
-    const startDef=new Date(today.getTime()-6*86400000).toISOString().slice(0,10);
-    input.value=`${startDef} to ${endDef}`;
-    fp.setDate([startDef,endDef], true, 'Y-m-d');
-    localStorage.setItem('ozonRange', input.value);
-  }
 
-  function periodShift(startISO,endISO){
-    const start=new Date(startISO+'T00:00:00');
-    const end=new Date(endISO+'T00:00:00');
-    const days=Math.round((end-start)/86400000)+1;
-    const prevEnd=new Date(start.getTime()-86400000);
-    const prevStart=new Date(prevEnd.getTime()-(days-1)*86400000);
-    const fmt=d=>d.toISOString().slice(0,10);
-    return {prevStart:fmt(prevStart), prevEnd:fmt(prevEnd), days};
+  function startOfWeek(date){
+    const d=new Date(date);
+    const day=d.getDay();
+    const diff=(day===0?-6:1-day);
+    d.setDate(d.getDate()+diff);
+    return d;
   }
-  function addDays(startISO,n){const d=new Date(startISO); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10);}
-  function formatMD(iso){const d=new Date(iso); return (d.getMonth()+1)+'/'+d.getDate();}
+  function addDays(date,n){const d=new Date(date);d.setDate(d.getDate()+n);return d;}
+  function formatMD(iso){const d=new Date(iso);return (d.getMonth()+1)+'/'+d.getDate();}
 
   async function fetchRange(start,end){
     const url=`/api/ozon/stats?store_id=${encodeURIComponent(storeId)}&start=${start}&end=${end}`;
-    const r=await fetch(url); const j=await r.json();
+    const r=await fetch(url);const j=await r.json();
     if(!j.ok) throw new Error(j.msg||'fetch failed');
     return j.rows||[];
   }
-  async function fetchDay(date){
-    const url=`/api/ozon/stats?store_id=${encodeURIComponent(storeId)}&date=${date}`;
-    const r=await fetch(url); const j=await r.json();
-    if(!j.ok) throw new Error(j.msg||'fetch failed');
-    return j.rows||[];
-  }
+
   function sum(rows){
-    const expSet=new Set();
-    const cartSet=new Set();
-    const paySet=new Set();
+    const expSet=new Set(),cartSet=new Set(),paySet=new Set();
     let exposure=0,uv=0,cart=0,pay=0;
     rows.forEach(r=>{
-      const e=Number(r.voronka_prodazh_pokazy_vsego)||0; exposure+=e; if(e>0) expSet.add(r.product_id||r.sku+'@@'+(r.model||''));
-      const u=Number(r.voronka_prodazh_uv_s_prosmotrom_kartochki_tovara)||0; uv+=u;
-      const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; cart+=c; if(c>0) cartSet.add(r.product_id||r.sku+'@@'+(r.model||''));
-      const p=Number(r.voronka_prodazh_zakazano_tovarov)||0; pay+=p; if(p>0) paySet.add(r.product_id||r.sku+'@@'+(r.model||''));
+      const e=Number(r.voronka_prodazh_pokazy_vsego)||0;exposure+=e;if(e>0)expSet.add(r.product_id||r.sku+'@@'+(r.model||''));
+      const u=Number(r.voronka_prodazh_uv_s_prosmotrom_kartochki_tovara)||0;uv+=u;
+      const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0;cart+=c;if(c>0)cartSet.add(r.product_id||r.sku+'@@'+(r.model||''));
+      const p=Number(r.voronka_prodazh_zakazano_tovarov)||0;pay+=p;if(p>0)paySet.add(r.product_id||r.sku+'@@'+(r.model||''));
     });
     return {exposure,uv,cart,pay,expProds:expSet.size,cartProds:cartSet.size,payProds:paySet.size};
   }
@@ -134,7 +101,7 @@
     try{
       const today=new Date().toISOString().slice(0,10);
       const url=`/api/ozon/kpi?store_id=${encodeURIComponent(storeId)}&start=2000-01-01&end=${today}`;
-      const r=await fetch(url); const j=await r.json();
+      const r=await fetch(url);const j=await r.json();
       const val=j.metrics?.product_total?.current||0;
       document.getElementById('prodTotal').textContent=val;
     }catch(e){
@@ -144,68 +111,75 @@
   }
 
   async function loadData(){
-    const val=input.value; if(!val.includes(' to ')) return;
-    const [start,end]=val.split(' to ');
-    localStorage.setItem('ozonRange', val);
-    const {prevStart,prevEnd,days}=periodShift(start,end);
-    const [curRows,prevRows]=await Promise.all([
-      fetchRange(start,end),
-      fetchRange(prevStart,prevEnd)
-    ]);
-    const cur=sum(curRows); const prev=sum(prevRows);
-    renderBar('expChart',{cur:cur.exposure,prev:prev.exposure});
-    renderBar('uvChart',{cur:cur.uv,prev:prev.uv});
-    renderBar('cartChart',{cur:cur.cart,prev:prev.cart});
-    renderBar('orderChart',{cur:cur.pay,prev:prev.pay});
-    renderBar('expProdChart',{cur:cur.expProds,prev:prev.expProds});
-    renderBar('cartProdChart',{cur:cur.cartProds,prev:prev.cartProds});
-    renderBar('payProdChart',{cur:cur.payProds,prev:prev.payProds});
-
-    const dates=[], prevDates=[];
-    for(let i=0;i<days;i++){ dates.push(addDays(start,i)); prevDates.push(addDays(prevStart,i)); }
-    const [curDayRows,prevDayRows]=await Promise.all([
-      Promise.all(dates.map(d=>fetchDay(d))),
-      Promise.all(prevDates.map(d=>fetchDay(d)))
-    ]);
-    const labels=[], vCur=[], vPrev=[], cCur=[], cPrev=[], pCur=[], pPrev=[];
-    for(let i=0;i<days;i++){
-      const sCur=sum(curDayRows[i]);
-      const sPrev=sum(prevDayRows[i]);
-      labels.push(formatMD(dates[i]));
-      vCur.push(sCur.exposure? sCur.uv/sCur.exposure :0);
-      vPrev.push(sPrev.exposure? sPrev.uv/sPrev.exposure :0);
-      cCur.push(sCur.uv? sCur.cart/sCur.uv :0);
-      cPrev.push(sPrev.uv? sPrev.cart/sPrev.uv :0);
-      pCur.push(sCur.cart? sCur.pay/sCur.cart :0);
-      pPrev.push(sPrev.cart? sPrev.pay/sPrev.cart :0);
+    const today=new Date();
+    const weekStart=startOfWeek(today);
+    const start=startOfWeek(addDays(weekStart,-7*7));
+    const weeks=[];
+    for(let i=0;i<8;i++){
+      const ws=addDays(start,i*7);
+      const we=addDays(ws,6);
+      weeks.push({
+        label:`${formatMD(ws.toISOString().slice(0,10))}~${formatMD(we.toISOString().slice(0,10))}`,
+        start:ws.toISOString().slice(0,10),
+        end:we.toISOString().slice(0,10)
+      });
     }
-    renderLine('visitorRateChart',labels,vCur,vPrev);
-    renderLine('cartRateChart',labels,cCur,cPrev);
-    renderLine('payRateChart',labels,pCur,pPrev);
+    const stats=await Promise.all(weeks.map(w=>fetchRange(w.start,w.end).then(sum)));
+    const labels=weeks.map(w=>w.label);
+    renderBar('expChart',labels,stats.map(s=>s.exposure));
+    renderBar('uvChart',labels,stats.map(s=>s.uv));
+    renderBar('cartChart',labels,stats.map(s=>s.cart));
+    renderBar('orderChart',labels,stats.map(s=>s.pay));
+    renderBar('expProdChart',labels,stats.map(s=>s.expProds));
+    renderBar('cartProdChart',labels,stats.map(s=>s.cartProds));
+    renderBar('payProdChart',labels,stats.map(s=>s.payProds));
+
+    await loadRateCharts(weekStart);
   }
 
-  function renderBar(id,m){
+  function renderBar(id,labels,data){
     const chart=echarts.init(document.getElementById(id));
     chart.setOption({
       tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
-      xAxis:{type:'category',data:['本周期','上一周期']},
+      xAxis:{type:'category',data:labels},
       yAxis:{type:'value'},
-      series:[{
-        type:'bar',
-        data:[{value:m.cur,itemStyle:{color:'#3b82f6'}},{value:m.prev,itemStyle:{color:'#94a3b8'}}],
-        label:{show:true,position:'top'}
-      }]
+      series:[{type:'bar',data,label:{show:true,position:'top'}}]
     });
     window.addEventListener('resize',()=>chart.resize());
   }
-  function renderLine(id,labels,cur,prev){
+
+  async function loadRateCharts(weekStart){
+    const prevStart=addDays(weekStart,-7);
+    const dayStr=d=>d.toISOString().slice(0,10);
+    const curDays=Array.from({length:7},(_,i)=>addDays(weekStart,i));
+    const prevDays=Array.from({length:7},(_,i)=>addDays(prevStart,i));
+    const fetchDay=d=>fetchRange(dayStr(d),dayStr(d)).then(sum);
+    const curStats=await Promise.all(curDays.map(fetchDay));
+    const prevStats=await Promise.all(prevDays.map(fetchDay));
+    const curVisitor=curStats.map(s=>s.exposure? s.uv/s.exposure:0);
+    const prevVisitor=prevStats.map(s=>s.exposure? s.uv/s.exposure:0);
+    const curCart=curStats.map(s=>s.uv? s.cart/s.uv:0);
+    const prevCart=prevStats.map(s=>s.uv? s.cart/s.uv:0);
+    const curPay=curStats.map(s=>s.cart? s.pay/s.cart:0);
+    const prevPay=prevStats.map(s=>s.cart? s.pay/s.cart:0);
+    const labels=[...prevDays,...curDays].map(d=>formatMD(dayStr(d)));
+    const pad=Array(7).fill(null);
+    renderLine('visitRateChart',labels,[...prevVisitor,...pad],[...pad,...curVisitor]);
+    renderLine('cartRateChart',labels,[...prevCart,...pad],[...pad,...curCart]);
+    renderLine('payRateChart',labels,[...prevPay,...pad],[...pad,...curPay]);
+  }
+
+  function renderLine(id,labels,prevData,curData){
     const chart=echarts.init(document.getElementById(id));
     chart.setOption({
       tooltip:{trigger:'axis'},
-      legend:{data:['本周期','上一周期']},
+      legend:{data:['上一个周期','本周期']},
       xAxis:{type:'category',data:labels},
       yAxis:{type:'value'},
-      series:[{name:'本周期',type:'line',smooth:true,data:cur},{name:'上一周期',type:'line',smooth:true,data:prev}]
+      series:[
+        {name:'上一个周期',type:'line',data:prevData},
+        {name:'本周期',type:'line',data:curData}
+      ]
     });
     window.addEventListener('resize',()=>chart.resize());
   }

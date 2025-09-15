@@ -49,7 +49,8 @@ module.exports = async function handler(req,res){
     ];
     const uvCol = uvCandidates.find(c=>tableCols.includes(c)) || uvCandidates[0];
 
-    const idOf = r => `${r.sku}@@${r.model||''}`;
+    // Identify products uniquely by SKU; model variations are treated as the same product
+    const idOf = r => String(r.sku);
 
     const select = `sku,model,tovary,voronka_prodazh_pokazy_vsego,uv:${uvCol},voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov`;
 
@@ -60,8 +61,21 @@ module.exports = async function handler(req,res){
       const days = Math.floor(diffMs / 86400000) + 1;
       const prevEnd = new Date(new Date(start).getTime() - 86400000);
       const prevStart = new Date(prevEnd.getTime() - (days-1)*86400000);
-      const prevResp = await supabase.schema('public').from(TABLE).select(select).gte('den', prevStart.toISOString().slice(0,10)).lte('den', prevEnd.toISOString().slice(0,10));
+      const prevResp = await supabase
+        .schema('public')
+        .from(TABLE)
+        .select(select)
+        .gte('den', prevStart.toISOString().slice(0,10))
+        .lte('den', prevEnd.toISOString().slice(0,10));
       if(prevResp.error) throw prevResp.error;
+      const allPrevResp = await supabase
+        .schema('public')
+        .from(TABLE)
+        .select('sku,model')
+        .lte('den', prevEnd.toISOString().slice(0,10))
+        .order('den', { ascending: false })
+        .limit(999999);
+      if(allPrevResp.error) throw allPrevResp.error;
       function agg(rows){
         const sums={exposure:0,uv:0,cart:0,pay:0};
         const prodSet=new Set();
@@ -86,7 +100,8 @@ module.exports = async function handler(req,res){
       const cartRatePrev = prev.sums.uv ? prev.sums.cart / prev.sums.uv : 0;
       const payRate = cur.sums.cart ? cur.sums.pay / cur.sums.cart : 0;
       const payRatePrev = prev.sums.cart ? prev.sums.pay / prev.sums.cart : 0;
-      const newIds=[...cur.prodSet].filter(id=>!prev.prodSet.has(id));
+      const allPrevSet = new Set((allPrevResp.data||[]).map(idOf));
+      const newIds=[...cur.prodSet].filter(id=>!allPrevSet.has(id));
       const newIdSet=new Set(newIds);
       const newMap=new Map();
       for(const r of cur.rows){
@@ -96,23 +111,7 @@ module.exports = async function handler(req,res){
         }
       }
       const newProducts=[...newMap.values()];
-
-      const allCurResp = await supabase
-        .schema('public')
-        .from(TABLE)
-        .select('sku,model')
-        .lte('den', end)
-        .limit(100000);
-      if(allCurResp.error) throw allCurResp.error;
-      const allPrevResp = await supabase
-        .schema('public')
-        .from(TABLE)
-        .select('sku,model')
-        .lte('den', prevEnd.toISOString().slice(0,10))
-        .limit(100000);
-      if(allPrevResp.error) throw allPrevResp.error;
-      const allCurSet = new Set((allCurResp.data||[]).map(idOf));
-      const allPrevSet = new Set((allPrevResp.data||[]).map(idOf));
+      const allCurSet = new Set([...allPrevSet, ...cur.prodSet]);
 
       return res.json({
         ok:true,
@@ -159,6 +158,18 @@ module.exports = async function handler(req,res){
       prevResp = await supabase.schema('public').from(TABLE).select(select).eq('den', prevDate);
       if(prevResp.error) throw prevResp.error;
     }
+    let allPrevSet = new Set();
+    if(prevDate){
+      const allPrevResp = await supabase
+        .schema('public')
+        .from(TABLE)
+        .select('sku,model')
+        .lte('den', prevDate)
+        .order('den', { ascending: false })
+        .limit(999999);
+      if(allPrevResp.error) throw allPrevResp.error;
+      allPrevSet = new Set((allPrevResp.data||[]).map(idOf));
+    }
     function agg(rows){
       const sums={exposure:0,uv:0,cart:0,pay:0};
       const prodSet=new Set();
@@ -183,7 +194,7 @@ module.exports = async function handler(req,res){
     const cartRatePrev = prev.sums.uv ? prev.sums.cart / prev.sums.uv : 0;
     const payRate = cur.sums.cart ? cur.sums.pay / cur.sums.cart : 0;
     const payRatePrev = prev.sums.cart ? prev.sums.pay / prev.sums.cart : 0;
-    const newIds=[...cur.prodSet].filter(id=>!prev.prodSet.has(id));
+    const newIds=[...cur.prodSet].filter(id=>!allPrevSet.has(id));
     const newIdSet=new Set(newIds);
     const newMap=new Map();
     for(const r of cur.rows){
@@ -193,26 +204,7 @@ module.exports = async function handler(req,res){
       }
     }
     const newProducts=[...newMap.values()];
-
-    const allCurResp = await supabase
-      .schema('public')
-      .from(TABLE)
-      .select('sku,model')
-      .lte('den', date)
-      .limit(100000);
-    if(allCurResp.error) throw allCurResp.error;
-    let allPrevSet = new Set();
-    if(prevDate){
-      const allPrevResp = await supabase
-        .schema('public')
-        .from(TABLE)
-        .select('sku,model')
-        .lte('den', prevDate)
-        .limit(100000);
-      if(allPrevResp.error) throw allPrevResp.error;
-      allPrevSet = new Set((allPrevResp.data||[]).map(idOf));
-    }
-    const allCurSet = new Set((allCurResp.data||[]).map(idOf));
+    const allCurSet = new Set([...allPrevSet, ...cur.prodSet]);
 
     res.json({
       ok:true,
