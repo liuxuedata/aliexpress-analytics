@@ -160,22 +160,38 @@
 </section>
 
 <section id="analysis" class="content-pad" style="display:none;">
-  <div class="grid grid-2">
+  <div class="grid grid-2" style="margin-bottom:16px;">
     <div class="panel">
       <h3>转化漏斗</h3>
       <div id="funnel" style="width:100%;height:320px;"></div>
     </div>
     <div class="panel">
-      <h3>曝光周期对比</h3>
-      <div id="expCompareBar" style="width:100%;height:320px;"></div>
+      <h3>总展示数</h3>
+      <div id="analysisExposureWeekly" style="width:100%;height:320px;"></div>
     </div>
     <div class="panel">
-      <h3>加购件数对比</h3>
-      <div id="addCompareBar" style="width:100%;height:320px;"></div>
+      <h3>详情页访客数</h3>
+      <div id="analysisVisitorsWeekly" style="width:100%;height:320px;"></div>
     </div>
     <div class="panel">
-      <h3>支付订单数对比</h3>
-      <div id="payCompareBar" style="width:100%;height:320px;"></div>
+      <h3>加购次数</h3>
+      <div id="analysisAddTimesWeekly" style="width:100%;height:320px;"></div>
+    </div>
+    <div class="panel">
+      <h3>订购商品数</h3>
+      <div id="analysisOrderItemsWeekly" style="width:100%;height:320px;"></div>
+    </div>
+    <div class="panel">
+      <h3>有曝光商品数</h3>
+      <div id="analysisExposureProductsWeekly" style="width:100%;height:320px;"></div>
+    </div>
+    <div class="panel">
+      <h3>有加购商品数</h3>
+      <div id="analysisAddProductsWeekly" style="width:100%;height:320px;"></div>
+    </div>
+    <div class="panel">
+      <h3>有支付商品数</h3>
+      <div id="analysisPayProductsWeekly" style="width:100%;height:320px;"></div>
     </div>
     <div class="panel">
       <h3>Top10 访客比（UV/曝光）</h3>
@@ -391,6 +407,7 @@
 
       renderAnalysis(window._rowsA, window._rowsB);
       renderTotalTrends();
+      await loadWeeklyAnalysis();
       setStatus('加载完成');
     }catch(err){
       console.error(err);
@@ -681,7 +698,6 @@
     chart.resize();
     return chart;
   }
-  let ratioChart=null, topChart=null;
   function renderAnalysis(rowsA, rowsB){
   if (!Array.isArray(rowsA)) rowsA = []; if (!Array.isArray(rowsB)) rowsB = [];
   const COLOR_A = '#60a5fa', COLOR_B = '#f59e0b';
@@ -733,31 +749,6 @@
     }
   }catch(e){ console.warn(e); }
 
-  // Period comparison charts
-  const renderCompare = (elId, label, curVal, prevVal) => {
-    try{
-      const el = document.getElementById(elId);
-      if (el){
-        const option = {
-          tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
-          legend:{ data:[nameA,nameB], textStyle:{color:'#374151'} },
-          xAxis:{ type:'category', data:[label], axisLabel:{color:'#374151'} },
-          yAxis:{ type:'value', axisLabel:{color:'#374151'} },
-          series:[
-            { name:nameA, type:'bar', data:[curVal], barMaxWidth:28, label:{show:true, position:'top'}, itemStyle:{color:COLOR_A} },
-            { name:nameB, type:'bar', data:[prevVal], barMaxWidth:28, label:{show:true, position:'top'}, itemStyle:{color:COLOR_B} }
-          ],
-          grid:{ left:40, right:20, top:30, bottom:40 }
-        };
-        initResponsiveChart(el, option);
-      }
-    }catch(e){ console.warn(e); }
-  };
-
-  renderCompare('expCompareBar','曝光',A.exp,B.exp);
-  renderCompare('addCompareBar','加购件数',A.atc_qty,B.atc_qty);
-  renderCompare('payCompareBar','支付订单数',A.pay_orders,B.pay_orders);
-
   // Top charts for A
   function topByRate(rows, denKey, numKey, elId, minDen){
     const list = rows.map(x=>{
@@ -791,6 +782,88 @@
 
 </script>
 <script>
+async function loadWeeklyAnalysis(){
+  try{
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - 2);
+    startDate.setDate(startDate.getDate() - ((startDate.getDay() + 6) % 7));
+    const start = startDate.toISOString().slice(0,10);
+    const end = new Date().toISOString().slice(0,10);
+    const params = new URLSearchParams({
+      start,
+      end,
+      granularity:'week',
+      site:'ae_managed',
+      aggregate:'time'
+    });
+    const resp = await fetch(`/api/ae_query?${params.toString()}`, { method:'GET', headers:{'Content-Type':'application/json'} });
+    const data = await resp.json();
+    if (data.ok && data.rows) {
+      renderWeeklyComparisonCharts(data.rows);
+    }
+  }catch(e){ console.error('weeklyAnalysis', e); }
+}
+
+function renderWeeklyComparisonCharts(rows){
+  const map = new Map();
+  rows.forEach(r => {
+    const w = r.bucket || r.week || r.stat_date || '';
+    if (!map.has(w)) {
+      map.set(w, {
+        exposure:0,
+        visitors:0,
+        add_count:0,
+        pay_items:0,
+        expSet:new Set(),
+        addSet:new Set(),
+        paySet:new Set()
+      });
+    }
+    const acc = map.get(w);
+    acc.exposure += r.exposure || 0;
+    acc.visitors += r.visitors || 0;
+    acc.add_count += r.add_people || 0;
+    acc.pay_items += r.pay_items || 0;
+    if ((r.exposure || 0) > 0) acc.expSet.add(r.product_id);
+    if ((r.add_people || 0) > 0) acc.addSet.add(r.product_id);
+    if ((r.pay_items || 0) > 0 || (r.pay_orders || 0) > 0) acc.paySet.add(r.product_id);
+  });
+
+  const weeks = Array.from(map.keys()).sort();
+  const exp = weeks.map(w => map.get(w).exposure);
+  const uv = weeks.map(w => map.get(w).visitors);
+  const addTimes = weeks.map(w => map.get(w).add_count);
+  const orderItems = weeks.map(w => map.get(w).pay_items);
+  const expProducts = weeks.map(w => map.get(w).expSet.size);
+  const addProducts = weeks.map(w => map.get(w).addSet.size);
+  const payProducts = weeks.map(w => map.get(w).paySet.size);
+
+  const render = (id, data) => {
+    const option = {
+      tooltip:{ trigger:'axis' },
+      xAxis:{ type:'category', data:weeks, axisLabel:{ color:'#374151' } },
+      yAxis:{ type:'value', axisLabel:{ color:'#374151' } },
+      series:[{
+        type:'bar',
+        data,
+        barMaxWidth:24,
+        itemStyle:{ color:'#3B82F6' },
+        label:{ show:true, position:'top', color:'#374151' }
+      }],
+      grid:{ left:40, right:20, top:30, bottom:30 }
+    };
+    initResponsiveChart(id, option);
+  };
+
+  render('analysisExposureWeekly', exp);
+  render('analysisVisitorsWeekly', uv);
+  render('analysisAddTimesWeekly', addTimes);
+  render('analysisOrderItemsWeekly', orderItems);
+  render('analysisExposureProductsWeekly', expProducts);
+  render('analysisAddProductsWeekly', addProducts);
+  render('analysisPayProductsWeekly', payProducts);
+}
+
 async function renderTotalTrends(){
   try{
     const period = $("#periodSelect").val();
