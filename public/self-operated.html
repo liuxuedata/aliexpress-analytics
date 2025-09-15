@@ -631,24 +631,43 @@
             <div id="analysisFunnel" style="width:100%;height:320px;"></div>
           </div>
           <div class="panel">
-            <h3>曝光周期对比</h3>
-            <div id="analysisExposureCompare" style="width:100%;height:320px;"></div>
-          </div>
-          <div class="panel">
-            <h3>加购件数对比</h3>
-            <div id="analysisCartCompare" style="width:100%;height:320px;"></div>
-          </div>
-          <div class="panel">
-            <h3>支付订单数对比</h3>
-            <div id="analysisPayCompare" style="width:100%;height:320px;"></div>
-          </div>
-          <div class="panel">
             <h3>Top10 访客比（UV/曝光）</h3>
             <div id="analysisVrBar" style="width:100%;height:320px;"></div>
           </div>
           <div class="panel">
             <h3>Top10 加购→支付 转化率</h3>
             <div id="analysisPayBar" style="width:100%;height:320px;"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-2" style="margin-bottom:16px;">
+          <div class="panel">
+            <h3>总展示数</h3>
+            <div id="weeklyExposureChart" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>详情页访客数</h3>
+            <div id="weeklyVisitorsChart" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>加购次数</h3>
+            <div id="weeklyAddCountChart" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>订购商品数</h3>
+            <div id="weeklyPayItemsChart" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>有曝光商品数</h3>
+            <div id="weeklyExposedProductsChart" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>有加购商品数</h3>
+            <div id="weeklyCartedProductsChart" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>有支付商品数</h3>
+            <div id="weeklyPaidProductsChart" style="width:100%;height:320px;"></div>
           </div>
         </div>
         <!-- 运营分析访客/加购/支付比趋势 -->
@@ -1121,27 +1140,44 @@ document.addEventListener('DOMContentLoaded', ()=>{
         aggregate: 'time'
       });
 
-      const [currentResponse, prevResponse] = await Promise.all([
+      const { start: wkStart, end: wkEnd, startWeek, endWeek } = getLastTwoMonthsRange();
+      const weeklyParams = new URLSearchParams({
+        start: wkStart,
+        end: wkEnd,
+        granularity: 'week',
+        site: currentSite,
+        aggregate: 'time'
+      });
+
+      const [currentResponse, prevResponse, weeklyResponse] = await Promise.all([
         fetch(`/api/ae_query?${currentParams.toString()}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } }),
-        fetch(`/api/ae_query?${prevParams.toString()}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
+        fetch(`/api/ae_query?${prevParams.toString()}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } }),
+        fetch(`/api/ae_query?${weeklyParams.toString()}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
       ]);
 
-      if (!currentResponse.ok || !prevResponse.ok) {
-        throw new Error(`API响应错误: ${currentResponse.status}/${prevResponse.status}`);
+      if (!currentResponse.ok || !prevResponse.ok || !weeklyResponse.ok) {
+        throw new Error(`API响应错误: ${currentResponse.status}/${prevResponse.status}/${weeklyResponse.status}`);
       }
 
-      const currentData = await currentResponse.json();
-      const prevData = await prevResponse.json();
-      console.log('运营分析数据响应:', currentData, prevData);
+      const [currentData, prevData, weeklyData] = await Promise.all([
+        currentResponse.json(),
+        prevResponse.json(),
+        weeklyResponse.json()
+      ]);
+      console.log('运营分析数据响应:', currentData, prevData, weeklyData);
 
       if (currentData.ok && currentData.rows && prevData.ok && prevData.rows) {
         renderAnalysisCharts(currentData.rows, prevData.rows);
-        renderPeriodComparisonCharts(currentData.rows, prevData.rows);
         renderFunnelChart(currentData.rows, prevData.rows);
         renderTopCharts(currentData.rows);
       } else {
         console.warn('运营分析数据格式不正确:', currentData, prevData);
         showAnalysisError('数据格式不正确，请检查API响应');
+      }
+
+      if (weeklyData.ok && weeklyData.rows) {
+        const weekly = summarizeWeekly(weeklyData.rows, startWeek, endWeek);
+        renderWeeklyComparisonCharts(weekly);
       }
     } catch (error) {
       console.error('加载运营分析数据失败:', error);
@@ -1488,34 +1524,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
     initResponsiveChart(id, option);
   }
 
-  function renderPeriodComparisonCharts(currentRows, previousRows) {
-    const sum = rows => ({
-      exp: rows.reduce((t, r) => t + (r.exposure || 0), 0),
-      add: rows.reduce((t, r) => t + (r.add_people || 0), 0),
-      pay: rows.reduce((t, r) => t + (r.pay_items || 0), 0)
-    });
-    const cur = sum(currentRows);
-    const prev = sum(previousRows);
-
-    const render = (id, label, curVal, prevVal) => {
-      const option = {
-        tooltip:{ trigger:'axis', axisPointer:{ type:'shadow' } },
-        legend:{ data:['本期','上期'], textStyle:{ color:'#374151' } },
-        xAxis:{ type:'category', data:[label], axisLabel:{ color:'#374151' } },
-        yAxis:{ type:'value', axisLabel:{ color:'#374151' } },
-        series:[
-          { name:'本期', type:'bar', data:[curVal], label:{show:true, position:'top'} },
-          { name:'上期', type:'bar', data:[prevVal], label:{show:true, position:'top'} }
-        ]
-      };
-      initResponsiveChart(id, option);
-    };
-
-    render('analysisExposureCompare', '曝光', cur.exp, prev.exp);
-    render('analysisCartCompare', '加购件数', cur.add, prev.add);
-    render('analysisPayCompare', '支付订单数', cur.pay, prev.pay);
-  }
-
   function renderFunnelChart(currentRows, previousRows) {
     const sum = rows => ({
       exp: rows.reduce((t, r) => t + (r.exposure || 0), 0),
@@ -1582,6 +1590,81 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
     topByRate(list, 'exposure', 'visitors', 'analysisVrBar', 50);
     topByRate(list, 'add_people', 'pay_buyers', 'analysisPayBar', 5);
+  }
+
+  function getLastTwoMonthsRange() {
+    const today = new Date();
+    const dow = (today.getUTCDay() + 6) % 7; // Monday=0
+    const currentMonday = new Date(today);
+    currentMonday.setUTCDate(today.getUTCDate() - dow);
+    const startMonday = new Date(currentMonday);
+    startMonday.setUTCDate(startMonday.getUTCDate() - 7 * 7);
+    const start = startMonday.toISOString().slice(0, 10);
+    const end = new Date(currentMonday.getTime() + 6 * 86400000).toISOString().slice(0, 10);
+    return { start, end, startWeek: startMonday, endWeek: currentMonday };
+  }
+
+  function summarizeWeekly(rows, startWeek, endWeek) {
+    const map = new Map();
+    (rows || []).forEach(r => {
+      const key = r.bucket || r.stat_date || r.bucket_label;
+      if (!map.has(key)) {
+        map.set(key, {
+          exposure: 0,
+          visitors: 0,
+          add_count: 0,
+          pay_items: 0,
+          expProducts: new Set(),
+          cartProducts: new Set(),
+          payProducts: new Set()
+        });
+      }
+      const w = map.get(key);
+      w.exposure += r.exposure || 0;
+      w.visitors += r.visitors || 0;
+      w.add_count += r.add_count || 0;
+      w.pay_items += r.pay_items || 0;
+      if ((r.exposure || 0) > 0) w.expProducts.add(r.product_id);
+      if ((r.add_count || 0) > 0) w.cartProducts.add(r.product_id);
+      if ((r.pay_items || 0) > 0) w.payProducts.add(r.product_id);
+    });
+
+    const weeks = [], exposure = [], visitors = [], addCount = [], payItems = [], expProducts = [], cartProducts = [], payProducts = [];
+    for (let d = new Date(startWeek); d <= endWeek; d.setUTCDate(d.getUTCDate() + 7)) {
+      const key = d.toISOString().slice(0, 10);
+      const data = map.get(key);
+      weeks.push(key);
+      exposure.push(data?.exposure || 0);
+      visitors.push(data?.visitors || 0);
+      addCount.push(data?.add_count || 0);
+      payItems.push(data?.pay_items || 0);
+      expProducts.push(data ? data.expProducts.size : 0);
+      cartProducts.push(data ? data.cartProducts.size : 0);
+      payProducts.push(data ? data.payProducts.size : 0);
+    }
+
+    return { weeks, exposure, visitors, addCount, payItems, expProducts, cartProducts, payProducts };
+  }
+
+  function renderWeeklyBar(id, weeks, values) {
+    const option = {
+      tooltip: { trigger: 'axis' },
+      xAxis: { type: 'category', data: weeks, axisLabel: { color: '#374151' } },
+      yAxis: { type: 'value', axisLabel: { color: '#374151' } },
+      series: [{ type: 'bar', data: values, label: { show: true, position: 'top' } }],
+      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true }
+    };
+    initResponsiveChart(id, option);
+  }
+
+  function renderWeeklyComparisonCharts(weekly) {
+    renderWeeklyBar('weeklyExposureChart', weekly.weeks, weekly.exposure);
+    renderWeeklyBar('weeklyVisitorsChart', weekly.weeks, weekly.visitors);
+    renderWeeklyBar('weeklyAddCountChart', weekly.weeks, weekly.addCount);
+    renderWeeklyBar('weeklyPayItemsChart', weekly.weeks, weekly.payItems);
+    renderWeeklyBar('weeklyExposedProductsChart', weekly.weeks, weekly.expProducts);
+    renderWeeklyBar('weeklyCartedProductsChart', weekly.weeks, weekly.cartProducts);
+    renderWeeklyBar('weeklyPaidProductsChart', weekly.weeks, weekly.payProducts);
   }
 
      // 填充产品选择器
