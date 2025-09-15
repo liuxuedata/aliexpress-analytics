@@ -933,8 +933,9 @@ async function loadIndependentAnalysisData() {
       const { table = [], kpis } = data;
       // 更新KPI卡片
       updateIndependentAnalysisKPI(table, kpis);
-      // 渲染图表
-      await renderIndependentAnalysisCharts(table, kpis);
+      // 渲染近三个月每周柱状图
+      const weeklyRows = await fetchIndependentWeeklyStats(site);
+      renderIndependentWeeklyCharts(weeklyRows);
     }
   } catch (error) {
     console.error('加载独立站运营分析数据失败:', error);
@@ -1028,103 +1029,64 @@ function updateIndependentAnalysisKPI(data, kpis = {}) {
   if (newEl) newEl.textContent = Number(kpis.new_product_count || 0).toLocaleString();
 }
 
-// 渲染独立站运营分析对比图表
-async function renderIndependentAnalysisCharts(data, kpis = {}) {
-  // 获取上一周期数据进行对比
-  const previousData = await getIndependentPreviousPeriodData('analysisDate');
-
-  // 计算当前周期数据
-  const currentData = {
-    impressions: data.reduce((sum, item) => sum + Number(item.impressions || item.impr || 0), 0),
-    clicks: data.reduce((sum, item) => sum + Number(item.clicks || 0), 0),
-    conversions: data.reduce((sum, item) => sum + Number(item.conversions || 0), 0),
-    ctr: 0,
-    clickedProducts: kpis.click_product_count != null
-      ? Number(kpis.click_product_count)
-      : new Set(data.filter(item => Number(item.clicks || 0) > 0).map(item => item.product)).size
-  };
-  currentData.ctr = currentData.impressions > 0 ? currentData.clicks / currentData.impressions * 100 : 0;
-
-  // 计算上一周期数据
-  const previousDataCalculated = previousData ? {
-    impressions: previousData.table.reduce((sum, item) => sum + Number(item.impressions || item.impr || 0), 0),
-    clicks: previousData.table.reduce((sum, item) => sum + Number(item.clicks || 0), 0),
-    conversions: previousData.table.reduce((sum, item) => sum + Number(item.conversions || 0), 0),
-    ctr: 0,
-    clickedProducts: previousData.kpis?.click_product_count != null
-      ? Number(previousData.kpis.click_product_count)
-      : new Set(previousData.table.filter(item => Number(item.clicks || 0) > 0).map(item => item.product)).size
-  } : null;
-  if (previousDataCalculated) {
-    previousDataCalculated.ctr = previousDataCalculated.impressions > 0
-      ? previousDataCalculated.clicks / previousDataCalculated.impressions * 100
-      : 0;
-  }
-
-  // 渲染产品展示总数对比图
-  renderIndependentComparisonChart('impressionsComparisonChart',
-    currentData.impressions, previousDataCalculated?.impressions || 0, '产品展示总数');
-
-  // 渲染 CTR 对比图
-  renderIndependentComparisonChart('ctrComparisonChart',
-    currentData.ctr, previousDataCalculated?.ctr || 0, 'CTR (%)');
-
-  // 渲染转化次数对比图
-  renderIndependentComparisonChart('conversionsComparisonChart',
-    currentData.conversions, previousDataCalculated?.conversions || 0, '转化次数');
-
-  // 渲染有点击商品数对比图
-  renderIndependentComparisonChart('clickedProductsComparisonChart',
-    currentData.clickedProducts, previousDataCalculated?.clickedProducts || 0, '有点击商品数');
+// 获取每周统计数据
+function fetchIndependentWeeklyStats(site){
+  const startDate = new Date();
+  startDate.setMonth(startDate.getMonth() - 3);
+  startDate.setDate(startDate.getDate() - ((startDate.getDay() + 6) % 7));
+  const start = startDate.toISOString().slice(0,10);
+  const today = new Date();
+  const end = today.toISOString().slice(0,10);
+  const params = new URLSearchParams({ site, from:start, to:end, aggregate:'time' });
+  return fetch(`/api/independent/stats?${params.toString()}`)
+    .then(r => r.ok ? r.json() : {})
+    .then(j => j.table || j.rows || []);
 }
 
-// 渲染独立站对比柱状图
-function renderIndependentComparisonChart(chartId, currentValue, previousValue, label) {
-  const chart = echarts.init(document.getElementById(chartId));
-  const curr = Number(currentValue) || 0;
-  const prev = Number(previousValue) || 0;
-  const formatVal = v => label.includes('CTR') ? v.toFixed(2) + '%' : Number(v).toLocaleString();
-  const option = {
-    tooltip: {
-      trigger: 'axis',
-      formatter: function(params) {
-        const data = params[0];
-        return `${data.seriesName}: ${formatVal(data.value)}`;
-      }
-    },
-    legend: {
-      data: ['当前周期', '上一周期'],
-      textStyle: { color: '#374151' }
-    },
-    xAxis: {
-      type: 'category',
-      data: ['当前周期', '上一周期'],
-      axisLabel: { color: '#374151', fontSize: 12 }
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { color: '#374151', fontSize: 12 }
-    },
-    series: [
-      {
-        name: '当前周期',
-        data: [curr, null],
-        type: 'bar',
-        itemStyle: { color: '#3B82F6' },
-        barWidth: '40%',
-        label: { show: true, position: 'top', formatter: p => formatVal(p.value) }
-      },
-      {
-        name: '上一周期',
-        data: [null, prev],
-        type: 'bar',
-        itemStyle: { color: '#10B981' },
-        barWidth: '40%',
-        label: { show: true, position: 'top', formatter: p => formatVal(p.value) }
-      }
-    ]
+function renderIndependentWeeklyCharts(rows){
+  const map = new Map();
+  rows.forEach(r => {
+    const dStr = r.day || r.date || r.stat_date || r.period_end || r.bucket;
+    if(!dStr) return;
+    const d = new Date(dStr);
+    d.setDate(d.getDate() - ((d.getDay()+6)%7));
+    const wk = d.toISOString().slice(0,10);
+    if(!map.has(wk)) map.set(wk,{ impr:0, clicks:0, conv:0, clickSet:new Set() });
+    const acc = map.get(wk);
+    const impr = Number(r.impressions || r.impr || 0);
+    const clicks = Number(r.clicks || 0);
+    const conv = Number(r.conversions || 0);
+    acc.impr += impr;
+    acc.clicks += clicks;
+    acc.conv += conv;
+    if(clicks>0){
+      const pid = r.product_id || r.product || r.landing_path || r.landing_url || '';
+      if(pid) acc.clickSet.add(pid);
+    }
+  });
+  const weeks = Array.from(map.keys()).sort();
+  const impressions = weeks.map(w => map.get(w).impr);
+  const ctr = weeks.map(w => {
+    const acc = map.get(w);
+    return acc.impr > 0 ? +(acc.clicks/acc.impr*100).toFixed(2) : 0;
+  });
+  const conversions = weeks.map(w => map.get(w).conv);
+  const clickProducts = weeks.map(w => map.get(w).clickSet.size);
+  const render = (id,data,isPct=false) => {
+    const option = {
+      tooltip:{ trigger:'axis', formatter:p=> isPct? p[0].value + '%' : p[0].value },
+      xAxis:{ type:'category', data:weeks, axisLabel:{ color:'#374151' } },
+      yAxis:{ type:'value', axisLabel:{ color:'#374151', formatter:isPct? '{value}%' : '{value}' } },
+      series:[{ type:'bar', data, barMaxWidth:24, itemStyle:{ color:'#3B82F6' }, label:{ show:true, position:'top', color:'#374151', formatter:v=> isPct? v.value + '%' : v.value } }],
+      grid:{ left:40, right:20, top:30, bottom:30 }
+    };
+    const el = document.getElementById(id);
+    if(el) echarts.init(el).setOption(option);
   };
-  chart.setOption(option);
+  render('impressionsComparisonChart', impressions);
+  render('ctrComparisonChart', ctr, true);
+  render('conversionsComparisonChart', conversions);
+  render('clickedProductsComparisonChart', clickProducts);
 }
 
 // 获取独立站上一周期数据
