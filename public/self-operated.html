@@ -631,16 +631,32 @@
             <div id="analysisFunnel" style="width:100%;height:320px;"></div>
           </div>
           <div class="panel">
-            <h3>曝光周期对比</h3>
-            <div id="analysisExposureCompare" style="width:100%;height:320px;"></div>
+            <h3>总展示数</h3>
+            <div id="weeklyExposureChart" style="width:100%;height:320px;"></div>
           </div>
           <div class="panel">
-            <h3>加购件数对比</h3>
-            <div id="analysisCartCompare" style="width:100%;height:320px;"></div>
+            <h3>详情页访客数</h3>
+            <div id="weeklyVisitorsChart" style="width:100%;height:320px;"></div>
           </div>
           <div class="panel">
-            <h3>支付订单数对比</h3>
-            <div id="analysisPayCompare" style="width:100%;height:320px;"></div>
+            <h3>加购次数</h3>
+            <div id="weeklyAddCountChart" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>订购商品数</h3>
+            <div id="weeklyPayItemsChart" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>有曝光商品数</h3>
+            <div id="weeklyExposureProductsChart" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>有加购商品数</h3>
+            <div id="weeklyAddProductsChart" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>有支付商品数</h3>
+            <div id="weeklyPayProductsChart" style="width:100%;height:320px;"></div>
           </div>
           <div class="panel">
             <h3>Top10 访客比（UV/曝光）</h3>
@@ -1136,8 +1152,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
       if (currentData.ok && currentData.rows && prevData.ok && prevData.rows) {
         renderAnalysisCharts(currentData.rows, prevData.rows);
-        renderPeriodComparisonCharts(currentData.rows, prevData.rows);
         renderFunnelChart(currentData.rows, prevData.rows);
+        await renderWeeklyMetricCharts();
         renderTopCharts(currentData.rows);
       } else {
         console.warn('运营分析数据格式不正确:', currentData, prevData);
@@ -1488,32 +1504,78 @@ document.addEventListener('DOMContentLoaded', ()=>{
     initResponsiveChart(id, option);
   }
 
-  function renderPeriodComparisonCharts(currentRows, previousRows) {
-    const sum = rows => ({
-      exp: rows.reduce((t, r) => t + (r.exposure || 0), 0),
-      add: rows.reduce((t, r) => t + (r.add_people || 0), 0),
-      pay: rows.reduce((t, r) => t + (r.pay_items || 0), 0)
+  async function renderWeeklyMetricCharts() {
+    const today = new Date();
+    const end = today.toISOString().slice(0, 10);
+    const startDate = new Date(today);
+    startDate.setUTCDate(startDate.getUTCDate() - 60);
+    const start = startDate.toISOString().slice(0, 10);
+    const currentSite = localStorage.getItem('currentSite') || 'ae_self_operated_a';
+    const params = new URLSearchParams({
+      start,
+      end,
+      granularity: 'week',
+      site: currentSite,
+      aggregate: 'time'
     });
-    const cur = sum(currentRows);
-    const prev = sum(previousRows);
+    const res = await fetch(`/api/ae_query?${params.toString()}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.ok || !data.rows) return;
 
-    const render = (id, label, curVal, prevVal) => {
+    const map = new Map();
+    data.rows.forEach(r => {
+      const w = r.bucket;
+      if (!map.has(w)) {
+        map.set(w, {
+          exposure: 0,
+          visitors: 0,
+          add_count: 0,
+          pay_items: 0,
+          exposure_products: new Set(),
+          add_products: new Set(),
+          pay_products: new Set()
+        });
+      }
+      const acc = map.get(w);
+      acc.exposure += r.exposure || 0;
+      acc.visitors += r.visitors || 0;
+      acc.add_count += r.add_count || 0;
+      acc.pay_items += r.pay_items || 0;
+      if ((r.exposure || 0) > 0) acc.exposure_products.add(r.product_id);
+      if ((r.add_count || 0) > 0) acc.add_products.add(r.product_id);
+      if ((r.pay_items || 0) > 0) acc.pay_products.add(r.product_id);
+    });
+
+    const weeks = Array.from(map.keys()).sort();
+    const exposure = weeks.map(w => map.get(w).exposure);
+    const visitors = weeks.map(w => map.get(w).visitors);
+    const addCount = weeks.map(w => map.get(w).add_count);
+    const payItems = weeks.map(w => map.get(w).pay_items);
+    const exposureProducts = weeks.map(w => map.get(w).exposure_products.size);
+    const addProducts = weeks.map(w => map.get(w).add_products.size);
+    const payProducts = weeks.map(w => map.get(w).pay_products.size);
+
+    const renderBar = (id, seriesData) => {
       const option = {
-        tooltip:{ trigger:'axis', axisPointer:{ type:'shadow' } },
-        legend:{ data:['本期','上期'], textStyle:{ color:'#374151' } },
-        xAxis:{ type:'category', data:[label], axisLabel:{ color:'#374151' } },
-        yAxis:{ type:'value', axisLabel:{ color:'#374151' } },
-        series:[
-          { name:'本期', type:'bar', data:[curVal], label:{show:true, position:'top'} },
-          { name:'上期', type:'bar', data:[prevVal], label:{show:true, position:'top'} }
-        ]
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        xAxis: { type: 'category', data: weeks, axisLabel: { color: '#374151' } },
+        yAxis: { type: 'value', axisLabel: { color: '#374151' } },
+        series: [{ type: 'bar', data: seriesData }]
       };
       initResponsiveChart(id, option);
     };
 
-    render('analysisExposureCompare', '曝光', cur.exp, prev.exp);
-    render('analysisCartCompare', '加购件数', cur.add, prev.add);
-    render('analysisPayCompare', '支付订单数', cur.pay, prev.pay);
+    renderBar('weeklyExposureChart', exposure);
+    renderBar('weeklyVisitorsChart', visitors);
+    renderBar('weeklyAddCountChart', addCount);
+    renderBar('weeklyPayItemsChart', payItems);
+    renderBar('weeklyExposureProductsChart', exposureProducts);
+    renderBar('weeklyAddProductsChart', addProducts);
+    renderBar('weeklyPayProductsChart', payProducts);
   }
 
   function renderFunnelChart(currentRows, previousRows) {
