@@ -56,6 +56,9 @@
           <div class="panel"><h3>有加购商品数</h3><div id="cartProdChart" style="width:100%;height:260px;"></div></div>
           <div class="panel"><h3>有支付商品数</h3><div id="payProdChart" style="width:100%;height:260px;"></div></div>
         </div>
+        <div class="panel"><h3>访客比</h3><div id="visitorRateChart" style="width:100%;height:260px;"></div></div>
+        <div class="panel"><h3>加购比</h3><div id="cartRateChart" style="width:100%;height:260px;"></div></div>
+        <div class="panel"><h3>支付比</h3><div id="payRateChart" style="width:100%;height:260px;"></div></div>
       </section>
     </div>
   </main>
@@ -143,8 +146,56 @@
     window.addEventListener('resize',()=>chart.resize());
   }
 
+  async function loadRateLines(){
+    const today=new Date();
+    const weekStart=startOfWeek(today);
+    const prevStart=addDays(weekStart,-7);
+    const labels=[];
+    const visitorCur=[],visitorPrev=[];
+    const cartCur=[],cartPrev=[];
+    const payCur=[],payPrev=[];
+    const fetches=[];
+    for(let i=0;i<7;i++){
+      const cur=addDays(weekStart,i).toISOString().slice(0,10);
+      const prev=addDays(prevStart,i).toISOString().slice(0,10);
+      labels.push(formatMD(cur));
+      fetches.push(fetchRange(cur,cur));
+      fetches.push(fetchRange(prev,prev));
+    }
+    const results=await Promise.all(fetches);
+    for(let i=0;i<7;i++){
+      const curSum=sum(results[i*2]);
+      const prevSum=sum(results[i*2+1]);
+      visitorCur.push(curSum.exposure?curSum.uv/curSum.exposure:0);
+      visitorPrev.push(prevSum.exposure?prevSum.uv/prevSum.exposure:0);
+      cartCur.push(curSum.uv?curSum.cart/curSum.uv:0);
+      cartPrev.push(prevSum.uv?prevSum.cart/prevSum.uv:0);
+      payCur.push(curSum.cart?curSum.pay/curSum.cart:0);
+      payPrev.push(prevSum.cart?prevSum.pay/prevSum.cart:0);
+    }
+    renderLine('visitorRateChart',labels,visitorCur,visitorPrev);
+    renderLine('cartRateChart',labels,cartCur,cartPrev);
+    renderLine('payRateChart',labels,payCur,payPrev);
+  }
+
+  function renderLine(id,labels,curData,prevData){
+    const chart=echarts.init(document.getElementById(id));
+    chart.setOption({
+      tooltip:{trigger:'axis'},
+      legend:{data:['本周期','上周期']},
+      xAxis:{type:'category',data:labels},
+      yAxis:{type:'value'},
+      series:[
+        {name:'本周期',type:'line',data:curData,smooth:true},
+        {name:'上周期',type:'line',data:prevData,smooth:true}
+      ]
+    });
+    window.addEventListener('resize',()=>chart.resize());
+  }
+
   loadProdTotal();
   loadData();
+  loadRateLines();
 })();
 </script>
 </body>
