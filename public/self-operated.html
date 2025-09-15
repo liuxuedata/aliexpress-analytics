@@ -1538,10 +1538,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const acc = map.get(w);
       acc.exposure += r.exposure || 0;
       acc.visitors += r.visitors || 0;
-      acc.add_count += r.add_count || 0;
+      acc.add_count += r.add_people || 0;
       acc.pay_items += r.pay_items || 0;
       if ((r.exposure || 0) > 0) acc.expSet.add(r.product_id);
-      if ((r.add_count || 0) > 0) acc.addSet.add(r.product_id);
+      if ((r.add_people || 0) > 0) acc.addSet.add(r.product_id);
       if ((r.pay_items || 0) > 0 || (r.pay_orders || 0) > 0) acc.paySet.add(r.product_id);
     });
 
@@ -1559,7 +1559,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
         tooltip:{ trigger:'axis' },
         xAxis:{ type:'category', data:weeks, axisLabel:{ color:'#374151' } },
         yAxis:{ type:'value', axisLabel:{ color:'#374151' } },
-        series:[{ type:'bar', data, barMaxWidth:24, itemStyle:{ color:'#3B82F6' } }],
+        series:[{
+          type:'bar',
+          data,
+          barMaxWidth:24,
+          itemStyle:{ color:'#3B82F6' },
+          label:{ show:true, position:'top', color:'#374151' }
+        }],
         grid:{ left:40, right:20, top:30, bottom:30 }
       };
       initResponsiveChart(id, option);
