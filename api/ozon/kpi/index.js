@@ -51,6 +51,25 @@ module.exports = async function handler(req,res){
 
     const idOf = r => `${r.sku}@@${r.model||''}`;
 
+    async function fetchAllIds(upto){
+      const limit = 10000;
+      const ids = new Set();
+      let from = 0;
+      while(true){
+        const { data, error } = await supabase
+          .schema('public')
+          .from(TABLE)
+          .select('sku,model')
+          .lte('den', upto)
+          .range(from, from + limit - 1);
+        if(error) throw error;
+        (data || []).forEach(r => ids.add(idOf(r)));
+        if((data || []).length < limit) break;
+        from += limit;
+      }
+      return ids;
+    }
+
     const select = `sku,model,tovary,voronka_prodazh_pokazy_vsego,uv:${uvCol},voronka_prodazh_dobavleniya_v_korzinu_vsego,voronka_prodazh_zakazano_tovarov`;
 
     if(start && end){
@@ -97,22 +116,8 @@ module.exports = async function handler(req,res){
       }
       const newProducts=[...newMap.values()];
 
-      const allCurResp = await supabase
-        .schema('public')
-        .from(TABLE)
-        .select('sku,model')
-        .lte('den', end)
-        .limit(100000);
-      if(allCurResp.error) throw allCurResp.error;
-      const allPrevResp = await supabase
-        .schema('public')
-        .from(TABLE)
-        .select('sku,model')
-        .lte('den', prevEnd.toISOString().slice(0,10))
-        .limit(100000);
-      if(allPrevResp.error) throw allPrevResp.error;
-      const allCurSet = new Set((allCurResp.data||[]).map(idOf));
-      const allPrevSet = new Set((allPrevResp.data||[]).map(idOf));
+      const allCurSet = await fetchAllIds(end);
+      const allPrevSet = await fetchAllIds(prevEnd.toISOString().slice(0,10));
 
       return res.json({
         ok:true,
@@ -194,25 +199,11 @@ module.exports = async function handler(req,res){
     }
     const newProducts=[...newMap.values()];
 
-    const allCurResp = await supabase
-      .schema('public')
-      .from(TABLE)
-      .select('sku,model')
-      .lte('den', date)
-      .limit(100000);
-    if(allCurResp.error) throw allCurResp.error;
+    const allCurSet = await fetchAllIds(date);
     let allPrevSet = new Set();
     if(prevDate){
-      const allPrevResp = await supabase
-        .schema('public')
-        .from(TABLE)
-        .select('sku,model')
-        .lte('den', prevDate)
-        .limit(100000);
-      if(allPrevResp.error) throw allPrevResp.error;
-      allPrevSet = new Set((allPrevResp.data||[]).map(idOf));
+      allPrevSet = await fetchAllIds(prevDate);
     }
-    const allCurSet = new Set((allCurResp.data||[]).map(idOf));
 
     res.json({
       ok:true,
