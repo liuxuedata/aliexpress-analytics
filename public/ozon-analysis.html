@@ -143,35 +143,65 @@
     }
   }
 
+  function getRecentWeeks(count){
+    const weeks=[];
+    const now=new Date();
+    now.setHours(0,0,0,0);
+    const monday=new Date(now);
+    const diff=(monday.getDay()+6)%7;
+    monday.setDate(monday.getDate()-diff);
+    for(let i=count-1;i>=0;i--){
+      const start=new Date(monday);
+      start.setDate(start.getDate()-i*7);
+      const end=new Date(start);
+      end.setDate(end.getDate()+6);
+      weeks.push({
+        start:start.toISOString().slice(0,10),
+        end:end.toISOString().slice(0,10),
+        label:`${start.toISOString().slice(5,10)}-${end.toISOString().slice(5,10)}`
+      });
+    }
+    return weeks;
+  }
+
   async function loadData(){
+    const weeks=getRecentWeeks(8);
+    const weekRows=await Promise.all(weeks.map(w=>fetchRange(w.start,w.end)));
+    const labels=weeks.map(w=>w.label);
+    const exp=[],uv=[],cart=[],pay=[],expProd=[],cartProd=[],payProd=[];
+    weekRows.forEach(rows=>{
+      const s=sum(rows);
+      exp.push(s.exposure);
+      uv.push(s.uv);
+      cart.push(s.cart);
+      pay.push(s.pay);
+      expProd.push(s.expProds);
+      cartProd.push(s.cartProds);
+      payProd.push(s.payProds);
+    });
+    renderWeekBar('expChart',labels,exp);
+    renderWeekBar('uvChart',labels,uv);
+    renderWeekBar('cartChart',labels,cart);
+    renderWeekBar('orderChart',labels,pay);
+    renderWeekBar('expProdChart',labels,expProd);
+    renderWeekBar('cartProdChart',labels,cartProd);
+    renderWeekBar('payProdChart',labels,payProd);
+
     const val=input.value; if(!val.includes(' to ')) return;
     const [start,end]=val.split(' to ');
     localStorage.setItem('ozonRange', val);
     const {prevStart,prevEnd,days}=periodShift(start,end);
-    const [curRows,prevRows]=await Promise.all([
-      fetchRange(start,end),
-      fetchRange(prevStart,prevEnd)
-    ]);
-    const cur=sum(curRows); const prev=sum(prevRows);
-    renderBar('expChart',{cur:cur.exposure,prev:prev.exposure});
-    renderBar('uvChart',{cur:cur.uv,prev:prev.uv});
-    renderBar('cartChart',{cur:cur.cart,prev:prev.cart});
-    renderBar('orderChart',{cur:cur.pay,prev:prev.pay});
-    renderBar('expProdChart',{cur:cur.expProds,prev:prev.expProds});
-    renderBar('cartProdChart',{cur:cur.cartProds,prev:prev.cartProds});
-    renderBar('payProdChart',{cur:cur.payProds,prev:prev.payProds});
-
     const dates=[], prevDates=[];
     for(let i=0;i<days;i++){ dates.push(addDays(start,i)); prevDates.push(addDays(prevStart,i)); }
     const [curDayRows,prevDayRows]=await Promise.all([
       Promise.all(dates.map(d=>fetchDay(d))),
       Promise.all(prevDates.map(d=>fetchDay(d)))
     ]);
-    const labels=[], vCur=[], vPrev=[], cCur=[], cPrev=[], pCur=[], pPrev=[];
+    const dLabels=[], vCur=[], vPrev=[], cCur=[], cPrev=[], pCur=[], pPrev=[];
     for(let i=0;i<days;i++){
       const sCur=sum(curDayRows[i]);
       const sPrev=sum(prevDayRows[i]);
-      labels.push(formatMD(dates[i]));
+      dLabels.push(formatMD(dates[i]));
       vCur.push(sCur.exposure? sCur.uv/sCur.exposure :0);
       vPrev.push(sPrev.exposure? sPrev.uv/sPrev.exposure :0);
       cCur.push(sCur.uv? sCur.cart/sCur.uv :0);
@@ -179,22 +209,18 @@
       pCur.push(sCur.cart? sCur.pay/sCur.cart :0);
       pPrev.push(sPrev.cart? sPrev.pay/sPrev.cart :0);
     }
-    renderLine('visitorRateChart',labels,vCur,vPrev);
-    renderLine('cartRateChart',labels,cCur,cPrev);
-    renderLine('payRateChart',labels,pCur,pPrev);
+    renderLine('visitorRateChart',dLabels,vCur,vPrev);
+    renderLine('cartRateChart',dLabels,cCur,cPrev);
+    renderLine('payRateChart',dLabels,pCur,pPrev);
   }
 
-  function renderBar(id,m){
+  function renderWeekBar(id,labels,data){
     const chart=echarts.init(document.getElementById(id));
     chart.setOption({
       tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
-      xAxis:{type:'category',data:['本周期','上一周期']},
+      xAxis:{type:'category',data:labels},
       yAxis:{type:'value'},
-      series:[{
-        type:'bar',
-        data:[{value:m.cur,itemStyle:{color:'#3b82f6'}},{value:m.prev,itemStyle:{color:'#94a3b8'}}],
-        label:{show:true,position:'top'}
-      }]
+      series:[{type:'bar',data, itemStyle:{color:'#3b82f6'}, label:{show:true,position:'top'}}]
     });
     window.addEventListener('resize',()=>chart.resize());
   }
