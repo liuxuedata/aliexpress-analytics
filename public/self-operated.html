@@ -631,16 +631,32 @@
             <div id="analysisFunnel" style="width:100%;height:320px;"></div>
           </div>
           <div class="panel">
-            <h3>曝光周期对比</h3>
-            <div id="analysisExposureCompare" style="width:100%;height:320px;"></div>
+            <h3>总展示数</h3>
+            <div id="analysisExposureWeekly" style="width:100%;height:320px;"></div>
           </div>
           <div class="panel">
-            <h3>加购件数对比</h3>
-            <div id="analysisCartCompare" style="width:100%;height:320px;"></div>
+            <h3>详情页访客数</h3>
+            <div id="analysisVisitorsWeekly" style="width:100%;height:320px;"></div>
           </div>
           <div class="panel">
-            <h3>支付订单数对比</h3>
-            <div id="analysisPayCompare" style="width:100%;height:320px;"></div>
+            <h3>加购次数</h3>
+            <div id="analysisAddTimesWeekly" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>订购商品数</h3>
+            <div id="analysisOrderItemsWeekly" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>有曝光商品数</h3>
+            <div id="analysisExposureProductsWeekly" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>有加购商品数</h3>
+            <div id="analysisAddProductsWeekly" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>有支付商品数</h3>
+            <div id="analysisPayProductsWeekly" style="width:100%;height:320px;"></div>
           </div>
           <div class="panel">
             <h3>Top10 访客比（UV/曝光）</h3>
@@ -1121,26 +1137,42 @@ document.addEventListener('DOMContentLoaded', ()=>{
         aggregate: 'time'
       });
 
-      const [currentResponse, prevResponse] = await Promise.all([
+      // 最近两个月的自然周起始日期
+      const weeklyStartDate = new Date();
+      weeklyStartDate.setMonth(weeklyStartDate.getMonth() - 2);
+      weeklyStartDate.setDate(weeklyStartDate.getDate() - ((weeklyStartDate.getDay() + 6) % 7));
+      const weeklyStart = weeklyStartDate.toISOString().slice(0,10);
+      const todayISO = new Date().toISOString().slice(0,10);
+      const weeklyParams = new URLSearchParams({
+        start: weeklyStart,
+        end: todayISO,
+        granularity: 'week',
+        site: currentSite,
+        aggregate: 'time'
+      });
+
+      const [currentResponse, prevResponse, weeklyResponse] = await Promise.all([
         fetch(`/api/ae_query?${currentParams.toString()}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } }),
-        fetch(`/api/ae_query?${prevParams.toString()}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
+        fetch(`/api/ae_query?${prevParams.toString()}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } }),
+        fetch(`/api/ae_query?${weeklyParams.toString()}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
       ]);
 
-      if (!currentResponse.ok || !prevResponse.ok) {
-        throw new Error(`API响应错误: ${currentResponse.status}/${prevResponse.status}`);
+      if (!currentResponse.ok || !prevResponse.ok || !weeklyResponse.ok) {
+        throw new Error(`API响应错误: ${currentResponse.status}/${prevResponse.status}/${weeklyResponse.status}`);
       }
 
       const currentData = await currentResponse.json();
       const prevData = await prevResponse.json();
-      console.log('运营分析数据响应:', currentData, prevData);
+      const weeklyData = await weeklyResponse.json();
+      console.log('运营分析数据响应:', currentData, prevData, weeklyData);
 
-      if (currentData.ok && currentData.rows && prevData.ok && prevData.rows) {
+      if (currentData.ok && currentData.rows && prevData.ok && prevData.rows && weeklyData.ok && weeklyData.rows) {
         renderAnalysisCharts(currentData.rows, prevData.rows);
-        renderPeriodComparisonCharts(currentData.rows, prevData.rows);
         renderFunnelChart(currentData.rows, prevData.rows);
         renderTopCharts(currentData.rows);
+        renderWeeklyComparisonCharts(weeklyData.rows);
       } else {
-        console.warn('运营分析数据格式不正确:', currentData, prevData);
+        console.warn('运营分析数据格式不正确:', currentData, prevData, weeklyData);
         showAnalysisError('数据格式不正确，请检查API响应');
       }
     } catch (error) {
@@ -1488,32 +1520,58 @@ document.addEventListener('DOMContentLoaded', ()=>{
     initResponsiveChart(id, option);
   }
 
-  function renderPeriodComparisonCharts(currentRows, previousRows) {
-    const sum = rows => ({
-      exp: rows.reduce((t, r) => t + (r.exposure || 0), 0),
-      add: rows.reduce((t, r) => t + (r.add_people || 0), 0),
-      pay: rows.reduce((t, r) => t + (r.pay_items || 0), 0)
+  function renderWeeklyComparisonCharts(rows) {
+    const map = new Map();
+    rows.forEach(r => {
+      const w = r.bucket || r.week || r.stat_date || '';
+      if (!map.has(w)) {
+        map.set(w, {
+          exposure: 0,
+          visitors: 0,
+          add_count: 0,
+          pay_items: 0,
+          expSet: new Set(),
+          addSet: new Set(),
+          paySet: new Set()
+        });
+      }
+      const acc = map.get(w);
+      acc.exposure += r.exposure || 0;
+      acc.visitors += r.visitors || 0;
+      acc.add_count += r.add_count || 0;
+      acc.pay_items += r.pay_items || 0;
+      if ((r.exposure || 0) > 0) acc.expSet.add(r.product_id);
+      if ((r.add_count || 0) > 0) acc.addSet.add(r.product_id);
+      if ((r.pay_items || 0) > 0 || (r.pay_orders || 0) > 0) acc.paySet.add(r.product_id);
     });
-    const cur = sum(currentRows);
-    const prev = sum(previousRows);
 
-    const render = (id, label, curVal, prevVal) => {
+    const weeks = Array.from(map.keys()).sort();
+    const exp = weeks.map(w => map.get(w).exposure);
+    const uv = weeks.map(w => map.get(w).visitors);
+    const addTimes = weeks.map(w => map.get(w).add_count);
+    const orderItems = weeks.map(w => map.get(w).pay_items);
+    const expProducts = weeks.map(w => map.get(w).expSet.size);
+    const addProducts = weeks.map(w => map.get(w).addSet.size);
+    const payProducts = weeks.map(w => map.get(w).paySet.size);
+
+    const render = (id, data) => {
       const option = {
-        tooltip:{ trigger:'axis', axisPointer:{ type:'shadow' } },
-        legend:{ data:['本期','上期'], textStyle:{ color:'#374151' } },
-        xAxis:{ type:'category', data:[label], axisLabel:{ color:'#374151' } },
+        tooltip:{ trigger:'axis' },
+        xAxis:{ type:'category', data:weeks, axisLabel:{ color:'#374151' } },
         yAxis:{ type:'value', axisLabel:{ color:'#374151' } },
-        series:[
-          { name:'本期', type:'bar', data:[curVal], label:{show:true, position:'top'} },
-          { name:'上期', type:'bar', data:[prevVal], label:{show:true, position:'top'} }
-        ]
+        series:[{ type:'bar', data, barMaxWidth:24, itemStyle:{ color:'#3B82F6' } }],
+        grid:{ left:40, right:20, top:30, bottom:30 }
       };
       initResponsiveChart(id, option);
     };
 
-    render('analysisExposureCompare', '曝光', cur.exp, prev.exp);
-    render('analysisCartCompare', '加购件数', cur.add, prev.add);
-    render('analysisPayCompare', '支付订单数', cur.pay, prev.pay);
+    render('analysisExposureWeekly', exp);
+    render('analysisVisitorsWeekly', uv);
+    render('analysisAddTimesWeekly', addTimes);
+    render('analysisOrderItemsWeekly', orderItems);
+    render('analysisExposureProductsWeekly', expProducts);
+    render('analysisAddProductsWeekly', addProducts);
+    render('analysisPayProductsWeekly', payProducts);
   }
 
   function renderFunnelChart(currentRows, previousRows) {
