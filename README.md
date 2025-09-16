@@ -32,6 +32,56 @@
 - **Ozon**：俄罗斯市场分析
 - **独立站**：多渠道广告数据统一管理
 
+## 站点框架概览
+
+### 顶部导航与默认站点
+* 入口 `index.html` 会立即重定向到自运营 Robot 站，保证用户直接进入主要分析面板。【F:public/index.html†L1-L82】
+* 页眉导航统一暴露速卖通、亚马逊、TikTok Shop、Temu、Ozon 与独立站入口，速卖通下方再细分出全托管与自运营子菜单。【F:public/managed.html†L82-L108】
+* `site-nav.js` 预置了自运营 `ae_self_operated_a`（Robot）与 `ae_self_operated_poolslab_store`（Poolslab）两个站点，以及独立站 poolsvacuum 与 icyberite，并在切换时写入 `localStorage` 以保持跨页状态。【F:public/assets/site-nav.js†L10-L199】
+
+### 页面模块职责
+* **自运营（`self-operated.html`）**：集成 DataTables、ECharts、Flatpickr 与 XLSX 库，侧边栏使用 `#detail`、`#analysis`、`#products` 锚点切换数据明细、运营分析与产品分析模块，并配套上传、时间过滤等控制区。【F:public/self-operated.html†L8-L28】【F:public/self-operated.html†L505-L555】
+* **全托管（`managed.html`）**：包含登录遮罩、跨平台导航、侧边栏锚点切换以及文件上传与周期粒度选择，支持表格明细与多套指标、图表分析区块。【F:public/managed.html†L54-L158】
+* **站点管理（`site-management.html`）**：提供卡片式网格展示已配置站点与表单式新增入口，表单当前支持自运营、独立站与全托管选项，可在此基础上扩展新的平台类型。【F:public/site-management.html†L10-L198】
+* **独立站（`independent-site.html`）**：围绕 Landing Page 数据提供列宽控制、筛选器、渠道/网络/Campaign 过滤和分析卡片、图表网格，侧边栏同样通过锚点切换明细、运营分析和产品分析视图。【F:public/independent-site.html†L11-L170】【F:public/independent-site.html†L670-L720】
+* **Temu（`temu.html`）**：已占位前端结构但仍标记“页面建设中”，便于后续对接实际数据接口。【F:public/temu.html†L1-L40】
+
+## API 接口概览
+
+### 通用与站点配置
+* `GET /api/health`：返回 API 健康状态、时间戳与当前运行环境，用于部署探活。【F:api/health.js†L1-L21】
+* `GET /api/sites`：读取 `sites` 表中已启用的站点清单，可作为前端站点选择器的数据源。【F:api/sites/index.js†L1-L48】
+* `POST /api/site-configs`：创建站点配置，必填 `name`、`platform`、`display_name`、`data_source`，接口自动生成 `<platform>_<name>` 形式的主键并记录所选统一数据表（Facebook/Google/TikTok）。【F:api/site-configs/index.js†L41-L101】
+* `PUT /api/site-configs/[id]` / `DELETE /api/site-configs/[id]`：按站点 ID 更新或移除配置，更新时同样要求核心字段完整。【F:api/site-configs/[id].js†L42-L104】
+* `POST /api/site-sync`：根据 `siteId`、`oldSiteId` 与 `action`（`create`/`update`）同步 Supabase 表中的 `site` 字段，新建独立站时会调用 `generate_dynamic_table` 生成/刷新专属数据表结构。【F:api/site-sync/index.js†L33-L121】
+* **扩展 Lazada / Shopee 指引**：`site_configs` 的 `platform`、`data_source`、`config_json` 字段均为可扩展字符串/JSON，可新增 `lazada`、`shopee` 等平台并通过 `data_source_templates` 定义对应字段映射；前端新增站点下拉需同步添加新选项。【F:site_configuration_framework.sql†L5-L124】【F:public/site-management.html†L183-L198】【F:public/assets/site-nav.js†L10-L199】
+
+### 速卖通 · 自运营（Robot / Poolslab）
+* `GET /api/ae_query`：按 `start`、`end`、`site`、`granularity`（day/week/month）与 `aggregate`（time/product）聚合 `ae_self_operated_daily` 数据，自动计算访客比、加购比与支付比并输出多项曝光、访客及转化指标。【F:api/ae_query/index.js†L3-L200】
+* `POST /api/ae_upsert[?dry_run=1]`：接受数组或 `{rows: []}` 结构的 JSON，支持多语言列名映射、点击率单位归一化与按站点/商品/日期去重；`dry_run=1` 可返回解析结果样例而不写库。【F:api/ae_upsert/index.js†L4-L193】
+
+### 速卖通 · 全托管
+* `GET /api/stats`：查询 `managed_stats` 周/月粒度数据，支持按 `product_id`+`from/to` 走明细模式，也支持按 `period_end` 拉取最新周期并返回 KPI 汇总、分页信息，可选 `limit`、`offset` 控制范围。【F:api/stats/index.js†L1-L139】
+* `GET /api/managed/daily-totals`：在指定 `from`/`to` 范围内累加访客、加购与支付人数，如缺少日数据会自动回退到周表，方便绘制趋势曲线。【F:api/managed/daily-totals/index.js†L1-L56】
+* `POST /api/ingest[?dry_run=1]`：上传速卖通全托管 Excel，接口自动识别日期列、校验周日/月底、冲突时参考历史行数判定周期类型，并只写入数据库中存在的列；`dry_run` 模式便于预览清洗结果。【F:api/ingest/index.js†L1-L200】
+
+### 独立站广告（Google / Facebook / TikTok）
+* `GET /api/independent/stats`：基于站点与渠道配置自动选择数据表，支持 `site`、`channel`、`from`、`to`、`limit`、`campaign`、`network`、`device` 等过滤条件，并对 poolsvacuum（Google）与 icyberite（Facebook）提供默认映射和回退逻辑。【F:api/independent/stats/index.js†L1-L189】
+* `POST /api/independent/ingest`：处理 Google Ads Landing Pages 报表（CSV/XLSX），字段名大小写与分隔符自动适配，去重合并后写入 `independent_landing_metrics`，上传字段名为 `file`，同样暴露 `GET` 表单用于手工测试。【F:api/independent/ingest/index.js†L285-L327】
+* `POST /api/independent/facebook-ingest`：需在请求头携带 `X-Site-ID`，上传字段 `file`，解析 Facebook Ads 报表时拆分商品编号/名称并更新 `independent_first_seen` 记录，再写入统一的 `independent_facebook_ads_daily` 表。【F:api/independent/facebook-ingest/index.js†L88-L140】【F:api/independent/facebook-ingest/index.js†L560-L659】
+* `POST /api/independent/tiktok-ingest`：同样通过 `X-Site-ID` 指定站点，接受 TikTok Ads CSV/XLSX 并映射常见字段，上报后写入 `independent_tiktok_ads_daily`，同时维护 `independent_first_seen` 新品记录。【F:api/independent/tiktok-ingest/index.js†L40-L200】【F:api/independent/tiktok-ingest/index.js†L280-L358】
+
+### 亚马逊
+* `GET /api/amazon/query`：按 `start`、`end`、`granularity`（day/week/month）聚合 `amazon_daily_by_asin` 数据，返回会话、浏览、销量与加权 Buy Box 比例，可用于图表与明细并支持分页抓取。【F:api/amazon/query/index.js†L1-L96】
+* `POST /api/amazon/upsert`：写入 JSON 数组或 `{rows: []}` 结构的 ASIN 数据，自动格式化日期与数值并按 `asin/stat_date/marketplace_id` 去重分批 upsert。【F:api/amazon/upsert/index.js†L1-L57】
+
+### Ozon
+* `GET /api/ozon/stats`：动态探测报表列名，可通过 `date` 指定单日或 `start`/`end` 区间拉取数据并汇总为商品级指标，兼容多种 UV 字段命名差异。【F:api/ozon/stats/index.js†L1-L119】
+* `POST /api/ozon/import`：接收 `file` 字段的 Ozon Excel 报表，自动转写俄文列名、解析日期并刷新 schema 缓存后批量 upsert 到 `ozon_product_report_wide` 表。【F:api/ozon/import/index.js†L1-L120】
+
+### Temu（规划中）
+* 目前仅有前端占位页面，暂无后端接口，对接上线前可参考速卖通/独立站的上传与查询模式实现相应 API。【F:public/temu.html†L1-L40】
+
 ---
 
 ## Facebook Ads 优化记录 (2025-01-07)
