@@ -803,29 +803,29 @@ $('#fileInput').on('change', function(e) {
 
       const findIdx = (re) => headers.findIndex(h => re.test(String(h).trim()));
       const idx = {
-        product_id: findIdx(/^(商品)?ID$|^商品id$|^id$|^item id$|^item_id$/i),
-        stat_date:  findIdx(/^(统计时间|日期|数据时间|date)$/i),
-        exposure:   findIdx(/^(搜索曝光量|曝光量|商品曝光量|impressions)$/i),
-        visitors:   (function(){ const rs=[/^(商品)?访客数$/i,/^访客人数$/i,/^访客量$/i,/^uv$/i,/^sessions$/i];
+        product_id: findIdx(/^(商品)?ID$|^商品id$|^id$|^item id$|^item_id$|^product id$|^productid$|^profuct id$/i),
+        stat_date:  findIdx(/^(统计时间|日期|数据时间|date|timeframe)/i),
+        exposure:   findIdx(/^(搜索曝光量|曝光量|商品曝光量|impressions|exposure)$/i),
+        visitors:   (function(){ const rs=[/^(商品)?访客数$/i,/^访客人数$/i,/^访客量$/i,/^uv$/i,/^sessions$/i,/^visitors$/i];
           for (const re of rs){const i = findIdx(re); if(i!==-1) return i;}
           const i2=headers.findIndex(h=>/访客数|访客/i.test(String(h).trim())&&!/(老|新|回|复)访客/i.test(String(h).trim()));
           return i2;
         })(),
-        visitors_new: findIdx(/^(新访客数|新访客|新用户|新增访客)$/i),
-        visitors_old: findIdx(/^(老访客数|老访客|回访客|复访客)$/i),
-        views:      findIdx(/^(商品浏览量|浏览量|pv|page views)$/i),
-        add_people: findIdx(/^(商品加购人数|加购人数|加购买家数)$/i),
-        add_count:  findIdx(/^(商品加购件数|加购件数)$/i),
+        visitors_new: findIdx(/^(新访客数|新访客|新用户|新增访客|new visitors)$/i),
+        visitors_old: findIdx(/^(老访客数|老访客|回访客|复访客|old visitors)$/i),
+        views:      findIdx(/^(商品浏览量|浏览量|pv|page ?views?|pageviews)$/i),
+        add_people: findIdx(/^(商品加购人数|加购人数|加购买家数|product purchasing tips|purchasing tips|add to cart buyers|add to cart people|add to cart users)$/i),
+        add_count:  findIdx(/^(商品加购件数|加购件数|add to cart times|add to cart count|add to cart quantity|add to cart number)$/i),
         // ✅ 支付商品件数：兼容"支付件数/付款件数/成交件数/支付商品件数"
-        pay_items:  (function(){ const rs=[/^支付商品件数$/i,/^支付件数$/i,/^付款件数$/i,/^成交件数$/i]; for (const re of rs){const i=findIdx(re); if(i!==-1) return i;} return -1; })(),
-        pay_orders: findIdx(/^(支付订单数|下单人数|订单数)$/i),
-        pay_buyers: findIdx(/^(支付买家数|支付人数|成交人数)$/i),
-        fav_people: findIdx(/^(收藏人数|收藏买家数|收藏用户数)$/i),
-        fav_count:  findIdx(/^(收藏件数|收藏量)$/i),
+        pay_items:  (function(){ const rs=[/^支付商品件数$/i,/^支付件数$/i,/^付款件数$/i,/^成交件数$/i,/^paid product number$/i,/^payment product number$/i,/^paid products?$/i]; for (const re of rs){const i=findIdx(re); if(i!==-1) return i;} return -1; })(),
+        pay_orders: findIdx(/^(支付订单数|下单人数|订单数|paid orders)$/i),
+        pay_buyers: findIdx(/^(支付买家数|支付人数|成交人数|buyers paid|paid buyers)$/i),
+        fav_people: findIdx(/^(收藏人数|收藏买家数|收藏用户数|wishlists?)$/i),
+        fav_count:  findIdx(/^(收藏件数|收藏量|wishlist count|wishlist items|wishlist quantity)$/i),
         // ✅ 新增：下单商品件数 / 平均停留时长 / 搜索点击率
-        order_items: findIdx(/^(下单商品件数|下单件数|下单商品数|下单商品数量)$/i),
-        avg_stay_seconds: findIdx(/^(平均停留时长(\(秒\))?|平均停留时间|平均访问时长)$/i),
-        search_ctr: findIdx(/^(搜索点击率(\(%\))?|点击率(\(%\))?|搜索点击率|点击率)$/i),
+        order_items: findIdx(/^(下单商品件数|下单件数|下单商品数|下单商品数量|order product number)$/i),
+        avg_stay_seconds: findIdx(/^(平均停留时长(\(秒\))?|平均停留时间|平均访问时长|average visitor duration|average visit duration|avg visitor duration)$/i),
+        search_ctr: findIdx(/^(搜索点击率(\(%\))?|点击率(\(%\))?|搜索点击率|点击率|click rate( \(%\))?)$/i),
       };
       if (idx.product_id<0 || idx.stat_date<0) throw new Error('缺少必填：商品ID / 统计时间');
 
