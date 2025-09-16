@@ -5,6 +5,11 @@
       "description": "站点必须通过 site-configs 注册，platform 字段使用小写蛇形命名，例如 ae_self_operated、ae_managed、amazon、ozon、temu、tiktok、independent、lazada、shopee。",
       "enforceSiteSync": "新增站点后必须调用 /api/site-sync 并更新 specs/openapi.yaml 中的站点列表。"
     },
+    "navigation": {
+      "leftSidebar": "所有站点页面的左侧导航需固定包含 operations、product-analysis、orders、advertising 四个互斥分区，并映射到独立的 hash/tab，禁止在未经文档说明的情况下共享状态或复用相同 DOM 容器。",
+      "globalSettings": "inventory 与 permissions 模块只能出现在顶栏或独立设置页入口，且默认仅对 super_admin、inventory_manager、permissions_admin 角色渲染。",
+      "emptyState": "若某站点暂未上线某分区，导航项仍需展示，内容区提供建设中占位并指向 roadmap.yaml 中的对应里程碑。"
+    },
     "modules": {
       "required": [
         "operations",
@@ -29,7 +34,8 @@
       "schemaAlignment": "若上传字段与数据库字段不一致，必须在 API 层实现映射表，并在 specs/openapi.yaml 中同步更新。"
     },
     "responses": "接口返回 JSON，统一字段 { success:boolean, message?:string, data?:object }，分页使用 { items:[], total:number, limit:number, offset:number }。",
-    "errorHandling": "错误码遵循 HTTP 状态码，400 用于参数错误、422 用于业务校验失败、500 为未知错误；错误响应必须包含 traceId。"
+    "errorHandling": "错误码遵循 HTTP 状态码，400 用于参数错误、422 用于业务校验失败、500 为未知错误；错误响应必须包含 traceId。",
+    "optionalMetrics": "统一运营接口需将曝光、访客、加购、订单、支付、GMV 等字段标记为可选；当平台无对应字段时返回 null，并在响应 meta.missingFields 中列出缺失指标，同时更新 README 与 docs/platform-architecture.md。"
   },
   "files": {
     "naming": "新建页面使用 kebab-case HTML 文件名，新建 API 文件采用目录分层，例如 api/orders/index.js，子资源使用嵌套文件夹。",
@@ -42,11 +48,13 @@
       "operations_manager",
       "order_manager",
       "inventory_manager",
+      "permissions_admin",
       "ad_manager",
       "finance",
       "viewer"
     ],
     "rule": "默认仅 super_admin 拥有全部站点与模块访问权，其余角色需在权限配置中明确授予站点与资源。",
+    "globalVisibility": "库存中心与权限中心页面默认只对 super_admin、inventory_manager、permissions_admin 开放，其他角色访问时返回 403 并在前端隐藏入口。",
     "audit": "权限变更需要记录 audit_log，包括 actor、target、change_set、timestamp；日志表结构参考 specs/data-model.sql。"
   }
 }

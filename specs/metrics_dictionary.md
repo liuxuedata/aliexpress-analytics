@@ -22,3 +22,5 @@
 | settlement_cycle_days | 结算周期 | settlement_date - payments.paid_at 的平均值（天）。 | payments |
 
 > 若指标需要跨表计算，必须在 BI 层或物化视图中实现，并记录在此文件中，以保持口径一致。
+>
+> 跨平台指标允许缺失：当某个平台报表缺少表中任意指标时，接口需返回 `null` 并在响应的 `meta.missingFields` 中列出缺失项；若以其他字段替代（如 clicks 代替 visitors），必须在此处补充换算描述。

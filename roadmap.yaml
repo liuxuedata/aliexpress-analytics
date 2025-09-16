@@ -7,6 +7,7 @@ v1:
     - 上线运营指标统一模型（site_metrics_daily）与 Temu/TikTok 运营数据接入
     - 启动订单中心 MVP：订单导入、订单列表、状态流转
   deliverables:
+    - 各站点左侧导航实现“运营分析/产品分析/订单中心/广告中心”四分区并接入权限控制
     - 更新站点管理页面支持平台筛选与权限开关
     - 实现 /api/orders (GET/POST) 与 /api/orders/import dry_run
     - 扩展 /api/ae_upsert 以支持 Lazada/Shopee 字段映射

@@ -52,6 +52,30 @@ components:
           type: string
         data:
           type: object
+        meta:
+          type: object
+          description: 附加元数据，例如 meta.missingFields、meta.substitutions，用于描述跨平台字段缺失与映射情况。
+          properties:
+            missingFields:
+              type: array
+              description: 当前响应中缺失的指标字段列表。
+              items:
+                type: string
+            substitutions:
+              type: array
+              description: 替代字段映射记录，用于说明某指标使用其他字段替换的情况。
+              items:
+                type: object
+                properties:
+                  metric:
+                    type: string
+                    description: 被替代的指标名称，例如 visitors。
+                  source_field:
+                    type: string
+                    description: 实际使用的字段名称，例如 clicks。
+                  notes:
+                    type: string
+                    description: 额外说明，如换算公式或数据来源。
       required:
         - success
     PagedResponse:
@@ -79,6 +103,9 @@ components:
                 - offset
     SiteMetric:
       type: object
+      description: |
+        统一的运营指标行。除 site 与 stat_date 外，其余指标字段均允许为 null，
+        当平台缺失某指标时需在响应 meta.missingFields 中记录缺失列表，如以 clicks 代替 visitors 时需在 meta.substitutions 中登记映射。
       properties:
         site:
           type: string
@@ -87,20 +114,34 @@ components:
           format: date
         impressions:
           type: number
+          nullable: true
+          description: 平台提供的曝光次数；若缺失则返回 null。
         visitors:
           type: number
+          nullable: true
+          description: 独立访客数量；若以其他字段替代需在 meta.substitutions 标注。
         add_to_cart:
           type: number
+          nullable: true
+          description: 加购次数，允许返回 null。
         orders:
           type: number
+          nullable: true
+          description: 下单次数，允许返回 null。
         payments:
           type: number
+          nullable: true
+          description: 支付订单数，允许返回 null。
         revenue:
           type: number
+          nullable: true
+          description: 支付金额，允许返回 null。
         currency:
           type: string
+          description: 金额所使用的币种代码。
         channel:
           type: string
+          description: 数据所属渠道（如 onsite、facebook、tiktok 等），可选。
       required:
         - site
         - stat_date

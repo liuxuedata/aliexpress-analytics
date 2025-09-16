@@ -50,6 +50,12 @@
 - **Ozon 页面集**：`public/ozon-detail.html` 等页面提供上传入口、日期筛选及多图表分栏，涵盖明细、运营分析和产品洞察三种视图。【F:public/ozon-detail.html†L1-L120】
 - **Temu/TikTok 占位页**：`public/temu.html` 与 `public/tiktok.html` 已接入统一导航与布局，目前标记为“建设中”，等待后端接口补齐。【F:public/temu.html†L1-L38】【F:public/tiktok.html†L1-L36】
 
+### 左侧导航与子模块
+- **四象限导航**：所有站点页面左侧固定展示“运营分析”“产品分析”“订单中心”“广告中心”四个导航项，分别加载独立的组件与状态容器，避免模块之间产生隐藏耦合。
+- **空状态占位**：当某模块尚未就绪（如 Temu 广告中心）时仍保留导航项，内容区显示建设中说明，并指向 `roadmap.yaml` 对应里程碑，确保信息透明。
+- **全局设置入口**：库存管理与权限管理作为全站设置，从顶栏或用户菜单进入，仅对 `super_admin`、`inventory_manager`、`permissions_admin` 等角色渲染；前端在权限不足时不生成对应 DOM 元素，避免误触发。
+- **站点差异化**：各站点可在四个导航项中接入自定义视图，如亚马逊订单中心强调 ASIN 维度，自运营站点广告中心聚焦站内投放；差异字段需在本文档及 `docs/platform-architecture.md` 中单独标注。
+
 ### 站点与渠道分类
 - **速卖通自运营**：默认提供 Robot 站（`ae_self_operated_a`）与 Poolslab 站（`ae_self_operated_poolslab_store`），可通过站点选择器和 `localStorage` 记忆切换。【F:public/assets/site-nav.js†L15-L82】
 - **速卖通全托管**：通过顶部“速卖通 → 全托管”下拉菜单加载站点列表，配合上传控件与多图表分析。【F:public/managed.html†L9-L122】
@@ -61,6 +67,7 @@
 - **库存中心**：通过 `inventory_batches`、`inventory_movements`、`inventory_snapshots` 建立批次、调拨与预警能力，订单出库与采购入库均需产生日志。【F:docs/platform-architecture.md†L107-L123】【F:specs/data-model.sql†L96-L138】
 - **广告中心**：集中管理广告账户、系列、素材与日指标，支撑预算、投放配置与归因分析，对应 API 见 `specs/openapi.yaml` 的 `/api/ads/*` 定义。【F:docs/platform-architecture.md†L124-L133】【F:specs/openapi.yaml†L520-L612】【F:specs/data-model.sql†L140-L186】
 - **权限中心**：采用 RBAC + 资源范围模型，记录角色、权限、成员与审计日志，保障不同团队的模块访问隔离。【F:docs/platform-architecture.md†L134-L148】【F:specs/data-model.sql†L188-L230】【F:rules.json†L39-L54】
+- **模块隔离原则**：各站点内的运营分析、产品分析、订单管理、广告管理视图在前端/后端均保持独立接口与状态，禁止在不经文档登记的情况下复用同一 API 响应或共享缓存，以便针对不同平台差异化扩展。
 
 ## API 接口与参数说明
 
@@ -99,6 +106,11 @@
 ### Ozon
 - `GET /api/ozon/stats`：支持 `date` 或 `start`/`end` 范围，自动探测实际列名并聚合 SKU 指标（展示、访客、加购、下单等）；若未指定日期则返回最新日期列表供选择。【F:api/ozon/stats/index.js†L1-L120】
 - `POST /api/ozon/import`：接收 `file` 字段的报表，执行俄文表头转蛇形、列重映射与必填校验后 upsert 到 `ozon_product_report_wide`，并处理 Schema 缓存刷新。【F:api/ozon/import/index.js†L1-L160】
+
+### 指标字段兼容策略
+- **可选字段约定**：统一运营接口的曝光、访客、加购、订单、支付、GMV 等字段默认可为空（`null`），若平台缺失某字段必须在响应中显式返回 `null`，并在 `meta.missingFields` 中列出缺失项，同时在 README 与 `docs/platform-architecture.md` 标注原因。
+- **替代指标说明**：当平台仅提供相近指标（如 TikTok 仅有 `clicks`），需在响应的 `meta.substitutions` 字段记录映射关系，同时在 `specs/openapi.yaml` 和 `specs/metrics_dictionary.md` 中登记换算口径。
+- **错误防护**：禁止因为缺失字段返回 500；若关键指标缺失导致无法计算漏斗，应返回 422 并提供可读的缺失字段列表。
 
 ## 项目知识库与约束
 - `docs/platform-architecture.md`：全站架构蓝图，描述站点矩阵、模块职责、数据流与执行建议。【F:docs/platform-architecture.md†L1-L162】
