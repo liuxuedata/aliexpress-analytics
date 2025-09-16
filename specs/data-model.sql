@@ -34,8 +34,12 @@ CREATE TABLE IF NOT EXISTS site_module_configs (
   config JSONB DEFAULT '{}'::JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (COALESCE(site_id, platform), module_key)
+  UNIQUE (site_id, module_key)
 );
+
+-- 允许站点或平台维度的互斥唯一性（site_id 为空时退化为平台级配置）
+CREATE UNIQUE INDEX IF NOT EXISTS idx_site_module_configs_scope_module
+  ON site_module_configs (COALESCE(site_id, platform), module_key);
 
 CREATE TABLE IF NOT EXISTS site_module_roles (
   module_config_id UUID NOT NULL REFERENCES site_module_configs(id) ON DELETE CASCADE,
