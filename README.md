@@ -3,6 +3,14 @@
 ## 项目概述
 跨境电商数据分析平台，支持多平台、多渠道的广告数据分析，包括速卖通、亚马逊、TikTok Shop、Temu、Ozon等平台的数据整合与分析。
 
+## 全局架构规划（2025-01-07 更新）
+- 👉 详见《[跨境电商管理平台架构蓝图](docs/platform-architecture.md)》，覆盖站点矩阵、模块职责、数据流及扩展计划。【F:docs/platform-architecture.md†L1-L118】
+- **站点矩阵**：保留速卖通自运营（Robot/Poolslab）、全托管、独立站、亚马逊、Ozon 等既有页面，并为 Temu、TikTok、Lazada、Shopee 预留导航与数据接入路径，形成统一入口。【F:docs/platform-architecture.md†L12-L52】
+- **模块蓝图**：除运营分析外，新增订单管理、库存管理、广告中心与权限中心四大业务域，分别负责订单闭环、库存批次与调拨、广告归因以及跨团队访问控制。【F:docs/platform-architecture.md†L54-L119】
+- **数据流与指标**：统一使用“曝光 → 访客 → 加购 → 下单 → 支付 → 支付金额”链路，并将指标定义、OpenAPI 规范与 SQL 数据模型分别沉淀在 `specs/metrics_dictionary.md`、`specs/openapi.yaml`、`specs/data-model.sql` 中，确保跨平台一致性。【F:docs/platform-architecture.md†L73-L118】【F:specs/metrics_dictionary.md†L1-L20】【F:specs/openapi.yaml†L1-L369】【F:specs/data-model.sql†L1-L209】
+- **多平台扩展**：通过 `site-configs` 注册新站点（如 Lazada/Shopee），并扩展 ingest/API 即可快速上线，相关步骤在蓝图及路线图中给出。【F:docs/platform-architecture.md†L31-L116】【F:roadmap.yaml†L1-L49】
+- **执行指引**：优先建设权限校验、再并行推进订单与库存等模块，并在 CI 中强制校验规则与规格同步，降低多人协作风险。【F:docs/platform-architecture.md†L120-L162】【F:rules.json†L1-L54】
+
 ## 核心功能
 
 ### 🎯 多渠道架构 (2025-01-06 更新)
@@ -48,6 +56,12 @@
 - **独立站**：支持 Facebook、Google、TikTok 渠道，站点默认包含 `poolsvacuum.com` 与 `icyberite.com`，并在导航下拉与页面内同步显示。【F:public/assets/site-nav.js†L19-L123】
 - **多平台扩展**：导航条保留 Amazon、Ozon、TikTok Shop、Temu、独立站入口，为未来新增 Lazada、Shopee 等站点提供统一壳层与导航位置。【F:public/managed.html†L25-L54】
 
+### 业务模块规划（新增）
+- **订单中心**：以 `orders`、`order_items`、`fulfillments`、`payments` 等表支撑订单全链路，覆盖订单导入、状态流转、利润分析，并规划“订单中心”前端页面。【F:docs/platform-architecture.md†L83-L106】【F:specs/data-model.sql†L16-L94】
+- **库存中心**：通过 `inventory_batches`、`inventory_movements`、`inventory_snapshots` 建立批次、调拨与预警能力，订单出库与采购入库均需产生日志。【F:docs/platform-architecture.md†L107-L123】【F:specs/data-model.sql†L96-L138】
+- **广告中心**：集中管理广告账户、系列、素材与日指标，支撑预算、投放配置与归因分析，对应 API 见 `specs/openapi.yaml` 的 `/api/ads/*` 定义。【F:docs/platform-architecture.md†L124-L133】【F:specs/openapi.yaml†L520-L612】【F:specs/data-model.sql†L140-L186】
+- **权限中心**：采用 RBAC + 资源范围模型，记录角色、权限、成员与审计日志，保障不同团队的模块访问隔离。【F:docs/platform-architecture.md†L134-L148】【F:specs/data-model.sql†L188-L230】【F:rules.json†L39-L54】
+
 ## API 接口与参数说明
 
 ### 通用与站点管理
@@ -85,6 +99,12 @@
 ### Ozon
 - `GET /api/ozon/stats`：支持 `date` 或 `start`/`end` 范围，自动探测实际列名并聚合 SKU 指标（展示、访客、加购、下单等）；若未指定日期则返回最新日期列表供选择。【F:api/ozon/stats/index.js†L1-L120】
 - `POST /api/ozon/import`：接收 `file` 字段的报表，执行俄文表头转蛇形、列重映射与必填校验后 upsert 到 `ozon_product_report_wide`，并处理 Schema 缓存刷新。【F:api/ozon/import/index.js†L1-L160】
+
+## 项目知识库与约束
+- `docs/platform-architecture.md`：全站架构蓝图，描述站点矩阵、模块职责、数据流与执行建议。【F:docs/platform-architecture.md†L1-L162】
+- `rules.json`：约束站点命名、模块范围、API 约定、权限角色及文档同步要求，是代码审查的硬性规范。【F:rules.json†L1-L76】
+- `roadmap.yaml`：规划 v1/v2/v3 的重点交付、指标、风险与缓解策略，指导多模块并行实施。【F:roadmap.yaml†L1-L63】
+- `specs/`：包含 `openapi.yaml`、`data-model.sql`、`metrics_dictionary.md` 三大规格文件，统一接口、数据结构与指标口径。【F:specs/README.md†L1-L6】【F:specs/openapi.yaml†L1-L612】【F:specs/data-model.sql†L1-L209】【F:specs/metrics_dictionary.md†L1-L20】
 
 ---
 
