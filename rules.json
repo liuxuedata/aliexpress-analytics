@@ -1,0 +1,60 @@
+{
+  "version": "2025-01-07",
+  "architecture": {
+    "platforms": {
+      "description": "站点必须通过 site-configs 注册，platform 字段使用小写蛇形命名，例如 ae_self_operated、ae_managed、amazon、ozon、temu、tiktok、independent、lazada、shopee。",
+      "enforceSiteSync": "新增站点后必须调用 /api/site-sync 并更新 specs/openapi.yaml 中的站点列表。"
+    },
+    "modules": {
+      "required": [
+        "operations",
+        "products",
+        "orders",
+        "inventory",
+        "advertising",
+        "permissions"
+      ],
+      "scope": {
+        "operations": "负责曝光/访客/加购/下单/支付/GMV 等运营指标，所有页面需要遵循 specs/metrics_dictionary.md 的指标含义，并在 API 响应中返回 availableFields/missingFields 元信息以反映平台字段差异。",
+        "products": "产品分析模块必须以独立的 section 呈现，禁止与运营或订单模块复用 DOM/脚本；产品指标需引用 specs/metrics_dictionary.md 中的定义，并可按站点配置追加自定义字段。",
+        "orders": "订单域 API 与数据模型必须遵循 specs/data-model.sql 中的 orders 与 order_items 结构，禁止直接在业务代码中新增未记录的字段。",
+        "inventory": "库存域依赖 inventory_batches、inventory_movements，任何库存扣减必须记录 movement_type 与引用的订单或批次。",
+        "advertising": "广告域需要同时维护配置（ad_campaigns/ad_sets/ad_creatives）与指标（ad_metrics_daily），上传接口必须支持 dry_run 校验。",
+        "permissions": "所有新增页面/接口在发布前需在权限矩阵中登记资源 ID 与默认角色，默认为 deny。"
+      }
+    },
+    "navigation": {
+      "moduleOrder": ["operations", "products", "orders", "advertising"],
+      "globalOnlyModules": ["inventory", "permissions"],
+      "rule": "站点左侧导航必须由 site_module_configs 驱动，按照 moduleOrder 渲染，模块 DOM/数据请求保持隔离；库存与权限只允许出现在全局设置入口，且需校验用户角色。"
+    }
+  },
+  "apis": {
+    "versioning": "REST API 遵循 /api/<domain>/<resource> 命名，查询使用 GET，创建使用 POST，更新使用 PATCH/PUT，删除使用 DELETE。",
+    "ingest": {
+      "fileUpload": "所有文件上传端点需支持 ?dry_run=1 模式并返回字段映射与校验结果。",
+      "schemaAlignment": "若上传字段与数据库字段不一致，必须在 API 层实现映射表，并在 specs/openapi.yaml 中同步更新。"
+    },
+    "responses": "接口返回 JSON，统一字段 { success:boolean, message?:string, data?:object }，分页使用 { items:[], total:number, limit:number, offset:number }。",
+    "metadata": "所有运营、产品、广告查询接口需要在响应中携带 metadata.availableFields 与 metadata.missingFields，并在 specs/openapi.yaml 的 x-field-availability 中声明平台差异。",
+    "errorHandling": "错误码遵循 HTTP 状态码，400 用于参数错误、422 用于业务校验失败、500 为未知错误；错误响应必须包含 traceId。"
+  },
+  "files": {
+    "naming": "新建页面使用 kebab-case HTML 文件名，新建 API 文件采用目录分层，例如 api/orders/index.js，子资源使用嵌套文件夹。",
+    "documentation": "任何涉及架构或接口的变更必须同步更新 README.md、docs/platform-architecture.md 以及 specs/ 目录中的对应文件，并校对 site_module_configs / platform_metric_profiles 的描述。",
+    "tests": "新增 API 必须附带最小化的单元测试或脚本，若暂缺测试需在 PR 中说明原因并登记在 roadmap.yaml 的 debt 列表。"
+  },
+  "permissions": {
+    "roles": [
+      "super_admin",
+      "operations_manager",
+      "order_manager",
+      "inventory_manager",
+      "ad_manager",
+      "finance",
+      "viewer"
+    ],
+    "rule": "默认仅 super_admin 拥有全部站点与模块访问权，其余角色需在权限配置中明确授予站点与资源；inventory_manager 与 ad_manager 仅能看到对应全局模块，站点侧边栏需结合 site_module_roles 做二次校验。",
+    "audit": "权限变更需要记录 audit_log，包括 actor、target、change_set、timestamp；日志表结构参考 specs/data-model.sql。"
+  }
+}
