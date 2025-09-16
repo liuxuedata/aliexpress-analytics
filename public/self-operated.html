@@ -631,16 +631,32 @@
             <div id="analysisFunnel" style="width:100%;height:320px;"></div>
           </div>
           <div class="panel">
-            <h3>曝光周期对比</h3>
-            <div id="analysisExposureCompare" style="width:100%;height:320px;"></div>
+            <h3>总展示数</h3>
+            <div id="analysisExposureWeekly" style="width:100%;height:320px;"></div>
           </div>
           <div class="panel">
-            <h3>加购件数对比</h3>
-            <div id="analysisCartCompare" style="width:100%;height:320px;"></div>
+            <h3>详情页访客数</h3>
+            <div id="analysisVisitorsWeekly" style="width:100%;height:320px;"></div>
           </div>
           <div class="panel">
-            <h3>支付订单数对比</h3>
-            <div id="analysisPayCompare" style="width:100%;height:320px;"></div>
+            <h3>加购次数</h3>
+            <div id="analysisAddTimesWeekly" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>订购商品数</h3>
+            <div id="analysisOrderItemsWeekly" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>有曝光商品数</h3>
+            <div id="analysisExposureProductsWeekly" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>有加购商品数</h3>
+            <div id="analysisAddProductsWeekly" style="width:100%;height:320px;"></div>
+          </div>
+          <div class="panel">
+            <h3>有支付商品数</h3>
+            <div id="analysisPayProductsWeekly" style="width:100%;height:320px;"></div>
           </div>
           <div class="panel">
             <h3>Top10 访客比（UV/曝光）</h3>
@@ -787,29 +803,29 @@ $('#fileInput').on('change', function(e) {
 
       const findIdx = (re) => headers.findIndex(h => re.test(String(h).trim()));
       const idx = {
-        product_id: findIdx(/^(商品)?ID$|^商品id$|^id$|^item id$|^item_id$/i),
-        stat_date:  findIdx(/^(统计时间|日期|数据时间|date)$/i),
-        exposure:   findIdx(/^(搜索曝光量|曝光量|商品曝光量|impressions)$/i),
-        visitors:   (function(){ const rs=[/^(商品)?访客数$/i,/^访客人数$/i,/^访客量$/i,/^uv$/i,/^sessions$/i];
+        product_id: findIdx(/^(商品)?ID$|^商品id$|^id$|^item id$|^item_id$|^product id$|^productid$|^profuct id$/i),
+        stat_date:  findIdx(/^(统计时间|日期|数据时间|date|timeframe)/i),
+        exposure:   findIdx(/^(搜索曝光量|曝光量|商品曝光量|impressions|exposure)$/i),
+        visitors:   (function(){ const rs=[/^(商品)?访客数$/i,/^访客人数$/i,/^访客量$/i,/^uv$/i,/^sessions$/i,/^visitors$/i];
           for (const re of rs){const i = findIdx(re); if(i!==-1) return i;}
           const i2=headers.findIndex(h=>/访客数|访客/i.test(String(h).trim())&&!/(老|新|回|复)访客/i.test(String(h).trim()));
           return i2;
         })(),
-        visitors_new: findIdx(/^(新访客数|新访客|新用户|新增访客)$/i),
-        visitors_old: findIdx(/^(老访客数|老访客|回访客|复访客)$/i),
-        views:      findIdx(/^(商品浏览量|浏览量|pv|page views)$/i),
-        add_people: findIdx(/^(商品加购人数|加购人数|加购买家数)$/i),
-        add_count:  findIdx(/^(商品加购件数|加购件数)$/i),
+        visitors_new: findIdx(/^(新访客数|新访客|新用户|新增访客|new visitors)$/i),
+        visitors_old: findIdx(/^(老访客数|老访客|回访客|复访客|old visitors)$/i),
+        views:      findIdx(/^(商品浏览量|浏览量|pv|page ?views?|pageviews)$/i),
+        add_people: findIdx(/^(商品加购人数|加购人数|加购买家数|product purchasing tips|purchasing tips|add to cart buyers|add to cart people|add to cart users)$/i),
+        add_count:  findIdx(/^(商品加购件数|加购件数|add to cart times|add to cart count|add to cart quantity|add to cart number)$/i),
         // ✅ 支付商品件数：兼容"支付件数/付款件数/成交件数/支付商品件数"
-        pay_items:  (function(){ const rs=[/^支付商品件数$/i,/^支付件数$/i,/^付款件数$/i,/^成交件数$/i]; for (const re of rs){const i=findIdx(re); if(i!==-1) return i;} return -1; })(),
-        pay_orders: findIdx(/^(支付订单数|下单人数|订单数)$/i),
-        pay_buyers: findIdx(/^(支付买家数|支付人数|成交人数)$/i),
-        fav_people: findIdx(/^(收藏人数|收藏买家数|收藏用户数)$/i),
-        fav_count:  findIdx(/^(收藏件数|收藏量)$/i),
+        pay_items:  (function(){ const rs=[/^支付商品件数$/i,/^支付件数$/i,/^付款件数$/i,/^成交件数$/i,/^paid product number$/i,/^payment product number$/i,/^paid products?$/i]; for (const re of rs){const i=findIdx(re); if(i!==-1) return i;} return -1; })(),
+        pay_orders: findIdx(/^(支付订单数|下单人数|订单数|paid orders)$/i),
+        pay_buyers: findIdx(/^(支付买家数|支付人数|成交人数|buyers paid|paid buyers)$/i),
+        fav_people: findIdx(/^(收藏人数|收藏买家数|收藏用户数|wishlists?)$/i),
+        fav_count:  findIdx(/^(收藏件数|收藏量|wishlist count|wishlist items|wishlist quantity)$/i),
         // ✅ 新增：下单商品件数 / 平均停留时长 / 搜索点击率
-        order_items: findIdx(/^(下单商品件数|下单件数|下单商品数|下单商品数量)$/i),
-        avg_stay_seconds: findIdx(/^(平均停留时长(\(秒\))?|平均停留时间|平均访问时长)$/i),
-        search_ctr: findIdx(/^(搜索点击率(\(%\))?|点击率(\(%\))?|搜索点击率|点击率)$/i),
+        order_items: findIdx(/^(下单商品件数|下单件数|下单商品数|下单商品数量|order product number)$/i),
+        avg_stay_seconds: findIdx(/^(平均停留时长(\(秒\))?|平均停留时间|平均访问时长|average visitor duration|average visit duration|avg visitor duration)$/i),
+        search_ctr: findIdx(/^(搜索点击率(\(%\))?|点击率(\(%\))?|搜索点击率|点击率|click rate( \(%\))?)$/i),
       };
       if (idx.product_id<0 || idx.stat_date<0) throw new Error('缺少必填：商品ID / 统计时间');
 
@@ -1121,26 +1137,42 @@ document.addEventListener('DOMContentLoaded', ()=>{
         aggregate: 'time'
       });
 
-      const [currentResponse, prevResponse] = await Promise.all([
+      // 最近两个月的自然周起始日期
+      const weeklyStartDate = new Date();
+      weeklyStartDate.setMonth(weeklyStartDate.getMonth() - 2);
+      weeklyStartDate.setDate(weeklyStartDate.getDate() - ((weeklyStartDate.getDay() + 6) % 7));
+      const weeklyStart = weeklyStartDate.toISOString().slice(0,10);
+      const todayISO = new Date().toISOString().slice(0,10);
+      const weeklyParams = new URLSearchParams({
+        start: weeklyStart,
+        end: todayISO,
+        granularity: 'week',
+        site: currentSite,
+        aggregate: 'time'
+      });
+
+      const [currentResponse, prevResponse, weeklyResponse] = await Promise.all([
         fetch(`/api/ae_query?${currentParams.toString()}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } }),
-        fetch(`/api/ae_query?${prevParams.toString()}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
+        fetch(`/api/ae_query?${prevParams.toString()}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } }),
+        fetch(`/api/ae_query?${weeklyParams.toString()}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
       ]);
 
-      if (!currentResponse.ok || !prevResponse.ok) {
-        throw new Error(`API响应错误: ${currentResponse.status}/${prevResponse.status}`);
+      if (!currentResponse.ok || !prevResponse.ok || !weeklyResponse.ok) {
+        throw new Error(`API响应错误: ${currentResponse.status}/${prevResponse.status}/${weeklyResponse.status}`);
       }
 
       const currentData = await currentResponse.json();
       const prevData = await prevResponse.json();
-      console.log('运营分析数据响应:', currentData, prevData);
+      const weeklyData = await weeklyResponse.json();
+      console.log('运营分析数据响应:', currentData, prevData, weeklyData);
 
-      if (currentData.ok && currentData.rows && prevData.ok && prevData.rows) {
+      if (currentData.ok && currentData.rows && prevData.ok && prevData.rows && weeklyData.ok && weeklyData.rows) {
         renderAnalysisCharts(currentData.rows, prevData.rows);
-        renderPeriodComparisonCharts(currentData.rows, prevData.rows);
         renderFunnelChart(currentData.rows, prevData.rows);
         renderTopCharts(currentData.rows);
+        renderWeeklyComparisonCharts(weeklyData.rows);
       } else {
-        console.warn('运营分析数据格式不正确:', currentData, prevData);
+        console.warn('运营分析数据格式不正确:', currentData, prevData, weeklyData);
         showAnalysisError('数据格式不正确，请检查API响应');
       }
     } catch (error) {
@@ -1488,32 +1520,64 @@ document.addEventListener('DOMContentLoaded', ()=>{
     initResponsiveChart(id, option);
   }
 
-  function renderPeriodComparisonCharts(currentRows, previousRows) {
-    const sum = rows => ({
-      exp: rows.reduce((t, r) => t + (r.exposure || 0), 0),
-      add: rows.reduce((t, r) => t + (r.add_people || 0), 0),
-      pay: rows.reduce((t, r) => t + (r.pay_items || 0), 0)
+  function renderWeeklyComparisonCharts(rows) {
+    const map = new Map();
+    rows.forEach(r => {
+      const w = r.bucket || r.week || r.stat_date || '';
+      if (!map.has(w)) {
+        map.set(w, {
+          exposure: 0,
+          visitors: 0,
+          add_count: 0,
+          pay_items: 0,
+          expSet: new Set(),
+          addSet: new Set(),
+          paySet: new Set()
+        });
+      }
+      const acc = map.get(w);
+      acc.exposure += r.exposure || 0;
+      acc.visitors += r.visitors || 0;
+      acc.add_count += r.add_people || 0;
+      acc.pay_items += r.pay_items || 0;
+      if ((r.exposure || 0) > 0) acc.expSet.add(r.product_id);
+      if ((r.add_people || 0) > 0) acc.addSet.add(r.product_id);
+      if ((r.pay_items || 0) > 0 || (r.pay_orders || 0) > 0) acc.paySet.add(r.product_id);
     });
-    const cur = sum(currentRows);
-    const prev = sum(previousRows);
 
-    const render = (id, label, curVal, prevVal) => {
+    const weeks = Array.from(map.keys()).sort();
+    const exp = weeks.map(w => map.get(w).exposure);
+    const uv = weeks.map(w => map.get(w).visitors);
+    const addTimes = weeks.map(w => map.get(w).add_count);
+    const orderItems = weeks.map(w => map.get(w).pay_items);
+    const expProducts = weeks.map(w => map.get(w).expSet.size);
+    const addProducts = weeks.map(w => map.get(w).addSet.size);
+    const payProducts = weeks.map(w => map.get(w).paySet.size);
+
+    const render = (id, data) => {
       const option = {
-        tooltip:{ trigger:'axis', axisPointer:{ type:'shadow' } },
-        legend:{ data:['本期','上期'], textStyle:{ color:'#374151' } },
-        xAxis:{ type:'category', data:[label], axisLabel:{ color:'#374151' } },
+        tooltip:{ trigger:'axis' },
+        xAxis:{ type:'category', data:weeks, axisLabel:{ color:'#374151' } },
         yAxis:{ type:'value', axisLabel:{ color:'#374151' } },
-        series:[
-          { name:'本期', type:'bar', data:[curVal], label:{show:true, position:'top'} },
-          { name:'上期', type:'bar', data:[prevVal], label:{show:true, position:'top'} }
-        ]
+        series:[{
+          type:'bar',
+          data,
+          barMaxWidth:24,
+          itemStyle:{ color:'#3B82F6' },
+          label:{ show:true, position:'top', color:'#374151' }
+        }],
+        grid:{ left:40, right:20, top:30, bottom:30 }
       };
       initResponsiveChart(id, option);
     };
 
-    render('analysisExposureCompare', '曝光', cur.exp, prev.exp);
-    render('analysisCartCompare', '加购件数', cur.add, prev.add);
-    render('analysisPayCompare', '支付订单数', cur.pay, prev.pay);
+    render('analysisExposureWeekly', exp);
+    render('analysisVisitorsWeekly', uv);
+    render('analysisAddTimesWeekly', addTimes);
+    render('analysisOrderItemsWeekly', orderItems);
+    render('analysisExposureProductsWeekly', expProducts);
+    render('analysisAddProductsWeekly', addProducts);
+    render('analysisPayProductsWeekly', payProducts);
   }
 
   function renderFunnelChart(currentRows, previousRows) {

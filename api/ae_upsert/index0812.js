@@ -19,9 +19,40 @@ function fmtDate(d) {
   return s.slice(0,10);
 }
 
+const aliasCache = new WeakMap();
+function normalizeKeyName(key) {
+  return String(key ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_（）()\-]/g, '');
+}
+function getAliasMap(row) {
+  if (aliasCache.has(row)) return aliasCache.get(row);
+  const map = new Map();
+  if (row && typeof row === 'object') {
+    Object.keys(row).forEach((key) => {
+      const norm = normalizeKeyName(key);
+      if (norm && !map.has(norm)) {
+        map.set(norm, key);
+      }
+    });
+  }
+  aliasCache.set(row, map);
+  return map;
+}
+
 function pick(row, keys) {
+  if (!row || typeof row !== 'object') return 0;
   for (const k of keys) {
     if (row[k] !== undefined && row[k] !== null && row[k] !== '') return row[k];
+  }
+  const aliasMap = getAliasMap(row);
+  for (const k of keys) {
+    const actual = aliasMap.get(normalizeKeyName(k));
+    if (actual !== undefined) {
+      const v = row[actual];
+      if (v !== undefined && v !== null && v !== '') return v;
+    }
   }
   return 0;
 }
@@ -31,56 +62,56 @@ function pickProductId(row) {
   return String(v ?? '').trim();
 }
 function pickStatDate(row) {
-  const v = pick(row, ['stat_date','日期','统计日期','date']);
+  const v = pick(row, ['stat_date','日期','统计日期','date','timeframe','Timeframe (USA Time Zone)']);
   return fmtDate(v);
 }
 function pickExposure(row) {
-  const v = pick(row, ['exposure','搜索曝光量','曝光量','search_exposure','impressions','曝光']);
+  const v = pick(row, ['exposure','搜索曝光量','曝光量','search_exposure','impressions','曝光','Exposure']);
   return toNum(v);
 }
 function pickVisitors(row) {
   if (row.visitors !== undefined && row.visitors !== null && row.visitors !== '') {
     return toNum(row.visitors);
   }
-  const newKeys = ['visitors_new','new_visitors','newVisitor','new_visitor','新访客数','新访客','新增访客'];
-  const oldKeys = ['visitors_old','old_visitors','oldVisitor','old_visitor','老访客数','老访客','回访客','复访客'];
+  const newKeys = ['visitors_new','new_visitors','newVisitor','new_visitor','新访客数','新访客','新增访客','new visitors'];
+  const oldKeys = ['visitors_old','old_visitors','oldVisitor','old_visitor','老访客数','老访客','回访客','复访客','old visitors'];
   let has = false, vn = 0, vo = 0;
   for (const k of newKeys) { if (row[k] !== undefined) { vn += toNum(row[k]); has = true; } }
   for (const k of oldKeys) { if (row[k] !== undefined) { vo += toNum(row[k]); has = true; } }
   if (has) return vn + vo;
-  const v = pick(row, ['visitors','商品访客数','访客数','访客人数','unique_visitors']);
+  const v = pick(row, ['visitors','商品访客数','访客数','访客人数','unique_visitors','Visitors']);
   return toNum(v);
 }
 function pickViews(row) {
-  const v = pick(row, ['views','商品浏览量','浏览量','pageviews','pv','商品pv','浏览量(PV)']);
+  const v = pick(row, ['views','商品浏览量','浏览量','pageviews','page views','pv','商品pv','浏览量(PV)']);
   return toNum(v);
 }
 function pickAddPeople(row) {
-  const v = pick(row, ['add_people','商品加购人数','加购人数','加购买家数','加入购物车人数','购物车买家数']);
+  const v = pick(row, ['add_people','商品加购人数','加购人数','加购买家数','加入购物车人数','购物车买家数','product purchasing tips','purchasing tips','add to cart buyers','add to cart people','add to cart users']);
   return toNum(v);
 }
 function pickAddCount(row) {
-  const v = pick(row, ['add_count','商品加购件数','加购件数','加入购物车件数','购物车件数','购物车数量','购物车加购件数']);
+  const v = pick(row, ['add_count','商品加购件数','加购件数','加入购物车件数','购物车件数','购物车数量','购物车加购件数','add to cart times','add to cart count','add to cart quantity','add to cart number']);
   return toNum(v);
 }
 function pickPayItems(row) {
-  const v = pick(row, ['pay_items','支付件数','付款件数','成交件数']);
+  const v = pick(row, ['pay_items','支付商品件数','支付件数','付款件数','成交件数','paid product number','payment product number','paid products']);
   return toNum(v);
 }
 function pickPayOrders(row) {
-  const v = pick(row, ['pay_orders','支付订单数','订单数','支付订单']);
+  const v = pick(row, ['pay_orders','支付订单数','订单数','支付订单','paid orders']);
   return toNum(v);
 }
 function pickPayBuyers(row) {
-  const v = pick(row, ['pay_buyers','支付买家数','支付人数','付款买家数','买家数']);
+  const v = pick(row, ['pay_buyers','支付买家数','支付人数','付款买家数','买家数','buyers paid','paid buyers']);
   return toNum(v);
 }
 function pickFavPeople(row) {
-  const v = pick(row, ['fav_people','收藏人数','收藏买家数']);
+  const v = pick(row, ['fav_people','收藏人数','收藏买家数','wishlists','wishlist']);
   return toNum(v);
 }
 function pickFavCount(row) {
-  const v = pick(row, ['fav_count','收藏件数','收藏数量']);
+  const v = pick(row, ['fav_count','收藏件数','收藏数量','wishlist count','wishlist items','wishlist quantity']);
   return toNum(v);
 }
 
