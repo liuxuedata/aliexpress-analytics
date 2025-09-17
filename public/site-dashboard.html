@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>站点控制台</title>
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg" sizes="64x64">
+  <link rel="stylesheet" href="assets/theme.css?v=20250812-deep">
+  <link rel="stylesheet" href="assets/global-theme.css">
+  <style>
+    :root {
+      --dashboard-bg: var(--page-bg, #f8fafc);
+      --dashboard-card-bg: var(--card-bg, #ffffff);
+      --dashboard-border: rgba(15, 23, 42, 0.08);
+      --dashboard-muted: #64748b;
+      --dashboard-accent: var(--brand, #2563eb);
+    }
+
+    body.fm {
+      background: var(--dashboard-bg);
+    }
+
+    .header {
+      border-bottom: 1px solid var(--dashboard-border);
+    }
+
+    .site-header {
+      padding: 1.5rem 1rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: .25rem;
+      border-bottom: 1px solid var(--dashboard-border);
+    }
+
+    .site-header #currentSite {
+      font: 700 18px/1.2 "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #0f172a;
+    }
+
+    .site-platform {
+      font-size: 12px;
+      color: var(--dashboard-muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .sub-nav {
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+    }
+
+    .sub-nav li {
+      list-style: none;
+    }
+
+    .sub-nav li a {
+      display: block;
+      padding: .5rem .75rem;
+      border-radius: 10px;
+      font-size: 14px;
+      color: #1e293b;
+      background: transparent;
+      transition: background .2s ease, color .2s ease;
+    }
+
+    .sub-nav li a.active,
+    .sub-nav li a:hover {
+      background: var(--dashboard-accent);
+      color: #fff;
+    }
+
+    .sub-nav li.empty,
+    .sub-nav li.empty a {
+      color: var(--dashboard-muted);
+      cursor: default;
+    }
+
+    .module-intro {
+      background: var(--dashboard-card-bg);
+      border-radius: 16px;
+      padding: 1.75rem;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
+      border: 1px solid var(--dashboard-border);
+      margin-bottom: 1.5rem;
+    }
+
+    .module-hero h1 {
+      margin: 0;
+      font: 800 28px/1.25 "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #0f172a;
+    }
+
+    .module-hero p {
+      margin: .75rem 0 0;
+      font-size: 15px;
+      color: var(--dashboard-muted);
+      max-width: 720px;
+    }
+
+    .module-summary-grid {
+      margin-top: 1.5rem;
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .summary-card {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid var(--dashboard-border);
+      border-radius: 12px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: .35rem;
+    }
+
+    .summary-label {
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--dashboard-muted);
+    }
+
+    .summary-value {
+      font-size: 16px;
+      font-weight: 600;
+      color: #0f172a;
+      word-break: break-all;
+    }
+
+    .module-sections {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .module-section {
+      background: var(--dashboard-card-bg);
+      border-radius: 16px;
+      padding: 1.75rem;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
+      border: 1px solid var(--dashboard-border);
+    }
+
+    .module-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .module-header h2 {
+      margin: 0;
+      font: 700 22px/1.2 "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #0f172a;
+    }
+
+    .module-subtitle {
+      margin: .35rem 0 0;
+      color: var(--dashboard-muted);
+      font-size: 13px;
+    }
+
+    .module-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: .35rem .85rem;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .chip-on {
+      background: rgba(59, 130, 246, 0.12);
+      color: var(--dashboard-accent);
+    }
+
+    .chip-off {
+      background: rgba(148, 163, 184, 0.16);
+      color: #475569;
+    }
+
+    .module-grid {
+      display: grid;
+      gap: 1.25rem;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .module-card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 14px;
+      border: 1px solid var(--dashboard-border);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: .75rem;
+      min-height: 0;
+    }
+
+    .module-card h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .module-status-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: .35rem;
+      color: #0f172a;
+      font-size: 14px;
+    }
+
+    .module-status-list li {
+      display: flex;
+      align-items: center;
+      gap: .35rem;
+      line-height: 1.4;
+    }
+
+    .field-groups {
+      display: flex;
+      flex-direction: column;
+      gap: .75rem;
+    }
+
+    .field-list {
+      display: flex;
+      flex-direction: column;
+      gap: .35rem;
+    }
+
+    .field-list-label {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .05em;
+      color: var(--dashboard-muted);
+      text-transform: uppercase;
+    }
+
+    .field-list ul {
+      margin: 0;
+      padding-left: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: .3rem;
+      font-size: 13px;
+      color: #0f172a;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+
+    .field-sync-info {
+      font-size: 12px;
+      color: var(--dashboard-muted);
+    }
+
+    .module-config-hint {
+      font-size: 13px;
+      color: var(--dashboard-muted);
+      margin: 0;
+    }
+
+    .module-config {
+      margin: 0;
+      padding: .75rem;
+      background: rgba(15, 23, 42, 0.04);
+      border-radius: 10px;
+      font-size: 12px;
+      color: #0f172a;
+      max-height: 200px;
+      overflow: auto;
+    }
+
+    .module-empty,
+    .module-empty-state {
+      color: var(--dashboard-muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .module-empty-state {
+      padding: 2rem;
+      border: 1px dashed var(--dashboard-border);
+      border-radius: 12px;
+      background: rgba(248, 250, 252, 0.6);
+      text-align: center;
+    }
+
+    @media (max-width: 1024px) {
+      .layout.container {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--dashboard-border);
+      }
+
+      .module-intro,
+      .module-section {
+        border-radius: 12px;
+      }
+    }
+  </style>
+</head>
+<body class="fm">
+  <header class="header">
+    <div class="logo-title"><img src="assets/logo.svg" alt="Ecommerce Analytics" class="site-logo"> 跨境电商数据分析平台</div>
+    <nav class="header-center">
+      <ul class="platform-nav">
+        <li class="ali"><a href="self-operated.html">速卖通</a>
+          <ul class="dropdown" id="managedMenu"></ul>
+        </li>
+        <li class="amazon"><a href="amazon-overview.html">亚马逊</a></li>
+        <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+        <li class="temu"><a href="temu.html">Temu</a></li>
+        <li class="ozon"><a href="ozon-detail.html">Ozon</a></li>
+        <li class="independent"><a href="independent-site.html">独立站</a>
+          <ul class="dropdown" id="indepMenu"></ul>
+        </li>
+      </ul>
+    </nav>
+    <div id="userArea" class="user-section"></div>
+  </header>
+
+  <div class="layout container">
+    <nav class="sidebar" id="sidebar">
+      <div class="site-header">
+        <span id="currentSite">加载中…</span>
+        <span id="currentSitePlatform" class="site-platform"></span>
+      </div>
+      <ul class="sub-nav" id="moduleNav">
+        <li class="empty"><a>模块加载中…</a></li>
+      </ul>
+    </nav>
+
+    <main class="main" id="moduleMain">
+      <section class="content-pad module-intro" id="moduleIntro">
+        <div class="module-hero">
+          <h1 id="dashboardTitle">站点模块装载中</h1>
+          <p id="dashboardSummary">请稍候，我们正在获取站点配置与模块信息。</p>
+        </div>
+        <div class="module-summary-grid" id="moduleSummaryGrid"></div>
+      </section>
+      <div class="module-sections" id="moduleSections"></div>
+    </main>
+  </div>
+
+  <script src="assets/site-nav.js"></script>
+  <script>
+    (function(){
+      const params=new URLSearchParams(window.location.search);
+      const siteId=params.get('site')||params.get('siteId');
+
+      const moduleNavEl=document.getElementById('moduleNav');
+      const moduleSectionsEl=document.getElementById('moduleSections');
+      const siteNameEl=document.getElementById('currentSite');
+      const sitePlatformEl=document.getElementById('currentSitePlatform');
+      const titleEl=document.getElementById('dashboardTitle');
+      const summaryEl=document.getElementById('dashboardSummary');
+      const summaryGridEl=document.getElementById('moduleSummaryGrid');
+
+      if(!siteId){
+        showMissingSiteMessage();
+        return;
+      }
+
+      const state={
+        siteId,
+        site:null,
+        modules:[]
+      };
+
+      init();
+
+      async function init(){
+        try{
+          siteNameEl.textContent='站点加载中…';
+          const siteConfig=await ensureSiteConfig(state.siteId);
+          if(!siteConfig){
+            showNotFound();
+            return;
+          }
+
+          state.site=siteConfig;
+          localStorage.setItem('currentDynamicSite',siteConfig.id);
+
+          document.title=`${siteConfig.displayName} · 站点控制台`;
+          siteNameEl.textContent=siteConfig.displayName;
+          sitePlatformEl.textContent=getPlatformLabel(siteConfig.platform);
+
+          renderSiteSummary(siteConfig,0);
+
+          if(typeof window.renderSiteMenus==='function'){
+            window.renderSiteMenus().catch(err=>console.warn('[site-dashboard] 刷新导航失败',err));
+          }
+          if(typeof window.updateCurrentSiteDisplay==='function'){
+            window.updateCurrentSiteDisplay();
+          }
+
+          const modules=await loadSiteModules(siteConfig.id);
+          state.modules=modules;
+
+          renderSiteSummary(siteConfig,modules.length);
+          renderModules(modules,siteConfig);
+        }catch(error){
+          console.error('[site-dashboard] 初始化失败',error);
+          showError('模块加载失败，请稍后再试。');
+        }
+      }
+
+      function normalizeSiteRecord(record){
+        if(!record) return null;
+        const id=String(record.id||record.site_id||record.name||'').trim();
+        if(!id) return null;
+        const platform=String(record.platform||'').trim().toLowerCase()||'unknown';
+        const displayName=record.display_name||record.name||record.domain||id;
+        const isActive=record.is_active!==false&&record.is_active!=='false';
+        return{
+          id,
+          platform,
+          name:record.name||id,
+          displayName,
+          domain:record.domain||'',
+          dataSource:record.data_source||'',
+          templateId:record.template_id||'',
+          isActive,
+          raw:record
+        };
+      }
+
+      async function ensureSiteConfig(targetId){
+        const cached=Array.isArray(window.__SITE_CONFIGS__)?window.__SITE_CONFIGS__:[];
+        const cachedMatch=cached.find(site=>site.id===targetId);
+        if(cachedMatch) return cachedMatch;
+
+        try{
+          const res=await fetch('/api/site-configs');
+          if(!res.ok) throw new Error(`Failed to load site configs: ${res.status}`);
+          const payload=await res.json();
+          const list=Array.isArray(payload?.data)?payload.data:[];
+          const normalized=list
+            .map(normalizeSiteRecord)
+            .filter(site=>site&&site.isActive);
+          window.__SITE_CONFIGS__=normalized;
+          return normalized.find(site=>site.id===targetId)||null;
+        }catch(error){
+          console.warn('[site-dashboard] 获取站点配置失败',error);
+          return null;
+        }
+      }
+
+      async function loadSiteModules(targetId){
+        try{
+          const res=await fetch(`/api/site-modules/${encodeURIComponent(targetId)}`);
+          if(!res.ok) throw new Error(`Failed to load modules: ${res.status}`);
+          const payload=await res.json();
+          return Array.isArray(payload?.data?.modules)?payload.data.modules:[];
+        }catch(error){
+          console.warn('[site-dashboard] 加载模块失败',error);
+          return [];
+        }
+      }
+
+      function renderSiteSummary(site,moduleCount){
+        titleEl.textContent=`${site.displayName} 模块框架`;
+        summaryEl.textContent=`该站点归属 ${getPlatformLabel(site.platform)} 平台，已注册 ${moduleCount} 个模块。`;
+
+        summaryGridEl.innerHTML='';
+        const summaryItems=[
+          {label:'站点 ID',value:site.id},
+          {label:'所属平台',value:getPlatformLabel(site.platform)},
+          {label:'数据源',value:site.dataSource||'待配置'},
+          {label:'模板',value:site.templateId||'未指定'},
+          {label:'域名',value:site.domain||'—'},
+          {label:'创建时间',value:formatDate(site.raw?.created_at)},
+          {label:'最近更新',value:formatDate(site.raw?.updated_at)}
+        ];
+
+        summaryItems.forEach(item=>{
+          const card=document.createElement('div');
+          card.className='summary-card';
+          const label=document.createElement('span');
+          label.className='summary-label';
+          label.textContent=item.label;
+          const value=document.createElement('span');
+          value.className='summary-value';
+          value.textContent=item.value||'—';
+          card.appendChild(label);
+          card.appendChild(value);
+          summaryGridEl.appendChild(card);
+        });
+      }
+
+      function renderModules(modules,site){
+        moduleNavEl.innerHTML='';
+        moduleSectionsEl.innerHTML='';
+
+        const overviewItem=document.createElement('li');
+        const overviewLink=document.createElement('a');
+        overviewLink.href='#moduleIntro';
+        overviewLink.dataset.target='moduleIntro';
+        overviewLink.textContent='站点概览';
+        overviewLink.classList.add('active');
+        overviewItem.appendChild(overviewLink);
+        moduleNavEl.appendChild(overviewItem);
+
+        if(!Array.isArray(modules)||modules.length===0){
+          const empty=document.createElement('div');
+          empty.className='module-empty-state';
+          empty.textContent='该站点尚未同步任何模块，请前往管理后台或调用 /api/site-modules 接口配置。';
+          moduleSectionsEl.appendChild(empty);
+          bindModuleNavEvents();
+          return;
+        }
+
+        modules.forEach(module=>{
+          const navItem=document.createElement('li');
+          const link=document.createElement('a');
+          const sectionId=`module-${module.moduleKey}`;
+          link.href=`#${sectionId}`;
+          link.dataset.target=sectionId;
+          link.dataset.siteId=site.id;
+          link.dataset.moduleKey=module.moduleKey;
+          link.textContent=module.navLabel;
+          navItem.appendChild(link);
+          moduleNavEl.appendChild(navItem);
+
+          const section=buildModuleSection(module,site);
+          section.id=sectionId;
+          moduleSectionsEl.appendChild(section);
+        });
+
+        bindModuleNavEvents();
+      }
+
+      function buildModuleSection(module,site){
+        const section=document.createElement('section');
+        section.className='content-pad module-section';
+        section.dataset.moduleKey=module.moduleKey;
+
+        const header=document.createElement('header');
+        header.className='module-header';
+        const headingWrap=document.createElement('div');
+        const h2=document.createElement('h2');
+        h2.textContent=module.navLabel;
+        headingWrap.appendChild(h2);
+        const subtitle=document.createElement('p');
+        subtitle.className='module-subtitle';
+        subtitle.textContent=`平台：${getPlatformLabel(site.platform)} · 模块键：${module.moduleKey}`;
+        headingWrap.appendChild(subtitle);
+        header.appendChild(headingWrap);
+
+        const chip=document.createElement('span');
+        chip.className=`module-chip ${module.enabled!==false?'chip-on':'chip-off'}`;
+        chip.textContent=module.enabled!==false?'启用':'已禁用';
+        header.appendChild(chip);
+
+        section.appendChild(header);
+
+        const grid=document.createElement('div');
+        grid.className='module-grid';
+        section.appendChild(grid);
+
+        const statusCard=document.createElement('div');
+        statusCard.className='module-card';
+        const statusTitle=document.createElement('h3');
+        statusTitle.textContent='模块状态';
+        statusCard.appendChild(statusTitle);
+        const statusList=document.createElement('ul');
+        statusList.className='module-status-list';
+        const statusTexts=[
+          module.enabled!==false?'✅ 已启用':'⏸️ 已禁用',
+          module.hasDataSource?'📡 已挂接数据源':'🪤 待配置数据源',
+          Array.isArray(module.visibleRoles)&&module.visibleRoles.length>0
+            ?`👥 可见角色：${module.visibleRoles.join('、')}`
+            :'👥 默认对所有角色可见'
+        ];
+        statusTexts.forEach(text=>{
+          const li=document.createElement('li');
+          li.textContent=text;
+          statusList.appendChild(li);
+        });
+        statusCard.appendChild(statusList);
+        grid.appendChild(statusCard);
+
+        const fieldCard=document.createElement('div');
+        fieldCard.className='module-card';
+        const fieldTitle=document.createElement('h3');
+        fieldTitle.textContent='字段覆盖';
+        fieldCard.appendChild(fieldTitle);
+        if(module.fieldProfile){
+          const profile=module.fieldProfile;
+          const groups=document.createElement('div');
+          groups.className='field-groups';
+          groups.appendChild(renderFieldList('已覆盖字段',profile.availableFields,'尚未登记字段'));
+          groups.appendChild(renderFieldList('可选字段',profile.optionalFields,'暂无可选字段'));
+          groups.appendChild(renderFieldList('待补字段',profile.missingFields,'全部字段已覆盖'));
+          fieldCard.appendChild(groups);
+          const syncInfo=document.createElement('p');
+          syncInfo.className='field-sync-info';
+          syncInfo.textContent=profile.lastSyncedAt?`最近同步：${formatDate(profile.lastSyncedAt)}`:'最近同步：未记录';
+          fieldCard.appendChild(syncInfo);
+        }else{
+          const empty=document.createElement('p');
+          empty.className='module-empty';
+          empty.textContent='该模块尚未登记字段覆盖，待数据管道完成后更新。';
+          fieldCard.appendChild(empty);
+        }
+        grid.appendChild(fieldCard);
+
+        const configCard=document.createElement('div');
+        configCard.className='module-card';
+        const configTitle=document.createElement('h3');
+        configTitle.textContent='集成提示';
+        configCard.appendChild(configTitle);
+        const configBody=document.createElement('p');
+        configBody.textContent=`在完成站点数据接入后，将 ${module.moduleKey} 模块与对应 API 或 ingest 流程绑定，保持运营、产品、订单、广告互相隔离。`;
+        configCard.appendChild(configBody);
+        const configHint=document.createElement('p');
+        configHint.className='module-config-hint';
+        configHint.textContent='当前自定义配置：';
+        configCard.appendChild(configHint);
+        if(module.config&&Object.keys(module.config).length){
+          const pre=document.createElement('pre');
+          pre.className='module-config';
+          pre.textContent=JSON.stringify(module.config,null,2);
+          configCard.appendChild(pre);
+        }else{
+          const empty=document.createElement('p');
+          empty.className='module-empty';
+          empty.textContent='暂无自定义配置，默认继承全局模板。';
+          configCard.appendChild(empty);
+        }
+        grid.appendChild(configCard);
+
+        return section;
+      }
+
+      function renderFieldList(label,fields,emptyText){
+        const wrapper=document.createElement('div');
+        wrapper.className='field-list';
+        const title=document.createElement('div');
+        title.className='field-list-label';
+        title.textContent=label;
+        wrapper.appendChild(title);
+        if(Array.isArray(fields)&&fields.length){
+          const ul=document.createElement('ul');
+          fields.forEach(field=>{
+            const li=document.createElement('li');
+            li.textContent=field;
+            ul.appendChild(li);
+          });
+          wrapper.appendChild(ul);
+        }else{
+          const span=document.createElement('span');
+          span.className='module-empty';
+          span.textContent=emptyText;
+          wrapper.appendChild(span);
+        }
+        return wrapper;
+      }
+
+      function bindModuleNavEvents(){
+        const links=moduleNavEl.querySelectorAll('a');
+        links.forEach(link=>{
+          if(link.dataset.bound==='true') return;
+          link.dataset.bound='true';
+          link.addEventListener('click',event=>{
+            event.preventDefault();
+            const targetId=link.dataset.target;
+            if(targetId){
+              const target=document.getElementById(targetId);
+              if(target){
+                target.scrollIntoView({behavior:'smooth',block:'start'});
+              }
+            }
+            links.forEach(item=>item.classList.remove('active'));
+            link.classList.add('active');
+          });
+        });
+      }
+
+      function showMissingSiteMessage(){
+        moduleNavEl.innerHTML='<li class="empty"><a>请通过导航选择站点</a></li>';
+        moduleSectionsEl.innerHTML='';
+        titleEl.textContent='未选择站点';
+        summaryEl.textContent='缺少 site 参数，请在站点管理中选择需要查看的站点。';
+      }
+
+      function showNotFound(){
+        moduleNavEl.innerHTML='<li class="empty"><a>站点不存在</a></li>';
+        moduleSectionsEl.innerHTML='';
+        titleEl.textContent='站点不存在';
+        summaryEl.textContent='未在站点配置中找到该站点，请确认站点 ID 是否正确。';
+        siteNameEl.textContent='未找到站点';
+        sitePlatformEl.textContent='';
+      }
+
+      function showError(message){
+        moduleNavEl.innerHTML='<li class="empty"><a>加载失败</a></li>';
+        moduleSectionsEl.innerHTML='';
+        const error=document.createElement('div');
+        error.className='module-empty-state';
+        error.textContent=message;
+        moduleSectionsEl.appendChild(error);
+      }
+
+      function formatDate(value){
+        if(!value) return '—';
+        try{
+          const date=new Date(value);
+          if(Number.isNaN(date.getTime())) return '—';
+          return date.toLocaleString('zh-CN',{hour12:false});
+        }catch(error){
+          return '—';
+        }
+      }
+
+      function getPlatformLabel(platform){
+        if(!platform) return '未分类';
+        const map={
+          ae_self_operated:'速卖通',
+          ae_managed:'速卖通全托管',
+          amazon:'亚马逊',
+          ozon:'Ozon',
+          tiktok:'TikTok Shop',
+          temu:'Temu',
+          independent:'独立站',
+          lazada:'Lazada',
+          shopee:'Shopee'
+        };
+        const key=String(platform).toLowerCase();
+        if(map[key]) return map[key];
+        return key.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+      }
+    })();
+  </script>
+</body>
+</html>

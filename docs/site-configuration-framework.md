@@ -51,6 +51,11 @@ CREATE TABLE public.dynamic_tables (
 - `ae_self_operated`: 速卖通自运营
 - `ae_managed`: 速卖通全托管
 - `amazon`: 亚马逊
+- `ozon`: Ozon
+- `tiktok`: TikTok Shop
+- `temu`: Temu
+- `lazada`: Lazada
+- `shopee`: Shopee
 - `ebay`: eBay
 
 #### 独立站（Independent Sites）
@@ -157,7 +162,7 @@ CREATE TABLE public.dynamic_tables (
 ### 5. 使用流程
 
 #### 5.1 添加新站点
-1. 在站点管理页面选择平台和数据源
+1. 访问 `/admin.html`（或保留的 `/site-management.html` 快捷入口）选择平台和数据源
 2. 上传数据模板文件
 3. 系统自动生成配置
 4. 自动创建数据表和API接口
