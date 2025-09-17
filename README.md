@@ -75,6 +75,7 @@
 
 - **`site_configs`**：存放站点 ID、平台、显示名称、数据源、模板等元数据，是所有站点页面与接口的注册中心。【F:docs/site-configuration-framework.md†L11-L45】
 - **`site_channel_configs`**：按站点维护启用的渠道与对应的指标表（如 Facebook Ads/Google Ads），自运营、独立站、全托管等页面在加载时读取该表决定可用模块。【F:README.md†L340-L371】
+- **`site_module_configs`**：控制站点导航的模块、顺序、可见角色，使用 `COALESCE(site_id, '')` + `platform` + `module_key` 的唯一索引避免 NULL 冲突，并预置全局默认模块模板。【F:specs/data-model.sql†L20-L76】
 - **索引与访问策略**：`site_configuration_framework.sql` 为 `site_configs` 建立 `platform`、`data_source` 索引，便于 Lazada、Shopee 等平台扩展；相关表启用了 RLS 策略以控制访问范围。【F:site_configuration_framework.sql†L215-L256】
 - **站点同步**：创建或重命名站点后，通过 `/api/site-sync` 将 `ae_self_operated_daily` 等表中的 `site` 字段统一为新 ID，避免历史数据孤立。【F:api/site-sync/index.js†L33-L118】
 
@@ -99,6 +100,15 @@ CREATE INDEX IF NOT EXISTS idx_site_configs_data_source ON public.site_configs(d
 
 *DDL 节选自站点配置框架脚本，便于在 Supabase 中快速核对表结构与索引。*【F:docs/site-configuration-framework.md†L11-L25】【F:site_configuration_framework.sql†L246-L248】
 
+### Phase 2 管理域表概览
+
+- **权限域**：`roles` 使用 JSONB 存储资源 → 操作矩阵，`users` 通过 `role_id` 关联角色并启用行级安全，默认写入七个角色及权限模板。【F:specs/data-model.sql†L42-L112】
+- **商品主数据**：`categories`、`products` 描述品类、SKU、尺寸与图像信息，并在更新时触发 `set_updated_at`，供库存与广告模块引用。【F:specs/data-model.sql†L114-L142】【F:specs/data-model.sql†L214-L220】
+- **库存域**：`inventory` 按站点与产品维度记录可售/预留数量及成本价，`inventory_movements` 追踪入出库与调拨，`purchases` 记录采购单与到货信息。【F:specs/data-model.sql†L116-L164】
+- **订单域**：`customers`、`orders`、`order_items` 形成订单头/明细结构，内建物流成本、结算状态与站点外键，支持后续利润分析与库存扣减。【F:specs/data-model.sql†L166-L194】
+- **广告域**：`ad_campaigns` 保存预算、目标与受众配置，`ad_metrics_daily` 记录按日聚合指标并以站点为分区键，二者均附带唯一约束与索引。【F:specs/data-model.sql†L168-L222】
+- **统一触发器与 RLS**：`set_updated_at` 触发器覆盖订单、产品、广告、模块配置，关键表默认启用 RLS 并以宽松策略开放开发期访问。【F:specs/data-model.sql†L224-L266】
+
 ### 跨模块的产品 ID / 商品维度链路
 
 - **运营 → 产品分析**：自运营查询接口会按 `product_id` 聚合曝光、访客、加购、支付等指标，既支持按时间粒度也支持按产品汇总，是产品分析与库存联动的基准数据。【F:api/ae_query/index.js†L35-L199】
@@ -120,10 +130,10 @@ CREATE INDEX IF NOT EXISTS idx_site_configs_data_source ON public.site_configs(d
 
 - **运营分析**：各站点的运营模块继续承载曝光、访客、加购、支付链路，响应式面板以 `section#analysis` 或同级容器承载图表与 KPI 卡片。【F:public/self-operated.html†L624-L745】【F:public/managed.html†L144-L198】
 - **产品分析**：保留独立的产品聚合与对比视图，模块在 `section#products` 中初始化并使用独立的数据请求，确保筛选器、表格与图表与其他模块隔离。【F:public/self-operated.html†L687-L775】【F:public/managed.html†L139-L208】
-- **订单中心**：面向每个站点在左侧导航新增“订单中心”锚点，并使用 `orders`、`order_items`、`fulfillments`、`payments` 等表提供订单列表、利润拆解与履约状态；模块落位与字段映射详见架构蓝图与数据模型。【F:docs/platform-architecture.md†L71-L108】【F:specs/data-model.sql†L72-L133】
-- **广告中心**：作为站点级模块独立呈现广告账户、系列与消耗数据，依托 `ad_metrics_daily` 与 `/api/ads/*` 接口构建，并在侧边栏提供导航占位；各站点不复用他站数据源，保障隔离。【F:docs/platform-architecture.md†L109-L148】【F:specs/openapi.yaml†L1337-L1445】【F:specs/data-model.sql†L201-L254】
-- **库存中心（全局）**：库存相关视图不属于具体站点侧边栏，而在全局设置内统一展示，调用 `inventory_*` 表并受权限控制，仅对具备库存角色的用户开放。【F:docs/platform-architecture.md†L78-L108】【F:specs/data-model.sql†L136-L187】【F:rules.json†L26-L58】
-- **权限中心（全局）**：权限管理独立于站点导航，采用 RBAC + 资源范围模型，通过角色、成员与授权矩阵控制各模块可见性，是全站共享的安全层。【F:docs/platform-architecture.md†L109-L148】【F:specs/data-model.sql†L256-L308】【F:rules.json†L47-L58】
+- **订单中心**：面向每个站点在左侧导航新增“订单中心”锚点，核心依赖 `orders`（含物流、成本、结算字段）、`order_items`（商品明细）、`customers`（客户档案）三张表，并通过 `inventory_movements` 补足出入库引用，支持利润拆解与履约状态回溯；模块落位与字段映射详见架构蓝图与数据模型。【F:docs/platform-architecture.md†L69-L104】【F:specs/data-model.sql†L86-L164】
+- **广告中心**：作为站点级模块独立呈现广告系列与日指标，依托 `ad_campaigns` + `ad_metrics_daily` 结构与 `/api/ads/*` 接口构建，并在侧边栏提供导航占位；各站点不复用他站数据源，保障隔离，同时支持记录日预算、投放目标与受众画像。【F:docs/platform-architecture.md†L104-L133】【F:specs/openapi.yaml†L1337-L1445】【F:specs/data-model.sql†L168-L222】
+- **库存中心（全局）**：库存相关视图不属于具体站点侧边栏，而在全局设置内统一展示，读取 `inventory`、`inventory_movements` 与 `purchases` 数据并受权限控制，仅对具备库存角色的用户开放。【F:docs/platform-architecture.md†L75-L101】【F:specs/data-model.sql†L116-L164】【F:rules.json†L23-L55】
+- **权限中心（全局）**：权限管理独立于站点导航，采用 RBAC + 资源范围模型，通过 `roles`（内嵌 JSON 权限矩阵）与 `users.role_id` 控制模块可见性，是全站共享的安全层；默认策略在 `rules.json` 与 RLS 策略中声明。【F:docs/platform-architecture.md†L118-L147】【F:specs/data-model.sql†L42-L104】【F:rules.json†L40-L79】
 
 ## API 接口与参数说明
 

@@ -69,33 +69,33 @@
 - **字段适配**：若某站点不提供 `payments`、`revenue` 等字段，需在 `platform_metric_profiles` 中标记为 `optional` 或 `unsupported`，前端据此调整展示。
 
 ### 4.2 订单管理域
-- **核心目标**：记录多平台订单、支付、发货、结算状态，支撑订单漏斗、客单价与利润分析。
-- **关键实体**：`orders`（订单头）、`order_items`（商品明细）、`customers`（客户档案）、`fulfillments`（发货与物流）、`payments`（结算信息）。
+- **核心目标**：记录多平台订单、物流成本、结算状态，支撑订单漏斗、客单价与利润分析。
+- **关键实体**：`orders`（订单头，内含物流费用、成本、结算字段）、`order_items`（商品明细）、`customers`（客户档案）、`inventory_movements`（引用出入库记录）。
 - **数据来源**：平台 API（如 速卖通订单报表、亚马逊 SP-API、Ozon 订单导出）及人工 Excel 导入。
-- **业务流程**：导入 → 标准化 SKU/站点 → 匹配库存批次 → 更新订单状态（下单/发货/签收/完成）。
+- **业务流程**：导入 → 标准化 SKU/站点 → 写入订单与明细 → 同步 `inventory_movements` → 更新订单状态（下单/发货/签收/完成）。
 - **页面规划**：每个站点的“订单中心”在左侧导航中作为独立模块出现，模块内的筛选器、表格与详情抽屉不与运营/产品共享状态，通过 `/api/orders` 提供站点隔离的数据源。
 
 ### 4.3 库存管理域
-- **目标**：追踪采购价、采购时间、入库数量、可售库存、在途库存、分仓库存、调拨与退货。
-- **关键实体**：`inventory_batches`（入库批次）、`inventory_snapshots`（每日库存快照）、`inventory_movements`（入/出/调拨记录）、`suppliers`（供应商资料）。
-- **与订单联动**：订单发货时创建负向 `inventory_movements`；采购入库录入采购价与到货日期，供利润计算。
-- **页面规划**：库存总览（按站点/仓库）、批次管理、库存预警与采购计划。
+- **目标**：追踪采购价、采购时间、入库数量、可售库存、在途库存、调拨与退货。
+- **关键实体**：`inventory`（站点级库存）、`inventory_movements`（入/出/调拨记录）、`purchases`（采购单）、`suppliers`（供应商资料）。
+- **与订单联动**：订单发货时创建负向 `inventory_movements`；采购入库记录采购价与到货日期，供利润计算。
+- **页面规划**：库存总览（按站点）、调拨记录、库存预警与采购计划。
 
 ### 4.4 广告管理域
 - **目标**：统一管理站点广告投放（Facebook/TikTok/Google/Amazon/Ozon/Temu），统计广告预算、消耗、曝光、访客、加购、支付与 GMV 贡献。
-- **关键实体**：`ad_accounts`、`ad_campaigns`、`ad_sets`、`ad_creatives`、`ad_metrics_daily`。
+- **关键实体**：`ad_campaigns`（广告系列，记录目标、预算与受众）与 `ad_metrics_daily`（按日聚合指标）。
 - **数据关联**：广告访客/下单数据与 `site_metrics_daily`、`orders` 进行站点 + 商品 + 渠道关联，支持广告归因分析。
 - **页面规划**：广告控制台、渠道对比仪表盘、广告配置（预算/时段/受众）编辑器，作为站点侧边栏的“广告中心”模块单独加载；若站点缺少广告数据源，则模块将自动隐藏。
 
 ### 4.5 模块配置域
-- **作用**：维护 `site_module_configs`、`site_module_roles`、`platform_metric_profiles` 等表，协调站点模块的可见性、顺序与字段适配。
-- **核心实体**：`site_module_configs`（模块主表）、`site_module_roles`（角色可见性）、`platform_metric_profiles`（字段覆盖矩阵）。
+- **作用**：维护 `site_module_configs` 与 `platform_metric_profiles` 等表，协调站点模块的可见性、顺序与字段适配。
+- **核心实体**：`site_module_configs`（模块主表，含可见角色数组）、`platform_metric_profiles`（字段覆盖矩阵）。
 - **流程**：管理员在配置界面调整模块 → `/api/site-modules` 持久化 → 前端根据最新配置渲染导航与空状态。
 
 ### 4.6 权限管理域
 - **目标**：为不同角色（运营、广告、订单、采购、财务、管理员）分配站点与模块访问权限。
-- **关键实体**：`roles`、`permissions`（模块/页面/操作）、`role_permissions`、`user_roles`、`user_assignments`（站点范围）。
-- **策略**：基于 RBAC + Resource Scope（站点/模块/操作）；API 通过中间件读取访问令牌中的角色与站点列表。
+- **关键实体**：`roles`（包含 JSON 权限矩阵）、`users`（持有 `role_id` 与激活状态）。
+- **策略**：基于 RBAC + Resource Scope（站点/模块/操作）；API 通过中间件读取访问令牌中的角色、站点列表与内嵌权限 JSON。
 - **页面规划**：权限中心 → 角色管理、成员管理、站点授权矩阵。
 
 ## 5. 数据流与同步

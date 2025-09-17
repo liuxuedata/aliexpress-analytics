@@ -1,5 +1,5 @@
 {
-  "version": "2025-01-07",
+  "version": "2025-01-08",
   "architecture": {
     "platforms": {
       "description": "站点必须通过 site-configs 注册，platform 字段使用小写蛇形命名，例如 ae_self_operated、ae_managed、amazon、ozon、temu、tiktok、independent、lazada、shopee。",
@@ -18,15 +18,15 @@
         "operations": "负责曝光/访客/加购/下单/支付/GMV 等运营指标，所有页面需要遵循 specs/metrics_dictionary.md 的指标含义，并在 API 响应中返回 availableFields/missingFields 元信息以反映平台字段差异。",
         "products": "产品分析模块必须以独立的 section 呈现，禁止与运营或订单模块复用 DOM/脚本；产品指标需引用 specs/metrics_dictionary.md 中的定义，并可按站点配置追加自定义字段。",
         "orders": "订单域 API 与数据模型必须遵循 specs/data-model.sql 中的 orders 与 order_items 结构，禁止直接在业务代码中新增未记录的字段。",
-        "inventory": "库存域依赖 inventory_batches、inventory_movements，任何库存扣减必须记录 movement_type 与引用的订单或批次。",
-        "advertising": "广告域需要同时维护配置（ad_campaigns/ad_sets/ad_creatives）与指标（ad_metrics_daily），上传接口必须支持 dry_run 校验。",
+        "inventory": "库存域依赖 inventory、inventory_movements、purchases，任何库存扣减必须记录 movement_type 与引用的订单或采购单。",
+        "advertising": "广告域需要同时维护广告系列（ad_campaigns）与日指标（ad_metrics_daily），上传接口必须支持 dry_run 校验并返回预算/受众字段映射。",
         "permissions": "所有新增页面/接口在发布前需在权限矩阵中登记资源 ID 与默认角色，默认为 deny。"
       }
     },
     "navigation": {
       "moduleOrder": ["operations", "products", "orders", "advertising"],
       "globalOnlyModules": ["inventory", "permissions"],
-      "rule": "站点左侧导航必须由 site_module_configs 驱动，按照 moduleOrder 渲染，模块 DOM/数据请求保持隔离；库存与权限只允许出现在全局设置入口，且需校验用户角色。"
+      "rule": "站点左侧导航必须由 site_module_configs 驱动，按照 moduleOrder 渲染，模块 DOM/数据请求保持隔离；库存与权限只允许出现在全局设置入口，且需校验用户角色（结合 site_module_configs.visible_roles）。"
     }
   },
   "apis": {
@@ -54,16 +54,16 @@
       "finance",
       "viewer"
     ],
-    "rule": "默认仅 super_admin 拥有全部站点与模块访问权，其余角色需在权限配置中明确授予站点与资源；inventory_manager 与 ad_manager 仅能看到对应全局模块，站点侧边栏需结合 site_module_roles 做二次校验。",
+    "rule": "默认仅 super_admin 拥有全部站点与模块访问权，其余角色需在权限配置中明确授予站点与资源；inventory_manager 与 ad_manager 仅能看到对应全局模块，站点侧边栏需结合 site_module_configs.visible_roles 做二次校验。",
     "moduleVisibilityDefaults": {
       "operations": ["super_admin", "operations_manager", "viewer"],
-      "products": ["super_admin", "operations_manager"],
-      "orders": ["super_admin", "order_manager", "finance"],
-      "advertising": ["super_admin", "ad_manager", "operations_manager"],
-      "inventory": ["super_admin", "inventory_manager"],
+      "products": ["super_admin", "operations_manager", "viewer"],
+      "orders": ["super_admin", "operations_manager", "order_manager", "finance", "viewer"],
+      "advertising": ["super_admin", "operations_manager", "ad_manager", "viewer"],
+      "inventory": ["super_admin", "inventory_manager", "operations_manager"],
       "permissions": ["super_admin"]
     },
-    "siteScopePolicy": "非 super_admin 角色必须在 user_assignments 中声明 site_id 列表方可访问站点页面；缺省情况下仅授予其所属平台的站点。",
-    "audit": "权限变更需要记录 audit_log，包括 actor、target、change_set、timestamp；日志表结构参考 specs/data-model.sql。"
+    "siteScopePolicy": "非 super_admin 角色必须在角色权限 JSON 或后续的站点授权表中声明 site_id 列表方可访问站点页面；缺省情况下仅授予其所属平台的站点。",
+    "audit": "权限变更需要记录审计日志，包括 actor、target、change_set、timestamp；待上线的权限审计表需与 specs/data-model.sql 同步。"
   }
 }

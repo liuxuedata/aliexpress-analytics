@@ -34,7 +34,7 @@ CREATE TABLE public.ae_self_operated_daily (
 );
 ```
 
-**站点模块配置 (site_module_configs / site_module_roles)**
+**站点模块配置 (site_module_configs)**
 ```sql
 CREATE TABLE public.site_module_configs (
   id              uuid primary key default gen_random_uuid(),
@@ -45,17 +45,14 @@ CREATE TABLE public.site_module_configs (
   nav_order       smallint not null default 0,
   enabled         boolean not null default true,
   is_global       boolean not null default false,
-  config_json     jsonb default '{}'::jsonb,
-  created_at      timestamptz not null default now(),
-  updated_at      timestamptz not null default now(),
-  unique (coalesce(site_id, platform), module_key)
+  has_data_source boolean not null default false,
+  visible_roles   text[] not null default array[]::text[],
+  config          jsonb default '{}'::jsonb,
+  created_at      timestamp not null default now(),
+  updated_at      timestamp not null default now()
 );
 
-CREATE TABLE public.site_module_roles (
-  module_config_id uuid references site_module_configs(id) on delete cascade,
-  role_key         text not null,
-  primary key (module_config_id, role_key)
-);
+CREATE UNIQUE INDEX idx_site_module_configs_unique ON public.site_module_configs (coalesce(site_id, ''), platform, module_key);
 ```
 
 **平台指标覆盖矩阵 (platform_metric_profiles)**
@@ -64,10 +61,11 @@ CREATE TABLE public.platform_metric_profiles (
   id                 uuid primary key default gen_random_uuid(),
   platform           text not null,
   module_key         text not null,
-  required_fields    text[] not null default array[]::text[],
+  available_fields   text[] not null default array[]::text[],
   optional_fields    text[] not null default array[]::text[],
-  unsupported_fields text[] not null default array[]::text[],
+  missing_fields     text[] not null default array[]::text[],
   notes              text,
+  last_synced_at     timestamp not null default now(),
   unique (platform, module_key)
 );
 ```
@@ -99,7 +97,7 @@ CREATE TABLE public.platform_metric_profiles (
 - 功能：添加、编辑、删除站点
 - 支持按平台筛选站点
 - 展示 `site_module_configs` 中的模块启用状态，允许为 Lazada、Shopee 等新站点开启“订单中心”“广告中心”占位模块
-- 支持配置 `site_module_roles`，为不同角色（如 operations_manager、ad_manager）定制模块可见性
+- 支持配置 `site_module_configs.visible_roles`，为不同角色（如 operations_manager、ad_manager）定制模块可见性
 
 #### 站点切换功能
 - 在自运营页面添加站点选择器
@@ -110,7 +108,7 @@ CREATE TABLE public.platform_metric_profiles (
 #### 左侧导航布局（新增）
 - 默认顺序：详细数据 / 运营分析 / 产品分析 / 订单中心 / 广告中心，模块 DOM 结构互不嵌套
 - 库存管理、权限管理归属于全局设置面板，仅在具备角色（`inventory_manager`、`super_admin` 等）时出现
-- 通过 `site_module_roles` 将模块可见性与权限中心的角色绑定
+- 通过 `site_module_configs.visible_roles` 将模块可见性与权限中心的角色绑定
 - 若 `platform_metric_profiles` 标记某模块缺少数据源，前端需隐藏该模块或显示“数据待接入”提示
 
 ## 开发任务分工

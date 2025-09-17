@@ -1,4 +1,4 @@
-version: 2025-01-07
+version: 2025-01-08
 v1:
   codename: atlas
   timeframe: 2025-01-08 ~ 2025-02-15
@@ -20,10 +20,10 @@ v1:
     - 多平台报表字段差异导致 ingest 映射复杂
     - 站点权限未上线前存在数据泄露风险
     - 左侧导航模块化后权限同步不及时
-  mitigations:
-    - 在 specs/openapi.yaml 中维护字段映射表
-    - 提前实现权限模块的读校验逻辑
-    - 引入 site_module_roles 与 metadata.availableFields，前端按权限渲染
+    mitigations:
+      - 在 specs/openapi.yaml 中维护字段映射表
+      - 提前实现权限模块的读校验逻辑
+      - 引入 site_module_configs.visible_roles 与 metadata.availableFields，前端按权限渲染
 
 v2:
   codename: orion
@@ -107,7 +107,7 @@ execution_plan:
         qa_release: QA & Release Squad
       deliverables:
         - /api/site-modules Serverless 函数与单元测试
-        - orders/order_items/customers/fulfillments/payments 表及迁移脚本
+        - orders/order_items/customers/inventory/inventory_movements 表及迁移脚本
         - 自运营/全托管/独立站导航改造与订单中心 MVP 页面
         - site_module_configs 迁移脚本 & QA 回归脚本
     sprint_2:

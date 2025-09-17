@@ -36,8 +36,8 @@
 ### 3.2 数据建模与管道（Data Engineering Squad）
 | Sprint | 任务 | Owner | 依赖 | 输出 |
 | --- | --- | --- | --- | --- |
-| S0 | 校验 `specs/data-model.sql`，为订单、库存、广告表生成迁移脚本与视图模板 | DE | 现有 SQL 规范 | `orders`, `order_items`, `inventory_*`, `ad_*` 迁移脚本草案 |
-| S1 | 构建订单域存储：`orders`, `order_items`, `customers`, `fulfillments`, `payments`，并配置触发器/索引 | DE | Sprint 0 草案 | 迁移脚本、回滚脚本、ER 图更新 |
+| S0 | 校验 `specs/data-model.sql`，为订单、库存、广告、权限表生成迁移脚本与视图模板 | DE | 现有 SQL 规范 | `orders`, `order_items`, `customers`, `inventory`, `inventory_movements`, `purchases`, `ad_campaigns`, `ad_metrics_daily`, `roles`, `users` 迁移脚本草案 |
+| S1 | 构建订单/库存基础存储：`orders`, `order_items`, `customers`, `inventory`, `inventory_movements`，并配置触发器/索引 | DE | Sprint 0 草案 | 迁移脚本、回滚脚本、ER 图更新 |
 | S1 | 设计 `order_import_jobs` & `ingest_logs` 用于导入审计 | DE | 订单域 | 表结构、触发器文档 |
 | S2 | 扩展 `ae_upsert`、`independent` 等 ingest 以写入订单/广告关联字段（product_id、site_id） | DE | API 代码、指标字典 | 更新脚本、映射配置、回放报告 |
 | S2 | 准备 Orion 所需的库存/广告物化视图与数据聚合存储（先以空壳保留） | DE | 数据模型 | 物化视图定义、刷新策略说明 |
@@ -55,7 +55,7 @@
 | Sprint | 任务 | Owner | 依赖 | 输出 |
 | --- | --- | --- | --- | --- |
 | S0 | 明确角色矩阵、站点范围模型，并将默认策略写入 `rules.json` | AS | 现有规则文件 | 更新后的规则、角色-模块映射 |
-| S1 | 在 `/api/site-modules` 与 `/api/orders` 引入角色校验（super_admin 默认全量，其余按 `site_module_roles`） | AS | 模块 API | 权限中间件、测试用例 |
+| S1 | 在 `/api/site-modules` 与 `/api/orders` 引入角色校验（super_admin 默认全量，其余按 `site_module_configs.visible_roles`） | AS | 模块 API | 权限中间件、测试用例 |
 | S2 | 准备 Orion 阶段的权限接口设计文档（`/api/permissions/*` OpenAPI 草案） | AS | OpenAPI | 更新的 `specs/openapi.yaml` 段落、审阅记录 |
 
 ### 3.5 质量保障与发布（QA & Release Squad）

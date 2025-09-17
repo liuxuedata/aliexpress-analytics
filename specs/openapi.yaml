@@ -238,17 +238,19 @@ components:
       properties:
         id:
           type: string
-        site:
+        order_no:
+          type: string
+        site_id:
+          type: string
+        platform:
           type: string
         channel:
-          type: string
-        order_number:
           type: string
         customer_id:
           type: string
         status:
           type: string
-          enum: [created, paid, fulfilled, delivered, completed, canceled]
+          enum: [pending, confirmed, shipped, delivered, completed, cancelled]
         placed_at:
           type: string
           format: date-time
@@ -274,10 +276,21 @@ components:
         settlement_date:
           type: string
           format: date
+        warehouse_id:
+          type: string
+        remark:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
       required:
         - id
-        - site
-        - order_number
+        - order_no
+        - site_id
+        - platform
         - status
         - placed_at
     OrderItem:
@@ -287,88 +300,86 @@ components:
           type: string
         order_id:
           type: string
+        product_id:
+          type: string
         sku:
           type: string
         product_name:
           type: string
         quantity:
-          type: number
+          type: integer
         unit_price:
           type: number
-        currency:
-          type: string
+        total_price:
+          type: number
         cost_price:
           type: number
-        warehouse_id:
+        created_at:
           type: string
+          format: date-time
       required:
         - id
         - order_id
         - sku
         - quantity
-    InventoryBatch:
+        - unit_price
+    InventoryRecord:
       type: object
       properties:
         id:
           type: string
-        site:
+        product_id:
           type: string
-        warehouse_id:
+        site_id:
           type: string
-        sku:
-          type: string
-        batch_code:
-          type: string
-        quantity:
-          type: number
+        available_qty:
+          type: integer
+        reserved_qty:
+          type: integer
+        min_stock_level:
+          type: integer
+        max_stock_level:
+          type: integer
         cost_price:
           type: number
-        currency:
+        selling_price:
+          type: number
+        last_updated:
           type: string
-        purchased_at:
-          type: string
-          format: date
-        received_at:
-          type: string
-          format: date
-        supplier_id:
-          type: string
+          format: date-time
       required:
         - id
-        - site
-        - sku
-        - quantity
+        - product_id
+        - site_id
     InventoryMovement:
       type: object
       properties:
         id:
           type: string
-        batch_id:
+        product_id:
           type: string
-        site:
-          type: string
-        warehouse_id:
-          type: string
-        sku:
+        site_id:
           type: string
         movement_type:
           type: string
-          enum: [inbound, outbound, adjustment, transfer]
+          enum: [in, out, transfer, adjustment]
         quantity:
-          type: number
+          type: integer
         reference_type:
           type: string
         reference_id:
           type: string
-        occurred_at:
+        notes:
+          type: string
+        created_by:
+          type: string
+        created_at:
           type: string
           format: date-time
-        note:
-          type: string
       required:
         - id
-        - site
-        - sku
+        - product_id
+        - site_id
         - movement_type
         - quantity
     AdCampaign:
@@ -376,33 +387,43 @@ components:
       properties:
         id:
           type: string
+        site_id:
+          type: string
         platform:
           type: string
-        account_id:
+        campaign_id:
           type: string
-        site:
-          type: string
-        name:
+        campaign_name:
           type: string
         objective:
           type: string
         status:
           type: string
-        budget:
+          enum: [active, paused, archived]
+        budget_daily:
           type: number
-        budget_currency:
-          type: string
+        budget_total:
+          type: number
         start_date:
           type: string
           format: date
         end_date:
           type: string
           format: date
+        target_audience:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
       required:
         - id
+        - site_id
         - platform
-        - account_id
-        - name
+        - campaign_id
+        - campaign_name
     AdMetric:
       type: object
       properties:
@@ -410,30 +431,40 @@ components:
           type: string
         campaign_id:
           type: string
-        stat_date:
+        site_id:
+          type: string
+        platform:
+          type: string
+        date:
           type: string
           format: date
         impressions:
           type: number
         clicks:
           type: number
-        visitors:
-          type: number
-        add_to_cart:
-          type: number
-        orders:
-          type: number
-        payments:
-          type: number
         spend:
           type: number
-        revenue:
+        conversions:
           type: number
-        currency:
+        conversion_value:
+          type: number
+        ctr:
+          type: number
+        cpc:
+          type: number
+        cpm:
+          type: number
+        roas:
+          type: number
+        created_at:
           type: string
+          format: date-time
       required:
+        - id
         - campaign_id
-        - stat_date
+        - site_id
+        - platform
+        - date
     PermissionRole:
       type: object
       properties:
@@ -1212,11 +1243,7 @@ paths:
       summary: 库存快照查询
       parameters:
         - $ref: '#/components/parameters/siteParam'
-        - name: warehouse_id
-          in: query
-          schema:
-            type: string
-        - name: sku
+        - name: product_id
           in: query
           schema:
             type: string
@@ -1230,22 +1257,22 @@ paths:
                 $ref: '#/components/schemas/PagedResponse'
     post:
       tags: [Inventory]
-      summary: 创建库存批次
+      summary: 创建库存记录
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InventoryBatch'
+              $ref: '#/components/schemas/InventoryRecord'
       responses:
         '201':
           description: 创建成功
-  /api/inventory/{batchId}:
+  /api/inventory/{inventoryId}:
     patch:
       tags: [Inventory]
-      summary: 更新库存批次
+      summary: 更新库存记录
       parameters:
-        - name: batchId
+        - name: inventoryId
           in: path
           required: true
           schema:
@@ -1257,13 +1284,18 @@ paths:
             schema:
               type: object
               properties:
-                quantity:
-                  type: number
+                available_qty:
+                  type: integer
+                reserved_qty:
+                  type: integer
+                min_stock_level:
+                  type: integer
+                max_stock_level:
+                  type: integer
                 cost_price:
                   type: number
-                received_at:
-                  type: string
-                  format: date
+                selling_price:
+                  type: number
       responses:
         '200':
           description: 更新结果
@@ -1273,7 +1305,7 @@ paths:
       summary: 查询库存流水
       parameters:
         - $ref: '#/components/parameters/siteParam'
-        - name: sku
+        - name: product_id
           in: query
           schema:
             type: string
@@ -1291,7 +1323,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [inbound, outbound, adjustment, transfer]
+            enum: [in, out, transfer, adjustment]
       responses:
         '200':
           description: 流水列表
@@ -1384,11 +1416,15 @@ paths:
               properties:
                 status:
                   type: string
-                budget:
+                budget_daily:
+                  type: number
+                budget_total:
                   type: number
                 end_date:
                   type: string
                   format: date
+                target_audience:
+                  type: object
       responses:
         '200':
           description: 更新结果
@@ -1398,6 +1434,14 @@ paths:
       summary: 查询广告指标
       parameters:
         - name: campaign_id
+          in: query
+          schema:
+            type: string
+        - name: site_id
+          in: query
+          schema:
+            type: string
+        - name: platform
           in: query
           schema:
             type: string
