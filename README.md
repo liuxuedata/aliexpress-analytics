@@ -76,6 +76,7 @@
 - **`site_configs`**：存放站点 ID、平台、显示名称、数据源、模板等元数据，是所有站点页面与接口的注册中心。【F:docs/site-configuration-framework.md†L11-L45】
 - **`site_channel_configs`**：按站点维护启用的渠道与对应的指标表（如 Facebook Ads/Google Ads），自运营、独立站、全托管等页面在加载时读取该表决定可用模块。【F:README.md†L340-L371】
 - **`site_module_configs`**：控制站点导航的模块、顺序、可见角色，使用 `COALESCE(site_id, '')` + `platform` + `module_key` 的唯一索引避免 NULL 冲突，并预置全局默认模块模板。【F:specs/data-model.sql†L20-L76】
+- **迁移脚本**：执行 `migration_site_module_configs.sql` 可在 Supabase 中创建 `site_module_configs`/`platform_metric_profiles` 表、索引、RLS 策略与默认模板，确保 `/api/site-modules` 能够正常返回动态导航配置。【F:migration_site_module_configs.sql†L1-L93】
 - **索引与访问策略**：`site_configuration_framework.sql` 为 `site_configs` 建立 `platform`、`data_source` 索引，便于 Lazada、Shopee 等平台扩展；相关表启用了 RLS 策略以控制访问范围。【F:site_configuration_framework.sql†L215-L256】
 - **站点同步**：创建或重命名站点后，通过 `/api/site-sync` 将 `ae_self_operated_daily` 等表中的 `site` 字段统一为新 ID，避免历史数据孤立。【F:api/site-sync/index.js†L33-L118】
 
@@ -118,6 +119,7 @@ CREATE INDEX IF NOT EXISTS idx_site_configs_data_source ON public.site_configs(d
 
 ### 子站点左侧导航与模块隔离
 - **独立模块容器**：每个站点页的侧边栏均以 `<ul class="sub-nav">` 注册分栏，分别对应 `section#detail`、`section#analysis`、`section#products` 等独立 DOM 容器，保证模块之间的样式与数据逻辑互不干扰。【F:public/self-operated.html†L520-L556】【F:public/managed.html†L82-L138】
+- **动态模块加载**：`public/assets/site-nav.js` 会在 `page-ready` 事件后调用 `/api/site-modules` 或 `/api/site-modules/{siteId}`，依据返回的 `visibleRoles`、`enabled`、`hasDataSource` 与 `module_key` 渲染站点侧边栏，同时为库存、权限模块生成全局设置分组。【F:public/assets/site-nav.js†L490-L555】【F:api/site-modules/index.js†L1-L47】
 - **新增子模块规划**：在既有“详细数据/运营分析/产品分析”基础上，为“订单中心”“广告中心”分别保留独立的导航锚点和内容面板，所有站点的左侧导航需统一包含四大业务模块（运营、产品、订单、广告），页面加载时根据权限与数据源决定是否渲染具体模块内容。
 - **模块隔离策略**：各模块加载自身的数据与脚本，不共享状态；跨模块的数据联动（如广告带来的订单）通过后端聚合 API 提供汇总结果，再由前端各自渲染，避免直接跨 DOM 操作。
 - **全局设置入口**：库存管理与权限管理位于全局设置（Settings）分组中，不出现在单个站点的侧边栏，只有具备相应角色的用户才会在顶栏或全局抽屉看到入口，避免越权访问。
@@ -144,6 +146,9 @@ CREATE INDEX IF NOT EXISTS idx_site_configs_data_source ON public.site_configs(d
 - `PUT /api/site-configs/[id]`：按 ID 更新站点配置字段，支持同步修改 `name`、`platform`、`data_source`、`config_json` 等信息；`DELETE` 可移除站点记录。【F:api/site-configs/[id].js†L1-L88】
 - `POST /api/site-configs/update`：提供与 `PUT` 等价的更新入口，便于前端通过统一 POST 表单提交。【F:api/site-configs/update.js†L1-L74】
 - `POST /api/site-sync`：在站点创建或重命名时同步 `ae_self_operated_daily` 等数据表的 `site` 字段，可在请求体中传入 `siteId`、`oldSiteId`、`action`（`create`/`update`）。【F:api/site-sync/index.js†L1-L111】
+- `GET /api/site-modules`：返回全局 `site_module_configs` 模板及字段覆盖矩阵，前端按 `visibleRoles`、`enabled`、`hasDataSource` 渲染侧边栏模块。【F:api/site-modules/index.js†L1-L44】【F:api/site-modules/_shared.js†L1-L116】
+- `GET /api/site-modules/{siteId}`：组合站点级与全局模块配置，可通过 `includeGlobal=true/false` 控制是否附带全局占位；请求头或查询参数的 `role` 用于按角色过滤模块可见性。【F:api/site-modules/[siteId].js†L1-L87】
+- `PATCH /api/site-modules/{siteId}`：批量开启/禁用模块、调整顺序或覆盖 `visibleRoles` 与 `config`，若站点尚未存在该模块会基于全局模板自动补全记录。【F:api/site-modules/[siteId].js†L89-L161】
 - **平台扩展指引**：`site_configs` 的 `platform` 字段为自由文本，可直接以 `lazada`、`shopee` 等平台名创建新配置；`data_source`/`template_id` 可引用 `data_source_templates` 中的预设映射，必要时通过 `generate_dynamic_table` 创建对应日表结构。【F:site_configuration_framework.sql†L1-L118】
 
 ### 速卖通 · 自运营（Robot / Poolslab）
@@ -173,8 +178,9 @@ CREATE INDEX IF NOT EXISTS idx_site_configs_data_source ON public.site_configs(d
 - `GET /api/ozon/stats`：支持 `date` 或 `start`/`end` 范围，自动探测实际列名并聚合 SKU 指标（展示、访客、加购、下单等）；若未指定日期则返回最新日期列表供选择。【F:api/ozon/stats/index.js†L1-L120】
 - `POST /api/ozon/import`：接收 `file` 字段的报表，执行俄文表头转蛇形、列重映射与必填校验后 upsert 到 `ozon_product_report_wide`，并处理 Schema 缓存刷新。【F:api/ozon/import/index.js†L1-L160】
 
-### 模块配置与权限（规划中）
-- `specs/openapi.yaml` 已给出 `/api/site-modules` 系列接口草案，用于集中下发站点模块顺序与可见性；当前仓库尚未实现对应的 Serverless 函数，后续上线时需同时遵循 `rules.json` 中的导航与权限约束。【F:specs/openapi.yaml†L576-L622】【F:rules.json†L8-L76】
+### 模块配置与权限
+- `/api/site-modules` 系列 Serverless 函数已上线，结合 `site_module_configs`/`platform_metric_profiles` 表将站点模块顺序、可见角色与字段覆盖矩阵集中下发，并在前端动态渲染导航。【F:api/site-modules/index.js†L1-L47】【F:api/site-modules/[siteId].js†L1-L192】【F:api/site-modules/_shared.js†L1-L216】
+- `specs/openapi.yaml` 中的模块配置段落仍作为接口契约依据，具体权限约束与模块独立性要求需同步遵循 `rules.json` 规则。【F:specs/openapi.yaml†L600-L640】【F:rules.json†L8-L76】
 
 ## 项目知识库与约束
 - `docs/platform-architecture.md`：全站架构蓝图，描述站点矩阵、模块职责、数据流与执行建议。【F:docs/platform-architecture.md†L1-L162】
