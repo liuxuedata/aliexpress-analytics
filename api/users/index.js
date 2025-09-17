@@ -63,67 +63,105 @@ async function getUsers(req, res, supabase) {
   
   const offset = (page - 1) * limit;
   
-  let query = supabase
-    .from('users')
-    .select(`
-      id,
-      username,
-      email,
-      full_name,
-      role_id,
-      is_active,
-      created_at,
-      updated_at,
-      roles:role_id (
-        id,
-        name,
-        description,
-        permissions
-      )
-    `)
-    .order(order_by, { ascending: order_direction === 'asc' });
+  try {
+    // 首先检查表是否存在
+    const { data: tableCheck, error: tableError } = await supabase
+      .from('users')
+      .select('id')
+      .limit(1);
     
-  // 应用筛选条件
-  if (role_id) query = query.eq('role_id', role_id);
-  if (is_active !== undefined) query = query.eq('is_active', is_active === 'true');
-  
-  // 分页
-  query = query.range(offset, offset + limit - 1);
-  
-  const { data, error, count } = await query;
-  
-  if (error) {
-    console.error('Get users error:', error);
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Failed to fetch users',
-      error: error.message 
+    if (tableError) {
+      console.error('Table check error:', tableError);
+      // 如果表不存在，返回空数据而不是错误
+      return res.json({
+        success: true,
+        data: {
+          items: [],
+          total: 0,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          pages: 0
+        },
+        metadata: {
+          availableFields: [
+            'username', 'email', 'full_name', 'role_id', 'is_active', 
+            'created_at', 'updated_at', 'role_info'
+          ],
+          missingFields: [],
+          message: 'Users table not found. Please run database migration.'
+        }
+      });
+    }
+    
+    let query = supabase
+      .from('users')
+      .select(`
+        id,
+        username,
+        email,
+        full_name,
+        role_id,
+        is_active,
+        created_at,
+        updated_at,
+        roles:role_id (
+          id,
+          name,
+          description,
+          permissions
+        )
+      `)
+      .order(order_by, { ascending: order_direction === 'asc' });
+      
+    // 应用筛选条件
+    if (role_id) query = query.eq('role_id', role_id);
+    if (is_active !== undefined) query = query.eq('is_active', is_active === 'true');
+    
+    // 分页
+    query = query.range(offset, offset + limit - 1);
+    
+    const { data, error, count } = await query;
+    
+    if (error) {
+      console.error('Get users error:', error);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to fetch users',
+        error: error.message 
+      });
+    }
+    
+    // 移除密码哈希字段
+    const safeData = (data || []).map(user => {
+      const { password_hash, ...safeUser } = user;
+      return safeUser;
+    });
+    
+    return res.json({
+      success: true,
+      data: {
+        items: safeData,
+        total: count || 0,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil((count || 0) / limit)
+      },
+      metadata: {
+        availableFields: [
+          'username', 'email', 'full_name', 'role_id', 'is_active', 
+          'created_at', 'updated_at', 'role_info'
+        ],
+        missingFields: []
+      }
+    });
+  } catch (error) {
+    console.error('Unexpected error in getUsers:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
     });
   }
-  
-  // 移除密码哈希字段
-  const safeData = (data || []).map(user => {
-    const { password_hash, ...safeUser } = user;
-    return safeUser;
-  });
-  
-  return res.json({
-    success: true,
-    data: {
-      items: safeData,
-      total: count || 0,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      pages: Math.ceil((count || 0) / limit)
-    },
-    metadata: {
-      availableFields: [
-        'username', 'email', 'full_name', 'role_id', 'is_active', 
-        'created_at', 'updated_at', 'role_info'
-      ],
-      missingFields: []
-    }
-  });
 }
 
 async function createUser(req, res, supabase) {

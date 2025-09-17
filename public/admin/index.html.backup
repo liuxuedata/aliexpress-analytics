@@ -336,7 +336,7 @@
             
             <div class="content">
                 <!-- 仪表盘 -->
-                <div id="dashboard-container" class="module-container" style="display: none;">
+                <div id="dashboard-container" class="module-container">
                     <div class="kpi-grid">
                         <div class="kpi-card">
                             <h4>总订单数</h4>
@@ -412,7 +412,7 @@
                 </div>
                 
                 <!-- 库存管理 -->
-                <div id="inventory-container" class="module-container">
+                <div id="inventory-container" class="module-container" style="display: none;">
                     <div class="module-header">
                         <h2>库存管理</h2>
                         <div class="module-actions">
@@ -503,73 +503,10 @@
     
     <!-- 核心脚本 -->
     <script src="../admin-core.js"></script>
+    <script src="../modules/analytics.js"></script>
+    <script src="../modules/orders.js"></script>
     <script src="../modules/inventory.js"></script>
+    <script src="../modules/ads.js"></script>
     <script src="../modules/users.js"></script>
-    <script>
-    // 全局管理页面逻辑
-    document.addEventListener('DOMContentLoaded', function() {
-        // 初始化导航
-        initializeGlobalNavigation();
-        
-        // 初始化各个模块
-        initializeInventoryModule();
-        initializePermissionsModule();
-        initializeSitesModule();
-    });
-    
-    // 初始化全局导航
-    function initializeGlobalNavigation() {
-        const menuItems = document.querySelectorAll('.menu-item');
-        const containers = document.querySelectorAll('.module-container');
-        
-        menuItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-                const target = item.getAttribute('href').substring(1);
-                
-                // 更新导航状态
-                menuItems.forEach(menu => menu.classList.remove('active'));
-                item.classList.add('active');
-                
-                // 显示对应内容
-                containers.forEach(container => {
-                    container.style.display = 'none';
-                    if (container.id === target + '-container') {
-                        container.style.display = 'block';
-                    }
-                });
-                
-                // 更新页面标题
-                const pageTitle = document.getElementById('pageTitle');
-                if (pageTitle) {
-                    const titleMap = {
-                        'inventory': '库存管理',
-                        'permissions': '权限管理',
-                        'sites': '站点配置'
-                    };
-                    pageTitle.textContent = titleMap[target] || '全局管理';
-                }
-            });
-        });
-    }
-    
-    // 初始化库存管理模块
-    function initializeInventoryModule() {
-        console.log('初始化库存管理模块');
-        // TODO: 实现库存管理功能
-    }
-    
-    // 初始化权限管理模块
-    function initializePermissionsModule() {
-        console.log('初始化权限管理模块');
-        // TODO: 实现权限管理功能
-    }
-    
-    // 初始化站点配置模块
-    function initializeSitesModule() {
-        console.log('初始化站点配置模块');
-        // TODO: 实现站点配置功能
-    }
-    </script>
 </body>
 </html>

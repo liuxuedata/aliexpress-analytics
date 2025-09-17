@@ -2326,10 +2326,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
   function refreshUser(){
     const u=JSON.parse(localStorage.getItem('user')||'null');
     if(u){
-      userArea.innerHTML=`<div class="user-section"><div class="user-menu-trigger">${u.name}</div><div class="user-dropdown" style="display:none"><button class="user-dropdown-item" id="logoutBtn">退出</button></div></div>`;
+      userArea.innerHTML=`<div class="user-section"><div class="user-menu-trigger">${u.name}</div><div class="user-dropdown" style="display:none"><button class="user-dropdown-item" id="globalAdminBtn">全局管理</button><button class="user-dropdown-item" id="logoutBtn">退出</button></div></div>`;
       const trigger=userArea.querySelector('.user-menu-trigger');
       const dropdown=userArea.querySelector('.user-dropdown');
       trigger.addEventListener('click',()=>{dropdown.style.display=dropdown.style.display==='block'?'none':'block';});
+      document.getElementById('globalAdminBtn').addEventListener('click',()=>{window.location.href='admin/';});
       document.getElementById('logoutBtn').addEventListener('click',()=>{localStorage.removeItem('user');dropdown.style.display='none';refreshUser();showLoginOverlay();});
     }else{
       userArea.innerHTML='<div class="user-section"><span class="user-demo">未登录</span><button class="login-button" id="loginTrigger">登录</button></div>';
