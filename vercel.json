@@ -65,6 +65,26 @@
       "dest": "/api/sites/index.js"
     },
     {
+      "src": "/api/orders",
+      "dest": "/api/orders/index.js"
+    },
+    {
+      "src": "/api/inventory",
+      "dest": "/api/inventory/index.js"
+    },
+    {
+      "src": "/api/ads",
+      "dest": "/api/ads/index.js"
+    },
+    {
+      "src": "/api/users",
+      "dest": "/api/users/index.js"
+    },
+    {
+      "src": "/api/site-modules",
+      "dest": "/api/site-modules/index.js"
+    },
+    {
       "src": "/api/independent/facebook-ingest",
       "dest": "/api/independent/facebook-ingest/index.js"
     },

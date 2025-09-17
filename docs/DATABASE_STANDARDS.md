@@ -250,6 +250,67 @@ SELECT COUNT(*) FROM table_name;
 SELECT COUNT(*) FROM table_name WHERE field IS NULL;
 ```
 
+## 🌐 Vercel 路由规范
+
+### 1. 静态文件路由
+
+根据 `vercel.json` 配置，静态文件应遵循以下规则：
+
+```json
+{
+  "src": "/(.*)",
+  "dest": "/public/$1"
+}
+```
+
+**文件路径规范**:
+- 静态文件直接放在 `public/` 目录下
+- 管理后台页面：`public/admin/index.html`
+- 核心脚本：`public/admin-core.js`
+- 模块文件：`public/modules/`
+- 样式文件：`public/assets/` (保持现有结构)
+
+### 2. API 路由配置
+
+在 `vercel.json` 中添加新的API路由：
+
+```json
+{
+  "src": "/api/orders",
+  "dest": "/api/orders/index.js"
+},
+{
+  "src": "/api/inventory", 
+  "dest": "/api/inventory/index.js"
+},
+{
+  "src": "/api/ads",
+  "dest": "/api/ads/index.js"
+},
+{
+  "src": "/api/users",
+  "dest": "/api/users/index.js"
+},
+{
+  "src": "/api/site-modules",
+  "dest": "/api/site-modules/index.js"
+}
+```
+
+### 3. 文件访问路径
+
+**管理后台访问**:
+```
+https://your-domain.vercel.app/admin/
+```
+
+**静态资源访问**:
+```
+https://your-domain.vercel.app/admin-core.js
+https://your-domain.vercel.app/modules/analytics.js
+https://your-domain.vercel.app/assets/theme.css
+```
+
 ## 🔄 版本控制规范
 
 ### 1. 迁移脚本命名
