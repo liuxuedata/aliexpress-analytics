@@ -79,6 +79,93 @@
     .asin-link:hover {
       text-decoration: underline;
     }
+    
+    /* 新增模块样式 */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .section-header h2 {
+      margin: 0;
+      color: #1f2937;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+    
+    .btn-secondary {
+      background: #6b7280;
+      color: white;
+    }
+    
+    .btn-secondary:hover {
+      background: #4b5563;
+    }
+    
+    .filters {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #f9fafb;
+      border-radius: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .filter-group label {
+      font-weight: 500;
+      color: #374151;
+      white-space: nowrap;
+    }
+    
+    .filter-group select,
+    .filter-group input {
+      padding: 6px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .table-container {
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
   </style>
 </head>
 <body class="fm">
@@ -107,6 +194,7 @@
     <ul class="sub-nav">
       <li><a href="amazon-overview.html" class="active">总览</a></li>
       <li><a href="amazon-ads.html">广告</a></li>
+      <li><a href="#orders" data-target="orders">订单中心</a></li>
     </ul>
   </nav>
   
@@ -170,6 +258,66 @@
         <tbody></tbody>
       </table>
     </div>
+
+    <!-- 订单中心 -->
+    <div id="orders" class="amazon-table-container" style="display:none;">
+      <div class="section-header">
+        <h2>订单管理</h2>
+        <div class="controls">
+          <button id="createOrderBtn" class="btn btn-primary">新建订单</button>
+          <button id="importOrdersBtn" class="btn btn-secondary">导入订单</button>
+        </div>
+      </div>
+      
+      <!-- 订单筛选器 -->
+      <div class="filters">
+        <div class="filter-group">
+          <label>订单状态：</label>
+          <select id="orderStatusFilter">
+            <option value="">全部</option>
+            <option value="pending">待确认</option>
+            <option value="confirmed">已确认</option>
+            <option value="shipped">已发货</option>
+            <option value="delivered">已送达</option>
+            <option value="completed">已完成</option>
+            <option value="cancelled">已取消</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>日期范围：</label>
+          <input id="orderDateFilter" class="date-filter" placeholder="选择日期范围">
+        </div>
+        <div class="filter-group">
+          <label>客户邮箱：</label>
+          <input id="customerEmailFilter" type="email" placeholder="输入客户邮箱">
+        </div>
+      </div>
+
+      <!-- 订单KPI -->
+      <div class="amazon-kpi-grid">
+        <div class="amazon-kpi-card">
+          <div class="amazon-kpi-value" id="totalOrdersCount">0</div>
+          <div class="amazon-kpi-label">总订单数</div>
+        </div>
+        <div class="amazon-kpi-card">
+          <div class="amazon-kpi-value" id="totalSalesAmount">$0.00</div>
+          <div class="amazon-kpi-label">总销售额</div>
+        </div>
+        <div class="amazon-kpi-card">
+          <div class="amazon-kpi-value" id="avgOrderValue">$0.00</div>
+          <div class="amazon-kpi-label">平均客单价</div>
+        </div>
+        <div class="amazon-kpi-card">
+          <div class="amazon-kpi-value" id="pendingOrdersCount">0</div>
+          <div class="amazon-kpi-label">待处理订单</div>
+        </div>
+      </div>
+
+      <!-- 订单表格 -->
+      <div class="table-container">
+        <table id="orders-table" class="data-table display nowrap" style="width:100%"></table>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -183,7 +331,53 @@ $(document).ready(function() {
   initializeDataTable();
   initializeChart();
   loadDefaultData();
+  initializeNavigation();
 });
+
+// 初始化导航处理
+function initializeNavigation() {
+  // 处理导航点击
+  document.querySelectorAll('.sub-nav a[data-target]').forEach(a => {
+    a.addEventListener('click', e => {
+      const target = a.dataset.target;
+      if (target) {
+        e.preventDefault();
+        window.location.hash = target;
+      }
+    });
+  });
+  
+  // 处理hash变化
+  window.addEventListener('hashchange', handleHashRoute);
+  handleHashRoute();
+}
+
+// 处理hash路由
+function handleHashRoute() {
+  const hash = window.location.hash.slice(1) || '';
+  
+  // 显示/隐藏内容区域
+  const mainContent = document.querySelector('.amazon-kpi-grid').parentElement;
+  const ordersContent = document.getElementById('orders');
+  
+  if (hash === 'orders') {
+    mainContent.style.display = 'none';
+    if (ordersContent) ordersContent.style.display = 'block';
+    
+    // 更新导航状态
+    document.querySelectorAll('.sub-nav a').forEach(x => x.classList.remove('active'));
+    const ordersLink = document.querySelector('[data-target="orders"]');
+    if (ordersLink) ordersLink.classList.add('active');
+  } else {
+    mainContent.style.display = 'block';
+    if (ordersContent) ordersContent.style.display = 'none';
+    
+    // 更新导航状态
+    document.querySelectorAll('.sub-nav a').forEach(x => x.classList.remove('active'));
+    const activeLink = document.querySelector('.sub-nav a:not([data-target])');
+    if (activeLink) activeLink.classList.add('active');
+  }
+}
 
 // 初始化日期选择器
 function initializeDatePicker() {
