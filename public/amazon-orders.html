@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>亚马逊订单中心（占位）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="assets/login.css">
+  <link rel="stylesheet" href="assets/theme.css?v=20250811-amazon">
+  <style>
+    .placeholder-section {
+      padding: 32px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+      margin-bottom: 16px;
+    }
+    .placeholder-section h2 {
+      margin: 0 0 12px;
+      font-size: 24px;
+    }
+    .placeholder-section p {
+      color: #6b7280;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body class="fm">
+<header class="header">
+  <div class="logo-title"><img src="assets/logo.svg" alt="Ecommerce Analytics" class="site-logo"> 跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li class="ali"><a href="self-operated.html">速卖通</a></li>
+      <li class="amazon active"><a href="amazon-overview.html">亚马逊</a></li>
+      <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon"><a href="ozon-detail.html">Ozon</a></li>
+      <li class="independent"><a href="independent-site.html">独立站</a></li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+<div class="layout container">
+  <nav class="sidebar" id="sidebar">
+    <div class="site-header"><span>Amazon</span></div>
+    <ul class="sub-nav">
+      <li><a href="amazon-overview.html">详细数据</a></li>
+      <li><a href="amazon-operations.html">运营分析</a></li>
+      <li><a href="amazon-products.html">产品分析</a></li>
+      <li><a href="amazon-orders.html" class="active">订单中心</a></li>
+      <li><a href="amazon-ads.html">广告中心</a></li>
+    </ul>
+  </nav>
+  <main class="main">
+    <section class="placeholder-section">
+      <h2>订单中心（开发中）</h2>
+      <p>📦 订单中心将对接 `/api/orders`、`/api/orders/import`，串联订单头/明细、客户、结算与物流成本，支持与库存、广告模块交叉分析。</p>
+      <p>页面将提供订单状态、结算状态、站点与仓库筛选，并允许跳转到产品或库存详情。</p>
+    </section>
+  </main>
+</div>
+<script src="assets/site-nav.js"></script>
+</body>
+</html>

@@ -22,8 +22,8 @@
 | TikTok Shop | 占位页 | `public/tiktok.html` | 运营 / 产品 / 广告（订单占位） | ⏳ 等待接口 | `/api/independent/stats?channel=tiktok` 扩展 | `/api/independent/tiktok-ingest` 扩展 | 需补齐店播/短视频指标 |
 | 广告中心 | 所有站点 | 新增仪表盘（待建） | 全局设置（仅广告角色可见） | ⏳ 规划中 | `/api/ads/stats`（见规格） | `/api/ads/ingest`（见规格） | 统一广告管理 |
 | 订单中心 | 所有站点 | 新增仪表盘（待建） | 全局设置（站点侧边栏提供锚点） | ⏳ 规划中 | `/api/orders`（见规格） | `/api/orders/import`（见规格） | 订单全链路 |
-| 库存中心 | 所有站点 | 新增仪表盘（待建） | 全局设置（仅库存角色可见） | ⏳ 规划中 | `/api/inventory`（见规格） | `/api/inventory/import`（见规格） | 批次 & 调拨 |
-| 权限中心 | 所有站点 | 新增设置页（待建） | 全局设置（仅管理员可见） | ⏳ 规划中 | `/api/permissions`（见规格） | `/api/permissions` | 角色/资源矩阵 |
+| 库存中心 | 所有站点 | `public/inventory-management.html`（占位） | 全局设置（仅库存角色可见） | ⏳ 规划中 | `/api/inventory`（见规格） | `/api/inventory/import`（见规格） | 批次 & 调拨 |
+| 权限中心 | 所有站点 | `public/permissions-management.html`（占位） | 全局设置（仅管理员可见） | ⏳ 规划中 | `/api/permissions`（见规格） | `/api/permissions` | 角色/资源矩阵 |
 
 ### 2.2 页面骨架
 - `public/index.html`：门户页，自动跳转至自运营 Robot 站，负责统一导航入口。
@@ -34,6 +34,8 @@
 - `public/amazon-overview.html`、`public/amazon-ads.html`：亚马逊运营与广告视图。
 - `public/ozon-detail.html` 系列：Ozon 指标与报表上传。
 - `public/temu.html`、`public/tiktok.html`：统一导航和布局已接入，等待数据接口与左侧模块配置下发。
+- `public/inventory-management.html`：全局库存中心占位页，预留库存总览与库存变动分栏。
+- `public/permissions-management.html`：权限中心占位页，预留角色矩阵、站点授权、审计日志分栏。
 
 ### 2.2 模块布局与权限
 - **站点模块注册**：所有站点的左侧导航由 `site_module_configs`（详见数据模型）驱动，默认挂载运营、产品、订单、广告四大模块，按站点配置决定是否启用或隐藏。

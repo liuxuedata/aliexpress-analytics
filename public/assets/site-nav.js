@@ -4,7 +4,9 @@
     site:'<svg class="site-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 0 20M12 2a15.3 15.3 0 0 0 0 20"/></svg>',
     detail:'<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/><line x1="15" y1="9" x2="15" y2="21"/></svg>',
     operation:'<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 3h7v7"/></svg>',
-    product:'<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3v8h8"/></svg>'
+    product:'<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3v8h8"/></svg>',
+    orders:'<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V21a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8"/><path d="M7 4h10l4 4H3l4-4Z"/><path d="M10 12h4"/><path d="M10 16h4"/></svg>',
+    advertising:'<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a4 4 0 0 0 4 4h3l5 3v-6h3a4 4 0 0 0 4-4v-2"/><path d="M7 15v-6"/><path d="M3 7a4 4 0 0 0 4 4h3l5 3V4l-5 3H7a4 4 0 0 1-4-4"/></svg>'
   };
 
   // 默认站点配置
@@ -50,6 +52,8 @@
       if(/明细|数据/.test(txt)) a.insertAdjacentHTML('afterbegin',icons.detail);
       else if(/运营/.test(txt)) a.insertAdjacentHTML('afterbegin',icons.operation);
       else if(/产品/.test(txt)) a.insertAdjacentHTML('afterbegin',icons.product);
+      else if(/订单/.test(txt)) a.insertAdjacentHTML('afterbegin',icons.orders);
+      else if(/广告/.test(txt)) a.insertAdjacentHTML('afterbegin',icons.advertising);
     });
   }
 
@@ -274,7 +278,12 @@
       link.addEventListener('click', (e) => {
         // 确保链接能正常工作
         console.log('导航链接点击:', link.href);
-        
+
+        if (link.dataset.dropdownTrigger === 'true') {
+          e.preventDefault();
+          return;
+        }
+
                  // 检查当前页面类型，调用相应的平台切换处理函数
          const currentPath = window.location.pathname;
          if (currentPath.includes('self-operated')) {
@@ -322,6 +331,7 @@
       applyNavIcons();
       updateCurrentSiteDisplay();
       ensureAdminLink();
+      ensureGlobalLinks();
       setupDropdownEvents();
       
       console.log('站点菜单初始化完成');
@@ -355,6 +365,59 @@
 
     adminItem.appendChild(adminLink);
     platformNav.appendChild(adminItem);
+  }
+
+  function ensureGlobalLinks() {
+    const platformNav = document.querySelector('.platform-nav');
+    if (!platformNav) return;
+
+    let globalItem = platformNav.querySelector('li.global-modules');
+    if (globalItem) {
+      const trigger = globalItem.querySelector('a');
+      if (trigger) {
+        trigger.setAttribute('data-dropdown-trigger', 'true');
+        trigger.setAttribute('role', 'button');
+      }
+      const dropdown = globalItem.querySelector('.dropdown');
+      if (dropdown && !dropdown.querySelector('a[href="inventory-management.html"]')) {
+        dropdown.appendChild(createGlobalLink('库存管理', 'inventory-management.html'));
+      }
+      if (dropdown && !dropdown.querySelector('a[href="permissions-management.html"]')) {
+        dropdown.appendChild(createGlobalLink('权限管理', 'permissions-management.html'));
+      }
+      if (dropdown && !dropdown.querySelector('a[href="site-management.html"]')) {
+        dropdown.appendChild(createGlobalLink('站点配置', 'site-management.html'));
+      }
+      return;
+    }
+
+    globalItem = document.createElement('li');
+    globalItem.className = 'global-modules';
+
+    const trigger = document.createElement('a');
+    trigger.href = '#';
+    trigger.textContent = '全局设置';
+    trigger.setAttribute('data-dropdown-trigger', 'true');
+    trigger.setAttribute('role', 'button');
+
+    const dropdown = document.createElement('ul');
+    dropdown.className = 'dropdown';
+    dropdown.appendChild(createGlobalLink('库存管理', 'inventory-management.html'));
+    dropdown.appendChild(createGlobalLink('权限管理', 'permissions-management.html'));
+    dropdown.appendChild(createGlobalLink('站点配置', 'site-management.html'));
+
+    globalItem.appendChild(trigger);
+    globalItem.appendChild(dropdown);
+    platformNav.appendChild(globalItem);
+  }
+
+  function createGlobalLink(label, href) {
+    const li = document.createElement('li');
+    const link = document.createElement('a');
+    link.href = href;
+    link.textContent = label;
+    li.appendChild(link);
+    return li;
   }
 
   // 页面加载完成后初始化

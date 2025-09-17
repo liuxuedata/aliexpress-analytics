@@ -8,6 +8,24 @@
   <link rel="stylesheet" href="assets/login.css">
   <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
+  <style>
+    .placeholder-section {
+      padding: 32px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
+      margin-bottom: 16px;
+    }
+    .placeholder-section h2 {
+      margin: 0 0 12px;
+      font-size: 22px;
+    }
+    .placeholder-section p {
+      color: #6b7280;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+  </style>
 </head>
 <body class="fm">
 <header class="header">
@@ -32,13 +50,67 @@
   <nav class="sidebar" id="sidebar">
     <div class="site-header"><span>站点</span></div>
     <ul class="sub-nav">
-      <li><a href="#" class="active">页面建设中</a></li>
+      <li><a href="#detail" class="active" data-target="detail">详细数据</a></li>
+      <li><a href="#analysis" data-target="analysis">运营分析</a></li>
+      <li><a href="#products" data-target="products">产品分析</a></li>
+      <li><a href="#orders" data-target="orders">订单中心</a></li>
+      <li><a href="#ads" data-target="ads">广告中心</a></li>
     </ul>
   </nav>
-  <main class="main" style="display:flex;align-items:center;justify-content:center;">
-    <h2 style="font-size:24px;font-weight:700;">页面建设中…</h2>
+  <main class="main">
+    <section id="detail" class="placeholder-section">
+      <h2>详细数据</h2>
+      <p>🚧 Temu 数据接入规划中，将提供曝光、访客、加购、订单全链路指标。</p>
+    </section>
+    <section id="analysis" class="placeholder-section" style="display:none;">
+      <h2>运营分析</h2>
+      <p>📈 运营分析将展示漏斗、趋势与跨渠道对比，预留 /api/temu/stats 接口。</p>
+    </section>
+    <section id="products" class="placeholder-section" style="display:none;">
+      <h2>产品分析</h2>
+      <p>🧪 产品分析计划按 SKU 聚合投放、访客、加购与支付表现。</p>
+    </section>
+    <section id="orders" class="placeholder-section" style="display:none;">
+      <h2>订单中心</h2>
+      <p>📦 订单中心将联通采购价、物流成本与结算状态。</p>
+    </section>
+    <section id="ads" class="placeholder-section" style="display:none;">
+      <h2>广告中心</h2>
+      <p>📢 Temu 广告中心将支持渠道预算、曝光、访客与支付效果对比。</p>
+    </section>
   </main>
 </div>
 <script src="assets/site-nav.js"></script>
+<script>
+const MODULE_SECTIONS = ['detail', 'analysis', 'products', 'orders', 'ads'];
+document.addEventListener('DOMContentLoaded', () => {
+  function switchSection(target) {
+    MODULE_SECTIONS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = id === target ? '' : 'none';
+    });
+    document.querySelectorAll('.sub-nav a').forEach(a => a.classList.toggle('active', a.dataset.target === target));
+  }
+
+  const nav = document.querySelector('.sub-nav');
+  if (nav) {
+    nav.addEventListener('click', e => {
+      const link = e.target.closest('a[data-target]');
+      if (!link) return;
+      e.preventDefault();
+      const target = link.dataset.target || 'detail';
+      window.location.hash = target;
+    });
+  }
+
+  function applyHash() {
+    const hash = window.location.hash.slice(1) || 'detail';
+    switchSection(MODULE_SECTIONS.includes(hash) ? hash : 'detail');
+  }
+
+  window.addEventListener('hashchange', applyHash);
+  applyHash();
+});
+</script>
 </body>
 </html>

@@ -996,9 +996,17 @@ function initializeAdmin() {
   document.querySelectorAll('#adminNav a').forEach(link => {
     link.addEventListener('click', event => {
       event.preventDefault();
-      switchSection(link.dataset.target);
+      const target = event.currentTarget?.dataset.target;
+      if (target) {
+        switchSection(target);
+      }
     });
   });
+
+  const activeLink = document.querySelector('#adminNav a.active') || document.querySelector('#adminNav a');
+  if (activeLink?.dataset.target) {
+    switchSection(activeLink.dataset.target);
+  }
 
   document.getElementById('platformSelect').addEventListener('change', () => {
     updateDataSourceOptions();

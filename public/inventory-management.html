@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>库存管理 · 跨境电商数据分析平台</title>
+  <link rel="stylesheet" href="assets/login.css">
+  <link rel="stylesheet" href="assets/theme.css?v=20250811-global">
+  <style>
+    .placeholder-section {
+      padding: 32px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
+      margin-bottom: 16px;
+    }
+    .placeholder-section h2 {
+      margin: 0 0 12px;
+      font-size: 24px;
+    }
+    .placeholder-section p {
+      color: #6b7280;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+  </style>
+</head>
+<body class="fm">
+<header class="header">
+  <div class="logo-title">跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li class="ali"><a href="self-operated.html">速卖通</a></li>
+      <li class="amazon"><a href="amazon-overview.html">亚马逊</a></li>
+      <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon"><a href="ozon-detail.html">Ozon</a></li>
+      <li class="independent"><a href="independent-site.html">独立站</a></li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+<div class="layout container">
+  <nav class="sidebar" id="sidebar">
+    <div class="site-header"><span>库存管理</span></div>
+    <ul class="sub-nav">
+      <li><a href="#overview" class="active" data-target="overview">库存总览</a></li>
+      <li><a href="#movements" data-target="movements">库存变动</a></li>
+    </ul>
+  </nav>
+  <main class="main">
+    <section id="overview" class="placeholder-section">
+      <h2>库存总览</h2>
+      <p>🚧 库存中心正在建设，将汇总产品维度的可用库存、预警阈值、采购价与多站点库存分布。</p>
+      <p>未来将直接对接 <code>inventory</code>、<code>inventory_movements</code>、<code>purchases</code> 表，并支持产品 ID 快速跳转到对应站点页面。</p>
+    </section>
+    <section id="movements" class="placeholder-section" style="display:none;">
+      <h2>库存变动</h2>
+      <p>📋 库存变动日志将展示入库、出库、调拨、盘点等操作，结合订单号、采购单号与操作者信息，帮助追踪库存流向。</p>
+      <p>页面将提供基于时间范围、站点、产品 ID 的筛选，并支持导出 CSV 及触发补货提醒。</p>
+    </section>
+  </main>
+</div>
+<script src="assets/site-nav.js"></script>
+<script>
+const MODULE_SECTIONS = ['overview', 'movements'];
+document.addEventListener('DOMContentLoaded', () => {
+  function switchSection(target) {
+    MODULE_SECTIONS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = id === target ? '' : 'none';
+    });
+    document.querySelectorAll('.sub-nav a').forEach(a => a.classList.toggle('active', a.dataset.target === target));
+  }
+
+  const nav = document.querySelector('.sub-nav');
+  if (nav) {
+    nav.addEventListener('click', e => {
+      const link = e.target.closest('a[data-target]');
+      if (!link) return;
+      e.preventDefault();
+      const target = link.dataset.target || 'overview';
+      window.location.hash = target;
+    });
+  }
+
+  function applyHash() {
+    const hash = window.location.hash.slice(1) || 'overview';
+    switchSection(MODULE_SECTIONS.includes(hash) ? hash : 'overview');
+  }
+
+  window.addEventListener('hashchange', applyHash);
+  applyHash();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>权限管理 · 跨境电商数据分析平台</title>
+  <link rel="stylesheet" href="assets/login.css">
+  <link rel="stylesheet" href="assets/theme.css?v=20250811-global">
+  <style>
+    .placeholder-section {
+      padding: 32px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
+      margin-bottom: 16px;
+    }
+    .placeholder-section h2 {
+      margin: 0 0 12px;
+      font-size: 24px;
+    }
+    .placeholder-section p {
+      color: #6b7280;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .placeholder-section ul {
+      margin: 8px 0 0 20px;
+      color: #6b7280;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body class="fm">
+<header class="header">
+  <div class="logo-title">跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li class="ali"><a href="self-operated.html">速卖通</a></li>
+      <li class="amazon"><a href="amazon-overview.html">亚马逊</a></li>
+      <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon"><a href="ozon-detail.html">Ozon</a></li>
+      <li class="independent"><a href="independent-site.html">独立站</a></li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+<div class="layout container">
+  <nav class="sidebar" id="sidebar">
+    <div class="site-header"><span>权限管理</span></div>
+    <ul class="sub-nav">
+      <li><a href="#roles" class="active" data-target="roles">角色矩阵</a></li>
+      <li><a href="#assignments" data-target="assignments">站点授权</a></li>
+      <li><a href="#audit" data-target="audit">审计与合规</a></li>
+    </ul>
+  </nav>
+  <main class="main">
+    <section id="roles" class="placeholder-section">
+      <h2>角色矩阵</h2>
+      <p>🔐 权限中心将提供角色矩阵编辑能力，对应 <code>roles</code> 表中的权限 JSON 字段，并与 <code>site_module_configs.visible_roles</code> 联动。</p>
+      <ul>
+        <li>支持为每个模块配置默认角色、站点范围与操作权限。</li>
+        <li>集成 <code>/api/permissions/roles</code> 与 <code>/api/site-modules</code>，确保模块与角色同步。</li>
+      </ul>
+    </section>
+    <section id="assignments" class="placeholder-section" style="display:none;">
+      <h2>站点授权</h2>
+      <p>🧾 站点授权页面将维护成员与站点的对应关系，计划引入站点授权表并支持批量导入、导出。</p>
+      <p>将与登录态信息联动，限制非 Super Admin 用户仅访问被授权的站点及模块。</p>
+    </section>
+    <section id="audit" class="placeholder-section" style="display:none;">
+      <h2>审计与合规</h2>
+      <p>🕵️ 审计日志将记录角色、权限、站点授权的所有改动，包含操作者、时间、变更前后内容。</p>
+      <p>规划中的 <code>/api/permissions/audit</code> 将用于导出与对接安全平台，实现权限变更追踪。</p>
+    </section>
+  </main>
+</div>
+<script src="assets/site-nav.js"></script>
+<script>
+const MODULE_SECTIONS = ['roles', 'assignments', 'audit'];
+document.addEventListener('DOMContentLoaded', () => {
+  function switchSection(target) {
+    MODULE_SECTIONS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = id === target ? '' : 'none';
+    });
+    document.querySelectorAll('.sub-nav a').forEach(a => a.classList.toggle('active', a.dataset.target === target));
+  }
+
+  const nav = document.querySelector('.sub-nav');
+  if (nav) {
+    nav.addEventListener('click', e => {
+      const link = e.target.closest('a[data-target]');
+      if (!link) return;
+      e.preventDefault();
+      const target = link.dataset.target || 'roles';
+      window.location.hash = target;
+    });
+  }
+
+  function applyHash() {
+    const hash = window.location.hash.slice(1) || 'roles';
+    switchSection(MODULE_SECTIONS.includes(hash) ? hash : 'roles');
+  }
+
+  window.addEventListener('hashchange', applyHash);
+  applyHash();
+});
+</script>
+</body>
+</html>

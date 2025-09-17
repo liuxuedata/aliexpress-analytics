@@ -695,9 +695,11 @@
       </div>
     </div>
     <ul class="sub-nav">
-      <li><a href="#" class="active" data-target="detail">明细数据</a></li>
+      <li><a href="#detail" class="active" data-target="detail">明细数据</a></li>
       <li><a href="#analysis" data-target="analysis">运营分析</a></li>
       <li><a href="#products" data-target="products">产品分析</a></li>
+      <li><a href="#orders" data-target="orders">订单中心</a></li>
+      <li><a href="#ads" data-target="ads">广告中心</a></li>
     </ul>
   </nav>
 
@@ -852,6 +854,38 @@
         </div>
       </div>
     </section>
+
+    <section id="orders" class="content-pad" style="display:none;">
+      <div class="analysis-container">
+        <h3>📦 订单中心</h3>
+        <p class="section-subtitle">整合独立站订单、用户、物流与结算字段，按产品 ID 聚合。</p>
+        <div class="kpi-grid" id="independentOrderKpi" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+          <div class="kpi-card info"><h4>订单总数</h4><p id="independentOrderCount">--</p></div>
+          <div class="kpi-card info"><h4>待发货</h4><p id="independentOrderPending">--</p></div>
+          <div class="kpi-card info"><h4>已完成</h4><p id="independentOrderCompleted">--</p></div>
+          <div class="kpi-card info"><h4>GMV</h4><p id="independentOrderGmv">--</p></div>
+        </div>
+        <div class="message info" id="independentOrdersPlaceholder" style="margin-top:16px;">
+          🚧 订单中心开发中，将与 /api/independent/orders 及库存、采购价接口联动。
+        </div>
+      </div>
+    </section>
+
+    <section id="ads" class="content-pad" style="display:none;">
+      <div class="analysis-container">
+        <h3>📢 广告中心</h3>
+        <p class="section-subtitle">汇总 Facebook/Google/TikTok 广告投放成效，关联访客、加购与支付数据。</p>
+        <div class="kpi-grid" id="independentAdsKpi" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+          <div class="kpi-card info"><h4>广告预算</h4><p id="independentAdBudget">--</p></div>
+          <div class="kpi-card info"><h4>曝光量</h4><p id="independentAdImpressions">--</p></div>
+          <div class="kpi-card info"><h4>访客数</h4><p id="independentAdVisitors">--</p></div>
+          <div class="kpi-card info"><h4>广告带来支付</h4><p id="independentAdPayments">--</p></div>
+        </div>
+        <div class="message info" id="independentAdsPlaceholder" style="margin-top:16px;">
+          📊 广告中心将统一调用 /api/independent/facebook-ingest、/api/independent/google-ingest 等端点生成闭环报表。
+        </div>
+      </div>
+    </section>
     </div>
   </main>
 </div>
@@ -859,6 +893,7 @@
 <!-- Hash 路由脚本移动至文末以确保依赖函数已定义 -->
 
 <script>
+const MODULE_SECTIONS = ['detail', 'analysis', 'products', 'orders', 'ads'];
 function getParam(name) {
   const url = new URL(window.location.href);
   return url.searchParams.get(name);
@@ -2796,20 +2831,25 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.sub-nav a').forEach(x => x.classList.remove('active'));
       link.classList.add('active');
 
-      ['detail', 'analysis', 'products'].forEach(id => {
+      MODULE_SECTIONS.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = (id === hash ? '' : 'none');
       });
 
+      const showDetail = hash === 'detail';
       const kpiBlock = document.getElementById('kpi');
-      if (kpiBlock) kpiBlock.style.display = (hash === 'detail') ? '' : 'none';
+      if (kpiBlock) kpiBlock.style.display = showDetail ? '' : 'none';
       const topControls = document.getElementById('topControls');
-      if (topControls) topControls.style.display = (hash === 'detail') ? '' : 'none';
+      if (topControls) topControls.style.display = showDetail ? '' : 'none';
 
       if (hash === 'analysis') {
         loadIndependentAnalysisData();
       } else if (hash === 'products') {
         loadIndependentProductAnalysisData();
+      } else if (hash === 'orders') {
+        renderIndependentOrders();
+      } else if (hash === 'ads') {
+        renderIndependentAds();
       }
 
       setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
@@ -2819,15 +2859,34 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('hashchange', handleHashRoute);
   handleHashRoute();
 
-  document.querySelectorAll('.sub-nav a').forEach(a => {
-    a.addEventListener('click', e => {
-      const target = a.dataset.target;
+  function renderIndependentOrders(){
+    const placeholder = document.getElementById('independentOrdersPlaceholder');
+    if (placeholder && !placeholder.dataset.initialized) {
+      placeholder.dataset.initialized = 'true';
+      placeholder.textContent = '🚧 订单中心开发中，将与 /api/independent/orders 及库存、采购价接口联动。';
+    }
+  }
+
+  function renderIndependentAds(){
+    const placeholder = document.getElementById('independentAdsPlaceholder');
+    if (placeholder && !placeholder.dataset.initialized) {
+      placeholder.dataset.initialized = 'true';
+      placeholder.textContent = '📊 广告中心将统一调用 /api/independent/facebook-ingest、/api/independent/google-ingest 等端点生成闭环报表。';
+    }
+  }
+
+  const moduleNav = document.querySelector('.sub-nav');
+  if (moduleNav) {
+    moduleNav.addEventListener('click', e => {
+      const linkEl = e.target.closest('a[data-target]');
+      if (!linkEl) return;
+      const target = linkEl.dataset.target;
       if (target) {
         e.preventDefault();
         window.location.hash = target;
       }
     });
-  });
+  }
 });
 </script>
 

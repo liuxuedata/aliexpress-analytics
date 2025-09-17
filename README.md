@@ -54,14 +54,16 @@
 | 页面 | 核心用途 | 侧边模块 / 顶部导航 | 主要接口 |
 | --- | --- | --- | --- |
 | `index.html` | 作为统一入口并在 1 秒内跳转到默认自运营站点，保持所有用户的落地页一致 | 顶部渐变加载动画，自动重定向到 Robot 站 | —【F:public/index.html†L1-L58】 |
-| `self-operated.html` | 速卖通自运营 Robot / Poolslab 站的数据面板，含运营、产品、明细三大分栏 | 左侧 `ul.sub-nav` 承载“详细数据/运营分析/产品分析”，站点选择器支持 Robot 与 Poolslab 互切 | `/api/ae_query`、`/api/ae_self_operated/stats`【F:public/self-operated.html†L1-L160】【F:public/assets/site-nav.js†L1-L200】 |
-| `managed.html` | 速卖通全托管与跨平台导航（亚马逊、TikTok、Temu、Ozon、独立站等） | 顶部 `platform-nav` 列出速卖通/亚马逊/TikTok/Temu/Ozon/独立站入口，左侧模块沿用“详细数据/运营分析/产品分析”结构 | `/api/stats`、`/api/managed/daily-totals`、`/api/ingest`【F:public/managed.html†L2-L160】 |
+| `self-operated.html` | 速卖通自运营 Robot / Poolslab 站的数据面板，含运营、产品、订单、广告等模块 | 左侧 `ul.sub-nav` 固定渲染“详细数据/运营分析/产品分析/订单中心/广告中心”，站点选择器支持 Robot 与 Poolslab 互切 | `/api/ae_query`、`/api/ae_self_operated/stats`【F:public/self-operated.html†L520-L780】【F:public/assets/site-nav.js†L1-L200】 |
+| `managed.html` | 速卖通全托管与跨平台导航（亚马逊、TikTok、Temu、Ozon、独立站等） | 顶部 `platform-nav` 列出速卖通/亚马逊/TikTok/Temu/Ozon/独立站入口，左侧模块扩展为“详细数据/运营分析/产品分析/订单中心/广告中心” | `/api/stats`、`/api/managed/daily-totals`、`/api/ingest`【F:public/managed.html†L60-L240】 |
 | `admin.html` | 管理后台，将站点配置、模块同步与权限矩阵集中在一个入口 | 左侧“站点管理/权限矩阵/同步工具”三段式布局，站点新增后自动触发 `/api/site-sync` | `/api/site-configs`、`/api/site-sync`【F:public/admin.html†L1-L320】 |
 | `site-management.html` | 轻量站点登记视图，支持快速创建 Lazada/Shopee 等站点并引导进入管理后台 | 卡片式站点网格 + 表单，提交后会调用 `/api/site-sync` 刷新模块 | `/api/site-configs`、`/api/site-sync`【F:public/site-management.html†L1-L420】 |
-| `independent-site.html` | 独立站 Facebook/Google/TikTok 渠道运营分析 | 顶部渠道筛选、左侧模块承载运营与产品视图 | `/api/independent/stats`、`/api/independent/*-ingest`【F:public/independent-site.html†L1-L120】 |
+| `independent-site.html` | 独立站 Facebook/Google/TikTok 渠道运营分析 | 顶部渠道筛选，左侧模块覆盖“明细数据/运营分析/产品分析/订单中心/广告中心”五个分栏 | `/api/independent/stats`、`/api/independent/*-ingest`【F:public/independent-site.html†L680-L910】 |
 | `amazon-*.html` | 亚马逊运营与广告概览 | 左侧导航与全托管保持一致，拆分运营/广告页面 | `/api/amazon/query`、`/api/amazon/upsert`【F:public/amazon-overview.html†L1-L120】 |
 | `ozon-*.html` | Ozon 报表上传与多指标分析 | 页面内包含上传入口、日期筛选和多图表列 | `/api/ozon/stats`、`/api/ozon/import`【F:public/ozon-detail.html†L1-L120】 |
-| `temu.html` / `tiktok.html` | Temu、TikTok Shop 预置页面，等待后端数据接入 | 继承统一导航与布局，当前展示“建设中”占位 | —（待实现）【F:public/temu.html†L1-L38】【F:public/tiktok.html†L1-L36】 |
+| `temu.html` / `tiktok.html` | Temu、TikTok Shop 预置页面，等待后端数据接入 | 左侧模块已预置“详细数据/运营分析/产品分析/订单中心/广告中心”，当前各分栏展示建设中说明 | —（待实现）【F:public/temu.html†L1-L90】【F:public/tiktok.html†L1-L96】 |
+| `inventory-management.html` | 全局库存视图占位页，规划库存总览与变动日志 | 全局设置入口下的双分栏（总览/变动），说明如何关联 `inventory`、`inventory_movements`、`purchases` | —（待实现）【F:public/inventory-management.html†L1-L120】 |
+| `permissions-management.html` | 全局权限中心占位页，规划角色矩阵、站点授权、审计日志 | 左侧三分栏（角色矩阵/站点授权/审计与合规），描述未来与 `roles`、`users`、审计表的联动 | —（待实现）【F:public/permissions-management.html†L1-L142】 |
 
 - **入口页 `public/index.html`**：作为平台门户，内置渐变过渡和加载动画，并在 1 秒内自动重定向到自运营 Robot 站，确保默认落地页一致。【F:public/index.html†L1-L58】
 - **自运营页 `public/self-operated.html`**：聚合 DataTables、ECharts、Flatpickr 等库，提供站点选择、运营分析、产品分析与数据明细三大模块，支持 KPI 卡片、漏斗图和时间序列趋势；默认站点包含 Robot 与 Poolslab，两者在导航中可快速切换。【F:public/self-operated.html†L1-L160】【F:public/assets/site-nav.js†L1-L200】
@@ -120,10 +122,10 @@ CREATE INDEX IF NOT EXISTS idx_site_configs_data_source ON public.site_configs(d
 - **库存 / 权限扩展**：库存与权限仍作为全局模块规划，但其接口必须复用上述商品标识，规则写在 `rules.json` 中，后续上线后可以直接与 `product_id` 维度对齐。【F:rules.json†L4-L76】
 
 ### 子站点左侧导航与模块隔离
-- **独立模块容器**：每个站点页的侧边栏均以 `<ul class="sub-nav">` 注册分栏，分别对应 `section#detail`、`section#analysis`、`section#products` 等独立 DOM 容器，保证模块之间的样式与数据逻辑互不干扰。【F:public/self-operated.html†L520-L556】【F:public/managed.html†L82-L138】
-- **新增子模块规划**：在既有“详细数据/运营分析/产品分析”基础上，为“订单中心”“广告中心”分别保留独立的导航锚点和内容面板，所有站点的左侧导航需统一包含四大业务模块（运营、产品、订单、广告），页面加载时根据权限与数据源决定是否渲染具体模块内容。
+- **独立模块容器**：每个站点页的侧边栏均以 `<ul class="sub-nav">` 注册分栏，分别对应 `section#detail`、`section#analysis`、`section#products`、`section#orders`、`section#ads` 等独立 DOM 容器，保证模块之间的样式与数据逻辑互不干扰。【F:public/self-operated.html†L520-L760】【F:public/managed.html†L82-L240】【F:public/independent-site.html†L780-L910】
+- **统一模块清单**：每个站点页面的左侧导航现已固定包含“详细数据/运营分析/产品分析/订单中心/广告中心”五个锚点，`self-operated.html`、`managed.html`、`independent-site.html` 以 Hash 路由呈现分栏内容，Temu/TikTok 等待接入的页面也提前挂载同一套模块占位，便于后续直接填充数据。
 - **模块隔离策略**：各模块加载自身的数据与脚本，不共享状态；跨模块的数据联动（如广告带来的订单）通过后端聚合 API 提供汇总结果，再由前端各自渲染，避免直接跨 DOM 操作。
-- **全局设置入口**：库存管理与权限管理位于全局设置（Settings）分组中，不出现在单个站点的侧边栏，只有具备相应角色的用户才会在顶栏或全局抽屉看到入口，避免越权访问。
+- **全局设置入口**：头部导航追加“全局设置”下拉菜单，对应 `inventory-management.html`、`permissions-management.html` 与既有的 `site-management.html`，仅具备相应角色的用户在权限矩阵中被授权后方可访问，确保库存与权限等全局模块与站点页面隔离。【F:public/assets/site-nav.js†L300-L360】【F:public/inventory-management.html†L1-L120】【F:public/permissions-management.html†L1-L142】
 
 ### 站点与渠道分类
 - **速卖通自运营**：默认提供 Robot 站（`ae_self_operated_a`）与 Poolslab 站（`ae_self_operated_poolslab_store`），可通过站点选择器和 `localStorage` 记忆切换。【F:public/assets/site-nav.js†L15-L82】

@@ -525,9 +525,11 @@
       <span id="currentSite">自运营</span>
     </div>
     <ul class="sub-nav">
-      <li><a href="#" class="active" data-target="detail">详细数据</a></li>
+      <li><a href="#detail" class="active" data-target="detail">详细数据</a></li>
       <li><a href="#analysis" data-target="analysis">运营分析</a></li>
       <li><a href="#products" data-target="products">产品分析</a></li>
+      <li><a href="#orders" data-target="orders">订单中心</a></li>
+      <li><a href="#ads" data-target="ads">广告中心</a></li>
     </ul>
   </nav>
 
@@ -762,11 +764,73 @@
             </div>
           </div>
       </section>
+
+      <section id="orders" class="analysis-container" style="display:none;">
+        <div class="section-header">
+          <div>
+            <h2 style="margin:0;">订单中心</h2>
+            <p class="section-subtitle">按产品 ID 汇总订单、采购与履约状态，后续将与 /api/orders、/api/inventory 联动。</p>
+          </div>
+        </div>
+        <div class="kpi-grid" id="orderKpi" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+          <div class="kpi-card info">
+            <h4>订单总数</h4>
+            <p id="orderCount">--</p>
+          </div>
+          <div class="kpi-card info">
+            <h4>待发货</h4>
+            <p id="orderPending">--</p>
+          </div>
+          <div class="kpi-card info">
+            <h4>已完成</h4>
+            <p id="orderCompleted">--</p>
+          </div>
+          <div class="kpi-card info">
+            <h4>GMV</h4>
+            <p id="orderGmv">--</p>
+          </div>
+        </div>
+        <div class="message info" id="ordersPlaceholder" style="margin-top:16px;">
+          🚧 订单数据接入中，正在对接站点订单导入接口与库存扣减逻辑。
+        </div>
+      </section>
+
+      <section id="ads" class="analysis-container" style="display:none;">
+        <div class="section-header">
+          <div>
+            <h2 style="margin:0;">广告中心</h2>
+            <p class="section-subtitle">展示广告预算、曝光、访客与加购闭环数据，支持按站点与产品聚合。</p>
+          </div>
+        </div>
+        <div class="kpi-grid" id="adsKpi" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+          <div class="kpi-card info">
+            <h4>投放预算</h4>
+            <p id="adBudget">--</p>
+          </div>
+          <div class="kpi-card info">
+            <h4>广告曝光</h4>
+            <p id="adImpressions">--</p>
+          </div>
+          <div class="kpi-card info">
+            <h4>广告访客</h4>
+            <p id="adVisitors">--</p>
+          </div>
+          <div class="kpi-card info">
+            <h4>广告带来支付</h4>
+            <p id="adPayments">--</p>
+          </div>
+        </div>
+        <div class="message info" id="adsPlaceholder" style="margin-top:16px;">
+          📊 广告数据等待与 /api/ad_campaigns、/api/ad_metrics_daily 对接，完成后将展示站点与产品维度的投放成效。
+        </div>
+      </section>
     </div>
   </main>
 </div>
 
 <script>
+const MODULE_SECTIONS = ['detail', 'analysis', 'products', 'orders', 'ads'];
+
 /* ---------- UI 基础 ---------- */
 const toNum = v => { if (v===null||v===undefined) return 0; if (typeof v==='number') return isFinite(v)?v:0; const n=parseFloat(String(v).replace(/,/g,'').trim()); return isNaN(n)?0:n; };
 
@@ -2132,42 +2196,34 @@ document.addEventListener('DOMContentLoaded', ()=>{
    function handleHashRoute() {
      const hash = window.location.hash.slice(1) || 'detail';
      const targetLink = document.querySelector(`[data-target="${hash}"]`);
-     
+
      if (targetLink) {
        // 更新导航状态
        document.querySelectorAll('.sub-nav a').forEach(x => x.classList.remove('active'));
        targetLink.classList.add('active');
-       
+
        // 显示对应内容
-       ['detail', 'analysis', 'products'].forEach(id => {
+       MODULE_SECTIONS.forEach(id => {
          const el = document.getElementById(id);
          if (el) el.style.display = (id === hash ? '' : 'none');
        });
-       
+
        // 控制主KPI卡片的显示/隐藏
        const uploadSection = document.querySelector('.upload-section');
        if (uploadSection) {
-         console.log('找到upload-section，当前hash:', hash);
-         if (hash === 'products') {
-           // 产品分析页面隐藏主KPI卡片
-           console.log('隐藏KPI卡片');
-           uploadSection.style.display = 'none';
-           console.log('KPI卡片隐藏后的display值:', uploadSection.style.display);
-         } else {
-           // 其他页面显示主KPI卡片
-           console.log('显示KPI卡片');
-           uploadSection.style.display = '';
-           console.log('KPI卡片显示后的display值:', uploadSection.style.display);
-         }
-       } else {
-         console.log('未找到upload-section元素');
+         const shouldShow = hash !== 'products' && hash !== 'orders' && hash !== 'ads';
+         uploadSection.style.display = shouldShow ? '' : 'none';
        }
-       
+
        // 根据路由加载相应数据
        if (hash === 'analysis') {
          loadAnalysisData(getDateRange());
        } else if (hash === 'products') {
          loadProductAnalysisData(getDateRange());
+       } else if (hash === 'orders') {
+         renderOrderCenter();
+       } else if (hash === 'ads') {
+         renderAdvertisingInsights();
        }
      }
    }
@@ -2207,6 +2263,22 @@ document.addEventListener('DOMContentLoaded', ()=>{
   window.addEventListener('hashchange', toggleUploadControls);
   toggleUploadControls();
 
+  function renderOrderCenter(){
+    const placeholder = document.getElementById('ordersPlaceholder');
+    if (placeholder && !placeholder.dataset.initialized) {
+      placeholder.dataset.initialized = 'true';
+      placeholder.textContent = '🚧 订单数据接入中，正在对接站点订单导入接口与库存扣减逻辑。';
+    }
+  }
+
+  function renderAdvertisingInsights(){
+    const placeholder = document.getElementById('adsPlaceholder');
+    if (placeholder && !placeholder.dataset.initialized) {
+      placeholder.dataset.initialized = 'true';
+      placeholder.textContent = '📊 广告数据等待与 /api/ad_campaigns、/api/ad_metrics_daily 对接，完成后将展示站点与产品维度的投放成效。';
+    }
+  }
+
   const refreshBtn = document.getElementById('refreshBtn');
   if (refreshBtn){
     refreshBtn.addEventListener('click', ()=>{
@@ -2217,15 +2289,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
    
    // 导航点击处理
-   document.querySelectorAll('.sub-nav a').forEach(a => {
-     a.addEventListener('click', e => {
-       const target = a.dataset.target;
+   const moduleNav = document.querySelector('.sub-nav');
+   if (moduleNav) {
+     moduleNav.addEventListener('click', e => {
+       const link = e.target.closest('a[data-target]');
+       if (!link) return;
+       const target = link.dataset.target;
        if (target) {
          e.preventDefault();
          window.location.hash = target;
        }
      });
-   });
+   }
 });
 </script>
 </body>

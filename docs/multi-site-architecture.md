@@ -123,6 +123,7 @@ CREATE TABLE public.platform_metric_profiles (
 - 库存管理、权限管理归属于全局设置面板，仅在具备角色（`inventory_manager`、`super_admin` 等）时出现
 - 通过 `site_module_configs.visible_roles` 将模块可见性与权限中心的角色绑定
 - 若 `platform_metric_profiles` 标记某模块缺少数据源，前端需隐藏该模块或显示“数据待接入”提示
+- 顶部导航追加“全局设置”下拉，指向 `inventory-management.html`、`permissions-management.html`、`site-management.html` 等全局模块页面，保持站点页面与平台级控制面板的隔离
 
 ## 开发任务分工
 
