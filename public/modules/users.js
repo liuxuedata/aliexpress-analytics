@@ -24,11 +24,16 @@ class UsersModule {
                     url: '/api/users',
                     type: 'GET',
                     data: (d) => {
+                        // 确保分页参数有效
+                        const start = parseInt(d.start) || 0;
+                        const length = parseInt(d.length) || 25;
+                        const page = Math.floor(start / length) + 1;
+                        
                         return {
                             ...d,
                             ...this.currentFilters,
-                            page: Math.floor(d.start / d.length) + 1,
-                            limit: d.length
+                            page: page,
+                            limit: length
                         };
                     },
                     dataSrc: (json) => {

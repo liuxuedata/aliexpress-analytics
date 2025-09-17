@@ -144,6 +144,47 @@ if (!userInfo) {
 
 ---
 
+### DataTables Ajax错误修复
+
+**问题描述**: 管理后台出现 "DataTables warning: table id=users-table - Ajax error" 错误
+
+**问题分析**:
+1. 控制台显示 `Failed to load resource: the server responded with a status of 500 (0)` for `api/users?page=NaN`
+2. 分页参数 `page=NaN` 表示前端传递了无效的分页参数
+3. 所有模块的DataTables配置都有相同的分页计算问题
+
+**修复方案**:
+1. ✅ 修复所有模块的分页参数计算逻辑
+2. ✅ 添加参数验证，确保分页参数有效
+3. ✅ 创建测试数据生成API，确保数据库有测试数据
+
+**文件变更**:
+- ✅ 更新 `public/modules/users.js` - 修复分页参数计算
+- ✅ 更新 `public/modules/orders.js` - 修复分页参数计算
+- ✅ 更新 `public/modules/inventory.js` - 修复分页参数计算
+- ✅ 更新 `public/modules/ads.js` - 修复分页参数计算
+- ✅ 创建 `api/test-data/index.js` - 测试数据生成API
+- ✅ 更新 `vercel.json` - 添加测试数据API路由
+
+**修复后的分页逻辑**:
+```javascript
+data: (d) => {
+    // 确保分页参数有效
+    const start = parseInt(d.start) || 0;
+    const length = parseInt(d.length) || 25;
+    const page = Math.floor(start / length) + 1;
+    
+    return {
+        ...d,
+        ...this.currentFilters,
+        page: page,
+        limit: length
+    };
+}
+```
+
+---
+
 ## 2025-01-08 (Phase 2 开发)
 
 ### 数据库语法错误修复

@@ -85,6 +85,10 @@
       "dest": "/api/site-modules/index.js"
     },
     {
+      "src": "/api/test-data",
+      "dest": "/api/test-data/index.js"
+    },
+    {
       "src": "/api/independent/facebook-ingest",
       "dest": "/api/independent/facebook-ingest/index.js"
     },
