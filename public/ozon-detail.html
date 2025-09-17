@@ -19,6 +19,86 @@
     #report td:first-child a{display:inline-block;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none;}
     .help{margin-left:4px;color:#888;cursor:pointer;}
+    
+    /* 新增模块样式 */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .section-header h2 {
+      margin: 0;
+      color: #1f2937;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+    
+    .btn-secondary {
+      background: #6b7280;
+      color: white;
+    }
+    
+    .btn-secondary:hover {
+      background: #4b5563;
+    }
+    
+    .filters {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #f9fafb;
+      border-radius: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .filter-group label {
+      font-weight: 500;
+      color: #374151;
+      white-space: nowrap;
+    }
+    
+    .filter-group select,
+    .filter-group input {
+      padding: 6px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body class="fm">
@@ -51,6 +131,8 @@
       <li><a href="ozon-detail.html" class="active">数据明细</a></li>
       <li><a href="ozon-analysis.html">运营分析</a></li>
       <li><a href="ozon-product-insights.html">产品分析</a></li>
+      <li><a href="#orders" data-target="orders">订单中心</a></li>
+      <li><a href="#ads" data-target="ads">广告中心</a></li>
     </ul>
   </nav>
   <main class="main">
@@ -99,6 +181,132 @@
               </thead>
               <tbody></tbody>
             </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 订单中心 -->
+      <section id="orders" class="content-pad" style="display:none;">
+        <div class="panel">
+          <div class="section-header">
+            <h2>订单管理</h2>
+            <div class="controls">
+              <button id="createOrderBtn" class="btn btn-primary">新建订单</button>
+              <button id="importOrdersBtn" class="btn btn-secondary">导入订单</button>
+            </div>
+          </div>
+          
+          <!-- 订单筛选器 -->
+          <div class="filters">
+            <div class="filter-group">
+              <label>订单状态：</label>
+              <select id="orderStatusFilter">
+                <option value="">全部</option>
+                <option value="pending">待确认</option>
+                <option value="confirmed">已确认</option>
+                <option value="shipped">已发货</option>
+                <option value="delivered">已送达</option>
+                <option value="completed">已完成</option>
+                <option value="cancelled">已取消</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>日期范围：</label>
+              <input id="orderDateFilter" class="date-filter" placeholder="选择日期范围">
+            </div>
+            <div class="filter-group">
+              <label>客户邮箱：</label>
+              <input id="customerEmailFilter" type="email" placeholder="输入客户邮箱">
+            </div>
+          </div>
+
+          <!-- 订单KPI -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <h4>总订单数</h4>
+              <p id="totalOrders">0</p>
+            </div>
+            <div class="kpi-card">
+              <h4>总销售额</h4>
+              <p id="totalSales">$0.00</p>
+            </div>
+            <div class="kpi-card">
+              <h4>平均客单价</h4>
+              <p id="avgOrderValue">$0.00</p>
+            </div>
+            <div class="kpi-card">
+              <h4>待处理订单</h4>
+              <p id="pendingOrders">0</p>
+            </div>
+          </div>
+
+          <!-- 订单表格 -->
+          <div class="table-wrapper">
+            <table id="orders-table" class="display" style="width:100%"></table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 广告中心 -->
+      <section id="ads" class="content-pad" style="display:none;">
+        <div class="panel">
+          <div class="section-header">
+            <h2>广告管理</h2>
+            <div class="controls">
+              <button id="createCampaignBtn" class="btn btn-primary">新建广告活动</button>
+              <button id="importAdsBtn" class="btn btn-secondary">导入广告数据</button>
+            </div>
+          </div>
+          
+          <!-- 广告筛选器 -->
+          <div class="filters">
+            <div class="filter-group">
+              <label>广告平台：</label>
+              <select id="adPlatformFilter">
+                <option value="">全部</option>
+                <option value="facebook">Facebook</option>
+                <option value="google">Google</option>
+                <option value="tiktok">TikTok</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>活动状态：</label>
+              <select id="adStatusFilter">
+                <option value="">全部</option>
+                <option value="active">活跃</option>
+                <option value="paused">暂停</option>
+                <option value="archived">已归档</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>日期范围：</label>
+              <input id="adDateFilter" class="date-filter" placeholder="选择日期范围">
+            </div>
+          </div>
+
+          <!-- 广告KPI -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <h4>活跃广告活动</h4>
+              <p id="activeCampaigns">0</p>
+            </div>
+            <div class="kpi-card">
+              <h4>总广告花费</h4>
+              <p id="totalAdSpend">$0.00</p>
+            </div>
+            <div class="kpi-card">
+              <h4>总曝光量</h4>
+              <p id="totalImpressions">0</p>
+            </div>
+            <div class="kpi-card">
+              <h4>总点击量</h4>
+              <p id="totalClicks">0</p>
+            </div>
+          </div>
+
+          <!-- 广告表格 -->
+          <div class="table-wrapper">
+            <table id="ads-table" class="display" style="width:100%"></table>
           </div>
         </div>
       </section>
@@ -317,7 +525,65 @@
   }
   
   loadData().catch(err=>console.error(err));
+  
+  // 初始化导航处理
+  initializeNavigation();
 })();
+
+// 初始化导航处理
+function initializeNavigation() {
+  // 处理导航点击
+  document.querySelectorAll('.sub-nav a[data-target]').forEach(a => {
+    a.addEventListener('click', e => {
+      const target = a.dataset.target;
+      if (target) {
+        e.preventDefault();
+        window.location.hash = target;
+      }
+    });
+  });
+  
+  // 处理hash变化
+  window.addEventListener('hashchange', handleHashRoute);
+  handleHashRoute();
+}
+
+// 处理hash路由
+function handleHashRoute() {
+  const hash = window.location.hash.slice(1) || '';
+  
+  // 显示/隐藏内容区域
+  const detailSection = document.getElementById('detail');
+  const ordersSection = document.getElementById('orders');
+  const adsSection = document.getElementById('ads');
+  
+  // 隐藏所有section
+  if (detailSection) detailSection.style.display = 'none';
+  if (ordersSection) ordersSection.style.display = 'none';
+  if (adsSection) adsSection.style.display = 'none';
+  
+  // 显示对应的section
+  if (hash === 'orders' && ordersSection) {
+    ordersSection.style.display = 'block';
+  } else if (hash === 'ads' && adsSection) {
+    adsSection.style.display = 'block';
+  } else if (detailSection) {
+    detailSection.style.display = 'block';
+  }
+  
+  // 更新导航状态
+  document.querySelectorAll('.sub-nav a').forEach(x => x.classList.remove('active'));
+  if (hash === 'orders') {
+    const ordersLink = document.querySelector('[data-target="orders"]');
+    if (ordersLink) ordersLink.classList.add('active');
+  } else if (hash === 'ads') {
+    const adsLink = document.querySelector('[data-target="ads"]');
+    if (adsLink) adsLink.classList.add('active');
+  } else {
+    const detailLink = document.querySelector('.sub-nav a:not([data-target])');
+    if (detailLink) detailLink.classList.add('active');
+  }
+}
 </script>
 </body>
 </html>
