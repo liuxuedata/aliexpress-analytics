@@ -321,6 +321,7 @@
       renderSiteMenus();
       applyNavIcons();
       updateCurrentSiteDisplay();
+      ensureAdminLink();
       setupDropdownEvents();
       
       console.log('站点菜单初始化完成');
@@ -333,6 +334,28 @@
   window.renderSiteMenus = renderSiteMenus;
   window.refreshSiteMenus = renderSiteMenus;
   window.updateCurrentSiteDisplay = updateCurrentSiteDisplay;
+
+  function ensureAdminLink() {
+    const platformNav = document.querySelector('.platform-nav');
+    if (!platformNav) return;
+
+    const existing = platformNav.querySelector('a[href="admin.html"]');
+    if (existing) {
+      existing.setAttribute('title', '站点与权限统一管理后台');
+      return;
+    }
+
+    const adminItem = document.createElement('li');
+    adminItem.className = 'admin';
+
+    const adminLink = document.createElement('a');
+    adminLink.href = 'admin.html';
+    adminLink.textContent = '管理后台';
+    adminLink.title = '站点配置、权限矩阵与全局设置入口';
+
+    adminItem.appendChild(adminLink);
+    platformNav.appendChild(adminItem);
+  }
 
   // 页面加载完成后初始化
   if (document.readyState === 'loading') {
