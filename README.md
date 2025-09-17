@@ -64,12 +64,14 @@
 | `permissions.html` | 全局权限管理入口 | 汇总角色矩阵、站点授权与审计日志的计划功能，待与 admin 权限矩阵联动 | —（规划中）【F:public/permissions.html†L1-L58】 |
 | `admin.html` | 管理后台，将站点配置、模块同步与权限矩阵集中在一个入口 | 左侧“站点管理/权限矩阵/同步工具”三段式布局，站点新增后自动触发 `/api/site-sync` | `/api/site-configs`、`/api/site-sync`【F:public/admin.html†L1-L320】 |
 | `site-management.html` | 轻量站点登记视图，支持快速创建 Lazada/Shopee 等站点并引导进入管理后台 | 卡片式站点网格 + 表单，提交后会调用 `/api/site-sync` 刷新模块 | `/api/site-configs`、`/api/site-sync`【F:public/site-management.html†L1-L420】 |
+| `site-dashboard.html` | 通用站点仪表页，为 Lazada/Shopee 等通过 `site_configs` 注册的站点自动装配模块框架 | 顶部沿用全局平台导航，左侧 `sub-nav` 根据 `/api/site-modules` 返回渲染模块锚点 | `/api/site-configs`、`/api/site-modules/{siteId}`【F:public/site-dashboard.html†L1-L237】 |
 
 - **入口页 `public/index.html`**：作为平台门户，内置渐变过渡和加载动画，并在 1 秒内自动重定向到自运营 Robot 站，确保默认落地页一致。【F:public/index.html†L1-L58】
-- **自运营页 `public/self-operated.html`**：聚合 DataTables、ECharts、Flatpickr 等库，侧边栏固定包含“详细数据/运营分析/产品分析/订单中心/广告中心”五大模块；订单与广告板块暂提供占位说明，默认站点包含 Robot 与 Poolslab，可在导航中快速切换。【F:public/self-operated.html†L520-L788】【F:public/assets/site-nav.js†L1-L80】
+- **自运营页 `public/self-operated.html`**：聚合 DataTables、ECharts、Flatpickr 等库，侧边栏固定包含“详细数据/运营分析/产品分析/订单中心/广告中心”五大模块；订单与广告板块暂提供占位说明，默认站点包含 Robot 与 Poolslab，可在导航中快速切换。【F:public/self-operated.html†L520-L788】【F:public/assets/site-nav.js†L184-L238】
 - **全托管页 `public/managed.html`**：带登录覆盖层与统一侧边栏，顶部导航涵盖速卖通、亚马逊、TikTok Shop、Temu、Ozon、独立站等平台；页面内按 Hash 切分“详细数据/运营分析/产品分析/订单中心/广告中心”，并支持上传全托管周/月报表。【F:public/managed.html†L20-L260】
 - **管理后台 `public/admin.html`**：集中提供站点配置、权限矩阵与站点同步工具，表单内置 Lazada/Shopee/TikTok/Temu 模板并会自动触发 `/api/site-sync`，权限矩阵部分复用 `rules.json` 默认角色。【F:public/admin.html†L1-L420】
 - **站点管理页 `public/site-management.html`**：轻量化的站点登记入口，表单直接写入 `site_configs` 并调用 `/api/site-sync`，在成功创建后引导管理员前往 `admin.html` 做进一步配置。【F:public/site-management.html†L1-L420】
+- **通用站点仪表 `public/site-dashboard.html`**：用于承载 Lazada、Shopee、Temu 等新注册站点的“详细数据/运营分析/产品分析/订单中心/广告中心”占位，前端按 `/api/site-modules/{siteId}` 的返回动态渲染左侧导航和模块描述，并在无数据源时展示建设中提示。【F:public/site-dashboard.html†L1-L237】
 - **独立站页 `public/independent-site.html`**：面向 Landing Page 运营分析，侧边栏同步扩展至五大模块，包含渠道选择、时间控件、KPI 卡片与数据明细，并保留列显隐、产品双击跳转等增强交互。【F:public/independent-site.html†L697-L852】
 - **亚马逊总览 `public/amazon-overview.html`**：按 Amazon 指标构建 KPI、趋势图和明细表的总览页，侧边栏新增五大模块并通过 Hash 切换，`amazon-ads.html` 负责重定向到新的广告分栏。【F:public/amazon-overview.html†L104-L215】【F:public/amazon-ads.html†L1-L35】
 - **Ozon 页面集**：`public/ozon-detail.html` 等页面提供上传入口、日期筛选及多图表分栏，并补充订单中心、广告中心入口，新建 `ozon-orders.html`、`ozon-advertising.html` 作为占位页。【F:public/ozon-detail.html†L40-L78】【F:public/ozon-orders.html†L1-L68】
@@ -82,6 +84,7 @@
 - **`site_configs`**：存放站点 ID、平台、显示名称、数据源、模板等元数据，是所有站点页面与接口的注册中心。【F:docs/site-configuration-framework.md†L11-L45】
 - **`site_channel_configs`**：按站点维护启用的渠道与对应的指标表（如 Facebook Ads/Google Ads），自运营、独立站、全托管等页面在加载时读取该表决定可用模块。【F:README.md†L340-L371】
 - **`site_module_configs`**：控制站点导航的模块、顺序、可见角色，使用 `COALESCE(site_id, '')` + `platform` + `module_key` 的唯一索引避免 NULL 冲突，并预置全局默认模块模板。【F:specs/data-model.sql†L20-L76】
+- **导航自动化**：`public/assets/site-nav.js` 会在初始化时读取 `site_configs`，按平台分组追加 Lazada、Shopee 等站点入口，并将未知模板站点指向 `site-dashboard.html`，同时缓存站点名称供页面标题显示。【F:public/assets/site-nav.js†L281-L392】【F:public/site-dashboard.html†L1-L237】
 - **索引与访问策略**：`site_configuration_framework.sql` 为 `site_configs` 建立 `platform`、`data_source` 索引，便于 Lazada、Shopee 等平台扩展；相关表启用了 RLS 策略以控制访问范围。【F:site_configuration_framework.sql†L215-L256】
 - **Lazada/Shopee 样例**：迁移脚本内置 `lazada_my_flagship`、`shopee_sg_flagship` 种子数据，填充 `platform=lazada/shopee` 与 `data_source=lazada_api/shopee_api`，便于在管理后台直接复用模板。【F:site_configuration_framework.sql†L94-L115】
 - **站点同步**：创建或重命名站点后，通过 `/api/site-sync` 将 `ae_self_operated_daily` 等表中的 `site` 字段统一为新 ID，避免历史数据孤立。【F:api/site-sync/index.js†L33-L118】
@@ -132,7 +135,8 @@ CREATE INDEX IF NOT EXISTS idx_site_configs_data_source ON public.site_configs(d
 ### 站点与渠道分类
 - **速卖通自运营**：默认提供 Robot 站（`ae_self_operated_a`）与 Poolslab 站（`ae_self_operated_poolslab_store`），可通过站点选择器和 `localStorage` 记忆切换。【F:public/assets/site-nav.js†L15-L82】
 - **速卖通全托管**：通过顶部“速卖通 → 全托管”下拉菜单加载站点列表，配合上传控件与多图表分析。【F:public/managed.html†L9-L122】
-- **独立站**：支持 Facebook、Google、TikTok 渠道，站点默认包含 `poolsvacuum.com` 与 `icyberite.com`，并在导航下拉与页面内同步显示。【F:public/assets/site-nav.js†L19-L123】
+- **独立站**：支持 Facebook、Google、TikTok 渠道，站点默认包含 `poolsvacuum.com` 与 `icyberite.com`，并在导航下拉与页面内同步显示。【F:public/assets/site-nav.js†L240-L279】
+- **站点导航自动生成**：顶部导航脚本会调用 `/api/site-configs`，在速卖通、独立站之外自动追加 Lazada、Shopee、Temu 等平台入口，并将新站点指向 `site-dashboard.html`，便于在创建配置后立即访问模块框架。【F:public/assets/site-nav.js†L281-L392】【F:public/site-dashboard.html†L1-L237】
 - **多平台扩展**：导航条保留 Amazon、Ozon、TikTok Shop、Temu、独立站入口，为未来新增 Lazada、Shopee 等站点提供统一壳层与导航位置。【F:public/managed.html†L25-L54】
 
 - **运营分析**：各站点的运营模块继续承载曝光、访客、加购、支付链路，响应式面板以 `section#analysis` 或同级容器承载图表与 KPI 卡片。【F:public/self-operated.html†L624-L745】【F:public/managed.html†L144-L198】

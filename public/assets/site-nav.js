@@ -11,32 +11,384 @@
 
   // 默认站点配置
   const defaultSites = {
-    ae_self_operated: [
-      { id: 'ae_self_operated_a', name: '自运营robot站', display_name: '自运营robot站' },
-      { id: 'ae_self_operated_poolslab_store', name: 'poolslab', display_name: 'Poolslab运动娱乐' }
-    ],
+      ae_self_operated: [
+        { id: 'ae_self_operated_a', name: '自运营robot站', display_name: '自运营robot站', platform: 'ae_self_operated' },
+        { id: 'ae_self_operated_poolslab_store', name: 'poolslab', display_name: 'Poolslab运动娱乐', platform: 'ae_self_operated' },
+      ],
     independent: [
-      { id: 'independent_poolsvacuum', name: 'poolsvacuum', display_name: 'poolsvacuum.com' },
-      { id: 'independent_icyberite', name: 'icyberite', display_name: 'icyberite.com' }
+      { id: 'independent_poolsvacuum', name: 'poolsvacuum', display_name: 'poolsvacuum.com', platform: 'independent' },
+      { id: 'independent_icyberite', name: 'icyberite', display_name: 'icyberite.com', platform: 'independent' }
     ]
   };
+
+  const PLATFORM_LABELS = {
+    ae_self_operated: '速卖通',
+    ae_managed: '速卖通全托管',
+    independent: '独立站',
+    amazon: '亚马逊',
+    ozon: 'Ozon',
+    tiktok: 'TikTok Shop',
+    temu: 'Temu',
+    lazada: 'Lazada',
+    shopee: 'Shopee'
+  };
+
+  const PLATFORM_PAGE_MAP = {
+    ae_self_operated: 'self-operated.html',
+    ae_managed: 'managed.html',
+    independent: 'independent-site.html',
+    amazon: 'amazon-overview.html',
+    ozon: 'ozon-detail.html',
+    tiktok: 'tiktok.html',
+    temu: 'temu.html'
+  };
+
+  let siteConfigCache = [];
   
   // 站点名称映射函数
   function getSiteDisplayName(siteId, platform) {
-    if (platform === 'ae_self_operated') {
-      const siteMap = {
-        'ae_self_operated_a': '自运营robot站',
-        'ae_self_operated_poolslab_store': 'Poolslab运动娱乐'
-      };
-      return siteMap[siteId] || `自运营 ${siteId}`;
-    } else if (platform === 'independent') {
-      const siteMap = {
-        'independent_poolsvacuum': 'poolsvacuum.com',
-        'independent_icyberite': 'icyberite.com'
-      };
-      return siteMap[siteId] || `独立站 ${siteId}`;
+    if (!siteId) return '';
+
+    const cached = siteConfigCache.find((site) => site && site.id === siteId);
+    if (cached) {
+      return cached.display_name || cached.name || siteId;
     }
+
+    const fallbackList = platform && defaultSites[platform];
+    if (Array.isArray(fallbackList)) {
+      const fallback = fallbackList.find((site) => site.id === siteId);
+      if (fallback) {
+        return fallback.display_name || fallback.name || siteId;
+      }
+    }
+
     return siteId;
+  }
+
+  function normalizeSiteRecord(site) {
+    if (!site) return null;
+    const id = site.id || site.site_id || site.name;
+    if (!id) return null;
+    const platform = (site.platform || site.platform_id || '').toString().toLowerCase();
+    const displayName = site.display_name || site.name || site.title || id;
+    const name = site.name || displayName;
+    return {
+      id,
+      platform,
+      display_name: displayName,
+      name,
+      raw: site,
+    };
+  }
+
+  function getDefaultNormalizedSites() {
+    const list = [];
+    Object.values(defaultSites).forEach((sites) => {
+      if (!Array.isArray(sites)) return;
+      sites.forEach((site) => {
+        const normalized = normalizeSiteRecord(site);
+        if (normalized) {
+          list.push(normalized);
+        }
+      });
+    });
+    return list;
+  }
+
+  function groupSitesByPlatform(sites) {
+    const grouped = {};
+    (sites || []).forEach((site) => {
+      if (!site) return;
+      const platform = site.platform || 'unassigned';
+      if (!grouped[platform]) {
+        grouped[platform] = [];
+      }
+      grouped[platform].push(site);
+    });
+    return grouped;
+  }
+
+  function getPlatformLabel(platform) {
+    return PLATFORM_LABELS[platform] || platform || '未命名平台';
+  }
+
+  function buildSiteUrl(basePage, site) {
+    if (!basePage) return '#';
+    if (!site) return basePage;
+    if (basePage === 'self-operated.html') return basePage;
+
+    const params = new URLSearchParams();
+    if (basePage === 'independent-site.html') {
+      params.set('site', site.name || site.display_name || site.id);
+    }
+    params.set('siteId', site.id);
+    if (site.platform) {
+      params.set('platform', site.platform);
+    }
+    const query = params.toString();
+    return query ? `${basePage}?${query}` : basePage;
+  }
+
+  function getDefaultPlatformHref(platform, sites) {
+    const base = PLATFORM_PAGE_MAP[platform] || 'site-dashboard.html';
+    const normalizedSites = Array.isArray(sites) ? sites : [];
+    if (!normalizedSites.length) {
+      return base;
+    }
+    return buildSiteUrl(base, normalizedSites[0]);
+  }
+
+  function handleSiteNavigation(site) {
+    if (!site) return;
+    const platform = site.platform || '';
+    const displayName = site.display_name || site.name || site.id;
+
+    localStorage.setItem('activeSiteId', site.id);
+    localStorage.setItem('activeSitePlatform', platform);
+    localStorage.setItem('activeSiteName', displayName);
+
+    if (platform === 'ae_self_operated') {
+      localStorage.setItem('currentSite', site.id);
+      localStorage.setItem('currentSiteName', displayName);
+      window.location.href = 'self-operated.html';
+      return;
+    }
+
+    if (platform === 'independent') {
+      localStorage.setItem('currentIndepSite', site.id);
+      localStorage.setItem('currentIndepSiteName', displayName);
+      window.location.href = buildSiteUrl('independent-site.html', site);
+      return;
+    }
+
+    const basePage = PLATFORM_PAGE_MAP[platform] || 'site-dashboard.html';
+    window.location.href = buildSiteUrl(basePage, site);
+  }
+
+  function createDropdownItem(site) {
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    const displayName = site.display_name || site.name || site.id;
+    a.href = '#';
+    a.dataset.siteId = site.id;
+    a.dataset.platform = site.platform || '';
+    a.textContent = displayName;
+    a.addEventListener('click', (event) => {
+      event.preventDefault();
+      handleSiteNavigation(site);
+    });
+    li.appendChild(a);
+    return li;
+  }
+
+  function renderSelfOperatedMenu(sites) {
+    const managedMenu = document.getElementById('managedMenu');
+    if (!managedMenu) return;
+
+    managedMenu.innerHTML = '';
+    const currentSite = localStorage.getItem('currentSite');
+    const normalizedSites = (sites && sites.length ? sites : defaultSites.ae_self_operated || [])
+      .map(normalizeSiteRecord)
+      .filter(Boolean)
+      .sort((a, b) => (a.display_name || a.name || '').localeCompare(b.display_name || b.name || '', 'zh-CN'));
+
+    normalizedSites.forEach((site) => {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      const displayName = site.display_name || site.name || site.id;
+      a.href = '#';
+      a.dataset.siteId = site.id;
+      a.dataset.platform = site.platform || 'ae_self_operated';
+      a.textContent = displayName;
+
+      if (site.id === currentSite) {
+        li.className = 'active';
+        a.style.background = 'var(--brand)';
+        a.style.color = '#fff';
+      }
+
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        localStorage.setItem('currentSite', site.id);
+        localStorage.setItem('currentSiteName', displayName);
+        localStorage.setItem('activeSiteId', site.id);
+        localStorage.setItem('activeSitePlatform', site.platform || 'ae_self_operated');
+        localStorage.setItem('activeSiteName', displayName);
+        window.location.href = 'self-operated.html';
+      });
+
+      li.appendChild(a);
+      managedMenu.appendChild(li);
+    });
+
+    const managedLi = document.createElement('li');
+    const managedA = document.createElement('a');
+    managedA.href = 'managed.html';
+    managedA.textContent = '全托管';
+    managedA.addEventListener('click', (e) => {
+      e.preventDefault();
+      localStorage.removeItem('currentSite');
+      localStorage.removeItem('currentSiteName');
+      localStorage.setItem('activeSitePlatform', 'ae_managed');
+      localStorage.setItem('activeSiteName', '速卖通全托管');
+      window.location.href = 'managed.html';
+    });
+    managedLi.appendChild(managedA);
+    managedMenu.appendChild(managedLi);
+  }
+
+  function renderIndependentMenu(sites) {
+    const indepMenu = document.getElementById('indepMenu');
+    if (!indepMenu) return;
+
+    indepMenu.innerHTML = '';
+    const currentIndepSite = localStorage.getItem('currentIndepSite');
+    const normalizedSites = (sites && sites.length ? sites : defaultSites.independent || [])
+      .map(normalizeSiteRecord)
+      .filter(Boolean)
+      .sort((a, b) => (a.display_name || a.name || '').localeCompare(b.display_name || b.name || '', 'zh-CN'));
+
+    normalizedSites.forEach((site) => {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      const displayName = site.display_name || site.name || site.id;
+      a.href = '#';
+      a.dataset.siteId = site.id;
+      a.dataset.platform = site.platform || 'independent';
+      a.textContent = displayName;
+
+      if (site.id === currentIndepSite) {
+        li.className = 'active';
+        a.style.background = 'var(--brand)';
+        a.style.color = '#fff';
+      }
+
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        localStorage.setItem('currentIndepSite', site.id);
+        localStorage.setItem('currentIndepSiteName', displayName);
+        localStorage.setItem('activeSiteId', site.id);
+        localStorage.setItem('activeSitePlatform', site.platform || 'independent');
+        localStorage.setItem('activeSiteName', displayName);
+        window.location.href = buildSiteUrl('independent-site.html', site);
+      });
+
+      li.appendChild(a);
+      indepMenu.appendChild(li);
+    });
+  }
+
+  function renderPlatformDropdown(platform, sites) {
+    const nav = document.querySelector('.platform-nav');
+    if (!nav) return;
+
+    const hasSites = Array.isArray(sites) && sites.length > 0;
+    let entry = nav.querySelector(`li[data-platform="${platform}"]`);
+    if (!entry) {
+      entry = nav.querySelector(`li.${platform}`);
+    }
+
+    if (!hasSites) {
+      if (entry && entry.dataset.autoPlatform === 'true') {
+        entry.remove();
+      }
+      return;
+    }
+
+    if (!entry) {
+      entry = document.createElement('li');
+      entry.dataset.platform = platform;
+      entry.dataset.autoPlatform = 'true';
+      entry.classList.add(platform);
+      const anchor = document.createElement('a');
+      anchor.href = '#';
+      anchor.textContent = getPlatformLabel(platform);
+      entry.appendChild(anchor);
+      nav.appendChild(entry);
+    } else {
+      entry.dataset.platform = platform;
+    }
+
+    let dropdown = entry.querySelector('.dropdown');
+    if (!dropdown) {
+      dropdown = document.createElement('ul');
+      dropdown.className = 'dropdown';
+      entry.appendChild(dropdown);
+    }
+    dropdown.innerHTML = '';
+
+    const normalized = sites
+      .map(normalizeSiteRecord)
+      .filter(Boolean)
+      .sort((a, b) => (a.display_name || a.name || '').localeCompare(b.display_name || b.name || '', 'zh-CN'));
+
+    normalized.forEach((site) => {
+      dropdown.appendChild(createDropdownItem(site));
+    });
+
+    const anchor = entry.querySelector('a');
+    if (anchor) {
+      anchor.textContent = getPlatformLabel(platform);
+      const href = getDefaultPlatformHref(platform, normalized);
+      anchor.href = href || '#';
+    }
+  }
+
+  function highlightActiveSite() {
+    const activeSiteId = localStorage.getItem('activeSiteId');
+    if (!activeSiteId) return;
+    document.querySelectorAll('.platform-nav .dropdown li').forEach((item) => {
+      const link = item.querySelector('a[data-site-id]');
+      if (!link) return;
+      if (link.dataset.siteId === activeSiteId) {
+        item.classList.add('active');
+      } else {
+        item.classList.remove('active');
+      }
+    });
+  }
+
+  async function loadSiteConfigs() {
+    const fallback = getDefaultNormalizedSites();
+    try {
+      const response = await fetch('/api/site-configs');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const payload = await response.json();
+      const normalized = Array.isArray(payload?.data)
+        ? payload.data.map(normalizeSiteRecord).filter(Boolean)
+        : [];
+      const knownIds = new Set(normalized.map((site) => site.id));
+      fallback.forEach((site) => {
+        if (site && !knownIds.has(site.id)) {
+          normalized.push(site);
+        }
+      });
+      siteConfigCache = normalized;
+      return normalized;
+    } catch (error) {
+      console.warn('加载站点配置失败，将回退到默认站点', error);
+      siteConfigCache = fallback;
+      return fallback;
+    }
+  }
+
+  async function renderSiteMenus() {
+    console.log('开始渲染站点菜单...');
+    const sites = await loadSiteConfigs();
+    const grouped = groupSitesByPlatform(sites);
+
+    renderSelfOperatedMenu(grouped.ae_self_operated || []);
+    renderIndependentMenu(grouped.independent || []);
+
+    Object.entries(grouped).forEach(([platform, platformSites]) => {
+      if (platform === 'ae_self_operated' || platform === 'independent') return;
+      renderPlatformDropdown(platform, platformSites);
+    });
+
+    highlightActiveSite();
+    updateCurrentSiteDisplay();
+    setupDropdownEvents();
+    console.log('站点菜单渲染完成');
   }
 
   function applyNavIcons(){
@@ -61,245 +413,164 @@
   function updateCurrentSiteDisplay() {
     const currentSiteEl = document.getElementById('currentSite');
     const currentManagedSiteEl = document.getElementById('currentManagedSite');
-    
-    // 如果存在 currentManagedSite 元素，说明是全托管页面，不更新
+
     if (currentManagedSiteEl) {
       console.log('全托管页面，跳过站点名更新');
       return;
     }
-    
-    if (currentSiteEl) {
-      // 根据当前页面URL判断页面类型，而不是优先检查localStorage
-      const currentPath = window.location.pathname;
-      const isIndependentPage = currentPath.includes('independent-site');
-      const isSelfOperatedPage = currentPath.includes('self-operated');
-      
-      if (isIndependentPage) {
-        // 独立站页面：使用独立站相关的localStorage
-        const currentIndepSiteId = localStorage.getItem('currentIndepSite');
-        const currentIndepSiteName = localStorage.getItem('currentIndepSiteName');
-        
-        if (currentIndepSiteName) {
-          currentSiteEl.textContent = currentIndepSiteName;
-          console.log('独立站页面更新站点显示:', currentIndepSiteName);
-        } else if (currentIndepSiteId) {
-          // 根据站点ID映射到站点名称
-          const siteNameMap = {
-            'independent_icyberite': 'icyberite.com',
-            'independent_poolsvacuum': 'poolsvacuum.com'
-          };
-          const displayName = siteNameMap[currentIndepSiteId] || '独立站';
-          currentSiteEl.textContent = displayName;
-          console.log('独立站页面更新站点显示:', displayName);
-        } else {
-          // 从URL参数获取站点名称
-          const urlParams = new URLSearchParams(window.location.search);
-          const siteParam = urlParams.get('site');
-          if (siteParam) {
-            currentSiteEl.textContent = siteParam;
-            console.log('独立站页面从URL参数获取站点名称:', siteParam);
-          } else {
-            currentSiteEl.textContent = 'poolsvacuum.com';
-            console.log('独立站页面使用默认名称: poolsvacuum.com');
-          }
-        }
-      } else if (isSelfOperatedPage) {
-        // 自运营页面：使用自运营相关的localStorage
-        const currentSiteId = localStorage.getItem('currentSite');
-        const currentSiteName = localStorage.getItem('currentSiteName');
-        
-        if (currentSiteId && currentSiteName) {
-          // 显示站点名称而不是ID
-          currentSiteEl.textContent = currentSiteName;
-          console.log('自运营页面更新站点显示:', currentSiteName);
-        } else if (currentSiteId) {
-          // 使用站点名称映射函数获取显示名称
-          const displayName = getSiteDisplayName(currentSiteId, 'ae_self_operated');
-          currentSiteEl.textContent = displayName;
-          // 同时更新localStorage中的站点名称
-          localStorage.setItem('currentSiteName', displayName);
-          console.log('自运营页面使用映射名称:', displayName);
-        } else {
-          // 默认显示
-          currentSiteEl.textContent = '自运营robot站';
-          console.log('自运营页面使用默认名称: 自运营robot站');
-        }
+
+    if (!currentSiteEl) return;
+
+    const currentPath = window.location.pathname;
+    const isIndependentPage = currentPath.includes('independent-site');
+    const isSelfOperatedPage = currentPath.includes('self-operated');
+
+    const activeSiteId = localStorage.getItem('activeSiteId');
+    const activeSiteName = localStorage.getItem('activeSiteName');
+    const activeSitePlatform = localStorage.getItem('activeSitePlatform');
+
+    if (isIndependentPage) {
+      const currentIndepSiteId = localStorage.getItem('currentIndepSite') || activeSiteId;
+      const currentIndepSiteName = localStorage.getItem('currentIndepSiteName') || activeSiteName;
+
+      if (currentIndepSiteName) {
+        currentSiteEl.textContent = currentIndepSiteName;
+      } else if (currentIndepSiteId) {
+        const displayName = getSiteDisplayName(currentIndepSiteId, 'independent');
+        const resolved = displayName || currentIndepSiteId;
+        currentSiteEl.textContent = resolved;
+        localStorage.setItem('currentIndepSite', currentIndepSiteId);
+        localStorage.setItem('currentIndepSiteName', resolved);
+        localStorage.setItem('activeSiteId', currentIndepSiteId);
+        localStorage.setItem('activeSitePlatform', 'independent');
+        localStorage.setItem('activeSiteName', resolved);
       } else {
-        // 其他页面：尝试智能判断
-        const currentSiteId = localStorage.getItem('currentSite');
-        const currentSiteName = localStorage.getItem('currentSiteName');
-        const currentIndepSiteId = localStorage.getItem('currentIndepSite');
-        const currentIndepSiteName = localStorage.getItem('currentIndepSiteName');
-        
-        if (currentSiteId && currentSiteName) {
-          currentSiteEl.textContent = currentSiteName;
-          console.log('其他页面使用自运营站点显示:', currentSiteName);
-        } else if (currentIndepSiteId && currentIndepSiteName) {
-          currentSiteEl.textContent = currentIndepSiteName;
-          console.log('其他页面使用独立站站点显示:', currentIndepSiteName);
+        const urlParams = new URLSearchParams(window.location.search);
+        const siteParam = urlParams.get('site');
+        if (siteParam) {
+          currentSiteEl.textContent = siteParam;
+          localStorage.setItem('activeSiteName', siteParam);
         } else {
-          currentSiteEl.textContent = '自运营';
-          console.log('其他页面使用默认名称: 自运营');
+          currentSiteEl.textContent = '独立站';
         }
       }
-    }
-  }
 
-  // 渲染站点菜单
-  function renderSiteMenus() {
-    console.log('开始渲染站点菜单...');
-    
-    const managedMenu = document.getElementById('managedMenu');
-    const indepMenu = document.getElementById('indepMenu');
-    
-    console.log('找到的菜单元素:', { managedMenu: !!managedMenu, indepMenu: !!indepMenu });
-    
-    // 渲染速卖通菜单
-    if (managedMenu) {
-      managedMenu.innerHTML = '';
-      
-      // 获取当前自运营站点
-      const currentSite = localStorage.getItem('currentSite');
-      
-      // 添加自运营站点
-      defaultSites.ae_self_operated.forEach(site => {
-        const li = document.createElement('li');
-        const a = document.createElement('a');
-        a.href = 'self-operated.html';
-        a.textContent = site.display_name;
-        
-        // 如果是当前站点，添加高亮样式
-        if (site.id === currentSite) {
-          li.className = 'active';
-          a.style.background = 'var(--brand)';
-          a.style.color = '#fff';
-        }
-        
-        a.addEventListener('click', e => {
-          e.preventDefault();
-          localStorage.setItem('currentSite', site.id);
-          localStorage.setItem('currentSiteName', site.display_name);
-          window.location.href = 'self-operated.html';
-        });
-        li.appendChild(a);
-        managedMenu.appendChild(li);
-        console.log('添加速卖通菜单项:', site.display_name);
-      });
-      
-      // 添加全托管选项
-      const managedLi = document.createElement('li');
-      const managedA = document.createElement('a');
-      managedA.href = 'managed.html';
-      managedA.textContent = '全托管';
-      managedA.addEventListener('click', e => {
-        e.preventDefault();
-        // 清除自运营相关的localStorage
-        localStorage.removeItem('currentSite');
-        localStorage.removeItem('currentSiteName');
-        window.location.href = 'managed.html';
-      });
-      managedLi.appendChild(managedA);
-      managedMenu.appendChild(managedLi);
-      console.log('添加全托管菜单项');
+      console.log('独立站页面更新站点显示:', currentSiteEl.textContent);
+      return;
     }
-    
-    // 渲染独立站菜单
-    if (indepMenu) {
-      indepMenu.innerHTML = '';
-      
-      // 获取当前独立站站点
-      const currentIndepSite = localStorage.getItem('currentIndepSite');
-      
-      defaultSites.independent.forEach(site => {
-        const li = document.createElement('li');
-        const a = document.createElement('a');
-        a.href = 'independent-site.html';
-        a.textContent = site.display_name;
-        
-        // 如果是当前站点，添加高亮样式
-        if (site.id === currentIndepSite) {
-          li.className = 'active';
-          a.style.background = 'var(--brand)';
-          a.style.color = '#fff';
-        }
-        
-        a.addEventListener('click', e => {
-          e.preventDefault();
-          localStorage.setItem('currentIndepSite', site.id);
-          localStorage.setItem('currentIndepSiteName', site.display_name);
-          window.location.href = 'independent-site.html?site=' + encodeURIComponent(site.name);
-        });
-        li.appendChild(a);
-        indepMenu.appendChild(li);
-        console.log('添加独立站菜单项:', site.display_name);
-      });
+
+    if (isSelfOperatedPage) {
+      const currentSiteId = localStorage.getItem('currentSite') || activeSiteId || 'ae_self_operated_a';
+      let currentSiteName = localStorage.getItem('currentSiteName') || activeSiteName;
+
+      if (!currentSiteName && currentSiteId) {
+        currentSiteName = getSiteDisplayName(currentSiteId, 'ae_self_operated');
+        localStorage.setItem('currentSiteName', currentSiteName);
+      }
+
+      currentSiteEl.textContent = currentSiteName || '自运营';
+      localStorage.setItem('currentSite', currentSiteId);
+      localStorage.setItem('activeSiteId', currentSiteId);
+      localStorage.setItem('activeSitePlatform', 'ae_self_operated');
+      localStorage.setItem('activeSiteName', currentSiteName || '自运营');
+      console.log('自运营页面更新站点显示:', currentSiteEl.textContent);
+      return;
     }
-    
-    console.log('站点菜单渲染完成');
+
+    if (activeSiteName) {
+      currentSiteEl.textContent = activeSiteName;
+      console.log('其他页面使用激活站点显示:', activeSiteName);
+      return;
+    }
+
+    if (activeSiteId) {
+      const resolvedName = getSiteDisplayName(activeSiteId, activeSitePlatform);
+      currentSiteEl.textContent = resolvedName || activeSiteId;
+      if (resolvedName) {
+        localStorage.setItem('activeSiteName', resolvedName);
+      }
+      console.log('其他页面根据站点ID映射显示:', currentSiteEl.textContent);
+      return;
+    }
+
+    const fallbackSiteId = localStorage.getItem('currentSite');
+    const fallbackSiteName = localStorage.getItem('currentSiteName');
+    if (fallbackSiteId && fallbackSiteName) {
+      currentSiteEl.textContent = fallbackSiteName;
+      console.log('其他页面使用自运营站点显示:', fallbackSiteName);
+      return;
+    }
+
+    const fallbackIndepName = localStorage.getItem('currentIndepSiteName');
+    if (fallbackIndepName) {
+      currentSiteEl.textContent = fallbackIndepName;
+      console.log('其他页面使用独立站站点显示:', fallbackIndepName);
+      return;
+    }
+
+    currentSiteEl.textContent = '自运营';
+    console.log('其他页面使用默认名称: 自运营');
   }
 
   // 设置下拉菜单事件
   function setupDropdownEvents() {
     const platformNavItems = document.querySelectorAll('.platform-nav > li');
-    
+
     platformNavItems.forEach(item => {
+      if (item.dataset.dropdownBound === 'true') return;
       const dropdown = item.querySelector('.dropdown');
       if (!dropdown) return;
-      
+
       // 鼠标进入显示菜单
       item.addEventListener('mouseenter', () => {
         dropdown.style.display = 'block';
       });
-      
+
       // 鼠标离开隐藏菜单
       item.addEventListener('mouseleave', () => {
         dropdown.style.display = 'none';
       });
-      
+
       // 点击菜单项时保持菜单显示（用于移动设备）
       item.addEventListener('click', (e) => {
-        // 如果点击的是链接，不阻止默认行为，让链接正常工作
         if (e.target.tagName === 'A') {
           return;
         }
-        // 如果点击的是菜单容器，切换显示状态
         if (dropdown.style.display === 'block') {
           dropdown.style.display = 'none';
         } else {
           dropdown.style.display = 'block';
         }
       });
+
+      item.dataset.dropdownBound = 'true';
     });
-    
+
     // 确保所有导航链接都能正常工作
     const allNavLinks = document.querySelectorAll('.platform-nav a[href]');
     allNavLinks.forEach(link => {
-      // 移除可能的事件阻止器
+      if (link.dataset.navBound === 'true') return;
       link.addEventListener('click', (e) => {
-        // 确保链接能正常工作
         console.log('导航链接点击:', link.href);
-        
-                 // 检查当前页面类型，调用相应的平台切换处理函数
-         const currentPath = window.location.pathname;
-         if (currentPath.includes('self-operated')) {
-           // 自运营页面：调用平台切换处理
-           if (window.handlePlatformSwitch && link && link.getAttribute) {
-             try {
-               e.preventDefault();
-               const platform = link.getAttribute('data-platform') || link.textContent.trim();
-               console.log('自运营页面平台切换:', platform);
-               window.handlePlatformSwitch(platform);
-               return;
-             } catch (error) {
-               console.warn('平台切换处理出错:', error);
-               // 如果出错，让链接正常工作
-             }
-           }
-         }
-        // 不阻止默认行为，让链接正常工作
+
+        const currentPath = window.location.pathname;
+        if (currentPath.includes('self-operated')) {
+          if (window.handlePlatformSwitch && link && link.getAttribute) {
+            try {
+              e.preventDefault();
+              const platform = link.getAttribute('data-platform') || link.textContent.trim();
+              console.log('自运营页面平台切换:', platform);
+              window.handlePlatformSwitch(platform);
+              return;
+            } catch (error) {
+              console.warn('平台切换处理出错:', error);
+            }
+          }
+        }
       });
+      link.dataset.navBound = 'true';
     });
-    
+
     console.log('下拉菜单事件处理已设置');
   }
 
@@ -317,17 +588,15 @@
   }
 
   // 初始化函数
-  function initialize() {
+  async function initialize() {
     console.log('开始初始化站点菜单...');
-    
+
     try {
-      // 立即渲染菜单
-      renderSiteMenus();
+      await renderSiteMenus();
       applyNavIcons();
-      updateCurrentSiteDisplay();
       ensureAdminLink();
       setupDropdownEvents();
-      
+
       console.log('站点菜单初始化完成');
     } catch (error) {
       console.error('站点菜单初始化失败:', error);

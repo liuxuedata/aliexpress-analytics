@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg" sizes="64x64">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>站点模块总览</title>
+  <link rel="stylesheet" href="assets/theme.css?v=20250812-deep">
+  <link rel="stylesheet" href="assets/global-theme.css">
+  <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
+  <style>
+    .layout.container { min-height: calc(100vh - 64px); }
+    .module-hero { padding: 2rem 2.5rem 1.5rem; background: linear-gradient(135deg,#f8fafc 0%,#eef2ff 100%); border-radius: 20px; margin-bottom: 1.5rem; box-shadow: inset 0 0 0 1px rgba(99,102,241,0.08); }
+    .module-hero h1 { font-size: 32px; margin-bottom: .5rem; }
+    .module-hero p { margin: 0; color: #475569; font-size: 15px; }
+    .info-callout { margin-top: 1rem; padding: .85rem 1rem; border-radius: 12px; background: rgba(59,130,246,0.08); color: #1d4ed8; font-size: 14px; }
+    .info-callout.warning { background: rgba(251,191,36,0.15); color: #a16207; }
+    .info-callout.error { background: rgba(248,113,113,0.18); color: #b91c1c; }
+    .info-callout.success { background: rgba(34,197,94,0.15); color: #166534; }
+
+    .module-panels { display: grid; gap: 1.5rem; }
+    .module-panel { background: #fff; border-radius: 18px; padding: 1.75rem; box-shadow: 0 20px 45px -22px rgba(30,41,59,0.2); border: 1px solid rgba(148,163,184,0.16); transition: transform .2s ease, box-shadow .2s ease; }
+    .module-panel:hover { transform: translateY(-2px); box-shadow: 0 18px 40px -20px rgba(30,41,59,0.25); }
+    .module-panel--disabled { opacity: .7; background: linear-gradient(135deg,#f1f5f9 0%,#e2e8f0 100%); }
+    .module-panel__header { display:flex; align-items:center; gap:.75rem; justify-content: space-between; flex-wrap: wrap; }
+    .module-panel__header h2 { margin:0; font-size:22px; color:#0f172a; }
+    .module-status { font-size:12px; padding:.35rem .65rem; border-radius:999px; background:rgba(59,130,246,.12); color:#1d4ed8; letter-spacing:.02em; }
+    .module-status.connected { background:rgba(34,197,94,.15); color:#166534; }
+    .module-status.pending { background:rgba(251,191,36,.18); color:#a16207; }
+    .module-status.muted { background:rgba(148,163,184,.16); color:#475569; }
+
+    .module-panel__summary { margin:1rem 0 1.25rem; color:#475569; line-height:1.6; }
+
+    .module-fields { display:grid; gap:1rem; margin-bottom:1.25rem; }
+    .module-fields__group { background:rgba(248,250,252,.8); border-radius:14px; padding:.85rem 1rem; border:1px solid rgba(203,213,225,.4); }
+    .module-fields__group--positive { border-color:rgba(74,222,128,.45); background:rgba(236,253,245,.9); }
+    .module-fields__group--warning { border-color:rgba(252,211,77,.55); background:rgba(255,247,237,.85); }
+    .module-fields__group--neutral { border-color:rgba(147,197,253,.45); background:rgba(239,246,255,.9); }
+    .module-fields__label { font-weight:600; color:#0f172a; margin-bottom:.5rem; font-size:13px; text-transform:uppercase; letter-spacing:.05em; }
+    .module-fields__chips { display:flex; flex-wrap:wrap; gap:.4rem; }
+    .field-chip { padding:.25rem .55rem; border-radius:999px; background:#fff; border:1px solid rgba(148,163,184,.4); font-size:12px; color:#0f172a; }
+
+    .module-roles { display:flex; flex-wrap:wrap; gap:.4rem; align-items:center; font-size:13px; color:#475569; }
+    .module-roles__label { font-weight:600; margin-right:.25rem; }
+    .module-roles__empty { font-style:italic; color:#94a3b8; }
+    .role-chip { padding:.25rem .6rem; border-radius:999px; background:rgba(37,99,235,.12); color:#1d4ed8; border:1px solid rgba(37,99,235,.2); text-transform:lowercase; }
+
+    .module-config-json { margin-top:1.25rem; background:#0f172a; color:#e2e8f0; border-radius:12px; padding:1rem 1.2rem; overflow:auto; font-size:12px; line-height:1.45; }
+
+    .module-empty { padding:2.5rem; text-align:center; border:2px dashed rgba(148,163,184,.35); border-radius:18px; color:#64748b; background:rgba(248,250,252,.7); font-size:15px; }
+
+    .sub-nav li a.active { background:var(--brand,#2563eb); color:#fff; }
+    .sub-nav li.active > a { background:var(--brand,#2563eb); color:#fff; }
+
+    @media (max-width: 1024px) {
+      .module-hero { padding:1.5rem; }
+      .module-panel { padding:1.4rem; }
+    }
+  </style>
+</head>
+<body class="fm">
+<header class="header">
+  <div class="logo-title"><img src="assets/logo.svg" alt="Ecommerce Analytics" class="site-logo"> 跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li class="ali active"><a href="#">速卖通</a>
+        <ul class="dropdown" id="managedMenu"></ul>
+      </li>
+      <li class="amazon"><a href="amazon-overview.html">亚马逊</a></li>
+      <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon"><a href="ozon-detail.html">Ozon</a></li>
+      <li class="independent"><a href="#">独立站</a>
+        <ul class="dropdown" id="indepMenu"></ul>
+      </li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+
+<div class="layout container">
+  <nav class="sidebar" id="sidebar">
+    <div class="site-header">
+      <span id="currentSite">站点加载中…</span>
+    </div>
+    <ul class="sub-nav" id="moduleNav"></ul>
+  </nav>
+
+  <main class="main">
+    <section class="module-hero">
+      <h1 id="dashboardTitle">站点模块总览</h1>
+      <p id="dashboardSubtitle">加载站点信息中…</p>
+      <div id="moduleNotice" class="info-callout">模块配置加载中…</div>
+    </section>
+    <section id="modulePanels" class="module-panels"></section>
+  </main>
+</div>
+
+<script src="assets/site-nav.js"></script>
+<script>
+(function(){
+  const moduleNav = document.getElementById('moduleNav');
+  const modulePanels = document.getElementById('modulePanels');
+  const noticeEl = document.getElementById('moduleNotice');
+  const titleEl = document.getElementById('dashboardTitle');
+  const subtitleEl = document.getElementById('dashboardSubtitle');
+  const params = new URLSearchParams(window.location.search);
+  let siteId = params.get('siteId') || localStorage.getItem('activeSiteId') || '';
+  const platformHint = params.get('platform') || localStorage.getItem('activeSitePlatform') || '';
+  const PLATFORM_LABELS = {
+    ae_self_operated: '速卖通自运营',
+    ae_managed: '速卖通全托管',
+    independent: '独立站',
+    amazon: '亚马逊',
+    ozon: 'Ozon',
+    tiktok: 'TikTok Shop',
+    temu: 'Temu',
+    lazada: 'Lazada',
+    shopee: 'Shopee'
+  };
+
+  if (!siteId) {
+    noticeEl.classList.add('error');
+    noticeEl.textContent = '缺少站点标识。请从站点导航进入或在 URL 中追加 ?siteId=xxx。';
+    return;
+  }
+
+  const role = localStorage.getItem('userRole') || 'super_admin';
+
+  resolveSiteMeta(siteId, platformHint)
+    .then(meta => {
+      const siteName = meta.displayName || meta.id;
+      const platformLabel = PLATFORM_LABELS[meta.platform] || meta.platform || '多平台';
+      titleEl.textContent = `${siteName} 模块总览`;
+      subtitleEl.textContent = `${platformLabel} · ${meta.id}`;
+      document.title = `${siteName} 模块总览`;
+
+      localStorage.setItem('activeSiteId', meta.id);
+      if (meta.platform) localStorage.setItem('activeSitePlatform', meta.platform);
+      localStorage.setItem('activeSiteName', siteName);
+      if (window.updateCurrentSiteDisplay) {
+        window.updateCurrentSiteDisplay();
+      }
+
+      return loadModules(meta.id, role).then(modules => renderModules(modules, meta));
+    })
+    .catch(error => {
+      console.error('加载站点模块失败:', error);
+      noticeEl.classList.remove('success');
+      noticeEl.classList.add('error');
+      noticeEl.textContent = error.message || '模块接口调用失败，请稍后再试。';
+      modulePanels.innerHTML = '<div class="module-empty">暂时无法获取模块配置，稍后刷新或在管理后台确认配置是否已保存。</div>';
+    });
+
+  async function loadModules(targetSiteId, role) {
+    const resp = await fetch(`/api/site-modules/${encodeURIComponent(targetSiteId)}?includeGlobal=true&role=${encodeURIComponent(role)}`);
+    if (!resp.ok) {
+      throw new Error(`站点模块接口返回 ${resp.status}`);
+    }
+    const payload = await resp.json();
+    if (!payload || payload.ok === false) {
+      throw new Error(payload && payload.error ? payload.error : '站点模块接口返回异常');
+    }
+    return Array.isArray(payload.data && payload.data.modules) ? payload.data.modules : [];
+  }
+
+  function renderModules(modules, meta) {
+    moduleNav.innerHTML = '';
+    modulePanels.innerHTML = '';
+
+    const enabledModules = modules.filter(module => module && module.enabled !== false);
+    const hiddenModules = modules.filter(module => module && module.enabled === false);
+
+    if (!enabledModules.length && !hiddenModules.length) {
+      noticeEl.classList.remove('success');
+      noticeEl.classList.add('warning');
+      noticeEl.textContent = '该站点尚未配置任何模块，请在管理后台启用模块或同步模板。';
+      modulePanels.innerHTML = '<div class="module-empty">暂无可用模块。请前往管理后台的站点模块配置中开启运营、产品、订单或广告模块。</div>';
+      return;
+    }
+
+    noticeEl.classList.remove('error','warning');
+    noticeEl.classList.add('success');
+    const summaryParts = [`${enabledModules.length} 个模块已启用`];
+    if (hiddenModules.length) summaryParts.push(`${hiddenModules.length} 个模块被隐藏`);
+    noticeEl.textContent = summaryParts.join('，');
+
+    enabledModules.forEach((module, index) => {
+      const li = document.createElement('li');
+      const anchor = document.createElement('a');
+      anchor.href = `#module-${module.moduleKey}`;
+      anchor.textContent = module.navLabel || module.moduleKey;
+      anchor.dataset.moduleKey = module.moduleKey;
+      if (index === 0) {
+        anchor.classList.add('active');
+        li.classList.add('active');
+      }
+      anchor.addEventListener('click', (event) => {
+        event.preventDefault();
+        moduleNav.querySelectorAll('a').forEach(link => link.classList.remove('active'));
+        moduleNav.querySelectorAll('li').forEach(item => item.classList.remove('active'));
+        anchor.classList.add('active');
+        li.classList.add('active');
+        const target = document.getElementById(`module-${module.moduleKey}`);
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      li.appendChild(anchor);
+      moduleNav.appendChild(li);
+
+      modulePanels.appendChild(buildModulePanel(module, false));
+    });
+
+    hiddenModules.forEach(module => {
+      modulePanels.appendChild(buildModulePanel(module, true));
+    });
+  }
+
+  function buildModulePanel(module, isHidden) {
+    const section = document.createElement('section');
+    section.className = 'module-panel';
+    if (isHidden) section.classList.add('module-panel--disabled');
+    const sectionId = `module-${module.moduleKey}${isHidden ? '-disabled' : ''}`;
+    section.id = sectionId;
+
+    const header = document.createElement('header');
+    header.className = 'module-panel__header';
+
+    const title = document.createElement('h2');
+    title.textContent = module.navLabel || module.moduleKey;
+    header.appendChild(title);
+
+    const status = document.createElement('span');
+    status.className = 'module-status ' + (module.hasDataSource ? 'connected' : 'pending');
+    status.textContent = module.hasDataSource ? '数据源：已对接' : '数据源：待接入';
+    header.appendChild(status);
+
+    if (isHidden) {
+      const hiddenBadge = document.createElement('span');
+      hiddenBadge.className = 'module-status muted';
+      hiddenBadge.textContent = '模块已隐藏';
+      header.appendChild(hiddenBadge);
+    }
+
+    section.appendChild(header);
+
+    const summary = document.createElement('p');
+    summary.className = 'module-panel__summary';
+    summary.textContent = getModuleDescription(module, isHidden);
+    section.appendChild(summary);
+
+    if (module.fieldProfile) {
+      section.appendChild(renderFieldProfile(module.fieldProfile));
+    }
+
+    section.appendChild(renderRoleChips(module.visibleRoles, isHidden));
+
+    if (module.config && typeof module.config === 'object' && Object.keys(module.config).length > 0) {
+      const configBlock = document.createElement('pre');
+      configBlock.className = 'module-config-json';
+      configBlock.textContent = JSON.stringify(module.config, null, 2);
+      section.appendChild(configBlock);
+    }
+
+    return section;
+  }
+
+  function getModuleDescription(module, isHidden) {
+    const MODULE_DESCRIPTIONS = {
+      operations: '承载曝光、访客、加购至支付的全链路指标与漏斗分析。',
+      products: '聚合商品维度的表现、价格区间与类目洞察，支撑选品与上新分析。',
+      orders: '负责订单导入、履约进度、结算状态及成本维度的展示，是订单中心核心视图。',
+      advertising: '汇总广告系列配置、预算、花费与加购/支付归因数据，用于广告中心驾驶舱。',
+      inventory: '作为全局库存管理入口，追踪库存量、调拨与采购计划。',
+      permissions: '提供角色与站点授权的配置界面，仅管理员可见。'
+    };
+    const base = MODULE_DESCRIPTIONS[module.moduleKey] || '该模块负责站点级的数据与功能配置。';
+    if (isHidden) {
+      return `${base} 当前模块在站点导航中被隐藏，可在管理后台的站点模块配置中重新启用。`;
+    }
+    if (module.hasDataSource) {
+      return `${base} 数据源已完成对接，可以直接装载页面内容。`;
+    }
+    return `${base} 数据源尚未接入，前端将展示建设中提示，待数据准备完成后即可启用。`;
+  }
+
+  function renderFieldProfile(profile) {
+    const { availableFields = [], optionalFields = [], missingFields = [] } = profile || {};
+    if (!availableFields.length && !optionalFields.length && !missingFields.length) {
+      const empty = document.createElement('div');
+      empty.className = 'module-fields module-empty-fields';
+      empty.textContent = '指标字段映射待补充。';
+      return empty;
+    }
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'module-fields';
+
+    if (availableFields.length) wrapper.appendChild(buildFieldGroup('已对接字段', availableFields, 'positive'));
+    if (optionalFields.length) wrapper.appendChild(buildFieldGroup('可选字段', optionalFields, 'neutral'));
+    if (missingFields.length) wrapper.appendChild(buildFieldGroup('待补齐字段', missingFields, 'warning'));
+
+    return wrapper;
+  }
+
+  function buildFieldGroup(label, items, tone) {
+    const group = document.createElement('div');
+    group.className = `module-fields__group module-fields__group--${tone}`;
+
+    const heading = document.createElement('div');
+    heading.className = 'module-fields__label';
+    heading.textContent = label;
+    group.appendChild(heading);
+
+    const chips = document.createElement('div');
+    chips.className = 'module-fields__chips';
+    items.forEach(item => {
+      const chip = document.createElement('span');
+      chip.className = 'field-chip';
+      chip.textContent = item;
+      chips.appendChild(chip);
+    });
+    group.appendChild(chips);
+    return group;
+  }
+
+  function renderRoleChips(roles, isHidden) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'module-roles';
+
+    const label = document.createElement('span');
+    label.className = 'module-roles__label';
+    label.textContent = '可见角色：';
+    wrapper.appendChild(label);
+
+    if (Array.isArray(roles) && roles.length) {
+      roles.forEach(role => {
+        const chip = document.createElement('span');
+        chip.className = 'role-chip';
+        chip.textContent = role;
+        wrapper.appendChild(chip);
+      });
+    } else {
+      const fallback = document.createElement('span');
+      fallback.className = 'module-roles__empty';
+      fallback.textContent = isHidden ? '模块隐藏状态，所有角色暂不可见' : '未限制，默认对所有角色可见';
+      wrapper.appendChild(fallback);
+    }
+
+    return wrapper;
+  }
+
+  async function resolveSiteMeta(targetSiteId, platform) {
+    const meta = { id: targetSiteId, platform: platform || '' };
+    const cachedId = localStorage.getItem('activeSiteId');
+    const cachedName = localStorage.getItem('activeSiteName');
+    const cachedPlatform = localStorage.getItem('activeSitePlatform');
+
+    if (cachedId === targetSiteId && cachedName) {
+      meta.displayName = cachedName;
+      meta.platform = platform || cachedPlatform || meta.platform;
+      return meta;
+    }
+
+    try {
+      const resp = await fetch('/api/site-configs');
+      if (!resp.ok) throw new Error('无法获取站点配置');
+      const payload = await resp.json();
+      const record = Array.isArray(payload && payload.data) ? payload.data.find(site => site.id === targetSiteId) : null;
+      if (record) {
+        meta.displayName = record.display_name || record.name || targetSiteId;
+        meta.platform = (record.platform || meta.platform || '').toLowerCase();
+        return meta;
+      }
+    } catch (error) {
+      console.warn('解析站点配置失败:', error);
+    }
+
+    meta.displayName = cachedName || targetSiteId;
+    meta.platform = platform || cachedPlatform || meta.platform;
+    return meta;
+  }
+})();
+</script>
+</body>
+</html>

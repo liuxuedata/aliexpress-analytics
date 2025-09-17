@@ -12,7 +12,7 @@
 | 速卖通 | 自运营 Robot | `public/self-operated.html` | 详细数据 / 运营分析 / 产品分析（订单中心、广告中心占位） | ✅ 运营数据 | `/api/ae_query`, `/api/ae_self_operated/stats` | `/api/ae_upsert` | 默认站点 `ae_self_operated_a` |
 | 速卖通 | 自运营 Poolslab | `public/self-operated.html` | 同上 | ✅ 运营数据 | 同上 | 同上 | 默认站点 `ae_self_operated_poolslab_store` |
 | 速卖通 | 全托管 | `public/managed.html` | 详细数据 / 运营分析 / 产品分析（订单中心、广告中心占位） | ✅ 运营数据 | `/api/stats`, `/api/managed/daily-totals` | `/api/ingest` | 支持周/月报表 |
-| 速卖通 | Lazada/Shopee 规划入口 | `public/managed.html`（导航预留） | 运营 / 产品 / 订单 / 广告（待启用） | ⏳ 规划中 | `/api/ae_query` 扩展 | `/api/ae_upsert` 扩展 | 通过 `site-configs` 动态注册 |
+| 速卖通 | Lazada/Shopee 扩展站点 | `public/site-dashboard.html` | 运营 / 产品 / 订单 / 广告（自动装配） | ⏳ 规划中 | `/api/site-modules/{siteId}`（读取配置） | `/api/ingest` 扩展 | 通过 `site-configs`/`site_module_configs` 注册后导航自动生成 |
 | 独立站 | poolsvacuum.com | `public/independent-site.html` | 渠道分析 / 产品分析（订单中心、广告中心占位） | ✅ 运营数据 | `/api/independent/stats` | `/api/independent/ingest` | Google Ads + Landing Page |
 | 独立站 | icyberite.com | `public/independent-site.html` | 渠道分析 / 产品分析 / 广告中心（TikTok/Facebook） | ✅ 运营数据 | `/api/independent/stats` | `/api/independent/facebook-ingest`, `/api/independent/tiktok-ingest` | Facebook/TikTok Ads |
 | 独立站 | 新增站点（Facebook/Google） | 统一入口 | 运营 / 产品 / 广告（订单中心待接入） | ⏳ 规划中 | `/api/independent/stats` | 对应 ingest 扩展 | 通过站点配置管理 |
@@ -30,6 +30,7 @@
 - `public/self-operated.html`：自运营站点运营分析，内置 DataTables + ECharts + Flatpickr，并在 `ul.sub-nav` 中固定“详细数据/运营分析/产品分析/订单中心/广告中心”顺序（后两项按权限占位）。
 - `public/managed.html`：全托管运营分析及跨平台导航，提供登录覆盖层与报表上传入口，同步实现左侧模块顺序与自运营保持一致。
 - `public/site-management.html`：站点配置与动态站点注册表单，支持新增 Lazada/Shopee 等平台。
+- `public/site-dashboard.html`：通用站点仪表页，依托 `site_configs` 和 `/api/site-modules/{siteId}` 自动渲染 Lazada、Shopee、Temu 等新站点的侧边导航与模块占位。
 - `public/independent-site.html`：独立站多渠道分析，支持渠道切换及列显隐。
 - `public/amazon-overview.html`、`public/amazon-ads.html`：亚马逊运营与广告视图。
 - `public/ozon-detail.html` 系列：Ozon 指标与报表上传。
@@ -37,6 +38,7 @@
 
 ### 2.2 模块布局与权限
 - **站点模块注册**：所有站点的左侧导航由 `site_module_configs`（详见数据模型）驱动，默认挂载运营、产品、订单、广告四大模块，按站点配置决定是否启用或隐藏。
+- **导航自动生成**：`public/assets/site-nav.js` 在初始化时读取 `site_configs` 并调用 `/api/site-modules`，为 Lazada、Shopee 等扩展站点动态追加顶部入口，并在缺乏专用模板时回退到 `site-dashboard.html` 统一渲染模块占位。
 - **全局模块入口**：库存与权限属于全站共享模块，不出现在单个站点导航，统一通过全局设置面板呈现，仅对拥有 `inventory_manager`、`super_admin`、`operations_manager` 等授权角色可见。
 - **可见性判定**：前端在页面加载前调用 `/api/site-modules` 拉取模块配置，需携带 `X-User-Role` 头部以按角色过滤结果，并根据返回的 `visibleRoles`、`enabled` 与 `hasDataSource` 决定是否渲染导航按钮。
 
