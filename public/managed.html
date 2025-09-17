@@ -38,7 +38,94 @@
 .stat-card.clickable,.kpi-card.clickable,.kpi .card.clickable{cursor:pointer}
 .kpi-row{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin:.25rem 0 .75rem}
 /* Force hide any old period controls if they still exist */
-#kpi-new-self-ctrl, #kpi-new-managed-ctrl, .kpi .kpi-ctrl { display: none !important; }</style>
+#kpi-new-self-ctrl, #kpi-new-managed-ctrl, .kpi .kpi-ctrl { display: none !important; }
+
+/* 新增模块样式 */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.section-header h2 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2563eb;
+}
+
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #4b5563;
+}
+
+.filters {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #f9fafb;
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-group label {
+  font-weight: 500;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.filter-group select,
+.filter-group input {
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.table-container {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}</style>
 <style>#analysis .panel{border:none;box-shadow:none;padding:0}</style>
 <style>
 /* Responsive layout for managed product analysis controls and KPI cards */
@@ -105,6 +192,8 @@
       <li><a href="#" class="active" data-target="detail"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/><line x1="15" y1="9" x2="15" y2="21"/></svg>详细数据</a></li>
       <li><a href="#analysis" data-target="analysis"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 3h7v7"/></svg>运营分析</a></li>
       <li><a href="#products" data-target="products"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3v8h8"/></svg>产品分析</a></li>
+      <li><a href="#orders" data-target="orders"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>订单中心</a></li>
+      <li><a href="#ads" data-target="ads"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>广告中心</a></li>
     </ul>
   </nav>
 
@@ -254,6 +343,132 @@
     <div class="panel">
       <h3>支付趋势</h3>
       <div id="productPayChart" style="width:100%;height:300px;"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 订单中心 -->
+<section id="orders" class="content-pad" style="display:none;">
+  <div class="panel">
+    <div class="section-header">
+      <h2>订单管理</h2>
+      <div class="controls">
+        <button id="createOrderBtn" class="btn btn-primary">新建订单</button>
+        <button id="importOrdersBtn" class="btn btn-secondary">导入订单</button>
+      </div>
+    </div>
+    
+    <!-- 订单筛选器 -->
+    <div class="filters">
+      <div class="filter-group">
+        <label>订单状态：</label>
+        <select id="orderStatusFilter">
+          <option value="">全部</option>
+          <option value="pending">待确认</option>
+          <option value="confirmed">已确认</option>
+          <option value="shipped">已发货</option>
+          <option value="delivered">已送达</option>
+          <option value="completed">已完成</option>
+          <option value="cancelled">已取消</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>日期范围：</label>
+        <input id="orderDateFilter" class="date-filter" placeholder="选择日期范围">
+      </div>
+      <div class="filter-group">
+        <label>客户邮箱：</label>
+        <input id="customerEmailFilter" type="email" placeholder="输入客户邮箱">
+      </div>
+    </div>
+
+    <!-- 订单KPI -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <h4>总订单数</h4>
+        <p id="totalOrders">0</p>
+      </div>
+      <div class="kpi-card">
+        <h4>总销售额</h4>
+        <p id="totalSales">$0.00</p>
+      </div>
+      <div class="kpi-card">
+        <h4>平均客单价</h4>
+        <p id="avgOrderValue">$0.00</p>
+      </div>
+      <div class="kpi-card">
+        <h4>待处理订单</h4>
+        <p id="pendingOrders">0</p>
+      </div>
+    </div>
+
+    <!-- 订单表格 -->
+    <div class="table-container">
+      <table id="orders-table" class="data-table display nowrap" style="width:100%"></table>
+    </div>
+  </div>
+</section>
+
+<!-- 广告中心 -->
+<section id="ads" class="content-pad" style="display:none;">
+  <div class="panel">
+    <div class="section-header">
+      <h2>广告管理</h2>
+      <div class="controls">
+        <button id="createCampaignBtn" class="btn btn-primary">新建广告活动</button>
+        <button id="importAdsBtn" class="btn btn-secondary">导入广告数据</button>
+      </div>
+    </div>
+    
+    <!-- 广告筛选器 -->
+    <div class="filters">
+      <div class="filter-group">
+        <label>广告平台：</label>
+        <select id="adPlatformFilter">
+          <option value="">全部</option>
+          <option value="facebook">Facebook</option>
+          <option value="google">Google</option>
+          <option value="tiktok">TikTok</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>活动状态：</label>
+        <select id="adStatusFilter">
+          <option value="">全部</option>
+          <option value="active">活跃</option>
+          <option value="paused">暂停</option>
+          <option value="archived">已归档</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>日期范围：</label>
+        <input id="adDateFilter" class="date-filter" placeholder="选择日期范围">
+      </div>
+    </div>
+
+    <!-- 广告KPI -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <h4>活跃广告活动</h4>
+        <p id="activeCampaigns">0</p>
+      </div>
+      <div class="kpi-card">
+        <h4>总广告花费</h4>
+        <p id="totalAdSpend">$0.00</p>
+      </div>
+      <div class="kpi-card">
+        <h4>总曝光量</h4>
+        <p id="totalImpressions">0</p>
+      </div>
+      <div class="kpi-card">
+        <h4>总点击量</h4>
+        <p id="totalClicks">0</p>
+      </div>
+    </div>
+
+    <!-- 广告表格 -->
+    <div class="table-container">
+      <table id="ads-table" class="data-table display nowrap" style="width:100%"></table>
     </div>
   </div>
 </section>
@@ -634,7 +849,7 @@
       targetLink.classList.add('active');
       
       // 显示对应内容
-      ['detail', 'analysis', 'products'].forEach(id => {
+      ['detail', 'analysis', 'products', 'orders', 'ads'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = (id === hash ? '' : 'none');
       });
