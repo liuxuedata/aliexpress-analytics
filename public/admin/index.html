@@ -418,6 +418,7 @@
                         <div class="module-actions">
                             <button class="btn btn-primary" onclick="inventoryModule.addProduct()">添加商品</button>
                             <button class="btn btn-secondary" onclick="inventoryModule.importInventory()">批量导入</button>
+                            <button class="btn btn-secondary" onclick="generateTestData()">生成测试数据</button>
                         </div>
                     </div>
                     <div class="filters">
@@ -476,7 +477,7 @@
                 </div>
                 
                 <!-- 用户管理 -->
-                <div id="users-container" class="module-container" style="display: none;">
+                <div id="permissions-container" class="module-container" style="display: none;">
                     <div class="module-header">
                         <h2>用户管理</h2>
                         <div class="module-actions">
@@ -492,6 +493,47 @@
                                 <th>角色</th>
                                 <th>状态</th>
                                 <th>创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+
+                <!-- 站点配置 -->
+                <div id="sites-container" class="module-container" style="display: none;">
+                    <div class="module-header">
+                        <h2>站点配置</h2>
+                        <div class="module-actions">
+                            <button class="btn btn-primary" onclick="sitesModule.addSite()">添加站点</button>
+                            <button class="btn btn-secondary" onclick="sitesModule.importSites()">导入配置</button>
+                        </div>
+                    </div>
+                    <div class="filters">
+                        <select id="sitesPlatformFilter">
+                            <option value="">所有平台</option>
+                            <option value="aliexpress">速卖通</option>
+                            <option value="amazon">亚马逊</option>
+                            <option value="ozon">Ozon</option>
+                            <option value="tiktok">TikTok</option>
+                            <option value="temu">Temu</option>
+                            <option value="independent">独立站</option>
+                        </select>
+                        <select id="sitesStatusFilter">
+                            <option value="">所有状态</option>
+                            <option value="active">活跃</option>
+                            <option value="inactive">非活跃</option>
+                            <option value="maintenance">维护中</option>
+                        </select>
+                        <input type="text" id="sitesSearchFilter" placeholder="搜索站点">
+                    </div>
+                    <table id="sites-table" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>站点名称</th>
+                                <th>平台</th>
+                                <th>状态</th>
+                                <th>模块配置</th>
+                                <th>最后更新</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
@@ -556,19 +598,123 @@
     // 初始化库存管理模块
     function initializeInventoryModule() {
         console.log('初始化库存管理模块');
-        // TODO: 实现库存管理功能
+        // 初始化库存表格
+        if ($.fn.DataTable) {
+            $('#inventory-table').DataTable({
+                ajax: {
+                    url: '/api/inventory',
+                    type: 'GET',
+                    error: function(xhr, error, thrown) {
+                        console.log('库存数据加载失败:', error);
+                        // 显示空数据
+                        return { data: [] };
+                    }
+                },
+                columns: [
+                    { data: 'sku', title: 'SKU' },
+                    { data: 'name', title: '商品名称' },
+                    { data: 'site_name', title: '站点' },
+                    { data: 'quantity', title: '可用库存' },
+                    { data: 'cost_price', title: '成本价' },
+                    { data: 'selling_price', title: '售价' },
+                    { data: 'actions', title: '操作', orderable: false }
+                ],
+                language: {
+                    emptyTable: '暂无数据',
+                    loadingRecords: '加载中...'
+                }
+            });
+        }
     }
     
     // 初始化权限管理模块
     function initializePermissionsModule() {
         console.log('初始化权限管理模块');
-        // TODO: 实现权限管理功能
+        // 初始化用户表格
+        if ($.fn.DataTable) {
+            $('#users-table').DataTable({
+                ajax: {
+                    url: '/api/users',
+                    type: 'GET',
+                    error: function(xhr, error, thrown) {
+                        console.log('用户数据加载失败:', error);
+                        // 显示空数据
+                        return { data: [] };
+                    }
+                },
+                columns: [
+                    { data: 'username', title: '用户名' },
+                    { data: 'full_name', title: '姓名' },
+                    { data: 'email', title: '邮箱' },
+                    { data: 'role_name', title: '角色' },
+                    { data: 'is_active', title: '状态' },
+                    { data: 'created_at', title: '创建时间' },
+                    { data: 'actions', title: '操作', orderable: false }
+                ],
+                language: {
+                    emptyTable: '暂无数据',
+                    loadingRecords: '加载中...'
+                }
+            });
+        }
     }
     
     // 初始化站点配置模块
     function initializeSitesModule() {
         console.log('初始化站点配置模块');
-        // TODO: 实现站点配置功能
+        // 初始化站点表格
+        if ($.fn.DataTable) {
+            $('#sites-table').DataTable({
+                ajax: {
+                    url: '/api/sites',
+                    type: 'GET',
+                    error: function(xhr, error, thrown) {
+                        console.log('站点数据加载失败:', error);
+                        // 显示空数据
+                        return { data: [] };
+                    }
+                },
+                columns: [
+                    { data: 'name', title: '站点名称' },
+                    { data: 'platform', title: '平台' },
+                    { data: 'status', title: '状态' },
+                    { data: 'modules', title: '模块配置' },
+                    { data: 'updated_at', title: '最后更新' },
+                    { data: 'actions', title: '操作', orderable: false }
+                ],
+                language: {
+                    emptyTable: '暂无数据',
+                    loadingRecords: '加载中...'
+                }
+            });
+        }
+    }
+    
+    // 生成测试数据
+    async function generateTestData() {
+        try {
+            const response = await fetch('/api/test-data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    action: 'generate_all'
+                })
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                alert('测试数据生成成功！');
+                // 重新加载表格数据
+                location.reload();
+            } else {
+                alert('测试数据生成失败：' + result.message);
+            }
+        } catch (error) {
+            console.error('生成测试数据失败:', error);
+            alert('生成测试数据失败：' + error.message);
+        }
     }
     </script>
 </body>
