@@ -13,6 +13,16 @@
 
 ## 核心功能
 
+### 🏢 全局管理功能 (2025-01-08 新增)
+- **访问方式**：从任何站点页面的用户下拉菜单或直接访问 `/admin/`
+- **核心模块**：
+  - 📦 **库存管理**：全局产品和库存管理，支持多供应商、进销存追踪
+  - 👥 **权限管理**：用户和角色权限管理，基于RBAC的访问控制
+  - ⚙️ **站点配置**：全局站点配置和模块设置，动态管理站点模块
+- **权限控制**：基于角色的访问控制，不同角色具有不同的模块访问权限
+- **统一入口**：所有全局管理功能集中在一个页面，支持模块间快速切换
+- **使用指南**：详见 [全局管理使用指南](docs/GLOBAL_ADMIN_GUIDE.md)
+
 ### 🎯 多渠道架构 (2025-01-06 更新)
 - **支持平台**：Google Ads、Facebook Ads、TikTok Ads
 - **统一数据表**：
@@ -53,7 +63,8 @@
 | `independent-site.html` | 独立站 Facebook/Google/TikTok 渠道运营分析 | 顶部渠道筛选、左侧模块承载运营与产品视图 | `/api/independent/stats`、`/api/independent/*-ingest`【F:public/independent-site.html†L1-L120】 |
 | `amazon-*.html` | 亚马逊运营与广告概览 | 左侧导航与全托管保持一致，拆分运营/广告页面 | `/api/amazon/query`、`/api/amazon/upsert`【F:public/amazon-overview.html†L1-L120】 |
 | `ozon-*.html` | Ozon 报表上传与多指标分析 | 页面内包含上传入口、日期筛选和多图表列 | `/api/ozon/stats`、`/api/ozon/import`【F:public/ozon-detail.html†L1-L120】 |
-| `temu.html` / `tiktok.html` | Temu、TikTok Shop 预置页面，等待后端数据接入 | 继承统一导航与布局，当前展示“建设中”占位 | —（待实现）【F:public/temu.html†L1-L38】【F:public/tiktok.html†L1-L36】 |
+| `admin/index.html` | 全局管理页面，提供库存管理、权限管理、站点配置三大核心模块 | 左侧导航承载"库存管理/权限管理/站点配置"，支持模块间切换 | `/api/inventory`、`/api/users`、`/api/site-modules`【F:public/admin/index.html†L1-L200】 |
+| `temu.html` / `tiktok.html` | Temu、TikTok Shop 预置页面，等待后端数据接入 | 继承统一导航与布局，当前展示"建设中"占位 | —（待实现）【F:public/temu.html†L1-L38】【F:public/tiktok.html†L1-L36】 |
 
 - **入口页 `public/index.html`**：作为平台门户，内置渐变过渡和加载动画，并在 1 秒内自动重定向到自运营 Robot 站，确保默认落地页一致。【F:public/index.html†L1-L58】
 - **自运营页 `public/self-operated.html`**：聚合 DataTables、ECharts、Flatpickr 等库，提供站点选择、运营分析、产品分析与数据明细三大模块，支持 KPI 卡片、漏斗图和时间序列趋势；默认站点包含 Robot 与 Poolslab，两者在导航中可快速切换。【F:public/self-operated.html†L1-L160】【F:public/assets/site-nav.js†L1-L200】
