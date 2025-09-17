@@ -4,7 +4,9 @@
     site:'<svg class="site-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 0 20M12 2a15.3 15.3 0 0 0 0 20"/></svg>',
     detail:'<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/><line x1="15" y1="9" x2="15" y2="21"/></svg>',
     operation:'<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 3h7v7"/></svg>',
-    product:'<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3v8h8"/></svg>'
+    product:'<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3v8h8"/></svg>',
+    orders:'<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l1 4H5l1-4z"/><path d="M5 7h14v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7z"/><path d="M9 11h6"/><path d="M9 15h4"/></svg>',
+    advertising:'<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v13H5l-1 3z"/><path d="M8 10h.01"/><path d="M12 10h.01"/><path d="M16 10h.01"/></svg>'
   };
 
   // 默认站点配置
@@ -50,6 +52,8 @@
       if(/明细|数据/.test(txt)) a.insertAdjacentHTML('afterbegin',icons.detail);
       else if(/运营/.test(txt)) a.insertAdjacentHTML('afterbegin',icons.operation);
       else if(/产品/.test(txt)) a.insertAdjacentHTML('afterbegin',icons.product);
+      else if(/订单/.test(txt)) a.insertAdjacentHTML('afterbegin',icons.orders);
+      else if(/广告/.test(txt)) a.insertAdjacentHTML('afterbegin',icons.advertising);
     });
   }
 
@@ -321,6 +325,7 @@
       renderSiteMenus();
       applyNavIcons();
       updateCurrentSiteDisplay();
+      ensureAdminLink();
       setupDropdownEvents();
       
       console.log('站点菜单初始化完成');
@@ -333,6 +338,28 @@
   window.renderSiteMenus = renderSiteMenus;
   window.refreshSiteMenus = renderSiteMenus;
   window.updateCurrentSiteDisplay = updateCurrentSiteDisplay;
+
+  function ensureAdminLink() {
+    const platformNav = document.querySelector('.platform-nav');
+    if (!platformNav) return;
+
+    const existing = platformNav.querySelector('a[href="admin.html"]');
+    if (existing) {
+      existing.setAttribute('title', '站点与权限统一管理后台');
+      return;
+    }
+
+    const adminItem = document.createElement('li');
+    adminItem.className = 'admin';
+
+    const adminLink = document.createElement('a');
+    adminLink.href = 'admin.html';
+    adminLink.textContent = '管理后台';
+    adminLink.title = '站点配置、权限矩阵与全局设置入口';
+
+    adminItem.appendChild(adminLink);
+    platformNav.appendChild(adminItem);
+  }
 
   // 页面加载完成后初始化
   if (document.readyState === 'loading') {
