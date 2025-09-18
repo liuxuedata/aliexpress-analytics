@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>管理后台 · 跨境电商数据分析平台</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="assets/login.css">
+  <link rel="stylesheet" href="assets/theme.css?v=20250810d">
+  <link rel="stylesheet" href="assets/global-theme.css">
+  <script src="assets/site-nav.js" defer></script>
+  <style>
+    body.fm {
+      background: #f3f4f6;
+    }
+    .admin-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      min-height: calc(100vh - 64px);
+    }
+    .admin-sidebar {
+      background: #111827;
+      color: #f9fafb;
+      padding: 24px 0;
+    }
+    .admin-sidebar .site-header {
+      padding: 0 24px 16px;
+      font-size: 18px;
+      font-weight: 600;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .admin-sidebar .sub-nav {
+      list-style: none;
+      margin: 16px 0 0;
+      padding: 0;
+    }
+    .admin-sidebar .sub-nav li a {
+      display: block;
+      padding: 12px 24px;
+      color: rgba(255,255,255,0.75);
+      text-decoration: none;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    .admin-sidebar .sub-nav li a.active,
+    .admin-sidebar .sub-nav li a:hover {
+      background: rgba(59,130,246,0.12);
+      color: #fff;
+    }
+    .admin-main {
+      padding: 32px;
+      overflow-y: auto;
+    }
+    .admin-section {
+      display: none;
+    }
+    .admin-section.active {
+      display: block;
+      animation: fadeIn 0.25s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .section-header h1 {
+      margin: 0;
+      font-size: 24px;
+      color: #111827;
+    }
+    .section-subtitle {
+      color: #6b7280;
+      font-size: 14px;
+    }
+    .admin-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    }
+    .admin-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group label {
+      font-weight: 500;
+      color: #374151;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+    .form-actions {
+      margin-top: 16px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      background: #fff;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn:hover {
+      background: #f9fafb;
+    }
+    .btn-primary {
+      background: #2563eb;
+      color: #fff;
+      border-color: #2563eb;
+    }
+    .btn-primary:hover {
+      background: #1d4ed8;
+    }
+    .btn-secondary {
+      background: #111827;
+      border-color: #111827;
+      color: #f9fafb;
+    }
+    .btn-success {
+      background: #059669;
+      border-color: #059669;
+      color: #fff;
+    }
+    .btn-outline {
+      background: transparent;
+      border-style: dashed;
+    }
+    .quick-templates {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .site-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: linear-gradient(135deg, rgba(59,130,246,0.05), rgba(16,185,129,0.05));
+    }
+    .site-card h3 {
+      margin: 0;
+      font-size: 18px;
+      color: #1f2937;
+    }
+    .site-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 8px;
+      font-size: 13px;
+      color: #4b5563;
+    }
+    .site-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .message {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    .message.info {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+    .message.success {
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+    }
+    .message.error {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+    .permissions-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .permissions-table thead th {
+      text-align: left;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+      color: #6b7280;
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .permissions-table tbody td {
+      padding: 12px;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 14px;
+    }
+    .permissions-table tbody tr:nth-child(odd) {
+      background: #f9fafb;
+    }
+    .permissions-table .module-label {
+      font-weight: 600;
+      color: #1f2937;
+    }
+    .matrix-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+      align-items: center;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 12px;
+      background: #e0f2fe;
+      color: #0369a1;
+      margin-left: 6px;
+    }
+    @media (max-width: 960px) {
+      .admin-layout {
+        grid-template-columns: 1fr;
+      }
+      .admin-sidebar {
+        display: flex;
+        overflow-x: auto;
+      }
+      .admin-sidebar .site-header {
+        display: none;
+      }
+      .admin-sidebar .sub-nav {
+        display: flex;
+        width: 100%;
+      }
+      .admin-sidebar .sub-nav li {
+        flex: 1;
+      }
+    }
+  </style>
+</head>
+<body class="fm">
+<div id="loginOverlay" class="login-overlay" style="display:none">
+  <div class="login-container">
+    <div class="login-form-card login-card-enter">
+      <div class="form-header">
+        <div class="form-logo">AI</div>
+        <div class="form-title">跨境电商数据分析平台</div>
+        <div class="form-subtitle">登录账户以继续</div>
+      </div>
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label" for="email">邮箱</label>
+          <input id="email" type="email" class="form-input" required>
+        </div>
+        <div class="form-group password-input-wrapper">
+          <label class="form-label" for="password">密码</label>
+          <input id="password" type="password" class="form-input" required>
+          <span id="password-toggle" class="password-toggle">👁️</span>
+        </div>
+        <button id="loginSubmit" class="login-submit-btn" type="submit">登录</button>
+      </form>
+      <div class="demo-account-tip">
+        <div class="demo-account-header">演示账户</div>
+        <div class="demo-account-info">邮箱：demo@example.com<br>密码：demo123</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<header class="header">
+  <div class="logo-title">跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li class="ali"><a href="self-operated.html">速卖通</a></li>
+      <li class="amazon"><a href="amazon-overview.html">亚马逊</a></li>
+      <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon"><a href="ozon-analysis.html">Ozon</a></li>
+      <li class="independent"><a href="independent-site.html">独立站</a></li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+
+<div class="admin-layout">
+  <nav class="sidebar admin-sidebar">
+    <div class="site-header">管理后台</div>
+    <ul class="sub-nav" id="adminNav">
+      <li><a href="#" class="active" data-target="siteConsole">站点管理</a></li>
+      <li><a href="#" data-target="permissionConsole">权限矩阵</a></li>
+      <li><a href="#" data-target="syncConsole">同步工具</a></li>
+    </ul>
+  </nav>
+
+  <main class="main admin-main">
+    <div id="adminMessage" class="message info" style="display:none"></div>
+
+    <section id="siteConsole" class="admin-section active">
+      <div class="section-header">
+        <div>
+          <h1>站点配置中心</h1>
+          <div class="section-subtitle">通过 `site_configs` 注册新站点，自动与站点模块、渠道配置与导航联动。</div>
+        </div>
+        <button class="btn btn-outline" id="refreshSitesBtn">刷新列表</button>
+      </div>
+
+      <div class="admin-card">
+        <h2 style="margin-top:0">快捷模板</h2>
+        <p class="section-subtitle">一键填充常见站点的基础字段，可根据实际需求调整后再提交。</p>
+        <div class="quick-templates" id="quickTemplates"></div>
+      </div>
+
+      <div class="admin-card">
+        <h2 style="margin-top:0">创建 / 更新站点</h2>
+        <form id="siteForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="platformSelect">平台 *</label>
+              <select id="platformSelect" required></select>
+            </div>
+            <div class="form-group">
+              <label for="siteNameInput">站点名称 *</label>
+              <input id="siteNameInput" placeholder="如：robot 或 flagship" required>
+            </div>
+            <div class="form-group">
+              <label for="displayNameInput">显示名称 *</label>
+              <input id="displayNameInput" placeholder="如：速卖通自运营 Robot" required>
+            </div>
+            <div class="form-group">
+              <label for="domainInput">域名 / 标识</label>
+              <input id="domainInput" placeholder="如：robot.aliexpress.com">
+            </div>
+            <div class="form-group">
+              <label for="dataSourceSelect">数据源 *</label>
+              <select id="dataSourceSelect" required></select>
+            </div>
+            <div class="form-group">
+              <label for="templateSelect">数据模板</label>
+              <select id="templateSelect">
+                <option value="">自动选择</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top:12px;">
+            <label for="configJsonInput">配置信息 (JSON，可含 API Key 引用)</label>
+            <textarea id="configJsonInput" rows="4" placeholder='{"api_key_ref":"vault://..."}'></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存站点</button>
+            <button type="button" class="btn" id="resetSiteForm">重置</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="admin-card">
+        <div class="section-header" style="margin-bottom:12px;">
+          <div>
+            <h2 style="margin:0">已注册站点</h2>
+            <div class="section-subtitle">共 <span id="siteCount">0</span> 个站点，新增后会自动出现在前端导航与模块配置中。</div>
+          </div>
+          <select id="platformFilter" class="btn" style="min-width:180px;">
+            <option value="">全部平台</option>
+          </select>
+        </div>
+        <div class="admin-grid" id="siteList"></div>
+      </div>
+    </section>
+
+    <section id="permissionConsole" class="admin-section">
+      <div class="section-header">
+        <div>
+          <h1>权限矩阵</h1>
+          <div class="section-subtitle">基于 `rules.json` 默认策略管理模块可见性，可按站点覆写。</div>
+        </div>
+        <div class="matrix-controls">
+          <select id="permissionSiteSelect" class="btn">
+            <option value="">全局默认</option>
+          </select>
+          <button class="btn" id="resetPermissionBtn">恢复默认</button>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <table class="permissions-table">
+          <thead>
+            <tr>
+              <th style="width:180px">模块</th>
+              <th>描述</th>
+              <th>角色访问</th>
+            </tr>
+          </thead>
+          <tbody id="permissionMatrix"></tbody>
+        </table>
+        <div class="form-actions">
+          <button class="btn btn-primary" id="savePermissionBtn">保存配置</button>
+          <button class="btn" id="exportPermissionBtn">复制 JSON</button>
+        </div>
+        <p class="section-subtitle">保存操作会在浏览器内缓存配置，后端写入接口将在权限中心上线时接入。</p>
+      </div>
+    </section>
+
+    <section id="syncConsole" class="admin-section">
+      <div class="section-header">
+        <div>
+          <h1>同步工具</h1>
+          <div class="section-subtitle">用于触发 `/api/site-sync` 与检查指标字段覆盖，保障新站点上线即连通。</div>
+        </div>
+      </div>
+      <div class="admin-card">
+        <h2 style="margin-top:0">站点同步</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="syncSiteSelect">选择站点</label>
+            <select id="syncSiteSelect"></select>
+          </div>
+          <div class="form-group">
+            <label for="syncActionSelect">同步动作</label>
+            <select id="syncActionSelect">
+              <option value="create">创建站点结构</option>
+              <option value="update">更新站点结构</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-secondary" id="runSyncBtn">执行同步</button>
+        </div>
+        <p class="section-subtitle">同步操作将刷新 `site_module_configs`、`site_channel_configs` 等依赖站点 ID 的表，以便 Lazada/Shopee 等新站点立即生效。</p>
+      </div>
+      <div class="admin-card">
+        <h2 style="margin-top:0">字段覆盖校验</h2>
+        <p class="section-subtitle">即将上线：自动对比 `platform_metric_profiles` 与接口返回的 `availableFields`，提示缺失字段或可选字段。</p>
+        <button class="btn" disabled>开发中</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const PLATFORM_CATALOG = {
+  ae_self_operated: {
+    label: '速卖通自运营',
+    dataSources: [
+      { value: 'ae_api', label: '速卖通 API' },
+      { value: 'ae_report', label: '速卖通运营报表' }
+    ],
+    quick: { name: 'robot', display: '速卖通自运营 Robot', domain: 'robot.aliexpress.com' }
+  },
+  ae_managed: {
+    label: '速卖通全托管',
+    dataSources: [
+      { value: 'ae_api', label: '速卖通 API' },
+      { value: 'managed_report', label: '全托管报表' }
+    ],
+    quick: { name: 'managed', display: '速卖通全托管旗舰店' }
+  },
+  independent: {
+    label: '独立站',
+    dataSources: [
+      { value: 'google_ads', label: 'Google Ads' },
+      { value: 'facebook_ads', label: 'Facebook Ads' },
+      { value: 'tiktok_ads', label: 'TikTok Ads' },
+      { value: 'custom', label: '自定义/埋点' }
+    ],
+    quick: { name: 'icyberite', display: '独立站 icyberite.com', domain: 'icyberite.com' }
+  },
+  amazon: {
+    label: '亚马逊',
+    dataSources: [
+      { value: 'amazon_sp_api', label: 'Amazon SP-API' },
+      { value: 'amazon_ads', label: 'Amazon Ads 报表' }
+    ],
+    quick: { name: 'amazon_store', display: '亚马逊旗舰店' }
+  },
+  ozon: {
+    label: 'Ozon',
+    dataSources: [
+      { value: 'ozon_api', label: 'Ozon API' },
+      { value: 'ozon_report', label: 'Ozon 报表' }
+    ],
+    quick: { name: 'ozon_main', display: 'Ozon 主站' }
+  },
+  tiktok: {
+    label: 'TikTok Shop',
+    dataSources: [
+      { value: 'tiktok_shop_api', label: 'TikTok Shop API' },
+      { value: 'tiktok_ads', label: 'TikTok Ads 报表' }
+    ],
+    quick: { name: 'tiktok_flagship', display: 'TikTok Shop 官方店' }
+  },
+  temu: {
+    label: 'Temu',
+    dataSources: [
+      { value: 'temu_report', label: 'Temu 报表' },
+      { value: 'temu_api', label: 'Temu API (规划)' }
+    ],
+    quick: { name: 'temu_global', display: 'Temu 全球店' }
+  },
+  lazada: {
+    label: 'Lazada',
+    dataSources: [
+      { value: 'lazada_api', label: 'Lazada API' },
+      { value: 'lazada_ads', label: 'Lazada Ads 报表' },
+      { value: 'custom', label: '自定义/第三方' }
+    ],
+    quick: { name: 'lazada_my', display: 'Lazada 马来西亚旗舰店' }
+  },
+  shopee: {
+    label: 'Shopee',
+    dataSources: [
+      { value: 'shopee_api', label: 'Shopee API' },
+      { value: 'shopee_ads', label: 'Shopee Ads 报表' },
+      { value: 'custom', label: '自定义/第三方' }
+    ],
+    quick: { name: 'shopee_sg', display: 'Shopee 新加坡旗舰店' }
+  }
+};
+
+const DATA_SOURCE_LABELS = Object.values(PLATFORM_CATALOG).reduce((acc, platform) => {
+  platform.dataSources.forEach(ds => acc[ds.value] = ds.label);
+  return acc;
+}, { custom: '自定义/第三方' });
+
+const MODULE_LABELS = {
+  operations: '运营分析',
+  products: '产品分析',
+  orders: '订单中心',
+  advertising: '广告中心',
+  inventory: '库存管理 (全局)',
+  permissions: '权限管理 (全局)'
+};
+
+const DEFAULT_MATRIX = {
+  operations: ['super_admin', 'operations_manager', 'viewer'],
+  products: ['super_admin', 'operations_manager', 'viewer'],
+  orders: ['super_admin', 'operations_manager', 'order_manager', 'finance', 'viewer'],
+  advertising: ['super_admin', 'operations_manager', 'ad_manager', 'viewer'],
+  inventory: ['super_admin', 'inventory_manager', 'operations_manager'],
+  permissions: ['super_admin']
+};
+
+const ROLE_LABELS = {
+  super_admin: '超级管理员',
+  operations_manager: '运营管理员',
+  order_manager: '订单管理员',
+  inventory_manager: '库存管理员',
+  ad_manager: '广告管理员',
+  finance: '财务',
+  viewer: '只读用户'
+};
+
+let siteConfigs = [];
+let matrixOverrides = {};
+let activeMatrix = cloneMatrix(DEFAULT_MATRIX);
+
+function cloneMatrix(matrix) {
+  return JSON.parse(JSON.stringify(matrix));
+}
+
+function setMessage(text, type = 'info') {
+  const bar = document.getElementById('adminMessage');
+  bar.textContent = text;
+  bar.className = `message ${type}`;
+  bar.style.display = text ? 'block' : 'none';
+  if (text) {
+    setTimeout(() => {
+      bar.style.display = 'none';
+    }, 4200);
+  }
+}
+
+function switchSection(targetId) {
+  document.querySelectorAll('.admin-section').forEach(section => {
+    section.classList.toggle('active', section.id === targetId);
+  });
+  document.querySelectorAll('#adminNav a').forEach(link => {
+    link.classList.toggle('active', link.dataset.target === targetId);
+  });
+}
+
+function populatePlatformOptions() {
+  const platformSelect = document.getElementById('platformSelect');
+  const filterSelect = document.getElementById('platformFilter');
+
+  platformSelect.innerHTML = '<option value="">选择平台</option>';
+  filterSelect.innerHTML = '<option value="">全部平台</option>';
+
+  Object.entries(PLATFORM_CATALOG).forEach(([value, config]) => {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = config.label;
+    platformSelect.appendChild(option);
+
+    const filterOption = document.createElement('option');
+    filterOption.value = value;
+    filterOption.textContent = config.label;
+    filterSelect.appendChild(filterOption);
+  });
+}
+
+function populateQuickTemplates() {
+  const container = document.getElementById('quickTemplates');
+  container.innerHTML = '';
+  Object.entries(PLATFORM_CATALOG).forEach(([value, config]) => {
+    if (!config.quick) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn-outline';
+    btn.textContent = `${config.label} · 快速填充`;
+    btn.addEventListener('click', () => {
+      document.getElementById('platformSelect').value = value;
+      document.getElementById('siteNameInput').value = config.quick.name || '';
+      document.getElementById('displayNameInput').value = config.quick.display || '';
+      document.getElementById('domainInput').value = config.quick.domain || '';
+      updateDataSourceOptions();
+    });
+    container.appendChild(btn);
+  });
+}
+
+function updateDataSourceOptions() {
+  const platform = document.getElementById('platformSelect').value;
+  const dataSourceSelect = document.getElementById('dataSourceSelect');
+  dataSourceSelect.innerHTML = '<option value="">选择数据源</option>';
+
+  const sources = PLATFORM_CATALOG[platform]?.dataSources || [];
+  sources.forEach(source => {
+    const option = document.createElement('option');
+    option.value = source.value;
+    option.textContent = source.label;
+    dataSourceSelect.appendChild(option);
+  });
+
+  if (!sources.find(s => s.value === 'custom')) {
+    const custom = document.createElement('option');
+    custom.value = 'custom';
+    custom.textContent = DATA_SOURCE_LABELS.custom;
+    dataSourceSelect.appendChild(custom);
+  }
+}
+
+async function loadSiteConfigs() {
+  setMessage('正在加载站点配置...', 'info');
+  try {
+    const res = await fetch('/api/site-configs');
+    const payload = await res.json();
+    if (!res.ok) throw new Error(payload.error || '加载失败');
+    siteConfigs = payload.data || [];
+    document.getElementById('siteCount').textContent = siteConfigs.length;
+    renderSiteList();
+    populateSiteSelectors();
+    setMessage(`已加载 ${siteConfigs.length} 个站点`, 'success');
+  } catch (error) {
+    console.error('加载站点失败', error);
+    setMessage(`加载站点失败：${error.message}`, 'error');
+  }
+}
+
+function renderSiteList() {
+  const list = document.getElementById('siteList');
+  const platformFilter = document.getElementById('platformFilter').value;
+  const filtered = platformFilter ? siteConfigs.filter(item => item.platform === platformFilter) : siteConfigs;
+
+  if (!filtered.length) {
+    list.innerHTML = '<div class="message info">暂无站点，请先创建或更换筛选条件。</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  filtered.forEach(site => {
+    const card = document.createElement('div');
+    card.className = 'site-card';
+    const platformLabel = PLATFORM_CATALOG[site.platform]?.label || site.platform;
+    const dataSourceLabel = DATA_SOURCE_LABELS[site.data_source] || site.data_source || '未配置';
+    card.innerHTML = `
+      <div>
+        <h3>${site.display_name || site.name}</h3>
+        <div class="section-subtitle">站点 ID：${site.id}</div>
+      </div>
+      <div class="site-meta">
+        <div><strong>平台：</strong>${platformLabel}</div>
+        <div><strong>数据源：</strong>${dataSourceLabel}</div>
+        <div><strong>模板：</strong>${site.template_id || '自动匹配'}</div>
+        <div><strong>域名：</strong>${site.domain || '—'}</div>
+        <div><strong>状态：</strong>${site.is_active === false ? '未激活' : '启用中'}</div>
+        <div><strong>创建时间：</strong>${site.created_at ? new Date(site.created_at).toLocaleString() : '—'}</div>
+      </div>
+      <div class="site-actions">
+        <button class="btn" data-action="prefill" data-site-id="${site.id}">填充到表单</button>
+        <button class="btn btn-secondary" data-action="sync" data-site-id="${site.id}">同步结构</button>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+
+  list.querySelectorAll('button[data-action="prefill"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      try {
+        const site = siteConfigs.find(item => item.id === btn.dataset.siteId);
+        if (!site) throw new Error('未找到站点配置');
+        document.getElementById('platformSelect').value = site.platform;
+        updateDataSourceOptions();
+        document.getElementById('siteNameInput').value = site.name;
+        document.getElementById('displayNameInput').value = site.display_name || '';
+        document.getElementById('domainInput').value = site.domain || '';
+        document.getElementById('dataSourceSelect').value = site.data_source || '';
+        document.getElementById('templateSelect').value = site.template_id || '';
+        document.getElementById('configJsonInput').value = site.config_json ? JSON.stringify(site.config_json, null, 2) : '';
+        switchSection('siteConsole');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (error) {
+        console.warn('Prefill 失败', error);
+      }
+    });
+  });
+
+  list.querySelectorAll('button[data-action="sync"]').forEach(btn => {
+    btn.addEventListener('click', () => runSync(btn.dataset.siteId, 'update'));
+  });
+}
+
+async function submitSiteForm(event) {
+  event.preventDefault();
+  const platform = document.getElementById('platformSelect').value;
+  const name = document.getElementById('siteNameInput').value.trim();
+  const displayName = document.getElementById('displayNameInput').value.trim();
+  const domain = document.getElementById('domainInput').value.trim() || null;
+  const dataSource = document.getElementById('dataSourceSelect').value;
+  const templateId = document.getElementById('templateSelect').value || null;
+  const configRaw = document.getElementById('configJsonInput').value.trim();
+
+  if (!platform || !name || !displayName || !dataSource) {
+    setMessage('请完整填写平台、站点名称、显示名称与数据源。', 'error');
+    return;
+  }
+
+  let configJson = null;
+  if (configRaw) {
+    try {
+      configJson = JSON.parse(configRaw);
+    } catch (error) {
+      setMessage('配置信息需为合法 JSON 格式。', 'error');
+      return;
+    }
+  }
+
+  setMessage('正在保存站点配置...', 'info');
+  try {
+    const res = await fetch('/api/site-configs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        platform,
+        name,
+        display_name: displayName,
+        domain,
+        data_source: dataSource,
+        template_id: templateId,
+        config_json: configJson
+      })
+    });
+    const payload = await res.json();
+    if (!res.ok) throw new Error(payload.error || '保存失败');
+
+    setMessage('站点已保存，正在触发结构同步...', 'success');
+    await loadSiteConfigs();
+    await runSync(payload.data?.id, 'create');
+    document.getElementById('siteForm').reset();
+    updateDataSourceOptions();
+  } catch (error) {
+    console.error('保存站点失败', error);
+    setMessage(`保存站点失败：${error.message}`, 'error');
+  }
+}
+
+function populateSiteSelectors() {
+  const siteSelects = [
+    document.getElementById('permissionSiteSelect'),
+    document.getElementById('syncSiteSelect')
+  ];
+  siteSelects.forEach(select => {
+    if (!select) return;
+    const preserveFirst = select === document.getElementById('permissionSiteSelect');
+    const defaultOption = preserveFirst ? select.querySelector('option[value=""]') : null;
+    select.innerHTML = '';
+    if (preserveFirst && defaultOption) {
+      select.appendChild(defaultOption);
+    } else {
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = '选择站点';
+      select.appendChild(placeholder);
+    }
+
+    siteConfigs.forEach(site => {
+      const option = document.createElement('option');
+      option.value = site.id;
+      option.textContent = `${site.display_name || site.name} (${site.platform})`;
+      select.appendChild(option);
+    });
+  });
+}
+
+async function runSync(siteId, action) {
+  if (!siteId) {
+    setMessage('请先选择站点后再执行同步。', 'error');
+    return;
+  }
+  setMessage('正在执行站点同步...', 'info');
+  try {
+    const res = await fetch('/api/site-sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ siteId, action })
+    });
+    const payload = await res.json();
+    if (!res.ok) throw new Error(payload.error || '同步失败');
+    setMessage('站点同步成功，模块与渠道配置已刷新。', 'success');
+  } catch (error) {
+    console.error('同步失败', error);
+    setMessage(`站点同步失败：${error.message}`, 'error');
+  }
+}
+
+function renderPermissionMatrix() {
+  const matrixBody = document.getElementById('permissionMatrix');
+  matrixBody.innerHTML = '';
+  Object.entries(MODULE_LABELS).forEach(([moduleKey, label]) => {
+    const row = document.createElement('tr');
+    const roleList = Object.keys(ROLE_LABELS).map(role => {
+      const checked = (activeMatrix[moduleKey] || []).includes(role);
+      return `<label style="margin-right:12px;display:inline-flex;align-items:center;gap:6px;">
+        <input type="checkbox" data-module="${moduleKey}" data-role="${role}" ${checked ? 'checked' : ''}>
+        <span>${ROLE_LABELS[role]}</span>
+      </label>`;
+    }).join('');
+    row.innerHTML = `
+      <td class="module-label">${label}</td>
+      <td>${getModuleDescription(moduleKey)}</td>
+      <td>${roleList}</td>
+    `;
+    matrixBody.appendChild(row);
+  });
+
+  matrixBody.querySelectorAll('input[type="checkbox"]').forEach(input => {
+    input.addEventListener('change', () => {
+      const moduleKey = input.dataset.module;
+      const role = input.dataset.role;
+      const target = activeMatrix[moduleKey] || [];
+      if (input.checked && !target.includes(role)) {
+        target.push(role);
+      } else if (!input.checked) {
+        activeMatrix[moduleKey] = target.filter(item => item !== role);
+      }
+    });
+  });
+}
+
+function getModuleDescription(moduleKey) {
+  switch (moduleKey) {
+    case 'operations':
+      return '曝光、访客、加购、支付等全链路指标。';
+    case 'products':
+      return '商品维度分析、属性与绩效对比。';
+    case 'orders':
+      return '订单列表、客户信息、物流成本与结算状态。';
+    case 'advertising':
+      return '广告预算、投放配置、归因与带来访客/订单。';
+    case 'inventory':
+      return '全局库存中心（批次、调拨、预警）。';
+    case 'permissions':
+      return '角色与资源矩阵，仅限超级管理员。';
+    default:
+      return '';
+  }
+}
+
+function handlePermissionSiteChange() {
+  const siteId = document.getElementById('permissionSiteSelect').value;
+  if (siteId && matrixOverrides[siteId]) {
+    activeMatrix = cloneMatrix(matrixOverrides[siteId]);
+  } else {
+    activeMatrix = cloneMatrix(siteId ? DEFAULT_MATRIX : DEFAULT_MATRIX);
+    if (siteId && !matrixOverrides[siteId]) {
+      matrixOverrides[siteId] = cloneMatrix(DEFAULT_MATRIX);
+    }
+  }
+  renderPermissionMatrix();
+}
+
+function resetPermissionMatrix() {
+  const siteId = document.getElementById('permissionSiteSelect').value;
+  if (siteId) {
+    matrixOverrides[siteId] = cloneMatrix(DEFAULT_MATRIX);
+  }
+  activeMatrix = cloneMatrix(DEFAULT_MATRIX);
+  renderPermissionMatrix();
+  setMessage('已恢复默认权限矩阵。', 'success');
+}
+
+function savePermissionMatrix() {
+  const siteId = document.getElementById('permissionSiteSelect').value;
+  if (siteId) {
+    matrixOverrides[siteId] = cloneMatrix(activeMatrix);
+    setMessage(`已暂存 ${siteId} 的权限矩阵，后端接口上线后将写入数据库。`, 'success');
+  } else {
+    Object.keys(matrixOverrides).forEach(key => delete matrixOverrides[key]);
+    Object.assign(DEFAULT_MATRIX, cloneMatrix(activeMatrix));
+    setMessage('已更新全局默认权限矩阵。', 'success');
+  }
+}
+
+function exportPermissionMatrix() {
+  const siteId = document.getElementById('permissionSiteSelect').value;
+  const payload = siteId ? matrixOverrides[siteId] || activeMatrix : activeMatrix;
+  const json = JSON.stringify(payload, null, 2);
+  navigator.clipboard?.writeText(json).then(() => {
+    setMessage('权限矩阵 JSON 已复制到剪贴板。', 'success');
+  }).catch(() => {
+    setMessage('请手动复制：\n' + json, 'info');
+  });
+}
+
+function setupAuth() {
+  const loginOverlay = document.getElementById('loginOverlay');
+  const loginForm = document.getElementById('loginForm');
+  const userArea = document.getElementById('userArea');
+
+  function checkAuth() {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      loginOverlay.style.display = 'flex';
+    } else {
+      loginOverlay.style.display = 'none';
+      userArea.innerHTML = `
+        <span>欢迎，管理员</span>
+        <button class="btn" id="logoutBtn">退出</button>
+      `;
+      document.getElementById('logoutBtn').addEventListener('click', () => {
+        localStorage.removeItem('authToken');
+        checkAuth();
+      });
+    }
+  }
+
+  loginForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    if (email === 'demo@example.com' && password === 'demo123') {
+      localStorage.setItem('authToken', 'demo-token');
+      checkAuth();
+    } else {
+      alert('登录失败，请检查邮箱和密码');
+    }
+  });
+
+  document.getElementById('password-toggle').addEventListener('click', () => {
+    const input = document.getElementById('password');
+    input.type = input.type === 'password' ? 'text' : 'password';
+  });
+
+  checkAuth();
+}
+
+function initializeAdmin() {
+  document.querySelectorAll('#adminNav a').forEach(link => {
+    link.addEventListener('click', event => {
+      event.preventDefault();
+      switchSection(link.dataset.target);
+    });
+  });
+
+  document.getElementById('platformSelect').addEventListener('change', () => {
+    updateDataSourceOptions();
+  });
+
+  document.getElementById('platformFilter').addEventListener('change', renderSiteList);
+  document.getElementById('siteForm').addEventListener('submit', submitSiteForm);
+  document.getElementById('resetSiteForm').addEventListener('click', () => {
+    document.getElementById('siteForm').reset();
+    updateDataSourceOptions();
+  });
+  document.getElementById('refreshSitesBtn').addEventListener('click', loadSiteConfigs);
+  document.getElementById('permissionSiteSelect').addEventListener('change', () => {
+    handlePermissionSiteChange();
+  });
+  document.getElementById('resetPermissionBtn').addEventListener('click', resetPermissionMatrix);
+  document.getElementById('savePermissionBtn').addEventListener('click', savePermissionMatrix);
+  document.getElementById('exportPermissionBtn').addEventListener('click', exportPermissionMatrix);
+  document.getElementById('runSyncBtn').addEventListener('click', () => {
+    const siteId = document.getElementById('syncSiteSelect').value;
+    const action = document.getElementById('syncActionSelect').value;
+    runSync(siteId, action);
+  });
+
+  populatePlatformOptions();
+  populateQuickTemplates();
+  updateDataSourceOptions();
+  renderPermissionMatrix();
+  loadSiteConfigs();
+  switchSection('siteConsole');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setupAuth();
+  initializeAdmin();
+});
+</script>
+</body>
+</html>

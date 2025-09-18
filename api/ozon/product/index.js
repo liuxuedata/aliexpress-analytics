@@ -1,4 +1,7 @@
+const fetch = require('node-fetch');
 const { createClient } = require('@supabase/supabase-js');
+const { parseOzonResponse } = require('../../../lib/ozon-orders');
+const { createProductMetadataLoader, normalizeSku } = require('../../../lib/ozon-product-catalog');
 
 function supa(){
   const url = process.env.SUPABASE_URL;
@@ -12,6 +15,14 @@ function normalizeTableName(name, fallback = 'ozon_product_report_wide'){
   t = t.replace(/^"+|"+$/g, '');
   t = t.replace(/^public\./i, '');
   return t;
+}
+
+function getOzonCredentials(){
+  const { OZON_CLIENT_ID, OZON_API_KEY } = process.env;
+  if(!OZON_CLIENT_ID || !OZON_API_KEY){
+    throw new Error('Missing OZON_CLIENT_ID or OZON_API_KEY');
+  }
+  return { clientId: OZON_CLIENT_ID, apiKey: OZON_API_KEY };
 }
 
 module.exports = async function handler(req,res){
@@ -77,8 +88,27 @@ module.exports = async function handler(req,res){
       pay_orders: Number(r.voronka_prodazh_zakazano_tovarov)||0,
       pay_buyers: Number(r.voronka_prodazh_vykupleno_tovarov)||0
     }));
+    let metadata = null;
+    try{
+      const creds = getOzonCredentials();
+      const loader = createProductMetadataLoader({
+        supabase,
+        fetchImpl: fetch,
+        creds,
+        parseOzonResponse
+      });
+      const sku = normalizeSku(product_id);
+      if(sku){
+        const map = await loader([sku]);
+        if(map instanceof Map && map.has(sku)){
+          metadata = { ...map.get(sku), sku };
+        }
+      }
+    }catch(error){
+      console.warn('[ozon] Skip product metadata enrichment:', error.message);
+    }
 
-    res.json({ok:true, rows});
+    res.json({ok:true, rows, metadata});
   }catch(e){
     res.json({ok:false, msg:e.message});
   }
