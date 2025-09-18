@@ -27,8 +27,7 @@
     .orders-table td.product-cell { padding-right:12px; }
     .product-items { display:flex; flex-direction:column; gap:12px; }
     .ozon-product-item { display:flex; align-items:flex-start; gap:12px; min-width:0; }
-    .ozon-product-thumb { width:48px; height:48px; border-radius:10px; object-fit:cover; border:1px solid #e5e7eb; background:#fff; flex-shrink:0; }
-    .ozon-product-thumb.placeholder { display:flex; align-items:center; justify-content:center; font-size:11px; color:#9ca3af; border-style:dashed; background:#f9fafb; }
+    .ozon-product-item.no-thumb { gap:6px; }
     .ozon-product-text { display:flex; flex-direction:column; gap:4px; min-width:0; }
     .ozon-product-text a { font-weight:500; }
     .ozon-product-text .sku { font-size:12px; color:#6b7280; }
@@ -335,11 +334,7 @@
               ? `<a href="${link}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:underline;">${name}</a>`
               : name;
             const skuText = item.sku ? `<span class=\"sku\">SKU: ${escapeHtml(item.sku)}</span>` : '';
-            const imageUrl = item.product_image ? escapeHtml(item.product_image) : '';
-            const thumb = imageUrl
-              ? `<img class="ozon-product-thumb" src="${imageUrl}" alt="${name}">`
-              : `<div class="ozon-product-thumb placeholder">无图</div>`;
-            return `<div class="ozon-product-item">${thumb}<div class="ozon-product-text">${nameContent}${skuText ? skuText : ''}</div></div>`;
+            return `<div class="ozon-product-item no-thumb"><div class="ozon-product-text">${nameContent}${skuText ? skuText : ''}</div></div>`;
           }).join('')}</div>`
         : '<span style="color:#9ca3af;">暂无明细</span>';
 

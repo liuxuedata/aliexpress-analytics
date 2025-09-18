@@ -328,7 +328,7 @@
         let pe = 0, pc = 0, pp = 0;
         products.forEach(v => {
           if (v.exp > 0) pe++;
-          if (v.addCount > 0) pc++;
+          if (v.addPeople > 0) pc++;
           if ((v.payItems || 0) + (v.payOrders || 0) > 0) pp++;
         });
 

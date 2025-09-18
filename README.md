@@ -74,7 +74,7 @@
 - **站点管理页 `public/site-management.html`**：轻量化的站点登记入口，表单直接写入 `site_configs` 并调用 `/api/site-sync`，在成功创建后引导管理员前往 `admin.html` 做进一步配置。【F:public/site-management.html†L1-L420】
 - **独立站页 `public/independent-site.html`**：面向 Landing Page 运营分析，侧边栏同步扩展至五大模块，包含渠道选择、时间控件、KPI 卡片与数据明细，并保留列显隐、产品双击跳转等增强交互。【F:public/independent-site.html†L697-L852】
 - **亚马逊总览 `public/amazon-overview.html`**：按 Amazon 指标构建 KPI、趋势图和明细表的总览页，侧边栏新增五大模块并通过 Hash 切换，`amazon-ads.html` 负责重定向到新的广告分栏。【F:public/amazon-overview.html†L104-L215】【F:public/amazon-ads.html†L1-L35】
-- **Ozon 页面集**：`public/ozon-detail.html` 等页面提供上传入口、日期筛选及多图表分栏，并补充订单中心、广告中心入口；`ozon-orders.html` 在同步订单头与明细的基础上，将商品明细列移动至首列并限制宽度为 140px，单独展示“采购件数”，且商品明细/下单时间/状态/结算状态四列可点击切换正序或倒序，保持与运营数据的产品 ID 对齐，广告模块仍预留官方 API 接入。【F:public/ozon-detail.html†L40-L78】【F:public/ozon-orders.html†L1-L210】【F:api/ozon/orders/index.js†L1-L117】
+- **Ozon 页面集**：`public/ozon-detail.html` 等页面提供上传入口、日期筛选及多图表分栏，并补充订单中心、广告中心入口；`ozon-orders.html` 在同步订单头与明细的基础上，将商品明细列移动至首列并限制宽度为 140px，单独展示“采购件数”，且商品明细/下单时间/状态/结算状态四列可点击切换正序或倒序，保持与运营数据的产品 ID 对齐，并统一移除商品图片仅保留文本信息，广告模块仍预留官方 API 接入。【F:public/ozon-detail.html†L40-L78】【F:public/ozon-orders.html†L1-L210】【F:api/ozon/orders/index.js†L1-L117】
 - **Temu/TikTok 占位页**：`public/temu.html` 与 `public/tiktok.html` 已接入统一导航与布局，并预留“详细数据/运营分析/产品分析/订单中心/广告中心”五个分栏占位，等待后端接口补齐。【F:public/temu.html†L1-L36】【F:public/tiktok.html†L1-L36】
 - **Lazada/Shopee 壳层**：`public/lazada.html` 与 `public/shopee.html` 复用统一模块布局，并借助 `assets/platform-page.js` 读取导航写入的站点选择、同步页面标题，为后续 Lazada/Shopee API 接入预留占位。【F:public/lazada.html†L1-L88】【F:public/shopee.html†L1-L88】【F:public/assets/platform-page.js†L1-L54】
 - **动态导航脚本 `public/assets/site-nav.js`**：初始化时调用 `/api/site-configs` 合并默认站点，自动插入 Lazada、Shopee 等平台入口，并在点击站点后写入 `localStorage` 供壳层页面显示当前站点名称。【F:public/assets/site-nav.js†L24-L309】【F:public/assets/site-nav.js†L563-L589】
@@ -342,6 +342,7 @@ CREATE INDEX IF NOT EXISTS idx_site_configs_data_source ON public.site_configs(d
 - 全托管运营分析页提供过去三个月访客总数、加购总数、支付总数三条独立曲线
 - 全托管产品分析页在商品选择行提供与数据明细页一致的周末日时间控件，并在该视图下隐藏顶部上传与周期栏
 - 自运营与全托管数据明细页新增"曝光商品数"KPI，统计当前周期内曝光量大于 0 的商品数量并与上周期对比
+- 自运营加购类指标全部以 `add_people` 作为加购次数来源：KPI“加购商品数”统计 `add_people > 0` 的 SKU 数，运营分析周对比柱状图的加购次数同样汇总该字段
 - 独立站运营分析页展示平均点击率、平均转化率、曝光/点击/转化商品总数及本周期新品数等 KPI
   - 独立站产品分析以 landing page 作为产品维度，默认展示本周期曝光量最高的产品，选中后显示曝光、点击、转化总数与 CTR KPI 以及对应链接和首次上架日期
   - 运营分析与产品分析模块各自提供顶部时间控件，原先页面顶部的日期与上传栏已移除

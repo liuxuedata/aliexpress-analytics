@@ -29,6 +29,7 @@
 ### 2.2 页面骨架
 - `public/index.html`：门户页，自动跳转至自运营 Robot 站，负责统一导航入口。
 - `public/self-operated.html`：自运营站点运营分析，内置 DataTables + ECharts + Flatpickr，并在 `ul.sub-nav` 中固定“详细数据/运营分析/产品分析/订单中心/广告中心”顺序（后两项按权限占位）。
+- 自运营页面的加购类 KPI 与图表全部读取 `add_people` 字段：该值既代表加购次数，也用于判定“加购商品数”（`add_people > 0` 的 SKU 计入）。
 - `public/managed.html`：全托管运营分析及跨平台导航，提供登录覆盖层与报表上传入口，同步实现左侧模块顺序与自运营保持一致。
 - `public/site-management.html`：站点配置与动态站点注册表单，支持新增 Lazada/Shopee 等平台。
 - `public/independent-site.html`：独立站多渠道分析，支持渠道切换及列显隐。

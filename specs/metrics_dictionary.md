@@ -4,7 +4,7 @@
 | --- | --- | --- | --- |
 | impressions | 曝光次数 | 平台报表中的展示次数。若无则从广告统计或站点埋点读取。 | site_metrics_daily.impressions / ad_metrics_daily.impressions |
 | visitors | 访客数 | UV 访客，若报表给出访客与会话，则优先访客；独立站取 landing metrics 中的用户数。 | site_metrics_daily.visitors |
-| add_to_cart | 加购次数 | 加入购物车事件次数。若平台只提供加购人数，需换算为次数（与 orders 表中的 quantity 相关）。 | site_metrics_daily.add_to_cart |
+| add_to_cart | 加购次数 | 加入购物车事件次数。若平台只提供加购人数，需换算为次数（与 orders 表中的 quantity 相关）。速卖通自运营沿用 `add_people` 字段，其数值即为加购次数，并以 `add_people > 0` 判定加购商品数。 | site_metrics_daily.add_to_cart |
 | orders | 下单数 | 确认订单数量（含未支付）。与 orders.status in ('created','paid',...) 对齐。 | site_metrics_daily.orders / orders 表 |
 | payments | 支付订单数 | 已完成支付的订单数量，与 orders.status in ('delivered','completed') 或 settlement_status <> 'pending' 对齐。 | site_metrics_daily.payments / orders 表 |
 | revenue | 支付金额 | 所有支付订单的金额合计，按 currency 字段记录。 | site_metrics_daily.revenue / orders.total |

@@ -1568,7 +1568,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         map.set(w, {
           exposure: 0,
           visitors: 0,
-          add_count: 0,
+          add_people: 0,
           pay_items: 0,
           pay_orders: 0,
           expSet: new Set(),
@@ -1577,25 +1577,25 @@ document.addEventListener('DOMContentLoaded', ()=>{
         });
       }
       const acc = map.get(w);
-      const addCount = r.add_count || 0;
+      const addPeople = r.add_people || 0;
       const payItems = r.pay_items || 0;
       const payOrders = r.pay_orders || 0;
 
       acc.exposure += r.exposure || 0;
       acc.visitors += r.visitors || 0;
-      acc.add_count += addCount;
+      acc.add_people += addPeople;
       acc.pay_items += payItems;
       acc.pay_orders += payOrders;
 
       if ((r.exposure || 0) > 0) acc.expSet.add(r.product_id);
-      if (addCount > 0) acc.addSet.add(r.product_id);
+      if (addPeople > 0) acc.addSet.add(r.product_id);
       if (payItems + payOrders > 0) acc.paySet.add(r.product_id);
     });
 
     const weeks = Array.from(map.keys()).sort();
     const exp = weeks.map(w => map.get(w).exposure);
     const uv = weeks.map(w => map.get(w).visitors);
-    const addTimes = weeks.map(w => map.get(w).add_count);
+    const addTimes = weeks.map(w => map.get(w).add_people);
     const orderItems = weeks.map(w => map.get(w).pay_items);
     const expProducts = weeks.map(w => map.get(w).expSet.size);
     const addProducts = weeks.map(w => map.get(w).addSet.size);
