@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>库存管理 · 跨境电商数据分析平台</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="assets/login.css">
+  <link rel="stylesheet" href="assets/theme.css?v=20250811-inventory">
+  <link rel="stylesheet" href="assets/global-theme.css">
+  <style>
+    .inventory-layout { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+    .inventory-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+    .inventory-card { background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:24px;box-shadow:0 10px 30px rgba(15,23,42,0.06);min-height:220px;display:flex;flex-direction:column;gap:12px; }
+    .inventory-card h2 { margin:0;font-size:20px;color:#111827; }
+    .inventory-card p { margin:0;color:#6b7280;line-height:1.6; }
+  </style>
+</head>
+<body class="fm">
+<header class="header">
+  <div class="logo-title">跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li class="ali"><a href="self-operated.html">速卖通</a></li>
+      <li class="amazon"><a href="amazon-overview.html">亚马逊</a></li>
+      <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon"><a href="ozon-detail.html">Ozon</a></li>
+      <li class="independent"><a href="independent-site.html">独立站</a></li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+<main class="inventory-layout">
+  <h1 style="font-size:28px;font-weight:600;margin-bottom:12px;">库存管理</h1>
+  <p style="color:#6b7280;margin-bottom:32px;">统一管理 inventory、inventory_movements、purchases 数据，按产品 ID 串联订单、采购、库存占用与补货计划。</p>
+  <div class="inventory-grid">
+    <div class="inventory-card">
+      <h2>库存总览</h2>
+      <p>将展示库存数量、预警阈值、在途量与安全库存建议，并支持按站点/仓库筛选。</p>
+    </div>
+    <div class="inventory-card">
+      <h2>库存变动记录</h2>
+      <p>接入 inventory_movements，记录入库、出库、调拨与调整的来源及创建人。</p>
+    </div>
+    <div class="inventory-card">
+      <h2>采购管理</h2>
+      <p>展示采购单状态、采购价、预计到货时间，关联订单缺货情况，支持生成补货建议。</p>
+    </div>
+  </div>
+</main>
+<script src="assets/site-nav.js"></script>
+<script src="assets/login.js"></script>
+</body>
+</html>

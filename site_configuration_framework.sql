@@ -117,8 +117,11 @@ INSERT INTO public.data_source_templates (id, name, platform, source_type, field
 INSERT INTO public.site_configs (id, name, platform, display_name, domain, data_source, template_id) VALUES
 ('ae_self_operated_a', 'A站', 'ae_self_operated', '速卖通自运营 A站', null, 'ae_api', null),
 ('independent_poolsvacuum', 'poolsvacuum.com', 'independent', '独立站 poolsvacuum.com', 'poolsvacuum.com', 'google_ads', 'google_ads_landing_pages'),
-('independent_icyberite', 'icyberite.com', 'independent', '独立站 icyberite.com', 'icyberite.com', 'facebook_ads', 'facebook_ads_v2025')
-ON CONFLICT (id) DO UPDATE SET 
+('independent_icyberite', 'icyberite.com', 'independent', '独立站 icyberite.com', 'icyberite.com', 'facebook_ads', 'facebook_ads_v2025'),
+('lazada_my_flagship', 'lazada-my', 'lazada', 'Lazada 马来西亚旗舰店', null, 'lazada_api', null),
+('shopee_sg_flagship', 'shopee-sg', 'shopee', 'Shopee 新加坡旗舰店', null, 'shopee_api', null),
+('amazon_global', 'amazon-global', 'amazon', '亚马逊全球旗舰店', null, 'amazon_sp_api', null)
+ON CONFLICT (id) DO UPDATE SET
   data_source = EXCLUDED.data_source,
   template_id = EXCLUDED.template_id,
   updated_at = now();

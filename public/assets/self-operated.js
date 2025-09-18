@@ -291,7 +291,7 @@
             exposure: rs[0].exposure,
             visitors: rs[0].visitors,
             add_count: rs[0].add_count,
-            pay_items: rs[0].pay_items,
+            pay_orders: rs[0].pay_orders,
             add_people: rs[0].add_people
           });
         }
@@ -309,20 +309,21 @@
         const products = new Map();
         rs.forEach(r => {
           if (!products.has(r.product_id)) {
-            products.set(r.product_id, {exp:0,add:0,pay:0});
+            products.set(r.product_id, { exp: 0, addTimes: 0, payTimes: 0 });
           }
           const acc = products.get(r.product_id);
+          const addTimes = Number(r.add_count) || 0;
+          const payTimes = Number(r.pay_orders) || 0;
           acc.exp += r.exposure || 0;
-          acc.add += r.add_people || 0;  // 使用 add_people 而不是 add_count
-          acc.pay += r.pay_buyers || 0;  // 使用 pay_buyers 而不是 pay_items
+          acc.addTimes += addTimes;
+          acc.payTimes += payTimes;
         });
-        
+
         let pe = 0, pc = 0, pp = 0;
         products.forEach(v => {
           if (v.exp > 0) pe++;
-          // 仅统计加购人数大于1的商品
-          if (v.add > 1) pc++;
-          if (v.pay > 0) pp++;
+          if (v.addTimes > 0) pc++;
+          if (v.payTimes > 0) pp++;
         });
         
         // 修复计算逻辑：使用与index.html一致的字段名
