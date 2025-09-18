@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ozon 订单中心</title>
+  <link rel="stylesheet" href="assets/login.css">
+  <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <link rel="stylesheet" href="assets/global-theme.css">
+  <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
+</head>
+<body class="fm">
+<header class="header">
+  <div class="logo-title"><img src="assets/logo.svg" alt="Ecommerce Analytics" class="site-logo"> 跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li class="ali"><a href="#">速卖通</a>
+        <ul class="dropdown" id="managedMenu"></ul>
+      </li>
+      <li class="amazon"><a href="amazon-overview.html">亚马逊</a></li>
+      <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon active"><a href="ozon-detail.html">Ozon</a></li>
+      <li class="independent"><a href="#">独立站</a>
+        <ul class="dropdown" id="indepMenu"></ul>
+      </li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+<div class="layout container">
+  <nav class="sidebar" id="sidebar">
+    <div class="site-header">
+      <div class="site-title">
+        <span>Ozon</span>
+      </div>
+    </div>
+    <ul class="sub-nav">
+      <li><a href="ozon-detail.html">详细数据</a></li>
+      <li><a href="ozon-analysis.html">运营分析</a></li>
+      <li><a href="ozon-product-insights.html">产品分析</a></li>
+      <li><a href="ozon-orders.html" class="active">订单中心</a></li>
+      <li><a href="ozon-advertising.html">广告中心</a></li>
+    </ul>
+  </nav>
+  <main class="main" style="display:flex;flex-direction:column;gap:24px;">
+    <div class="panel">
+      <h2>订单中心</h2>
+      <p class="hint">Ozon 订单数据将统一写入 orders 与 order_items，展示采购价、物流成本与结算状态，支持根据产品 ID 回溯。</p>
+      <div class="table-wrapper">
+        <table class="table" style="width:100%">
+          <thead>
+            <tr>
+              <th>订单号</th>
+              <th>站点</th>
+              <th>产品 ID</th>
+              <th>下单时间</th>
+              <th>状态</th>
+              <th>结算状态</th>
+              <th>实付金额</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="7" style="text-align:center;color:#6b7280;">后台订单 API 接入中，稍后可在此查看订单流水。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="assets/site-nav.js"></script>
+<script src="assets/login.js"></script>
+</body>
+</html>

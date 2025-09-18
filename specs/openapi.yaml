@@ -1,0 +1,1822 @@
+openapi: 3.1.0
+info:
+  title: Cross-border Commerce Platform API
+  version: "2025-01-08"
+  description: |
+    统一的跨境电商平台 API 规范，涵盖站点管理、运营指标、订单、库存、广告与权限等域。
+servers:
+  - url: https://{env}.example.com
+    variables:
+      env:
+        default: prod
+        enum:
+          - dev
+          - staging
+          - prod
+  - url: http://localhost:3000
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    siteParam:
+      name: site
+      in: query
+      description: 站点 ID，对应 site-configs 中的 name 字段。
+      schema:
+        type: string
+    siteIdPath:
+      name: siteId
+      in: path
+      required: true
+      description: 站点 ID，若为空表示读取平台默认配置。
+      schema:
+        type: string
+    paginationLimit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 500
+        default: 50
+    paginationOffset:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    userRoleHeader:
+      name: X-User-Role
+      in: header
+      required: false
+      description: 调用方角色标识（如 super_admin、operations_manager），用于按角色过滤模块可见性。
+      schema:
+        type: string
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+        metadata:
+          type: object
+          description: 响应附带的额外信息，例如字段可用性、分页或导入诊断。
+      required:
+        - success
+    PagedResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                total:
+                  type: integer
+                limit:
+                  type: integer
+                offset:
+                  type: integer
+              required:
+                - items
+                - total
+                - limit
+                - offset
+    SiteMetric:
+      type: object
+      properties:
+        site:
+          type: string
+        stat_date:
+          type: string
+          format: date
+        impressions:
+          type: number
+        visitors:
+          type: number
+        add_to_cart:
+          type: number
+        orders:
+          type: number
+        payments:
+          type: number
+        revenue:
+          type: number
+        currency:
+          type: string
+        channel:
+          type: string
+    SiteConfig:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        platform:
+          type: string
+          enum: [ae_self_operated, ae_managed, independent, amazon, ozon, tiktok, temu, lazada, shopee, ebay]
+        display_name:
+          type: string
+        domain:
+          type: string
+          nullable: true
+        data_source:
+          type: string
+          enum: [ae_api, ae_report, managed_report, google_ads, facebook_ads, tiktok_ads, tiktok_shop_api, amazon_sp_api, amazon_ads, ozon_api, ozon_report, temu_report, temu_api, lazada_api, lazada_ads, shopee_api, shopee_ads, ebay_report, custom]
+        template_id:
+          type: string
+          nullable: true
+        config_json:
+          type: object
+          nullable: true
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, name, platform, display_name, data_source]
+    SiteConfigPayload:
+      type: object
+      required: [name, platform, display_name, data_source]
+      properties:
+        name:
+          type: string
+        platform:
+          type: string
+          enum: [ae_self_operated, ae_managed, independent, amazon, ozon, tiktok, temu, lazada, shopee, ebay]
+        display_name:
+          type: string
+        domain:
+          type: string
+        data_source:
+          type: string
+          enum: [ae_api, ae_report, managed_report, google_ads, facebook_ads, tiktok_ads, tiktok_shop_api, amazon_sp_api, amazon_ads, ozon_api, ozon_report, temu_report, temu_api, lazada_api, lazada_ads, shopee_api, shopee_ads, ebay_report, custom]
+        template_id:
+          type: string
+        config_json:
+          type: object
+      required:
+        - site
+        - stat_date
+    MetricAvailability:
+      type: object
+      properties:
+        platform:
+          type: string
+          description: 平台标识，如 ae_self_operated、amazon。
+        module:
+          type: string
+          description: 模块标识，如 operations、products、orders、advertising。
+        availableFields:
+          type: array
+          description: 当前站点/平台可直接返回的字段列表。
+          items:
+            type: string
+        missingFields:
+          type: array
+          description: 模块定义中缺失的字段列表，前端需隐藏或降级处理。
+          items:
+            type: string
+        optionalFields:
+          type: array
+          description: 平台可选提供的字段列表，可能因站点或授权不同而缺失。
+          items:
+            type: string
+        lastSyncedAt:
+          type: string
+          format: date-time
+          description: 字段矩阵最近一次刷新时间。
+    MetricMetadata:
+      type: object
+      properties:
+        availableFields:
+          type: array
+          items:
+            type: string
+        missingFields:
+          type: array
+          items:
+            type: string
+        profile:
+          $ref: '#/components/schemas/MetricAvailability'
+      required:
+        - availableFields
+        - missingFields
+    SiteModuleConfig:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          nullable: true
+        moduleKey:
+          type: string
+          enum: [operations, products, orders, advertising, inventory, permissions]
+        navLabel:
+          type: string
+        navOrder:
+          type: integer
+        enabled:
+          type: boolean
+        isGlobal:
+          type: boolean
+        platform:
+          type: string
+        siteId:
+          type: string
+          nullable: true
+        visibleRoles:
+          type: array
+          items:
+            type: string
+        hasDataSource:
+          type: boolean
+          description: 指示是否已配置数据源，若为 false 则前端应显示占位提示。
+        fieldProfile:
+          $ref: '#/components/schemas/MetricAvailability'
+        config:
+          type: object
+          additionalProperties: true
+      required:
+        - moduleKey
+        - navLabel
+        - enabled
+        - platform
+    SiteModulePatchPayload:
+      type: object
+      properties:
+        modules:
+          type: array
+          items:
+            type: object
+            properties:
+              moduleKey:
+                type: string
+              navLabel:
+                type: string
+              enabled:
+                type: boolean
+              navOrder:
+                type: integer
+              visibleRoles:
+                type: array
+                items:
+                  type: string
+              hasDataSource:
+                type: boolean
+              config:
+                type: object
+                additionalProperties: true
+            required:
+              - moduleKey
+      required:
+        - modules
+    SiteModuleResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                modules:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/SiteModuleConfig'
+              required:
+                - modules
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+        order_no:
+          type: string
+        site_id:
+          type: string
+        platform:
+          type: string
+        channel:
+          type: string
+        customer_id:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, shipped, delivered, completed, cancelled]
+        placed_at:
+          type: string
+          format: date-time
+        currency:
+          type: string
+        subtotal:
+          type: number
+        discount:
+          type: number
+        shipping_fee:
+          type: number
+        tax:
+          type: number
+        total:
+          type: number
+        cost_of_goods:
+          type: number
+        logistics_cost:
+          type: number
+        settlement_status:
+          type: string
+          enum: [pending, partial, settled]
+        settlement_date:
+          type: string
+          format: date
+        warehouse_id:
+          type: string
+        remark:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - order_no
+        - site_id
+        - platform
+        - status
+        - placed_at
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: string
+        order_id:
+          type: string
+        product_id:
+          type: string
+        sku:
+          type: string
+        product_name:
+          type: string
+        quantity:
+          type: integer
+        unit_price:
+          type: number
+        total_price:
+          type: number
+        cost_price:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - order_id
+        - sku
+        - quantity
+        - unit_price
+    InventoryRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        product_id:
+          type: string
+        site_id:
+          type: string
+        available_qty:
+          type: integer
+        reserved_qty:
+          type: integer
+        min_stock_level:
+          type: integer
+        max_stock_level:
+          type: integer
+        cost_price:
+          type: number
+        selling_price:
+          type: number
+        last_updated:
+          type: string
+          format: date-time
+      required:
+        - id
+        - product_id
+        - site_id
+    InventoryMovement:
+      type: object
+      properties:
+        id:
+          type: string
+        product_id:
+          type: string
+        site_id:
+          type: string
+        movement_type:
+          type: string
+          enum: [in, out, transfer, adjustment]
+        quantity:
+          type: integer
+        reference_type:
+          type: string
+        reference_id:
+          type: string
+        notes:
+          type: string
+        created_by:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - product_id
+        - site_id
+        - movement_type
+        - quantity
+    AdCampaign:
+      type: object
+      properties:
+        id:
+          type: string
+        site_id:
+          type: string
+        platform:
+          type: string
+        campaign_id:
+          type: string
+        campaign_name:
+          type: string
+        objective:
+          type: string
+        status:
+          type: string
+          enum: [active, paused, archived]
+        budget_daily:
+          type: number
+        budget_total:
+          type: number
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        target_audience:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - site_id
+        - platform
+        - campaign_id
+        - campaign_name
+    AdMetric:
+      type: object
+      properties:
+        id:
+          type: string
+        campaign_id:
+          type: string
+        site_id:
+          type: string
+        platform:
+          type: string
+        date:
+          type: string
+          format: date
+        impressions:
+          type: number
+        clicks:
+          type: number
+        spend:
+          type: number
+        conversions:
+          type: number
+        conversion_value:
+          type: number
+        ctr:
+          type: number
+        cpc:
+          type: number
+        cpm:
+          type: number
+        roas:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - campaign_id
+        - site_id
+        - platform
+        - date
+    PermissionRole:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        scope:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - name
+    PermissionAssignment:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        role_id:
+          type: string
+        site_scope:
+          type: array
+          items:
+            type: string
+        module_scope:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - user_id
+        - role_id
+security:
+  - bearerAuth: []
+paths:
+  /api/health:
+    get:
+      tags: [System]
+      summary: 健康检查
+      responses:
+        '200':
+          description: 健康状态
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/sites:
+    get:
+      tags: [Site Management]
+      summary: 获取启用的站点列表
+      responses:
+        '200':
+          description: 站点数组
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/site-configs:
+    get:
+      tags: [Site Management]
+      summary: 获取站点配置
+      parameters:
+        - name: platform
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 配置列表
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/SiteConfig'
+    post:
+      tags: [Site Management]
+      summary: 创建站点配置
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SiteConfigPayload'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SiteConfig'
+  /api/site-sync:
+    post:
+      tags: [Site Management]
+      summary: 同步站点相关数据结构
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [siteId, action]
+              properties:
+                siteId:
+                  type: string
+                oldSiteId:
+                  type: string
+                action:
+                  type: string
+                  enum: [create, update]
+      responses:
+        '200':
+          description: 同步结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/lazada/oauth/callback:
+    get:
+      tags: [Auth]
+      summary: Lazada OAuth 回调
+      description: >-
+        Lazada 在授权完成后调用此回调。接口返回授权码或错误信息，实际的 token 交换需由服务端
+        使用 `LAZADA_APP_KEY`、`LAZADA_APP_SECRET` 与 `LAZADA_REDIRECT_URI` 环境变量完成。
+      parameters:
+        - name: code
+          in: query
+          schema:
+            type: string
+          description: 授权成功后返回的 authorization code。
+        - name: state
+          in: query
+          schema:
+            type: string
+          description: 调用方附带的状态参数。
+        - name: error
+          in: query
+          schema:
+            type: string
+          description: 授权失败时的错误码。
+        - name: error_description
+          in: query
+          schema:
+            type: string
+          description: 授权失败时的详细信息。
+      responses:
+        '200':
+          description: 回调成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: 回调参数缺失或授权失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/site-modules:
+    get:
+      tags: [Site Management]
+      summary: 获取全局模块配置
+      parameters:
+        - $ref: '#/components/parameters/userRoleHeader'
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 备用角色参数，若未传 Header 时可使用该参数过滤模块可见性。
+      responses:
+        '200':
+          description: 模块配置列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteModuleResponse'
+  /api/site-modules/{siteId}:
+    get:
+      tags: [Site Management]
+      summary: 获取指定站点的模块配置
+      parameters:
+        - $ref: '#/components/parameters/siteIdPath'
+        - $ref: '#/components/parameters/userRoleHeader'
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 备用角色参数，若未传 Header 时可使用该参数过滤模块可见性。
+        - name: includeGlobal
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: 站点模块配置
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteModuleResponse'
+    patch:
+      tags: [Site Management]
+      summary: 更新站点模块配置
+      parameters:
+        - $ref: '#/components/parameters/siteIdPath'
+        - $ref: '#/components/parameters/userRoleHeader'
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 备用角色参数，便于本地调试；仍需具备 super_admin 权限。
+        - name: includeGlobal
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: 是否在响应中合并平台/全局默认模块，默认为 true。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SiteModulePatchPayload'
+      responses:
+        '200':
+          description: 更新结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteModuleResponse'
+  /api/ae_query:
+    get:
+      tags: [Operations]
+      summary: 速卖通自运营查询
+      parameters:
+        - name: start
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/siteParam'
+        - name: granularity
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month]
+        - name: aggregate
+          in: query
+          schema:
+            type: string
+            enum: [time, product]
+      responses:
+        '200':
+          description: 运营指标
+          x-field-availability:
+            platform: ae_self_operated
+            module: operations
+            required: [impressions, visitors, add_to_cart, orders]
+            optional: [payments, revenue]
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      metadata:
+                        $ref: '#/components/schemas/MetricMetadata'
+  /api/ae_self_operated/stats:
+    get:
+      tags: [Operations]
+      summary: 自运营站点统计
+      parameters:
+        - $ref: '#/components/parameters/siteParam'
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/paginationLimit'
+      responses:
+        '200':
+          description: 统计结果
+          x-field-availability:
+            platform: ae_self_operated
+            module: operations
+            required: [impressions, visitors, add_to_cart, orders]
+            optional: [payments, revenue]
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      metadata:
+                        $ref: '#/components/schemas/MetricMetadata'
+  /api/ae_upsert:
+    post:
+      tags: [Operations]
+      summary: 自运营数据上传
+      parameters:
+        - name: dry_run
+          in: query
+          schema:
+            type: integer
+            enum: [0, 1]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rows:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/SiteMetric'
+      responses:
+        '200':
+          description: 上传结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/stats:
+    get:
+      tags: [Operations]
+      summary: 全托管运营统计
+      parameters:
+        - name: granularity
+          in: query
+          schema:
+            type: string
+            enum: [week, month]
+        - name: product_id
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
+        - name: period_end
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/paginationLimit'
+        - $ref: '#/components/parameters/paginationOffset'
+      responses:
+        '200':
+          description: 统计结果
+          x-field-availability:
+            platform: ae_managed
+            module: operations
+            required: [visitors, add_to_cart, payments]
+            optional: [impressions, revenue]
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      metadata:
+                        $ref: '#/components/schemas/MetricMetadata'
+  /api/managed/daily-totals:
+    get:
+      tags: [Operations]
+      summary: 全托管运营汇总
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 汇总数据
+          x-field-availability:
+            platform: ae_managed
+            module: operations
+            required: [visitors, add_to_cart, payments]
+            optional: [impressions, revenue]
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      metadata:
+                        $ref: '#/components/schemas/MetricMetadata'
+  /api/ingest:
+    post:
+      tags: [Operations]
+      summary: 全托管报表上传
+      parameters:
+        - name: dry_run
+          in: query
+          schema:
+            type: integer
+            enum: [0, 1]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: 上传结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/independent/stats:
+    get:
+      tags: [Operations]
+      summary: 独立站多渠道统计
+      parameters:
+        - $ref: '#/components/parameters/siteParam'
+        - name: channel
+          in: query
+          schema:
+            type: string
+            enum: [google_ads, facebook_ads, tiktok_ads]
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/paginationLimit'
+        - $ref: '#/components/parameters/paginationOffset'
+      responses:
+        '200':
+          description: 指标数据
+          x-field-availability:
+            platform: independent
+            module: operations
+            required: [impressions, visitors]
+            optional: [add_to_cart, orders, payments, revenue]
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      metadata:
+                        $ref: '#/components/schemas/MetricMetadata'
+  /api/independent/ingest:
+    post:
+      tags: [Operations]
+      summary: Google Ads 报表上传
+      parameters:
+        - name: dry_run
+          in: query
+          schema:
+            type: integer
+            enum: [0, 1]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: 上传结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/independent/facebook-ingest:
+    post:
+      tags: [Operations]
+      summary: Facebook Ads 报表上传
+      parameters:
+        - name: dry_run
+          in: query
+          schema:
+            type: integer
+            enum: [0, 1]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: 上传结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/independent/tiktok-ingest:
+    post:
+      tags: [Operations]
+      summary: TikTok Ads 报表上传
+      parameters:
+        - name: dry_run
+          in: query
+          schema:
+            type: integer
+            enum: [0, 1]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: 上传结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/amazon/query:
+    get:
+      tags: [Operations]
+      summary: 亚马逊运营指标
+      parameters:
+        - name: start
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: granularity
+          in: query
+          schema:
+            type: string
+            enum: [day, week]
+      responses:
+        '200':
+          description: 指标结果
+          x-field-availability:
+            platform: amazon
+            module: operations
+            required: [impressions, visitors, orders, payments, revenue]
+            optional: [add_to_cart]
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      metadata:
+                        $ref: '#/components/schemas/MetricMetadata'
+  /api/amazon/upsert:
+    post:
+      tags: [Operations]
+      summary: 亚马逊数据上传
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rows:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/SiteMetric'
+      responses:
+        '200':
+          description: 上传结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/amazon/report-create:
+    post:
+      tags: [Operations]
+      summary: 创建 SP-API 报表
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dataStartTime, dataEndTime]
+              properties:
+                dataStartTime:
+                  type: string
+                  format: date-time
+                dataEndTime:
+                  type: string
+                  format: date-time
+      responses:
+        '202':
+          description: 报表创建中
+  /api/amazon/report-poll:
+    get:
+      tags: [Operations]
+      summary: 查询 SP-API 报表状态
+      parameters:
+        - name: reportId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 报表状态
+  /api/ozon/stats:
+    get:
+      tags: [Operations]
+      summary: Ozon 指标
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+        - name: start
+          in: query
+          schema:
+            type: string
+        - name: end
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 指标结果
+          x-field-availability:
+            platform: ozon
+            module: operations
+            required: [impressions, visitors, orders, revenue]
+            optional: [add_to_cart, payments]
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      metadata:
+                        $ref: '#/components/schemas/MetricMetadata'
+  /api/ozon/import:
+    post:
+      tags: [Operations]
+      summary: Ozon 报表上传
+      parameters:
+        - name: dry_run
+          in: query
+          schema:
+            type: integer
+            enum: [0, 1]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: 上传结果
+  /api/ozon/orders:
+    get:
+      tags: [Orders]
+      summary: 通过 Ozon 官方 API 获取订单
+      description: >-
+        调用 Ozon Orders API，按站点与时间范围抓取订单头、订单明细与物流成本，结果会写入统一的
+        `orders`/`order_items` 表，并在响应的 `metadata.availableFields` 中声明字段可用性。
+      x-status: planned
+      parameters:
+        - $ref: '#/components/parameters/siteParam'
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: status
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/paginationLimit'
+        - $ref: '#/components/parameters/paginationOffset'
+      responses:
+        '200':
+          description: 订单列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedResponse'
+        '501':
+          description: 功能规划中
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/ozon/ads:
+    get:
+      tags: [Advertising]
+      summary: 通过 Ozon 广告 API 获取广告系列与日指标
+      description: >-
+        对接 Ozon Advertising API，返回广告系列信息、预算、受众配置以及每日投放指标，写入
+        `ad_campaigns` 与 `ad_metrics_daily`，并在 metadata 中补充字段覆盖情况。
+      x-status: planned
+      parameters:
+        - $ref: '#/components/parameters/siteParam'
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: campaign_id
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/paginationLimit'
+        - $ref: '#/components/parameters/paginationOffset'
+      responses:
+        '200':
+          description: 广告系列与日指标
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedResponse'
+        '501':
+          description: 功能规划中
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/orders:
+    get:
+      tags: [Orders]
+      summary: 查询订单列表
+      parameters:
+        - $ref: '#/components/parameters/siteParam'
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/paginationLimit'
+        - $ref: '#/components/parameters/paginationOffset'
+      responses:
+        '200':
+          description: 订单列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedResponse'
+    post:
+      tags: [Orders]
+      summary: 创建订单
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Order'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/orders/{orderId}:
+    get:
+      tags: [Orders]
+      summary: 获取订单详情
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 订单详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    patch:
+      tags: [Orders]
+      summary: 更新订单状态
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                settlement_status:
+                  type: string
+                settlement_date:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: 更新结果
+  /api/orders/import:
+    post:
+      tags: [Orders]
+      summary: 订单导入
+      parameters:
+        - name: dry_run
+          in: query
+          schema:
+            type: integer
+            enum: [0, 1]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: 导入结果
+  /api/inventory:
+    get:
+      tags: [Inventory]
+      summary: 库存快照查询
+      parameters:
+        - $ref: '#/components/parameters/siteParam'
+        - name: product_id
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/paginationLimit'
+      responses:
+        '200':
+          description: 库存列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedResponse'
+    post:
+      tags: [Inventory]
+      summary: 创建库存记录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryRecord'
+      responses:
+        '201':
+          description: 创建成功
+  /api/inventory/{inventoryId}:
+    patch:
+      tags: [Inventory]
+      summary: 更新库存记录
+      parameters:
+        - name: inventoryId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                available_qty:
+                  type: integer
+                reserved_qty:
+                  type: integer
+                min_stock_level:
+                  type: integer
+                max_stock_level:
+                  type: integer
+                cost_price:
+                  type: number
+                selling_price:
+                  type: number
+      responses:
+        '200':
+          description: 更新结果
+  /api/inventory/movements:
+    get:
+      tags: [Inventory]
+      summary: 查询库存流水
+      parameters:
+        - $ref: '#/components/parameters/siteParam'
+        - name: product_id
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: movement_type
+          in: query
+          schema:
+            type: string
+            enum: [in, out, transfer, adjustment]
+      responses:
+        '200':
+          description: 流水列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedResponse'
+    post:
+      tags: [Inventory]
+      summary: 记录库存流水
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryMovement'
+      responses:
+        '201':
+          description: 记录成功
+  /api/inventory/import:
+    post:
+      tags: [Inventory]
+      summary: 库存导入
+      parameters:
+        - name: dry_run
+          in: query
+          schema:
+            type: integer
+            enum: [0, 1]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: 导入结果
+  /api/ads/campaigns:
+    get:
+      tags: [Advertising]
+      summary: 查询广告系列
+      parameters:
+        - name: platform
+          in: query
+          schema:
+            type: string
+            enum: [facebook, google, tiktok, amazon, ozon, temu, lazada, shopee]
+        - $ref: '#/components/parameters/siteParam'
+        - $ref: '#/components/parameters/paginationLimit'
+      responses:
+        '200':
+          description: 广告系列
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedResponse'
+    post:
+      tags: [Advertising]
+      summary: 创建广告系列
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdCampaign'
+      responses:
+        '201':
+          description: 创建成功
+  /api/ads/campaigns/{campaignId}:
+    patch:
+      tags: [Advertising]
+      summary: 更新广告系列
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                budget_daily:
+                  type: number
+                budget_total:
+                  type: number
+                end_date:
+                  type: string
+                  format: date
+                target_audience:
+                  type: object
+      responses:
+        '200':
+          description: 更新结果
+  /api/ads/stats:
+    get:
+      tags: [Advertising]
+      summary: 查询广告指标
+      parameters:
+        - name: campaign_id
+          in: query
+          schema:
+            type: string
+        - name: site_id
+          in: query
+          schema:
+            type: string
+        - name: platform
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/paginationLimit'
+      responses:
+        '200':
+          description: 指标列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedResponse'
+    post:
+      tags: [Advertising]
+      summary: 上传广告指标
+      parameters:
+        - name: dry_run
+          in: query
+          schema:
+            type: integer
+            enum: [0, 1]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rows:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/AdMetric'
+      responses:
+        '200':
+          description: 上传结果
+  /api/ads/import:
+    post:
+      tags: [Advertising]
+      summary: 广告配置导入
+      parameters:
+        - name: dry_run
+          in: query
+          schema:
+            type: integer
+            enum: [0, 1]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: 导入结果
+  /api/permissions/roles:
+    get:
+      tags: [Permissions]
+      summary: 查询角色列表
+      responses:
+        '200':
+          description: 角色列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    post:
+      tags: [Permissions]
+      summary: 创建角色
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionRole'
+      responses:
+        '201':
+          description: 创建成功
+  /api/permissions/roles/{roleId}:
+    patch:
+      tags: [Permissions]
+      summary: 更新角色
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                scope:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: 更新结果
+  /api/permissions/assignments:
+    get:
+      tags: [Permissions]
+      summary: 查询权限分配
+      parameters:
+        - name: user_id
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 权限分配
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    post:
+      tags: [Permissions]
+      summary: 创建权限分配
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionAssignment'
+      responses:
+        '201':
+          description: 创建成功
+  /api/permissions/audit:
+    get:
+      tags: [Permissions]
+      summary: 查看权限审计日志
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/paginationLimit'
+      responses:
+        '200':
+          description: 审计日志
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedResponse'
