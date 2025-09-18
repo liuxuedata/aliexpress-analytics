@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title id="pageTitle">Shopee 数据分析 - 跨境电商数据分析平台</title>
+  <link rel="stylesheet" href="assets/login.css">
+  <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
+</head>
+<body class="fm" data-platform="shopee" data-platform-label="Shopee" data-default-site-name="Shopee 旗舰店">
+<header class="header">
+  <div class="logo-title"><img src="assets/logo.svg" alt="Ecommerce Analytics" class="site-logo"> 跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li class="ali"><a href="#">速卖通</a><ul class="dropdown" id="managedMenu"></ul></li>
+      <li class="amazon"><a href="amazon-overview.html">亚马逊</a></li>
+      <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon"><a href="ozon-detail.html">Ozon</a></li>
+      <li class="independent"><a href="#">独立站</a><ul class="dropdown" id="indepMenu"></ul></li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+<div class="layout container">
+  <nav class="sidebar" id="sidebar">
+    <div class="site-header"><span id="currentSite" data-default-name="Shopee 旗舰店">Shopee 旗舰店</span></div>
+    <ul class="sub-nav">
+      <li><a href="#detail" class="active" data-target="detail">详细数据</a></li>
+      <li><a href="#operations" data-target="operations">运营分析</a></li>
+      <li><a href="#products" data-target="products">产品分析</a></li>
+      <li><a href="#orders" data-target="orders">订单中心</a></li>
+      <li><a href="#ads" data-target="ads">广告中心</a></li>
+    </ul>
+  </nav>
+  <main class="main">
+    <section class="page-header">
+      <h1 data-platform-heading="Shopee 全渠道数据枢纽">Shopee 全渠道数据枢纽</h1>
+      <p class="section-subtitle">面向 Shopee 多站点的运营、订单、库存与广告指标，支持跨区域扩展。</p>
+    </section>
+
+    <section id="detail" class="analysis-container">
+      <h2>详细数据</h2>
+      <p>提供 Shopee 站点曝光、点击、加购与支付漏斗的明细视图，待与官方报表对接。</p>
+    </section>
+
+    <section id="operations" class="analysis-container" style="display:none;">
+      <h2>运营分析</h2>
+      <p>对接 GMV、访客转化率、客单价与品类结构，支持站点快速对比。</p>
+    </section>
+
+    <section id="products" class="analysis-container" style="display:none;">
+      <h2>产品分析</h2>
+      <p>聚焦商品维度的销量、加购、收藏与库存联动，为补货与广告投放提供依据。</p>
+    </section>
+
+    <section id="orders" class="analysis-container" style="display:none;">
+      <h2>订单中心</h2>
+      <p>跟踪订单履约、物流与结算，计划与采购价、仓储数据联通。</p>
+    </section>
+
+    <section id="ads" class="analysis-container" style="display:none;">
+      <h2>广告中心</h2>
+      <p>统计 Shopee 广告活动、预算消耗及带来的访客、转化与 GMV，支持周期对比。</p>
+    </section>
+  </main>
+</div>
+<script src="assets/login.js"></script>
+<script src="assets/site-nav.js"></script>
+<script src="assets/platform-page.js"></script>
+<script>
+  document.getElementById('sidebar').addEventListener('click', function(e){
+    const link = e.target.closest('a[data-target]');
+    if(!link) return;
+    e.preventDefault();
+    const target = link.dataset.target;
+    document.querySelectorAll('.sub-nav a[data-target]').forEach(a=>a.classList.remove('active'));
+    link.classList.add('active');
+    ['detail','operations','products','orders','ads'].forEach(sectionId=>{
+      const section = document.getElementById(sectionId);
+      if(section){ section.style.display = sectionId === target ? '' : 'none'; }
+    });
+  });
+</script>
+</body>
+</html>
