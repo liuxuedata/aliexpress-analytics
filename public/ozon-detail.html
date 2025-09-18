@@ -87,7 +87,6 @@
               <thead>
                 <tr>
                   <th>产品名</th>
-                  <th>型号</th>
                   <th>访客比<span class="help" onclick="alert('访客比 = 浏览过商品详情页的独立访客 / 总展示次数')">?</span></th>
                   <th>加购比<span class="help" onclick="alert('加购比 = 总加入购物车次数 / 浏览过商品详情页的独立访客')">?</span></th>
                   <th>支付比</th>
@@ -128,7 +127,7 @@
         paging:true,
         searching:true,
         info:true,
-        order:[[8,'desc']],
+        order:[[7,'desc']],
         scrollY:'60vh',
         scrollCollapse:true,
         autoWidth:false,
@@ -206,7 +205,6 @@
         const productCell = `<div class="product-cell">${imageHtml}<div class="info">${nameHtml}${skuLabel}</div></div>`;
         return [
           productCell,
-          r.model || '',
           (visitorRate*100).toFixed(2)+'%',
           (cartRate*100).toFixed(2)+'%',
           (payRate*100).toFixed(2)+'%',
