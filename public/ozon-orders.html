@@ -47,7 +47,6 @@
   <main class="main" style="display:flex;flex-direction:column;gap:24px;">
     <div class="panel">
       <h2>订单中心</h2>
-      <p class="hint">页面会在加载时调用 Ozon Seller API（FBS/FBO）并写入 orders 与 order_items 表，带出物流成本、采购价与结算状态，支持按日期与站点筛选。</p>
       <form id="ordersFilters" class="filters" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px;">
         <div style="min-width:200px;font-weight:600;">当前站点：<span id="currentSiteLabel">Ozon 主站</span></div>
         <label style="display:flex;flex-direction:column;font-size:14px;">
@@ -63,6 +62,16 @@
           <button type="button" id="refreshOrders" class="btn secondary">仅刷新本地数据</button>
         </div>
       </form>
+      <div id="ordersAggregates" style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px;">
+        <div style="flex:1 1 200px;min-width:200px;border:1px solid #e5e7eb;border-radius:12px;padding:16px;background:#f9fafb;display:flex;flex-direction:column;gap:4px;">
+          <span style="font-size:13px;color:#6b7280;">周期订单总额</span>
+          <span id="ordersTotalAmount" style="font-size:22px;font-weight:600;">—</span>
+        </div>
+        <div style="flex:1 1 200px;min-width:200px;border:1px solid #e5e7eb;border-radius:12px;padding:16px;background:#f9fafb;display:flex;flex-direction:column;gap:4px;">
+          <span style="font-size:13px;color:#6b7280;">订单总数</span>
+          <span id="ordersTotalCount" style="font-size:22px;font-weight:600;">—</span>
+        </div>
+      </div>
       <div id="ordersSummary" class="alert" style="display:none;"></div>
       <div class="table-wrapper">
         <table class="table" style="width:100%">
@@ -104,7 +113,10 @@
     tableBody: document.getElementById('ordersTableBody'),
     syncBtn: document.getElementById('syncOrders'),
     refreshBtn: document.getElementById('refreshOrders'),
-    siteLabel: document.getElementById('currentSiteLabel')
+    siteLabel: document.getElementById('currentSiteLabel'),
+    aggregates: document.getElementById('ordersAggregates'),
+    totalAmount: document.getElementById('ordersTotalAmount'),
+    totalCount: document.getElementById('ordersTotalCount')
   };
 
   const STATUS_LABELS = {
@@ -192,6 +204,7 @@
     if (!elements.tableBody) return;
     const text = message || '当前时间范围内没有可展示的 Ozon 订单。';
     elements.tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#6b7280;">${escapeHtml(text)}</td></tr>`;
+    updateAggregateDisplay({ count: 0, amount: 0, currency: '' });
   }
 
   function formatCurrency(amount, currency) {
@@ -208,6 +221,55 @@
     return date.toLocaleString('zh-CN', { hour12: false });
   }
 
+  function updateAggregateDisplay({ count = 0, amount = 0, currency = '' } = {}) {
+    if (elements.totalCount) {
+      elements.totalCount.textContent = Number.isFinite(count) ? count.toString() : '—';
+    }
+    if (elements.totalAmount) {
+      elements.totalAmount.textContent = formatCurrency(amount, currency);
+    }
+  }
+
+  function computeAggregates(orders) {
+    if (!Array.isArray(orders) || !orders.length) {
+      return { count: 0, amount: 0, currency: '' };
+    }
+
+    let amount = 0;
+    let currency = '';
+    let count = 0;
+
+    orders.forEach(order => {
+      count += 1;
+      if (!currency && order?.currency) {
+        currency = order.currency;
+      }
+      const total = Number(order?.total);
+      if (Number.isFinite(total)) {
+        amount += total;
+      }
+    });
+
+    return { count, amount, currency };
+  }
+
+  function buildProductLink(item) {
+    if (!item) return '';
+    const rawSku = item.sku ? String(item.sku).trim() : '';
+    const productName = item.product_name ? String(item.product_name).trim() : '';
+
+    if (rawSku && /^\d+$/.test(rawSku)) {
+      return `https://www.ozon.ru/product/${encodeURIComponent(rawSku)}/`;
+    }
+
+    const query = productName || rawSku;
+    if (query) {
+      return `https://www.ozon.ru/search/?text=${encodeURIComponent(query)}`;
+    }
+
+    return '';
+  }
+
   function renderOrders(orders) {
     if (!elements.tableBody) return;
     if (!Array.isArray(orders) || !orders.length) {
@@ -220,11 +282,15 @@
       const itemHtml = items.length
         ? items.map(item => {
             const name = escapeHtml(item.product_name || item.sku || '商品');
+            const link = buildProductLink(item);
+            const nameContent = link
+              ? `<a href="${link}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:underline;">${name}</a>`
+              : name;
             const sku = item.sku ? `<span class="sku">${escapeHtml(item.sku)}</span>` : '';
             const qty = typeof item.quantity === 'number' ? item.quantity : Number(item.quantity) || 0;
             const qtyLabel = `<span style="color:#6b7280;">×${qty}</span>`;
             return `<div style="display:flex;justify-content:space-between;gap:8px;">` +
-              `<span>${name}${sku ? ` <span style=\"color:#6b7280;\">(${sku})</span>` : ''}</span>` +
+              `<span>${nameContent}${sku ? ` <span style=\"color:#6b7280;\">(${sku})</span>` : ''}</span>` +
               `${qtyLabel}</div>`;
           }).join('')
         : '<span style="color:#9ca3af;">暂无明细</span>';
@@ -251,6 +317,7 @@
     }).join('');
 
     elements.tableBody.innerHTML = rows;
+    updateAggregateDisplay(computeAggregates(orders));
   }
 
   async function loadOrders({ sync } = { sync: true }) {
