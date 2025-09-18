@@ -91,11 +91,21 @@ function createHandler({ fetchImpl = fetch, clientFactory = createClient } = {})
       });
     } catch (error) {
       console.error(`[${traceId}] Ozon orders handler failed`, error);
-      return res.status(500).json({
+      const statusCode = error?.code === 'SITE_NOT_FOUND'
+        ? 400
+        : (Number.isInteger(error?.status) ? error.status : 500);
+
+      const payload = {
         success: false,
         message: error.message || 'Ozon orders sync failed',
         traceId
-      });
+      };
+
+      if (error?.code === 'SITE_NOT_FOUND' && Array.isArray(error?.missingSites)) {
+        payload.details = { missingSites: error.missingSites };
+      }
+
+      return res.status(statusCode).json(payload);
     }
   };
 }

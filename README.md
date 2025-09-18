@@ -188,7 +188,7 @@ CREATE INDEX IF NOT EXISTS idx_site_configs_data_source ON public.site_configs(d
 - `GET /api/ozon/stats`：支持 `date` 或 `start`/`end` 范围，自动探测实际列名并聚合 SKU 指标（展示、访客、加购、下单等）；若未指定日期则返回最新日期列表供选择。【F:api/ozon/stats/index.js†L1-L120】
 - `POST /api/ozon/import`：接收 `file` 字段的报表，执行俄文表头转蛇形、列重映射与必填校验后 upsert 到 `ozon_product_report_wide`，并处理 Schema 缓存刷新。【F:api/ozon/import/index.js†L1-L160】
 - `POST /api/ozon/fetch`：携带 `Client-Id`/`Api-Key` 直接调用 Ozon Analytics API 批量落地曝光、加购、订单件数等指标，为订单中心与广告中心提供统一的产品 ID 数据底座。【F:api/ozon/fetch/index.js†L1-L160】
-- `GET /api/ozon/orders`：按 `siteId`、`from`、`to`、`limit` 查询 Ozon 订单头与明细，可通过 `sync=true/false` 控制是否实时调用 Seller API（`v3/posting/fbs/fbo/list`）并写入 `orders`、`order_items` 表；同步摘要附带 `errors` 数组，若 FBO 接口无权限或返回 404，将记录诊断信息但不中断 FBS 拉取，便于在生产环境排查异常。【F:api/ozon/orders/index.js†L1-L117】【F:lib/ozon-orders.js†L386-L452】【F:lib/ozon-orders.js†L612-L705】
+- `GET /api/ozon/orders`：按 `siteId`、`from`、`to`、`limit` 查询 Ozon 订单头与明细，可通过 `sync=true/false` 控制是否实时调用 Seller API（`v3/posting/fbs/fbo/list`）并写入 `orders`、`order_items` 表；同步摘要附带 `errors` 数组，若 FBO 接口无权限或返回 404，将记录诊断信息但不中断 FBS 拉取，便于在生产环境排查异常。调用前需先在站点管理或 `sites` 表中创建对应 `siteId`，否则接口会以 400 返回缺失站点列表，避免 Supabase 外键错误。【F:api/ozon/orders/index.js†L1-L133】【F:lib/ozon-orders.js†L386-L544】
 
 ### Lazada OAuth
 - `GET /api/lazada/oauth/callback`：作为 Lazada 授权回调，接受 `code`、`state` 或 `error` 查询参数，使用 `LAZADA_APP_KEY/LAZADA_APP_SECRET/LAZADA_REDIRECT_URI` 计算签名并向 Lazada 授权服务器换取访问令牌；成功后返回 `{ tokens, state }`，供管理后台写入安全存储。【F:api/lazada/oauth/callback.js†L1-L149】

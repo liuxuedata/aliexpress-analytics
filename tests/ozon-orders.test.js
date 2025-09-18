@@ -9,6 +9,94 @@ const {
   syncOzonOrders
 } = require('../lib/ozon-orders');
 
+function createSupabaseStub({ sites = ['ozon_main'] } = {}) {
+  const state = {
+    upserts: [],
+    deleted: [],
+    insertedItems: [],
+    queryData: [],
+    siteQueries: [],
+    sites: new Set(sites)
+  };
+
+  const builder = {
+    eq() { return this; },
+    order() { return this; },
+    gte() { return this; },
+    lte() { return this; },
+    limit() { return this; },
+    then(resolve, reject) {
+      return Promise.resolve({ data: state.queryData, error: null }).then(resolve, reject);
+    }
+  };
+
+  return {
+    state,
+    schema() {
+      return {
+        from(table) {
+          if (table === 'orders') {
+            return {
+              upsert(rows) {
+                state.upserts.push(...rows);
+                return {
+                  select() {
+                    const data = rows.map((row, index) => ({ ...row, id: `order-${index}` }));
+                    return Promise.resolve({ data, error: null });
+                  }
+                };
+              },
+              select() {
+                return builder;
+              },
+              eq: builder.eq,
+              order: builder.order,
+              gte: builder.gte,
+              lte: builder.lte,
+              limit: builder.limit
+            };
+          }
+
+          if (table === 'order_items') {
+            return {
+              delete() {
+                return {
+                  in(_, ids) {
+                    state.deleted.push(...ids);
+                    return Promise.resolve({ error: null });
+                  }
+                };
+              },
+              insert(rows) {
+                state.insertedItems.push(...rows);
+                return Promise.resolve({ error: null });
+              }
+            };
+          }
+
+          if (table === 'sites') {
+            return {
+              select() {
+                return {
+                  in(_, values) {
+                    state.siteQueries.push(values);
+                    const data = values
+                      .filter(value => state.sites.has(value))
+                      .map(id => ({ id }));
+                    return Promise.resolve({ data, error: null });
+                  }
+                };
+              }
+            };
+          }
+
+          throw new Error(`Unexpected table ${table}`);
+        }
+      };
+    }
+  };
+}
+
 test('normalizeRange clamps boundaries to full-day ISO strings', () => {
   const { from, to } = normalizeRange('2025-01-01', '2025-01-05');
   assert.equal(from, '2025-01-01T00:00:00.000Z');
@@ -167,76 +255,6 @@ test('syncOzonOrders continues when FBO endpoint returns 404', async () => {
     };
   };
 
-  function createSupabaseStub() {
-    const state = {
-      upserts: [],
-      deleted: [],
-      insertedItems: [],
-      queryData: []
-    };
-
-    const builder = {
-      eq() { return this; },
-      order() { return this; },
-      gte() { return this; },
-      lte() { return this; },
-      limit() { return this; },
-      then(resolve, reject) {
-        return Promise.resolve({ data: state.queryData, error: null }).then(resolve, reject);
-      }
-    };
-
-    return {
-      state,
-      schema() {
-        return {
-          from(table) {
-            if (table === 'orders') {
-              return {
-                upsert(rows) {
-                  state.upserts.push(...rows);
-                  return {
-                    select() {
-                      const data = rows.map((row, index) => ({ ...row, id: `order-${index}` }));
-                      return Promise.resolve({ data, error: null });
-                    }
-                  };
-                },
-                select() {
-                  return builder;
-                },
-                eq: builder.eq,
-                order: builder.order,
-                gte: builder.gte,
-                lte: builder.lte,
-                limit: builder.limit
-              };
-            }
-
-            if (table === 'order_items') {
-              return {
-                delete() {
-                  return {
-                    in(_, ids) {
-                      state.deleted.push(...ids);
-                      return Promise.resolve({ error: null });
-                    }
-                  };
-                },
-                insert(rows) {
-                  state.insertedItems.push(...rows);
-                  return Promise.resolve({ error: null });
-                }
-              };
-            }
-
-            throw new Error(`Unexpected table ${table}`);
-          }
-        };
-      }
-    };
-  }
-
   const supabase = createSupabaseStub();
 
   const { summary } = await syncOzonOrders({
@@ -256,4 +274,46 @@ test('syncOzonOrders continues when FBO endpoint returns 404', async () => {
   assert.equal(summary.errors.length, 1);
   assert.equal(summary.errors[0].type, 'fbo');
   assert.match(summary.errors[0].message, /HTTP 404/);
+});
+
+test('syncOzonOrders surfaces missing site configuration before writing', async () => {
+  const postings = [{
+    posting_number: 'OZ-5001',
+    status: 'delivered',
+    created_at: '2024-09-20T08:00:00Z',
+    analytics_data: { revenue: 50, currency_code: 'RUB' },
+    financial_data: {
+      posting_is_paid: false,
+      products: [
+        { sku: 'SKU-5001', name: 'Missing Site Item', quantity: 1, price: 50, total_price: 50 }
+      ]
+    }
+  }];
+
+  const fetchImpl = async (url) => ({
+    ok: true,
+    status: 200,
+    text: async () => JSON.stringify({ result: { postings: url.includes('/fbs/') ? postings : [] } })
+  });
+
+  const supabase = createSupabaseStub({ sites: [] });
+
+  await assert.rejects(
+    () => syncOzonOrders({
+      fetchImpl,
+      supabase,
+      creds: { clientId: 'id', apiKey: 'key' },
+      siteId: 'ozon_unknown',
+      from: '2024-09-18T00:00:00.000Z',
+      to: '2024-09-20T23:59:59.999Z',
+      limit: 20,
+      shouldSync: true
+    }),
+    (error) => {
+      assert.equal(error.code, 'SITE_NOT_FOUND');
+      assert.match(error.message, /未找到以下站点/);
+      assert.deepEqual(error.missingSites, ['ozon_unknown']);
+      return true;
+    }
+  );
 });

@@ -1450,6 +1450,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OzonOrdersResponse'
+        '400':
+          description: 请求错误或缺少站点配置
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
   /api/orders:
     get:
       tags: [Orders]
