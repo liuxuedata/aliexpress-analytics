@@ -224,6 +224,7 @@ CREATE TABLE IF NOT EXISTS public.order_items (
   product_id UUID REFERENCES public.products(id),
   sku VARCHAR(100),
   product_name TEXT,
+  product_image TEXT,
   quantity INTEGER NOT NULL,
   unit_price DECIMAL(10,2) NOT NULL,
   total_price DECIMAL(10,2) NOT NULL,

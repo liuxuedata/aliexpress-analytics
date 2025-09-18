@@ -75,6 +75,7 @@
 ### 4.2 订单管理域
 - **核心目标**：记录多平台订单、物流成本、结算状态，支撑订单漏斗、客单价与利润分析。
 - **关键实体**：`orders`（订单头，内含物流费用、成本、结算字段）、`order_items`（商品明细）、`customers`（客户档案）、`inventory_movements`（引用出入库记录）。
+- **字段补充**：`order_items` 在商品明细中同时存储 `product_name` 与可空的 `product_image`，便于像 Ozon 这类站点在前端直接展示商品标题与首图；其结构与迁移脚本在 `specs/data-model.sql` 与 `add_product_image_column.sql` 中维护。
 - **数据来源**：平台 API（如 速卖通订单报表、亚马逊 SP-API、Ozon Seller API `/api/ozon/orders`）及人工 Excel 导入。
 - **站点注册**：`/api/ozon/orders` 在落库前会根据传入 `siteId` 自动将 `site_configs` 中的配置写入 `sites` 表，以满足订单外键约束；因此站点管理中的站点 ID 应与平台账号编号对齐（如 Ozon 控制台的 `Ozon ID 211440331`），否则接口会返回缺失列表提示补录。
 - **业务流程**：导入 → 标准化 SKU/站点 → 写入订单与明细 → 同步 `inventory_movements` → 更新订单状态（下单/发货/签收/完成）。

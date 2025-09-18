@@ -116,7 +116,8 @@ CREATE INDEX IF NOT EXISTS idx_site_configs_data_source ON public.site_configs(d
 - **权限域**：`roles` 使用 JSONB 存储资源 → 操作矩阵，`users` 通过 `role_id` 关联角色并启用行级安全，默认写入七个角色及权限模板。【F:specs/data-model.sql†L42-L112】
 - **商品主数据**：`categories`、`products` 描述品类、SKU、尺寸与图像信息，并在更新时触发 `set_updated_at`，供库存与广告模块引用。【F:specs/data-model.sql†L114-L142】【F:specs/data-model.sql†L214-L220】
 - **库存域**：`inventory` 按站点与产品维度记录可售/预留数量及成本价，`inventory_movements` 追踪入出库与调拨，`purchases` 记录采购单与到货信息。【F:specs/data-model.sql†L116-L164】
-- **订单域**：`customers`、`orders`、`order_items` 形成订单头/明细结构，内建物流成本、结算状态与站点外键，支持后续利润分析与库存扣减。【F:specs/data-model.sql†L166-L194】
+- **订单域**：`customers`、`orders`、`order_items` 形成订单头/明细结构，内建物流成本、结算状态与站点外键，支持后续利润分析与库存扣减。【F:specs/data-model.sql†L184-L233】
+- **订单域字段更新**：为支撑 Ozon 商品图片回填，`order_items` 增补可空的 `product_image TEXT` 字段；如历史环境缺少该列，可执行 `add_product_image_column.sql` 同步结构，避免 Supabase 在插入时因列不存在而报错。【F:specs/data-model.sql†L221-L233】【F:add_product_image_column.sql†L1-L12】
 - **广告域**：`ad_campaigns` 保存预算、目标与受众配置，`ad_metrics_daily` 记录按日聚合指标并以站点为分区键，二者均附带唯一约束与索引。【F:specs/data-model.sql†L168-L222】
 - **统一触发器与 RLS**：`set_updated_at` 触发器覆盖订单、产品、广告、模块配置，关键表默认启用 RLS 并以宽松策略开放开发期访问。【F:specs/data-model.sql†L224-L266】
 
