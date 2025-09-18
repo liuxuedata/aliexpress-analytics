@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title id="pageTitle">Lazada 数据分析 - 跨境电商数据分析平台</title>
+  <link rel="stylesheet" href="assets/login.css">
+  <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
+</head>
+<body class="fm" data-platform="lazada" data-platform-label="Lazada" data-default-site-name="Lazada 旗舰店">
+<header class="header">
+  <div class="logo-title"><img src="assets/logo.svg" alt="Ecommerce Analytics" class="site-logo"> 跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li class="ali"><a href="#">速卖通</a><ul class="dropdown" id="managedMenu"></ul></li>
+      <li class="amazon"><a href="amazon-overview.html">亚马逊</a></li>
+      <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon"><a href="ozon-detail.html">Ozon</a></li>
+      <li class="independent"><a href="#">独立站</a><ul class="dropdown" id="indepMenu"></ul></li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+<div class="layout container">
+  <nav class="sidebar" id="sidebar">
+    <div class="site-header"><span id="currentSite" data-default-name="Lazada 旗舰店">Lazada 旗舰店</span></div>
+    <ul class="sub-nav">
+      <li><a href="#detail" class="active" data-target="detail">详细数据</a></li>
+      <li><a href="#operations" data-target="operations">运营分析</a></li>
+      <li><a href="#products" data-target="products">产品分析</a></li>
+      <li><a href="#orders" data-target="orders">订单中心</a></li>
+      <li><a href="#ads" data-target="ads">广告中心</a></li>
+    </ul>
+  </nav>
+  <main class="main">
+    <section class="page-header">
+      <h1 data-platform-heading="Lazada 全渠道数据枢纽">Lazada 全渠道数据枢纽</h1>
+      <p class="section-subtitle">统一覆盖 Lazada 站点的流量、订单、库存与广告数据，支持快速切换站点配置。</p>
+    </section>
+
+    <section id="detail" class="analysis-container">
+      <h2>详细数据</h2>
+      <p>支持按日、周、月拉取站点曝光、访客、加购与支付等核心指标，未来将结合 Lazada API 自动更新。</p>
+    </section>
+
+    <section id="operations" class="analysis-container" style="display:none;">
+      <h2>运营分析</h2>
+      <p>展示 Lazada 店铺 GMV、转化漏斗与品类分布，结合站点配置自动切换数据源。</p>
+    </section>
+
+    <section id="products" class="analysis-container" style="display:none;">
+      <h2>产品分析</h2>
+      <p>聚焦 SKU 维度的曝光、加购、支付与利润表现，规划与库存、广告模块联动。</p>
+    </section>
+
+    <section id="orders" class="analysis-container" style="display:none;">
+      <h2>订单中心</h2>
+      <p>覆盖订单状态、结算进度、采购与物流成本，未来将同步采购价与库存周转信息。</p>
+    </section>
+
+    <section id="ads" class="analysis-container" style="display:none;">
+      <h2>广告中心</h2>
+      <p>用于承载 Lazada 广告投放计划、预算、曝光与转化表现，并可与运营漏斗联动。</p>
+    </section>
+  </main>
+</div>
+<script src="assets/login.js"></script>
+<script src="assets/site-nav.js"></script>
+<script src="assets/platform-page.js"></script>
+<script>
+  document.getElementById('sidebar').addEventListener('click', function(e){
+    const link = e.target.closest('a[data-target]');
+    if(!link) return;
+    e.preventDefault();
+    const target = link.dataset.target;
+    document.querySelectorAll('.sub-nav a[data-target]').forEach(a=>a.classList.remove('active'));
+    link.classList.add('active');
+    ['detail','operations','products','orders','ads'].forEach(sectionId=>{
+      const section = document.getElementById(sectionId);
+      if(section){ section.style.display = sectionId === target ? '' : 'none'; }
+    });
+  });
+</script>
+</body>
+</html>

@@ -303,9 +303,9 @@
           add_people: a.add_people + (b.add_people || 0),
           pay_buyers: a.pay_buyers + (b.pay_buyers || 0)
         }), {exposure:0,visitors:0,add_people:0,pay_buyers:0});
-        
+
         console.log('KPI计算调试 - 汇总数据:', sum);
-        
+
         const products = new Map();
         rs.forEach(r => {
           if (!products.has(r.product_id)) {
@@ -313,15 +313,15 @@
           }
           const acc = products.get(r.product_id);
           acc.exp += r.exposure || 0;
-          acc.add += r.add_people || 0;  // 使用 add_people 而不是 add_count
-          acc.pay += r.pay_buyers || 0;  // 使用 pay_buyers 而不是 pay_items
+          acc.add += r.add_count || 0;  // 使用加购次数统计加购商品
+          acc.pay += r.pay_items || 0;  // 使用支付次数统计支付商品
         });
-        
+
         let pe = 0, pc = 0, pp = 0;
         products.forEach(v => {
           if (v.exp > 0) pe++;
-          // 仅统计加购人数大于1的商品
-          if (v.add > 1) pc++;
+          // 仅统计加购次数大于0的商品
+          if (v.add > 0) pc++;
           if (v.pay > 0) pp++;
         });
         
