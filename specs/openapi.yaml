@@ -483,12 +483,33 @@ components:
               type: integer
         range:
           $ref: '#/components/schemas/DateRange'
+        errors:
+          type: array
+          description: 每种渠道在同步过程中的错误信息（如 FBO 无权限）。
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                description: 出错的 posting 渠道类型。
+              endpoint:
+                type: string
+                format: uri
+              status:
+                type: integer
+                nullable: true
+              message:
+                type: string
+            required:
+              - type
+              - message
       required:
         - siteId
         - fetched
         - persisted
         - types
         - range
+        - errors
     OzonOrdersResponse:
       allOf:
         - $ref: '#/components/schemas/ApiResponse'

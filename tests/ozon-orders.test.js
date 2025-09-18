@@ -5,7 +5,8 @@ const {
   mapPostingToOrder,
   aggregatePostings,
   parseOzonResponse,
-  extractJsonSegment
+  extractJsonSegment,
+  syncOzonOrders
 } = require('../lib/ozon-orders');
 
 test('normalizeRange clamps boundaries to full-day ISO strings', () => {
@@ -119,4 +120,140 @@ test('extractJsonSegment returns first valid JSON block within noisy response', 
   const noisy = 'x{"outer":{"inner":1}}{"ignored":true}';
   const segment = extractJsonSegment(noisy);
   assert.equal(segment, '{"outer":{"inner":1}}');
+});
+
+test('syncOzonOrders continues when FBO endpoint returns 404', async () => {
+  const postings = [{
+    posting_number: 'OZ-3001',
+    status: 'delivered',
+    created_at: '2024-09-10T08:00:00Z',
+    analytics_data: {
+      revenue: 120,
+      currency_code: 'RUB',
+      delivery_amount: 10
+    },
+    financial_data: {
+      posting_is_paid: true,
+      posting_services: {
+        marketplace_service_item_fulfillment: 6
+      },
+      products: [
+        {
+          sku: 'SKU-404',
+          name: 'Resilient Item',
+          quantity: 1,
+          price: 120,
+          total_price: 120,
+          cost_price: 70
+        }
+      ]
+    }
+  }];
+
+  const fetchImpl = async (url) => {
+    if (url.includes('/fbs/')) {
+      return {
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({ result: { postings } })
+      };
+    }
+
+    return {
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+      text: async () => '404 page not found'
+    };
+  };
+
+  function createSupabaseStub() {
+    const state = {
+      upserts: [],
+      deleted: [],
+      insertedItems: [],
+      queryData: []
+    };
+
+    const builder = {
+      eq() { return this; },
+      order() { return this; },
+      gte() { return this; },
+      lte() { return this; },
+      limit() { return this; },
+      then(resolve, reject) {
+        return Promise.resolve({ data: state.queryData, error: null }).then(resolve, reject);
+      }
+    };
+
+    return {
+      state,
+      schema() {
+        return {
+          from(table) {
+            if (table === 'orders') {
+              return {
+                upsert(rows) {
+                  state.upserts.push(...rows);
+                  return {
+                    select() {
+                      const data = rows.map((row, index) => ({ ...row, id: `order-${index}` }));
+                      return Promise.resolve({ data, error: null });
+                    }
+                  };
+                },
+                select() {
+                  return builder;
+                },
+                eq: builder.eq,
+                order: builder.order,
+                gte: builder.gte,
+                lte: builder.lte,
+                limit: builder.limit
+              };
+            }
+
+            if (table === 'order_items') {
+              return {
+                delete() {
+                  return {
+                    in(_, ids) {
+                      state.deleted.push(...ids);
+                      return Promise.resolve({ error: null });
+                    }
+                  };
+                },
+                insert(rows) {
+                  state.insertedItems.push(...rows);
+                  return Promise.resolve({ error: null });
+                }
+              };
+            }
+
+            throw new Error(`Unexpected table ${table}`);
+          }
+        };
+      }
+    };
+  }
+
+  const supabase = createSupabaseStub();
+
+  const { summary } = await syncOzonOrders({
+    fetchImpl,
+    supabase,
+    creds: { clientId: 'id', apiKey: 'key' },
+    siteId: 'ozon_main',
+    from: '2024-09-01T00:00:00.000Z',
+    to: '2024-09-15T23:59:59.999Z',
+    limit: 50,
+    shouldSync: true
+  });
+
+  assert.equal(summary.fetched, 1);
+  assert.equal(summary.types.fbs, 1);
+  assert.equal(summary.types.fbo, 0);
+  assert.equal(summary.errors.length, 1);
+  assert.equal(summary.errors[0].type, 'fbo');
+  assert.match(summary.errors[0].message, /HTTP 404/);
 });
