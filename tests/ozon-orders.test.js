@@ -1,6 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeRange, mapPostingToOrder, aggregatePostings } = require('../lib/ozon-orders');
+const {
+  normalizeRange,
+  mapPostingToOrder,
+  aggregatePostings,
+  parseOzonResponse,
+  extractJsonSegment
+} = require('../lib/ozon-orders');
 
 test('normalizeRange clamps boundaries to full-day ISO strings', () => {
   const { from, to } = normalizeRange('2025-01-01', '2025-01-05');
@@ -88,4 +94,29 @@ test('aggregatePostings merges duplicate postings and concatenates items', () =>
     aggregated.items.map(item => item.sku).sort(),
     ['SKU-A', 'SKU-B']
   );
+});
+
+test('parseOzonResponse tolerates trailing noise around JSON payloads', () => {
+  const text = '\n\n{"result":{"postings":[{"id":1}]}}\n<html>gateway error</html>';
+  const parsed = parseOzonResponse(text, 'fbo');
+  assert.equal(parsed.result.postings[0].id, 1);
+});
+
+test('parseOzonResponse surfaces snippet when payload is not JSON', () => {
+  let caught;
+  try {
+    parseOzonResponse('<html>503</html>', 'fbo');
+  } catch (error) {
+    caught = error;
+  }
+
+  assert.ok(caught instanceof Error);
+  assert.match(caught.message, /返回非 JSON/);
+  assert.match(caught.message, /<html>503<\/html>/);
+});
+
+test('extractJsonSegment returns first valid JSON block within noisy response', () => {
+  const noisy = 'x{"outer":{"inner":1}}{"ignored":true}';
+  const segment = extractJsonSegment(noisy);
+  assert.equal(segment, '{"outer":{"inner":1}}');
 });
