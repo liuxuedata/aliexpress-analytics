@@ -298,7 +298,9 @@ test('syncOzonOrders continues when FBO endpoint returns 404', async () => {
     from: '2024-09-01T00:00:00.000Z',
     to: '2024-09-15T23:59:59.999Z',
     limit: 50,
-    shouldSync: true
+    shouldSync: true,
+    loadProductMetadata: async () => new Map(),
+    enrichProducts: async orders => orders
   });
 
   assert.equal(summary.fetched, 1);
@@ -340,7 +342,9 @@ test('syncOzonOrders surfaces missing site configuration before writing', async 
       from: '2024-09-18T00:00:00.000Z',
       to: '2024-09-20T23:59:59.999Z',
       limit: 20,
-      shouldSync: true
+      shouldSync: true,
+      loadProductMetadata: async () => new Map(),
+      enrichProducts: async orders => orders
     }),
     (error) => {
       assert.equal(error.code, 'SITE_NOT_FOUND');
@@ -394,7 +398,9 @@ test('syncOzonOrders auto registers site metadata from site_configs', async () =
     from: '2024-09-20T00:00:00.000Z',
     to: '2024-09-22T23:59:59.999Z',
     limit: 20,
-    shouldSync: true
+    shouldSync: true,
+    loadProductMetadata: async () => new Map(),
+    enrichProducts: async orders => orders
   });
 
   assert.equal(summary.persisted, 1);
@@ -407,4 +413,49 @@ test('syncOzonOrders auto registers site metadata from site_configs', async () =
     platform: 'ozon',
     is_active: true
   });
+});
+
+test('syncOzonOrders enriches order items with product metadata loader', async () => {
+  const supabase = createSupabaseStub();
+  supabase.state.queryData = [{
+    id: 'order-1',
+    order_no: 'OZ-7001',
+    site_id: 'ozon_main',
+    platform: 'ozon',
+    order_items: [
+      {
+        id: 'item-1',
+        sku: 'SKU-777',
+        product_name: '',
+        quantity: 1,
+        unit_price: 10,
+        total_price: 10,
+        cost_price: 4
+      }
+    ]
+  }];
+
+  const metadataMap = new Map([
+    ['SKU-777', { name: '示例商品', image: 'https://cdn.example.com/sku-777.jpg' }]
+  ]);
+
+  const { orders } = await syncOzonOrders({
+    fetchImpl: async () => ({ ok: true, status: 200, text: async () => '{"result":{"postings":[]}}' }),
+    supabase,
+    creds: { clientId: 'id', apiKey: 'key' },
+    siteId: 'ozon_main',
+    from: '2024-09-01T00:00:00.000Z',
+    to: '2024-09-02T23:59:59.999Z',
+    limit: 10,
+    shouldSync: false,
+    loadProductMetadata: async (skus) => {
+      assert.deepEqual(skus, ['SKU-777']);
+      return metadataMap;
+    }
+  });
+
+  assert.equal(orders.length, 1);
+  assert.equal(orders[0].order_items.length, 1);
+  assert.equal(orders[0].order_items[0].product_name, '示例商品');
+  assert.equal(orders[0].order_items[0].product_image, 'https://cdn.example.com/sku-777.jpg');
 });

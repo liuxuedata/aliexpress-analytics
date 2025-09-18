@@ -12,6 +12,11 @@
   <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
+  <style>
+    .product-header{display:flex;align-items:center;gap:12px;}
+    .product-header img{width:56px;height:56px;border-radius:12px;object-fit:cover;border:1px solid #e5e7eb;background:#fff;display:none;}
+    .product-header img.visible{display:block;}
+  </style>
 </head>
 <body class="fm">
 <header class="header">
@@ -51,7 +56,15 @@
     <div class="content">
       <section class="content-pad">
         <div class="controls" style="margin-bottom:12px;"><input id="dateRange" class="date-filter" placeholder="选择日期范围"></div>
-        <div class="controls" style="margin-bottom:12px;flex-wrap:wrap;"><label>产品</label><select id="productSelect" class="sel" style="width:200px;flex:0 0 200px;"></select><a id="productLink" href="#" target="_blank" style="margin-left:8px;display:none;word-break:break-all;white-space:normal;flex:1 1 auto;"></a><span id="listingDate" style="margin-left:8px;"></span></div>
+        <div class="controls" style="margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+          <label>产品</label>
+          <div class="product-header" style="flex:1 1 auto;gap:12px;">
+            <select id="productSelect" class="sel" style="width:200px;flex:0 0 200px;"></select>
+            <img id="productThumb" alt="产品图片">
+            <a id="productLink" href="#" target="_blank" style="display:none;word-break:break-all;white-space:normal;flex:1 1 auto;"></a>
+          </div>
+          <span id="listingDate" style="margin-left:8px;"></span>
+        </div>
         <div id="kpi" class="kpi-grid"></div>
         <div id="lineWrap" class="panel" style="margin-top:16px;display:none;">
           <h3>曝光趋势</h3>
@@ -79,6 +92,7 @@
   input.value=`${startDef} to ${endDef}`;
   let rowsCur=[],rowsPrev=[],curStart='',curEnd='',prevStart='',prevEnd='',days=0;
   let totalsCur={exp:0,uv:0,add:0,pay:0};
+  const imageMap=new Map();
 
   function card(title,cur,prev,isPct,cls,avg,share){
     const diff=(cur-prev)||0;
@@ -126,6 +140,7 @@
     return (json.rows||[]).map(r=>({
       product_id:r.product_id,
       product_title:r.product_title,
+      product_image:r.product_image,
       exposure:Number(r.voronka_prodazh_pokazy_vsego)||0,
       uv:Number(r.voronka_prodazh_uv_s_prosmotrom_kartochki_tovara)||0,
       add_to_cart_users:Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0,
@@ -152,10 +167,15 @@
 
   function renderProducts(){
     const expMap=new Map(); const titleMap=new Map();
-    rowsCur.forEach(r=>{expMap.set(r.product_id,(expMap.get(r.product_id)||0)+Number(r.exposure||0)); titleMap.set(r.product_id,r.product_title||r.product_id);});
+    imageMap.clear();
+    rowsCur.forEach(r=>{
+      expMap.set(r.product_id,(expMap.get(r.product_id)||0)+Number(r.exposure||0));
+      titleMap.set(r.product_id,r.product_title||r.product_id);
+      if(r.product_image){ imageMap.set(r.product_id,r.product_image); }
+    });
     const ids=[...expMap.keys()].sort((a,b)=>expMap.get(b)-expMap.get(a));
     const sel=document.getElementById('productSelect'); sel.innerHTML='';
-    ids.forEach(id=>{const o=document.createElement('option');o.value=id;o.textContent=titleMap.get(id)||id;o.dataset.title=titleMap.get(id)||'';sel.appendChild(o);});
+    ids.forEach(id=>{const o=document.createElement('option');o.value=id;o.textContent=titleMap.get(id)||id;o.dataset.title=titleMap.get(id)||'';o.dataset.image=imageMap.get(id)||'';sel.appendChild(o);});
     if(!ids.length){document.getElementById('kpi').innerHTML='';document.getElementById('lineWrap').style.display='none';return;}
     const pid=ids.find(id=>String(id)===String(pidParam))||ids[0];
     sel.value=pid; update(pid);
@@ -167,6 +187,17 @@
     const title=titleOpt?titleOpt.dataset.title||pid:pid;
     const link=document.getElementById('productLink');
     link.textContent=title; link.href=`https://ozon.ru/product/${pid}`; link.style.display='';
+    const thumb=document.getElementById('productThumb');
+    const imgUrl=titleOpt?titleOpt.dataset.image:'';
+    if(imgUrl){
+      thumb.src=imgUrl;
+      thumb.classList.add('visible');
+      thumb.style.display='block';
+    }else{
+      thumb.removeAttribute('src');
+      thumb.classList.remove('visible');
+      thumb.style.display='none';
+    }
 
     function sum(rows){
       return rows.filter(r=>String(r.product_id)===String(pid)).reduce((a,r)=>({

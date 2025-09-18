@@ -19,6 +19,11 @@
     #report td:first-child a{display:inline-block;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .kpi .card .mini-link{font-size:12px;margin-left:8px;text-decoration:underline;cursor:pointer;display:none;}
     .help{margin-left:4px;color:#888;cursor:pointer;}
+    .product-cell{display:flex;align-items:center;gap:12px;}
+    .product-cell img{width:48px;height:48px;border-radius:10px;object-fit:cover;border:1px solid #e5e7eb;background:#fff;}
+    .product-cell .placeholder{width:48px;height:48px;border-radius:10px;border:1px dashed #d1d5db;display:flex;align-items:center;justify-content:center;font-size:12px;color:#9ca3af;background:#f9fafb;}
+    .product-cell .info{display:flex;flex-direction:column;gap:4px;min-width:0;}
+    .product-cell .info .sku{font-size:12px;color:#6b7280;}
   </style>
 </head>
 <body class="fm">
@@ -141,6 +146,15 @@
 
   function setStatus(t){ $('#status').text(t||''); }
 
+  function escapeHtml(value){
+    return String(value||'')
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#39;');
+  }
+
   async function loadData(){
     setStatus('加载中...');
     const range = $('#dateFilter').val();
@@ -184,8 +198,14 @@
         const cartRate = detailUv ? (cart/detailUv) : 0;
         const payRate = cart ? (pay/cart) : 0;
         const title = r.product_title || r.product_id;
+        const nameHtml = `<a data-pid="${escapeHtml(r.product_id)}" href="https://ozon.ru/product/${escapeHtml(r.product_id)}" target="_blank" rel="noopener" title="${escapeHtml(title)}">${escapeHtml(title)}</a>`;
+        const skuLabel = r.product_id ? `<span class="sku">SKU: ${escapeHtml(r.product_id)}</span>` : '';
+        const imageHtml = r.product_image
+          ? `<img src="${escapeHtml(r.product_image)}" alt="${escapeHtml(title)}">`
+          : '<div class="placeholder">无图</div>';
+        const productCell = `<div class="product-cell">${imageHtml}<div class="info">${nameHtml}${skuLabel}</div></div>`;
         return [
-          `<a data-pid="${r.product_id}" href="https://ozon.ru/product/${r.product_id}" target="_blank" rel="noopener" title="${title}">${title}</a>`,
+          productCell,
           r.model || '',
           (visitorRate*100).toFixed(2)+'%',
           (cartRate*100).toFixed(2)+'%',

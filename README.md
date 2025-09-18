@@ -189,6 +189,7 @@ CREATE INDEX IF NOT EXISTS idx_site_configs_data_source ON public.site_configs(d
 - `POST /api/ozon/import`：接收 `file` 字段的报表，执行俄文表头转蛇形、列重映射与必填校验后 upsert 到 `ozon_product_report_wide`，并处理 Schema 缓存刷新。【F:api/ozon/import/index.js†L1-L160】
 - `POST /api/ozon/fetch`：携带 `Client-Id`/`Api-Key` 直接调用 Ozon Analytics API 批量落地曝光、加购、订单件数等指标，为订单中心与广告中心提供统一的产品 ID 数据底座。【F:api/ozon/fetch/index.js†L1-L160】
 - `GET /api/ozon/orders`：按 `siteId`、`from`、`to`、`limit` 查询 Ozon 订单头与明细，可通过 `sync=true/false` 控制是否实时调用 Seller API（`v3/posting/fbs/fbo/list`）并写入 `orders`、`order_items` 表；同步摘要附带 `errors` 数组，若 FBO 接口无权限或返回 404，将记录诊断信息但不中断 FBS 拉取，便于在生产环境排查异常。首次同步会检测 `sites` 表是否存在传入的 `siteId`，若缺失则自动读取 `site_configs` 中的同名配置并补注册站点信息（例如在站点管理中创建 `ozon_211440331`，会自动落地 Ozon 控制台里的 `Ozon ID 211440331`）；仅当两张表均缺失时才返回 400，并附带缺失列表以提醒补充配置。【F:api/ozon/orders/index.js†L1-L133】【F:lib/ozon-orders.js†L386-L544】
+- 订单明细会在落库前通过 `v2/product/info/list` 与 `ozon_product_report_wide` 表补齐商品名称，并回传首图地址，前端在订单中心、数据明细与产品分析页统一渲染商品缩略图。【F:lib/ozon-orders.js†L674-L758】【F:lib/ozon-product-catalog.js†L1-L213】【F:public/ozon-orders.html†L8-L121】【F:public/ozon-detail.html†L18-L168】【F:public/ozon-product-insights.html†L8-L208】
 
 ### Lazada OAuth
 - `GET /api/lazada/oauth/callback`：作为 Lazada 授权回调，接受 `code`、`state` 或 `error` 查询参数，使用 `LAZADA_APP_KEY/LAZADA_APP_SECRET/LAZADA_REDIRECT_URI` 计算签名并向 Lazada 授权服务器换取访问令牌；成功后返回 `{ tokens, state }`，供管理后台写入安全存储。【F:api/lazada/oauth/callback.js†L1-L149】

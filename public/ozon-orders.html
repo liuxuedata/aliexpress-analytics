@@ -9,6 +9,15 @@
   <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
   <link rel="stylesheet" href="assets/global-theme.css">
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
+  <style>
+    .ozon-product-row { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .ozon-product-item { display:flex; align-items:center; gap:12px; min-width:0; }
+    .ozon-product-thumb { width:48px; height:48px; border-radius:10px; object-fit:cover; border:1px solid #e5e7eb; background:#fff; flex-shrink:0; }
+    .ozon-product-thumb.placeholder { display:flex; align-items:center; justify-content:center; font-size:11px; color:#9ca3af; border-style:dashed; background:#f9fafb; }
+    .ozon-product-text { display:flex; flex-direction:column; gap:4px; min-width:0; }
+    .ozon-product-text a { font-weight:500; }
+    .ozon-product-text .sku { font-size:12px; color:#6b7280; }
+  </style>
 </head>
 <body class="fm" data-platform="ozon" data-platform-label="Ozon">
 <header class="header">
@@ -286,11 +295,15 @@
             const nameContent = link
               ? `<a href="${link}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:underline;">${name}</a>`
               : name;
-            const sku = item.sku ? `<span class="sku">${escapeHtml(item.sku)}</span>` : '';
+            const skuText = item.sku ? `<span class=\"sku\">SKU: ${escapeHtml(item.sku)}</span>` : '';
+            const imageUrl = item.product_image ? escapeHtml(item.product_image) : '';
+            const thumb = imageUrl
+              ? `<img class="ozon-product-thumb" src="${imageUrl}" alt="${name}">`
+              : `<div class="ozon-product-thumb placeholder">无图</div>`;
             const qty = typeof item.quantity === 'number' ? item.quantity : Number(item.quantity) || 0;
             const qtyLabel = `<span style="color:#6b7280;">×${qty}</span>`;
-            return `<div style="display:flex;justify-content:space-between;gap:8px;">` +
-              `<span>${nameContent}${sku ? ` <span style=\"color:#6b7280;\">(${sku})</span>` : ''}</span>` +
+            return `<div class="ozon-product-row">` +
+              `<div class="ozon-product-item">${thumb}<div class="ozon-product-text">${nameContent}${skuText ? skuText : ''}</div></div>` +
               `${qtyLabel}</div>`;
           }).join('')
         : '<span style="color:#9ca3af;">暂无明细</span>';
