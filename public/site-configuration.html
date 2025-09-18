@@ -245,6 +245,11 @@
               <option value="ae_managed">速卖通全托管</option>
               <option value="independent">独立站</option>
               <option value="amazon">亚马逊</option>
+              <option value="ozon">Ozon</option>
+              <option value="tiktok">TikTok Shop</option>
+              <option value="temu">Temu</option>
+              <option value="lazada">Lazada</option>
+              <option value="shopee">Shopee</option>
               <option value="ebay">eBay</option>
             </select>
           </div>
@@ -390,6 +395,58 @@
 // 全局变量
 let currentSites = [];
 let currentTemplates = [];
+
+const PLATFORM_DATA_SOURCES = {
+  ae_self_operated: [
+    { value: 'ae_api', label: '速卖通 API' },
+    { value: 'ae_report', label: '速卖通运营报表' }
+  ],
+  ae_managed: [
+    { value: 'ae_api', label: '速卖通 API' },
+    { value: 'managed_report', label: '全托管报表' }
+  ],
+  independent: [
+    { value: 'google_ads', label: 'Google Ads' },
+    { value: 'facebook_ads', label: 'Facebook Ads' },
+    { value: 'tiktok_ads', label: 'TikTok Ads' },
+    { value: 'custom', label: '自定义/埋点' }
+  ],
+  amazon: [
+    { value: 'amazon_sp_api', label: 'Amazon SP-API' },
+    { value: 'amazon_ads', label: 'Amazon Ads 报表' }
+  ],
+  ozon: [
+    { value: 'ozon_api', label: 'Ozon API' },
+    { value: 'ozon_report', label: 'Ozon 报表' }
+  ],
+  tiktok: [
+    { value: 'tiktok_shop_api', label: 'TikTok Shop API' },
+    { value: 'tiktok_ads', label: 'TikTok Ads 报表' }
+  ],
+  temu: [
+    { value: 'temu_report', label: 'Temu 报表' },
+    { value: 'temu_api', label: 'Temu API (规划)' }
+  ],
+  lazada: [
+    { value: 'lazada_api', label: 'Lazada API' },
+    { value: 'lazada_ads', label: 'Lazada Ads 报表' },
+    { value: 'custom', label: '自定义/第三方' }
+  ],
+  shopee: [
+    { value: 'shopee_api', label: 'Shopee API' },
+    { value: 'shopee_ads', label: 'Shopee Ads 报表' },
+    { value: 'custom', label: '自定义/第三方' }
+  ],
+  ebay: [
+    { value: 'ebay_report', label: 'eBay 报表' },
+    { value: 'custom', label: '自定义/第三方' }
+  ]
+};
+
+const DATA_SOURCE_LABELS = Object.values(PLATFORM_DATA_SOURCES).reduce((acc, platform) => {
+  platform.forEach(ds => acc[ds.value] = ds.label);
+  return acc;
+}, { custom: '自定义/第三方' });
 
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', function() {
@@ -542,19 +599,16 @@ function renderSiteList() {
 function updateDataSourceOptions() {
   const platform = document.getElementById('sitePlatform').value;
   const dataSource = document.getElementById('dataSource');
-  
-  // 清空现有选项
+
   dataSource.innerHTML = '<option value="">选择数据源</option>';
-  
-  if (platform === 'ae_self_operated' || platform === 'ae_managed') {
-    dataSource.innerHTML += '<option value="ae_api">速卖通API</option>';
-  } else if (platform === 'independent') {
-    dataSource.innerHTML += `
-      <option value="google_ads">Google Ads</option>
-      <option value="facebook_ads">Facebook Ads</option>
-      <option value="tiktok_ads">TikTok Ads</option>
-      <option value="custom">自定义</option>
-    `;
+
+  const options = PLATFORM_DATA_SOURCES[platform] || [];
+  options.forEach(option => {
+    dataSource.innerHTML += `<option value="${option.value}">${option.label}</option>`;
+  });
+
+  if (!options.some(option => option.value === 'custom')) {
+    dataSource.innerHTML += '<option value="custom">自定义/第三方</option>';
   }
 }
 
@@ -589,9 +643,23 @@ function updateTemplatePreview() {
   
   // 显示统一表架构信息
   const tableMapping = {
+    'ae_api': 'ae_self_operated_daily',
+    'ae_report': 'ae_self_operated_daily',
+    'managed_report': 'managed_stats',
     'facebook_ads': 'independent_facebook_ads_daily',
     'google_ads': 'independent_landing_metrics',
-    'tiktok_ads': 'independent_tiktok_ads_daily'
+    'tiktok_ads': 'independent_tiktok_ads_daily',
+    'tiktok_shop_api': 'tiktok_shop_metrics_daily',
+    'amazon_sp_api': 'amazon_daily_by_asin',
+    'amazon_ads': 'amazon_ads_daily',
+    'ozon_api': 'ozon_product_report_wide',
+    'ozon_report': 'ozon_product_report_wide',
+    'temu_report': 'temu_operational_daily',
+    'temu_api': 'temu_operational_daily',
+    'lazada_api': 'lazada_site_metrics_daily',
+    'lazada_ads': 'lazada_ads_daily',
+    'shopee_api': 'shopee_site_metrics_daily',
+    'shopee_ads': 'shopee_ads_daily'
   };
   
   const tableName = tableMapping[dataSource];
@@ -1046,20 +1114,19 @@ function getPlatformDisplayName(platform) {
     'ae_managed': '速卖通全托管',
     'independent': '独立站',
     'amazon': '亚马逊',
+    'ozon': 'Ozon',
+    'tiktok': 'TikTok Shop',
+    'temu': 'Temu',
+    'lazada': 'Lazada',
+    'shopee': 'Shopee',
     'ebay': 'eBay'
   };
   return names[platform] || platform;
 }
 
 function getDataSourceDisplayName(dataSource) {
-  const names = {
-    'ae_api': '速卖通API',
-    'google_ads': 'Google Ads',
-    'facebook_ads': 'Facebook Ads',
-    'tiktok_ads': 'TikTok Ads',
-    'custom': '自定义'
-  };
-  return names[dataSource] || dataSource;
+  if (!dataSource) return '未配置';
+  return DATA_SOURCE_LABELS[dataSource] || dataSource;
 }
 </script>
 </body>

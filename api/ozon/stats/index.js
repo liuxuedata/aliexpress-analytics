@@ -1,4 +1,7 @@
+const fetch = require('node-fetch');
 const { createClient } = require('@supabase/supabase-js');
+const { parseOzonResponse } = require('../../../lib/ozon-orders');
+const { createProductMetadataLoader, normalizeSku } = require('../../../lib/ozon-product-catalog');
 
 function supa(){
   const url = process.env.SUPABASE_URL;
@@ -12,6 +15,62 @@ function normalizeTableName(name, fallback = 'ozon_product_report_wide'){
   t = t.replace(/^"+|"+$/g, '');
   t = t.replace(/^public\./i, '');
   return t;
+}
+
+function getOzonCredentials(){
+  const { OZON_CLIENT_ID, OZON_API_KEY } = process.env;
+  if(!OZON_CLIENT_ID || !OZON_API_KEY){
+    throw new Error('Missing OZON_CLIENT_ID or OZON_API_KEY');
+  }
+  return { clientId: OZON_CLIENT_ID, apiKey: OZON_API_KEY };
+}
+
+async function enrichWithMetadata(supabase, rows){
+  if(!Array.isArray(rows) || !rows.length) return rows;
+  let loader;
+  try{
+    const creds = getOzonCredentials();
+    loader = createProductMetadataLoader({
+      supabase,
+      fetchImpl: fetch,
+      creds,
+      parseOzonResponse
+    });
+  }catch(error){
+    console.warn('[ozon] Skip metadata enrichment:', error.message);
+    return rows;
+  }
+
+  const skus = rows
+    .map(r => normalizeSku(r?.product_id || r?.sku))
+    .filter(Boolean);
+  if(!skus.length) return rows;
+
+  let metadata = new Map();
+  try{
+    metadata = await loader(Array.from(new Set(skus)));
+  }catch(error){
+    console.warn('[ozon] Failed to load metadata for stats:', error.message);
+    return rows;
+  }
+
+  if(!(metadata instanceof Map) || !metadata.size){
+    return rows;
+  }
+
+  return rows.map(row => {
+    const sku = normalizeSku(row?.product_id || row?.sku);
+    const meta = sku ? metadata.get(sku) : null;
+    const title = row?.product_title && typeof row.product_title === 'string'
+      ? row.product_title.trim()
+      : row?.product_title;
+    const resolvedTitle = title || meta?.name || sku;
+    return {
+      ...row,
+      product_title: resolvedTitle,
+      product_image: meta?.image || row?.product_image || null
+    };
+  });
 }
 
 module.exports = async function handler(req,res){
@@ -118,7 +177,7 @@ module.exports = async function handler(req,res){
         acc.voronka_prodazh_zakazano_tovarov += Number(r.voronka_prodazh_zakazano_tovarov)||0;
         acc.prodazhi_zakazano_na_summu += Number(r.prodazhi_zakazano_na_summu)||0;
       }
-      const rows = Array.from(map.values()).map(r=>({
+      let rows = Array.from(map.values()).map(r=>({
         product_id: r.product_id,
         model: r.model,
         product_title: r.product_title,
@@ -134,6 +193,7 @@ module.exports = async function handler(req,res){
         voronka_prodazh_zakazano_tovarov: r.voronka_prodazh_zakazano_tovarov,
         prodazhi_zakazano_na_summu: r.prodazhi_zakazano_na_summu
       }));
+      rows = await enrichWithMetadata(supabase, rows);
       return res.json({ok:true, rows, start, end});
     }
 
@@ -161,7 +221,7 @@ module.exports = async function handler(req,res){
       .select(selectCols)
       .eq('den', date);
     if(error) throw error;
-    const rows = (data||[]).map(r=>({
+    let rows = (data||[]).map(r=>({
       product_id: r.sku,
       model: r.model,
       product_title: r.tovary,
@@ -178,6 +238,7 @@ module.exports = async function handler(req,res){
       voronka_prodazh_zakazano_tovarov: r.voronka_prodazh_zakazano_tovarov,
       prodazhi_zakazano_na_summu: r.prodazhi_zakazano_na_summu
     }));
+    rows = await enrichWithMetadata(supabase, rows);
     res.json({ok:true, rows, date, dates});
   }catch(e){
     res.json({ok:false,msg:e.message});
