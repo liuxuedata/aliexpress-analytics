@@ -4,9 +4,10 @@
   <meta charset="utf-8">
   <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Temu 数据分析（建设中）</title>
+  <title>Ozon 广告中心</title>
   <link rel="stylesheet" href="assets/login.css">
   <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <link rel="stylesheet" href="assets/global-theme.css">
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
 </head>
 <body class="fm">
@@ -19,8 +20,8 @@
       </li>
       <li class="amazon"><a href="amazon-overview.html">亚马逊</a></li>
       <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
-      <li class="temu active"><a href="temu.html">Temu</a></li>
-      <li class="ozon"><a href="ozon-detail.html">Ozon</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon active"><a href="ozon-detail.html">Ozon</a></li>
       <li class="independent"><a href="#">独立站</a>
         <ul class="dropdown" id="indepMenu"></ul>
       </li>
@@ -30,19 +31,30 @@
 </header>
 <div class="layout container">
   <nav class="sidebar" id="sidebar">
-    <div class="site-header"><span>Temu</span></div>
+    <div class="site-header">
+      <div class="site-title">
+        <span>Ozon</span>
+      </div>
+    </div>
     <ul class="sub-nav">
-      <li><a href="#" class="active">详细数据</a></li>
-      <li><a href="#">运营分析</a></li>
-      <li><a href="#">产品分析</a></li>
-      <li><a href="#">订单中心</a></li>
-      <li><a href="#">广告中心</a></li>
+      <li><a href="ozon-detail.html">详细数据</a></li>
+      <li><a href="ozon-analysis.html">运营分析</a></li>
+      <li><a href="ozon-product-insights.html">产品分析</a></li>
+      <li><a href="ozon-orders.html">订单中心</a></li>
+      <li><a href="ozon-advertising.html" class="active">广告中心</a></li>
     </ul>
   </nav>
-  <main class="main" style="display:flex;align-items:center;justify-content:center;">
-    <h2 style="font-size:24px;font-weight:700;">Temu 站点的详细数据、运营、产品、订单与广告看板正在建设中。</h2>
+  <main class="main" style="display:flex;flex-direction:column;gap:24px;">
+    <div class="panel">
+      <h2>广告中心</h2>
+      <p class="hint">广告数据将通过 Ozon 官方广告 API 接入 ad_campaigns 与 ad_metrics_daily，按广告系列展示曝光、点击、转化和归因 GMV，支持追溯至产品。</p>
+      <div class="placeholder-chart" style="height:320px;border:1px dashed #d1d5db;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#9ca3af;">
+        广告报表开发中
+      </div>
+    </div>
   </main>
 </div>
 <script src="assets/site-nav.js"></script>
+<script src="assets/login.js"></script>
 </body>
 </html>

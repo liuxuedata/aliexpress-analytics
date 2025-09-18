@@ -40,9 +40,11 @@
       </div>
     </div>
     <ul class="sub-nav">
-      <li><a href="ozon-detail.html">数据明细</a></li>
+      <li><a href="ozon-detail.html">详细数据</a></li>
       <li><a href="ozon-analysis.html" class="active">运营分析</a></li>
       <li><a href="ozon-product-insights.html">产品分析</a></li>
+      <li><a href="ozon-orders.html">订单中心</a></li>
+      <li><a href="ozon-advertising.html">广告中心</a></li>
     </ul>
   </nav>
   <main class="main">
@@ -104,6 +106,21 @@
   function addDays(startISO,n){const d=new Date(startISO); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10);}
   function formatMD(iso){const d=new Date(iso); return (d.getMonth()+1)+'/'+d.getDate();}
 
+  function cleanText(value){
+    if(value === null || value === undefined) return '';
+    return typeof value === 'string' ? value.trim() : String(value);
+  }
+
+  function productKey(row){
+    if(!row) return '';
+    const sku = cleanText(row.product_id || row.sku || row.offer_id || '');
+    const model = cleanText(row.model || '');
+    if(sku) return `${sku}@@${model || ''}`;
+    const title = cleanText(row.product_title || row.tovary || '');
+    if(title) return `title:${title}`;
+    return JSON.stringify({ sku, model, title });
+  }
+
   async function fetchRange(start,end){
     const url=`/api/ozon/stats?store_id=${encodeURIComponent(storeId)}&start=${start}&end=${end}`;
     const r=await fetch(url); const j=await r.json();
@@ -122,10 +139,11 @@
     const paySet=new Set();
     let exposure=0,uv=0,cart=0,pay=0;
     rows.forEach(r=>{
-      const e=Number(r.voronka_prodazh_pokazy_vsego)||0; exposure+=e; if(e>0) expSet.add(r.product_id||r.sku+'@@'+(r.model||''));
+      const key=productKey(r);
+      const e=Number(r.voronka_prodazh_pokazy_vsego)||0; exposure+=e; if(e>0) expSet.add(key);
       const u=Number(r.voronka_prodazh_uv_s_prosmotrom_kartochki_tovara)||0; uv+=u;
-      const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; cart+=c; if(c>0) cartSet.add(r.product_id||r.sku+'@@'+(r.model||''));
-      const p=Number(r.voronka_prodazh_zakazano_tovarov)||0; pay+=p; if(p>0) paySet.add(r.product_id||r.sku+'@@'+(r.model||''));
+      const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; cart+=c; if(c>0) cartSet.add(key);
+      const p=Number(r.voronka_prodazh_zakazano_tovarov)||0; pay+=p; if(p>0) paySet.add(key);
     });
     return {exposure,uv,cart,pay,expProds:expSet.size,cartProds:cartSet.size,payProds:paySet.size};
   }

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>权限管理 · 跨境电商数据分析平台</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="assets/login.css">
+  <link rel="stylesheet" href="assets/theme.css?v=20250811-permissions">
+  <link rel="stylesheet" href="assets/global-theme.css">
+  <style>
+    .permissions-layout { max-width: 960px; margin: 0 auto; padding: 32px 24px; }
+    .permissions-panel { background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:24px;box-shadow:0 10px 30px rgba(15,23,42,0.05); }
+    .permissions-panel h2 { margin-top:0;font-size:22px;color:#111827; }
+    .permissions-list { margin:0;padding-left:20px;color:#374151;line-height:1.7; }
+  </style>
+</head>
+<body class="fm">
+<header class="header">
+  <div class="logo-title">跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li class="ali"><a href="self-operated.html">速卖通</a></li>
+      <li class="amazon"><a href="amazon-overview.html">亚马逊</a></li>
+      <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon"><a href="ozon-detail.html">Ozon</a></li>
+      <li class="independent"><a href="independent-site.html">独立站</a></li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+<main class="permissions-layout">
+  <div class="permissions-panel">
+    <h2>权限管理</h2>
+    <p style="color:#6b7280;">此页面将承载角色矩阵、站点授权与操作审计的管理能力，确保 inventory_manager、ad_manager 等角色仅访问授权模块。</p>
+    <ol class="permissions-list">
+      <li>角色矩阵：同步 rules.json 的默认权限，支持站点级覆盖。</li>
+      <li>站点授权：维护角色与 site_id 的映射，保障跨平台访问控制。</li>
+      <li>审计日志：记录权限变更的操作者、目标和时间，满足合规要求。</li>
+    </ol>
+  </div>
+</main>
+<script src="assets/site-nav.js"></script>
+<script src="assets/login.js"></script>
+</body>
+</html>
