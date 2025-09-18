@@ -50,7 +50,7 @@
 
 ## 3. 应用层次结构
 ### 3.1 前端（展示层）
-- 静态页面部署于 Vercel 的 `/public` 目录，使用共享导航脚本 `public/assets/site-nav.js` 在加载时请求 `/api/site-configs`，自动合并默认站点并插入 Lazada、Shopee 等平台入口，再写入 `localStorage` 供壳层页面读取当前站点。【F:public/assets/site-nav.js†L24-L309】【F:public/assets/site-nav.js†L563-L589】
+- 静态页面部署于 Vercel 的 `/public` 目录，使用共享导航脚本 `public/assets/site-nav.js` 在加载时请求 `/api/site-configs`，自动合并默认站点并插入 Lazada、Shopee 等平台入口，再写入 `localStorage` 供壳层页面读取当前站点；脚本会缓存各平台站点列表并在未选择时自动持久化首个站点 ID（例如站点管理中新建的 `ozon_211440331`），使 Ozon/亚马逊等页面在首轮加载即可携带正确 `siteId`。【F:public/assets/site-nav.js†L24-L309】【F:public/assets/site-nav.js†L563-L589】
 - 各页面遵循统一主题（`assets/theme.css`），通过 Hash/Tab 管理多模块视图，为后续 React/TailAdmin 迁移保留 DOM ID。
 - `admin.html` 作为全局管理后台，集成站点配置、权限矩阵与 `/api/site-sync` 的执行入口，新建站点时按平台预置 Lazada/Shopee/TikTok/Temu 模板并自动触发同步。【F:public/admin.html†L1-L420】
 
@@ -76,6 +76,7 @@
 - **核心目标**：记录多平台订单、物流成本、结算状态，支撑订单漏斗、客单价与利润分析。
 - **关键实体**：`orders`（订单头，内含物流费用、成本、结算字段）、`order_items`（商品明细）、`customers`（客户档案）、`inventory_movements`（引用出入库记录）。
 - **数据来源**：平台 API（如 速卖通订单报表、亚马逊 SP-API、Ozon Seller API `/api/ozon/orders`）及人工 Excel 导入。
+- **站点注册**：`/api/ozon/orders` 在落库前会根据传入 `siteId` 自动将 `site_configs` 中的配置写入 `sites` 表，以满足订单外键约束；因此站点管理中的站点 ID 应与平台账号编号对齐（如 Ozon 控制台的 `Ozon ID 211440331`），否则接口会返回缺失列表提示补录。
 - **业务流程**：导入 → 标准化 SKU/站点 → 写入订单与明细 → 同步 `inventory_movements` → 更新订单状态（下单/发货/签收/完成）。
 - **页面规划**：每个站点的“订单中心”在左侧导航中作为独立模块出现，模块内的筛选器、表格与详情抽屉不与运营/产品共享状态，通过 `/api/orders` 提供站点隔离的数据源。
 

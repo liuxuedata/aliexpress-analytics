@@ -9,14 +9,21 @@ const {
   syncOzonOrders
 } = require('../lib/ozon-orders');
 
-function createSupabaseStub({ sites = ['ozon_main'] } = {}) {
+function createSupabaseStub({ sites = ['ozon_main'], siteConfigs = [] } = {}) {
   const state = {
     upserts: [],
     deleted: [],
     insertedItems: [],
     queryData: [],
     siteQueries: [],
-    sites: new Set(sites)
+    configQueries: [],
+    sites: new Set(sites),
+    siteUpserts: [],
+    siteConfigs: new Map(
+      (siteConfigs || [])
+        .filter(cfg => cfg && cfg.id)
+        .map(cfg => [cfg.id, { ...cfg }])
+    )
   };
 
   const builder = {
@@ -83,6 +90,32 @@ function createSupabaseStub({ sites = ['ozon_main'] } = {}) {
                     const data = values
                       .filter(value => state.sites.has(value))
                       .map(id => ({ id }));
+                    return Promise.resolve({ data, error: null });
+                  }
+                };
+              },
+              upsert(rows) {
+                state.siteUpserts.push(...rows);
+                rows.forEach(row => {
+                  if (row?.id) {
+                    state.sites.add(row.id);
+                  }
+                });
+                return Promise.resolve({ data: rows, error: null });
+              }
+            };
+          }
+
+          if (table === 'site_configs') {
+            return {
+              select() {
+                return {
+                  in(_, values) {
+                    state.configQueries.push(values);
+                    const data = values
+                      .map(value => state.siteConfigs.get(value))
+                      .filter(Boolean)
+                      .map(record => ({ ...record }));
                     return Promise.resolve({ data, error: null });
                   }
                 };
@@ -316,4 +349,62 @@ test('syncOzonOrders surfaces missing site configuration before writing', async 
       return true;
     }
   );
+});
+
+test('syncOzonOrders auto registers site metadata from site_configs', async () => {
+  const siteId = 'ozon_211440331';
+  const postings = [{
+    posting_number: 'OZ-6001',
+    status: 'delivered',
+    created_at: '2024-09-22T08:00:00Z',
+    analytics_data: { revenue: 80, currency_code: 'RUB', delivery_amount: 5 },
+    financial_data: {
+      posting_is_paid: true,
+      posting_services: { marketplace_service_item_fulfillment: 3 },
+      products: [
+        { sku: 'SKU-6001', name: 'Auto Site Item', quantity: 1, price: 80, total_price: 80, cost_price: 40 }
+      ]
+    }
+  }];
+
+  const fetchImpl = async (url) => ({
+    ok: true,
+    status: 200,
+    text: async () => JSON.stringify({ result: { postings: url.includes('/fbs/') ? postings : [] } })
+  });
+
+  const supabase = createSupabaseStub({
+    sites: [],
+    siteConfigs: [
+      {
+        id: siteId,
+        name: '211440331',
+        display_name: 'Ozon 主站',
+        platform: 'ozon',
+        is_active: true
+      }
+    ]
+  });
+
+  const { summary } = await syncOzonOrders({
+    fetchImpl,
+    supabase,
+    creds: { clientId: 'id', apiKey: 'key' },
+    siteId,
+    from: '2024-09-20T00:00:00.000Z',
+    to: '2024-09-22T23:59:59.999Z',
+    limit: 20,
+    shouldSync: true
+  });
+
+  assert.equal(summary.persisted, 1);
+  assert.ok(supabase.state.sites.has(siteId));
+  assert.equal(supabase.state.siteUpserts.length, 1);
+  assert.deepEqual(supabase.state.siteUpserts[0], {
+    id: siteId,
+    name: '211440331',
+    display_name: 'Ozon 主站',
+    platform: 'ozon',
+    is_active: true
+  });
 });

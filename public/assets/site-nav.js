@@ -48,7 +48,8 @@
     return {
       id,
       name: site.name || id,
-      display_name: displayName
+      display_name: displayName,
+      platform: site.platform || null
     };
   }
 
@@ -99,13 +100,44 @@
 
   function getPlatformSiteSelection(platform, fallback = {}) {
     if (!platform) return null;
-    const id = localStorage.getItem(`currentSiteId:${platform}`) || fallback.id || null;
-    const name = localStorage.getItem(`currentSiteName:${platform}`) || fallback.name || fallback.display_name || null;
-    if (!id && !name) return null;
-    return {
-      id,
-      name: name || id || null
-    };
+    const storedId = localStorage.getItem(`currentSiteId:${platform}`);
+    const storedName = localStorage.getItem(`currentSiteName:${platform}`);
+
+    if (storedId || storedName) {
+      const resolvedId = storedId || fallback.id || null;
+      const resolvedName = storedName || fallback.name || fallback.display_name || resolvedId;
+      if (!resolvedId && !resolvedName) return null;
+      return { id: resolvedId, name: resolvedName || resolvedId || null };
+    }
+
+    const platformSites = Array.isArray(siteConfigsCache)
+      ? siteConfigsCache
+          .filter(site => site?.platform === platform)
+          .map(normalizeSiteConfig)
+          .filter(Boolean)
+      : [];
+
+    if (platformSites.length) {
+      const first = platformSites[0];
+      const id = first.id;
+      const name = first.display_name || first.name || id;
+      if (id) {
+        localStorage.setItem(`currentSiteId:${platform}`, id);
+      }
+      if (name) {
+        localStorage.setItem(`currentSiteName:${platform}`, name);
+      }
+      return { id, name: name || id || null };
+    }
+
+    if (!fallback.id && !fallback.name && !fallback.display_name) {
+      return null;
+    }
+
+    const fallbackId = fallback.id || null;
+    const fallbackName = fallback.name || fallback.display_name || fallbackId;
+    if (!fallbackId && !fallbackName) return null;
+    return { id: fallbackId, name: fallbackName || fallbackId || null };
   }
 
   function notifyPlatformSelection(platform) {

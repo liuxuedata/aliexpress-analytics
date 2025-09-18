@@ -93,7 +93,8 @@
 (function(){
   const platform = 'ozon';
   const fallbackSite = { id: 'ozon_main', name: 'Ozon 主站' };
-  const state = { loading: false };
+  const state = { loading: false, hasLoadedOnce: false };
+  let initialLoadTimer = null;
 
   const elements = {
     form: document.getElementById('ordersFilters'),
@@ -254,6 +255,9 @@
 
   async function loadOrders({ sync } = { sync: true }) {
     if (state.loading) return;
+    if (!state.hasLoadedOnce) {
+      state.hasLoadedOnce = true;
+    }
     const site = getSiteSelection();
     const params = new URLSearchParams();
     params.set('siteId', site.id);
@@ -296,7 +300,16 @@
     ensureDefaultDates();
     updateSiteLabel();
     renderEmpty('正在准备查询条件...');
-    loadOrders({ sync: true });
+    const selection = getSiteSelection();
+    if (selection.id && selection.id !== fallbackSite.id) {
+      loadOrders({ sync: true });
+    } else {
+      initialLoadTimer = setTimeout(() => {
+        if (!state.hasLoadedOnce) {
+          loadOrders({ sync: true });
+        }
+      }, 1200);
+    }
   }
 
   if (elements.form) {
@@ -312,6 +325,13 @@
 
   document.addEventListener('menus-updated', () => {
     updateSiteLabel();
+    if (initialLoadTimer) {
+      clearTimeout(initialLoadTimer);
+      initialLoadTimer = null;
+    }
+    if (!state.hasLoadedOnce) {
+      loadOrders({ sync: true });
+    }
   });
 
   document.addEventListener('site-selection-changed', event => {
