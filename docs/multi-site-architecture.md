@@ -127,6 +127,12 @@ CREATE TABLE public.platform_metric_profiles (
 - 通过 `site_module_configs.visible_roles` 将模块可见性与权限中心的角色绑定
 - 若 `platform_metric_profiles` 标记某模块缺少数据源，前端需隐藏该模块或显示“数据待接入”提示
 
+#### Ozon 订单中心表格
+- 入口：`/ozon-orders.html`
+- 功能：展示 Seller API 同步后的订单，默认将商品明细列放在首列（列宽 140px），并聚合订单明细中的数量为“采购件数”列
+- 交互：支持对商品明细、下单时间、状态、结算状态四列进行正序/倒序切换，便于按商品或履约状态定位订单
+- 视觉：商品明细单元格内包含首图、商品名称链接与 SKU 标签，保持与运营数据的产品 ID 对齐
+
 ## 开发任务分工
 
 ### 第一阶段：数据库迁移（已完成）

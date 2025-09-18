@@ -10,8 +10,17 @@
   <link rel="stylesheet" href="assets/global-theme.css">
   <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
   <style>
-    .ozon-product-row { display:flex; justify-content:space-between; align-items:center; gap:12px; }
-    .ozon-product-item { display:flex; align-items:center; gap:12px; min-width:0; }
+    .orders-table { width:100%; }
+    .orders-table th.sortable { cursor:pointer; position:relative; user-select:none; padding-right:18px; }
+    .orders-table th.sortable::after { content:'\2195'; position:absolute; right:6px; color:#9ca3af; font-size:12px; }
+    .orders-table th.sortable[data-sort-direction="asc"]::after { content:'\2191'; color:#2563eb; }
+    .orders-table th.sortable[data-sort-direction="desc"]::after { content:'\2193'; color:#2563eb; }
+    .orders-table th.sortable:focus { outline:2px solid #2563eb; outline-offset:2px; }
+    .orders-table th.product-column,
+    .orders-table td.product-cell { width:140px; min-width:140px; max-width:140px; word-break:break-word; vertical-align:top; }
+    .orders-table td.product-cell { padding-right:12px; }
+    .product-items { display:flex; flex-direction:column; gap:12px; }
+    .ozon-product-item { display:flex; align-items:flex-start; gap:12px; min-width:0; }
     .ozon-product-thumb { width:48px; height:48px; border-radius:10px; object-fit:cover; border:1px solid #e5e7eb; background:#fff; flex-shrink:0; }
     .ozon-product-thumb.placeholder { display:flex; align-items:center; justify-content:center; font-size:11px; color:#9ca3af; border-style:dashed; background:#f9fafb; }
     .ozon-product-text { display:flex; flex-direction:column; gap:4px; min-width:0; }
@@ -83,14 +92,15 @@
       </div>
       <div id="ordersSummary" class="alert" style="display:none;"></div>
       <div class="table-wrapper">
-        <table class="table" style="width:100%">
+        <table class="table orders-table">
           <thead>
             <tr>
+              <th class="product-column sortable" data-sort-key="product" tabindex="0">商品明细</th>
+              <th style="min-width:100px;">采购件数</th>
               <th style="min-width:140px;">订单号 / 站点</th>
-              <th style="min-width:220px;">商品明细</th>
-              <th style="min-width:160px;">下单时间</th>
-              <th>状态</th>
-              <th>结算状态</th>
+              <th class="sortable" data-sort-key="placed_at" tabindex="0" style="min-width:160px;">下单时间</th>
+              <th class="sortable" data-sort-key="status" tabindex="0">状态</th>
+              <th class="sortable" data-sort-key="settlement_status" tabindex="0">结算状态</th>
               <th style="min-width:120px;">实付金额</th>
               <th style="min-width:120px;">物流成本</th>
               <th style="min-width:120px;">采购成本</th>
@@ -98,7 +108,7 @@
           </thead>
           <tbody id="ordersTableBody">
             <tr>
-              <td colspan="8" style="text-align:center;color:#6b7280;">正在读取 Ozon 订单数据...</td>
+              <td colspan="9" style="text-align:center;color:#6b7280;">正在读取 Ozon 订单数据...</td>
             </tr>
           </tbody>
         </table>
@@ -111,7 +121,12 @@
 (function(){
   const platform = 'ozon';
   const fallbackSite = { id: 'ozon_main', name: 'Ozon 主站' };
-  const state = { loading: false, hasLoadedOnce: false };
+  const state = {
+    loading: false,
+    hasLoadedOnce: false,
+    orders: [],
+    sort: { key: null, direction: 'asc' }
+  };
   let initialLoadTimer = null;
 
   const elements = {
@@ -212,7 +227,7 @@
   function renderEmpty(message) {
     if (!elements.tableBody) return;
     const text = message || '当前时间范围内没有可展示的 Ozon 订单。';
-    elements.tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#6b7280;">${escapeHtml(text)}</td></tr>`;
+    elements.tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#6b7280;">${escapeHtml(text)}</td></tr>`;
     updateAggregateDisplay({ count: 0, amount: 0, currency: '' });
   }
 
@@ -279,7 +294,24 @@
     return '';
   }
 
-  function renderOrders(orders) {
+  function getPrimaryProductLabel(order) {
+    const items = Array.isArray(order?.order_items) ? order.order_items : [];
+    if (!items.length) return '';
+    const first = items[0] || {};
+    const name = typeof first.product_name === 'string' ? first.product_name.trim() : '';
+    const sku = typeof first.sku === 'string' ? first.sku.trim() : '';
+    return name || sku || '';
+  }
+
+  function computeProcurementQuantity(items) {
+    if (!Array.isArray(items) || !items.length) return 0;
+    return items.reduce((total, item) => {
+      const value = typeof item?.quantity === 'number' ? item.quantity : Number(item?.quantity);
+      return Number.isFinite(value) ? total + value : total;
+    }, 0);
+  }
+
+  function renderOrdersRows(orders) {
     if (!elements.tableBody) return;
     if (!Array.isArray(orders) || !orders.length) {
       renderEmpty();
@@ -288,8 +320,9 @@
 
     const rows = orders.map(order => {
       const items = Array.isArray(order.order_items) ? order.order_items : [];
+      const procurementQty = computeProcurementQuantity(items);
       const itemHtml = items.length
-        ? items.map(item => {
+        ? `<div class="product-items">${items.map(item => {
             const name = escapeHtml(item.product_name || item.sku || '商品');
             const link = buildProductLink(item);
             const nameContent = link
@@ -300,12 +333,8 @@
             const thumb = imageUrl
               ? `<img class="ozon-product-thumb" src="${imageUrl}" alt="${name}">`
               : `<div class="ozon-product-thumb placeholder">无图</div>`;
-            const qty = typeof item.quantity === 'number' ? item.quantity : Number(item.quantity) || 0;
-            const qtyLabel = `<span style="color:#6b7280;">×${qty}</span>`;
-            return `<div class="ozon-product-row">` +
-              `<div class="ozon-product-item">${thumb}<div class="ozon-product-text">${nameContent}${skuText ? skuText : ''}</div></div>` +
-              `${qtyLabel}</div>`;
-          }).join('')
+            return `<div class="ozon-product-item">${thumb}<div class="ozon-product-text">${nameContent}${skuText ? skuText : ''}</div></div>`;
+          }).join('')}</div>`
         : '<span style="color:#9ca3af;">暂无明细</span>';
 
       const statusLabel = STATUS_LABELS[order.status] || order.status || '—';
@@ -313,13 +342,15 @@
         ? (SETTLEMENT_LABELS[order.settlement_status] || order.settlement_status)
         : '—';
       const settlementDate = order.settlement_date ? `<div style="color:#6b7280;font-size:12px;">${escapeHtml(order.settlement_date)}</div>` : '';
+      const quantityText = Number.isFinite(procurementQty) && procurementQty > 0 ? procurementQty : '—';
 
       return `<tr>
+        <td class="product-cell">${itemHtml}</td>
+        <td style="text-align:center;font-weight:600;">${quantityText}</td>
         <td>
           <div style="font-weight:600;">${escapeHtml(order.order_no)}</div>
           <div style="color:#6b7280;font-size:12px;">${escapeHtml(order.site_id || '')}</div>
         </td>
-        <td>${itemHtml}</td>
         <td>${formatDateTime(order.placed_at)}</td>
         <td>${escapeHtml(statusLabel)}</td>
         <td>${escapeHtml(settlementText)}${settlementDate}</td>
@@ -330,7 +361,72 @@
     }).join('');
 
     elements.tableBody.innerHTML = rows;
-    updateAggregateDisplay(computeAggregates(orders));
+  }
+
+  function getOrderTime(order) {
+    const time = order?.placed_at ? new Date(order.placed_at).getTime() : NaN;
+    return Number.isFinite(time) ? time : 0;
+  }
+
+  const sortComparators = {
+    product: (a, b) => getPrimaryProductLabel(a).localeCompare(getPrimaryProductLabel(b), 'zh-Hans-CN'),
+    placed_at: (a, b) => getOrderTime(a) - getOrderTime(b),
+    status: (a, b) => (a?.status || '').localeCompare(b?.status || '', 'zh-Hans-CN'),
+    settlement_status: (a, b) => (a?.settlement_status || '').localeCompare(b?.settlement_status || '', 'zh-Hans-CN')
+  };
+
+  function applySortAndRender() {
+    if (!Array.isArray(state.orders) || !state.orders.length) {
+      renderEmpty();
+      updateSortIndicators();
+      return;
+    }
+
+    const sorted = [...state.orders];
+    const { key, direction } = state.sort;
+    if (key && sortComparators[key]) {
+      const multiplier = direction === 'desc' ? -1 : 1;
+      sorted.sort((a, b) => {
+        const result = sortComparators[key](a, b);
+        if (Number.isNaN(result)) return 0;
+        return result * multiplier;
+      });
+    }
+
+    renderOrdersRows(sorted);
+    updateSortIndicators();
+  }
+
+  function updateSortIndicators() {
+    const headers = document.querySelectorAll('th[data-sort-key]');
+    headers.forEach(header => {
+      if (!header.dataset) return;
+      header.dataset.sortDirection = header.dataset.sortKey === state.sort.key ? state.sort.direction : '';
+    });
+  }
+
+  function setSort(key) {
+    if (!key || !sortComparators[key]) return;
+    if (state.sort.key === key) {
+      state.sort.direction = state.sort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+      state.sort.key = key;
+      state.sort.direction = 'asc';
+    }
+    applySortAndRender();
+  }
+
+  function attachSortHandlers() {
+    const headers = document.querySelectorAll('th[data-sort-key]');
+    headers.forEach(header => {
+      header.addEventListener('click', () => setSort(header.dataset.sortKey));
+      header.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          setSort(header.dataset.sortKey);
+        }
+      });
+    });
   }
 
   async function loadOrders({ sync } = { sync: true }) {
@@ -353,13 +449,14 @@
       const payload = await response.json();
 
       if (!response.ok || !payload?.success) {
+        state.orders = [];
         const msg = payload?.message || `请求失败（HTTP ${response.status}）`;
         renderEmpty('加载订单失败，稍后再试。');
         showSummary(`Ozon 订单同步失败：${msg}`, 'error');
         return;
       }
 
-      renderOrders(payload.data?.orders || []);
+      setOrders(payload.data?.orders || []);
 
       const syncMeta = payload.data?.sync || {};
       const persisted = typeof syncMeta.persisted === 'number'
@@ -369,11 +466,22 @@
       showSummary(summaryText, 'success');
     } catch (error) {
       console.error('加载 Ozon 订单失败', error);
+      state.orders = [];
       renderEmpty('请求出错，稍后再试。');
       showSummary(`Ozon 订单同步异常：${error.message}`, 'error');
     } finally {
       setLoading(false);
     }
+  }
+
+  function setOrders(orders) {
+    state.orders = Array.isArray(orders) ? orders : [];
+    if (!state.orders.length) {
+      renderEmpty();
+      return;
+    }
+    updateAggregateDisplay(computeAggregates(state.orders));
+    applySortAndRender();
   }
 
   function init() {
@@ -402,6 +510,8 @@
   if (elements.refreshBtn) {
     elements.refreshBtn.addEventListener('click', () => loadOrders({ sync: false }));
   }
+
+  attachSortHandlers();
 
   document.addEventListener('menus-updated', () => {
     updateSiteLabel();

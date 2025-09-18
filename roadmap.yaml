@@ -110,6 +110,7 @@ execution_plan:
         - /api/site-modules Serverless 函数与单元测试
         - orders/order_items/customers/inventory/inventory_movements 表及迁移脚本
         - 自运营/全托管/独立站导航改造与订单中心 MVP 页面
+        - Ozon 订单中心前端支持商品列置顶、采购件数统计与多列排序，提升履约核对效率
         - site_module_configs 迁移脚本 & QA 回归脚本
     sprint_2:
       timeframe: 2025-01-29 ~ 2025-02-15
