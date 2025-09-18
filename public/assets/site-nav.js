@@ -97,10 +97,36 @@
     return siteConfigsCache;
   }
 
+  function getPlatformSiteSelection(platform, fallback = {}) {
+    if (!platform) return null;
+    const id = localStorage.getItem(`currentSiteId:${platform}`) || fallback.id || null;
+    const name = localStorage.getItem(`currentSiteName:${platform}`) || fallback.name || fallback.display_name || null;
+    if (!id && !name) return null;
+    return {
+      id,
+      name: name || id || null
+    };
+  }
+
+  function notifyPlatformSelection(platform) {
+    if (!platform) return;
+    const selection = getPlatformSiteSelection(platform) || {};
+    document.dispatchEvent(new CustomEvent('site-selection-changed', {
+      detail: { platform, selection }
+    }));
+  }
+
   function storePlatformSelection(platform, site) {
     if (!platform || !site) return;
-    localStorage.setItem(`currentSiteId:${platform}`, site.id);
-    localStorage.setItem(`currentSiteName:${platform}`, site.display_name || site.name || site.id);
+    const id = site.id || site.name || site.display_name;
+    const displayName = site.display_name || site.name || site.domain || id;
+    if (id) {
+      localStorage.setItem(`currentSiteId:${platform}`, id);
+    }
+    if (displayName) {
+      localStorage.setItem(`currentSiteName:${platform}`, displayName);
+    }
+    notifyPlatformSelection(platform);
   }
 
   function ensureSiteDefaults(platform, sites) {
@@ -587,6 +613,18 @@
   window.renderSiteMenus = bootstrapSiteMenus;
   window.refreshSiteMenus = (forceReload = false) => bootstrapSiteMenus(forceReload);
   window.updateCurrentSiteDisplay = updateCurrentSiteDisplay;
+  window.getPlatformSiteSelection = getPlatformSiteSelection;
+
+  window.addEventListener('storage', event => {
+    if (!event.key) return;
+    if (event.key.startsWith('currentSiteId:') || event.key.startsWith('currentSiteName:')) {
+      const parts = event.key.split(':');
+      const platformKey = parts[1];
+      if (platformKey) {
+        notifyPlatformSelection(platformKey);
+      }
+    }
+  });
 
   function ensureAdminLink() {
     const platformNav = document.querySelector('.platform-nav');

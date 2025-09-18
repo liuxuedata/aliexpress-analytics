@@ -35,7 +35,7 @@
     },
     "environment": {
       "lazada": "必须在部署环境中配置 LAZADA_APP_KEY、LAZADA_APP_SECRET、LAZADA_REDIRECT_URI，且回调固定为 https://aliexpress-analytics.vercel.app/api/lazada/oauth/callback，与 Lazada 控制台保持一致。",
-      "ozon": "OZON_CLIENT_ID 与 OZON_API_KEY 必须通过环境变量提供给 /api/ozon/fetch，写入的数据需与 orders/ad 模块共享 product_id。",
+      "ozon": "OZON_CLIENT_ID 与 OZON_API_KEY 必须通过环境变量提供给 /api/ozon/fetch 与 /api/ozon/orders，后者还需配置 SUPABASE_URL 与 SUPABASE_SERVICE_ROLE_KEY 以写入 orders/order_items，并保证 product_id/sku 与运营数据一致。",
       "secrets": "site_configs.config_json 只可存放非敏感配置，任何密钥或 token 必须使用环境变量或受保护的凭据存储。"
     }
   },

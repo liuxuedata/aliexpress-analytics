@@ -161,7 +161,7 @@ CREATE TABLE public.dynamic_tables (
 
 ### 5. 外部授权与环境变量约束
 - Lazada：所有站点授权必须通过 `/api/lazada/oauth/callback` 完成，环境变量 `LAZADA_APP_KEY`、`LAZADA_APP_SECRET`、`LAZADA_REDIRECT_URI` 由 Vercel 管理，回调地址需指向 `https://aliexpress-analytics.vercel.app/api/lazada/oauth/callback` 并与 Lazada 控制台一致。授权响应中的访问/刷新令牌需写入安全存储（如 Supabase Vault），不落地在 `site_configs.config_json`。
-- Ozon：`OZON_CLIENT_ID`、`OZON_API_KEY` 用于 `/api/ozon/fetch` 定时拉取运营指标，为订单与广告模块提供产品 ID 维度的统一数据源，站点配置仅保存非敏感元数据。
+- Ozon：`OZON_CLIENT_ID`、`OZON_API_KEY` 同时供 `/api/ozon/fetch` 与 `/api/ozon/orders` 使用；后者还需在 Serverless 端配置 `SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY` 以将 Seller API 返回的订单写入 `orders`、`order_items`，站点配置仅保存非敏感元数据。
 
 ### 6. 使用流程
 

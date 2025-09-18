@@ -18,7 +18,7 @@
 | 独立站 | icyberite.com | `public/independent-site.html` | 渠道分析 / 产品分析 / 广告中心（TikTok/Facebook） | ✅ 运营数据 | `/api/independent/stats` | `/api/independent/facebook-ingest`, `/api/independent/tiktok-ingest` | Facebook/TikTok Ads |
 | 独立站 | 新增站点（Facebook/Google） | 统一入口 | 运营 / 产品 / 广告（订单中心待接入） | ⏳ 规划中 | `/api/independent/stats` | 对应 ingest 扩展 | 通过站点配置管理 |
 | 亚马逊 | Marketplace 汇总 | `public/amazon-overview.html` | 运营 / 产品 / 订单（广告中心预留） | ✅ 运营数据 | `/api/amazon/query` | `/api/amazon/upsert` | 支持 SP-API 报表创建 |
-| Ozon | Product Report | `public/ozon-detail.html` | 运营 / 产品 / 上传（订单、广告模块直接调用官方 API） | ✅ 运营数据 + 官方订单/广告 API | `/api/ozon/stats`、`/api/ozon/fetch`（运营） | `/api/ozon/import`、Ozon 订单/广告 API | 多视图模板，保持产品 ID 链路一致 |
+| Ozon | Product Report | `public/ozon-detail.html` | 运营 / 产品 / 上传（订单模块通过 `/api/ozon/orders` 调用 Seller API，广告模块预留官方接口） | ✅ 运营数据 + 官方订单 API | `/api/ozon/stats`、`/api/ozon/fetch`（运营） | `/api/ozon/import`、`/api/ozon/orders`（订单） | 多视图模板，保持产品 ID 链路一致 |
 | Temu | 占位页 | `public/temu.html` | 运营 / 产品 / 订单 / 广告（待启用） | ⏳ 等待接口 | 待规划 | 待规划 | 需接入订单/广告模块 |
 | TikTok Shop | 占位页 | `public/tiktok.html` | 运营 / 产品 / 广告（订单占位） | ⏳ 等待接口 | `/api/independent/stats?channel=tiktok` 扩展 | `/api/independent/tiktok-ingest` 扩展 | 需补齐店播/短视频指标 |
 | 广告中心 | 所有站点 | 新增仪表盘（待建） | 全局设置（仅广告角色可见） | ⏳ 规划中 | `/api/ads/stats`（见规格） | `/api/ads/ingest`（见规格） | 统一广告管理 |
@@ -33,7 +33,7 @@
 - `public/site-management.html`：站点配置与动态站点注册表单，支持新增 Lazada/Shopee 等平台。
 - `public/independent-site.html`：独立站多渠道分析，支持渠道切换及列显隐。
 - `public/amazon-overview.html`、`public/amazon-ads.html`：亚马逊运营与广告视图。
-- `public/ozon-detail.html` 系列：Ozon 指标与报表上传，订单中心/广告中心子页面直接通过 Ozon 官方 API 下发订单与广告报表后渲染，保持与运营数据的产品 ID 对齐。【F:api/ozon/fetch/index.js†L1-L160】
+- `public/ozon-detail.html` 系列：Ozon 指标与报表上传，订单中心子页面通过 `/api/ozon/orders` 调用 Seller API 下发订单头与明细，保持与运营数据的产品 ID 对齐；广告中心仍预留官方广告 API 接入。【F:api/ozon/orders/index.js†L1-L117】【F:api/ozon/fetch/index.js†L1-L160】
 - `public/temu.html`、`public/tiktok.html`：统一导航和布局已接入，等待数据接口与左侧模块配置下发。
 - `public/lazada.html`、`public/shopee.html`：为 Lazada、Shopee 预置站点壳层，沿用五大模块并依赖 `assets/platform-page.js` 同步导航写入的站点名称与标题。【F:public/lazada.html†L1-L88】【F:public/shopee.html†L1-L88】【F:public/assets/platform-page.js†L1-L54】
 
@@ -75,7 +75,7 @@
 ### 4.2 订单管理域
 - **核心目标**：记录多平台订单、物流成本、结算状态，支撑订单漏斗、客单价与利润分析。
 - **关键实体**：`orders`（订单头，内含物流费用、成本、结算字段）、`order_items`（商品明细）、`customers`（客户档案）、`inventory_movements`（引用出入库记录）。
-- **数据来源**：平台 API（如 速卖通订单报表、亚马逊 SP-API、Ozon 订单导出）及人工 Excel 导入。
+- **数据来源**：平台 API（如 速卖通订单报表、亚马逊 SP-API、Ozon Seller API `/api/ozon/orders`）及人工 Excel 导入。
 - **业务流程**：导入 → 标准化 SKU/站点 → 写入订单与明细 → 同步 `inventory_movements` → 更新订单状态（下单/发货/签收/完成）。
 - **页面规划**：每个站点的“订单中心”在左侧导航中作为独立模块出现，模块内的筛选器、表格与详情抽屉不与运营/产品共享状态，通过 `/api/orders` 提供站点隔离的数据源。
 

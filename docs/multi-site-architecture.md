@@ -97,6 +97,7 @@ CREATE TABLE public.platform_metric_profiles (
 - `GET /api/ae_self_operated/stats?site={site}&from={date}&to={date}` - 速卖通自运营数据
 - `GET /api/independent/stats?site={site}&from={date}&to={date}` - 独立站数据
 - `POST /api/ozon/fetch` - 调用 Ozon Analytics API，将最新曝光、加购、订单等指标写入统一宽表供 Ozon 子模块查询
+- `GET /api/ozon/orders` - 以 `siteId`、`from`、`to` 为查询条件，可选择同步 Ozon Seller API（FBS/FBO）并将订单落入 `orders`、`order_items`，响应返回同步摘要与订单明细
 - 所有运营接口均需返回 `metadata.availableFields` 与 `metadata.missingFields`，以反映 `platform_metric_profiles` 中定义的字段差异
 
 ### 3. 前端功能

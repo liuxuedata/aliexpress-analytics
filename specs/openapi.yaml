@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Cross-border Commerce Platform API
-  version: "2025-01-08"
+  version: "2025-01-10"
   description: |
     统一的跨境电商平台 API 规范，涵盖站点管理、运营指标、订单、库存、广告与权限等域。
 servers:
@@ -423,6 +423,97 @@ components:
         - sku
         - quantity
         - unit_price
+    OrderItemLite:
+      type: object
+      properties:
+        id:
+          type: string
+        sku:
+          type: string
+        product_name:
+          type: string
+        quantity:
+          type: integer
+        unit_price:
+          type: number
+        total_price:
+          type: number
+        cost_price:
+          type: number
+      required:
+        - id
+        - sku
+        - product_name
+        - quantity
+        - unit_price
+        - total_price
+    OrderWithItems:
+      allOf:
+        - $ref: '#/components/schemas/Order'
+        - type: object
+          properties:
+            order_items:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderItemLite'
+    DateRange:
+      type: object
+      properties:
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+    OzonOrderSyncSummary:
+      type: object
+      properties:
+        siteId:
+          type: string
+        fetched:
+          type: integer
+        persisted:
+          type: integer
+        types:
+          type: object
+          properties:
+            fbs:
+              type: integer
+            fbo:
+              type: integer
+        range:
+          $ref: '#/components/schemas/DateRange'
+      required:
+        - siteId
+        - fetched
+        - persisted
+        - types
+        - range
+    OzonOrdersResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                orders:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/OrderWithItems'
+                sync:
+                  $ref: '#/components/schemas/OzonOrderSyncSummary'
+            metadata:
+              type: object
+              properties:
+                siteId:
+                  type: string
+                range:
+                  $ref: '#/components/schemas/DateRange'
+                count:
+                  type: integer
+                limit:
+                  type: integer
     InventoryRecord:
       type: object
       properties:
@@ -1304,6 +1395,40 @@ paths:
       responses:
         '200':
           description: 上传结果
+  /api/ozon/orders:
+    get:
+      tags: [Orders]
+      summary: 同步并查询 Ozon 订单
+      parameters:
+        - name: siteId
+          in: query
+          description: Ozon 站点 ID，默认为 ozon_main。
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/paginationLimit'
+        - name: sync
+          in: query
+          description: 是否立即调用 Ozon Seller API 并写入 orders/order_items。
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Ozon 订单数据
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OzonOrdersResponse'
   /api/orders:
     get:
       tags: [Orders]
