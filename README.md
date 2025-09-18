@@ -58,7 +58,7 @@
 | `managed.html` | 速卖通全托管与跨平台导航（亚马逊、TikTok、Temu、Ozon、独立站等） | 顶部 `platform-nav` 列出多平台入口，左侧模块扩展为“详细数据/运营分析/产品分析/订单中心/广告中心” | `/api/stats`、`/api/managed/daily-totals`、`/api/ingest`【F:public/managed.html†L20-L137】【F:public/managed.html†L221-L260】 |
 | `independent-site.html` | 独立站 Facebook/Google/TikTok 渠道运营分析 | 侧边栏同样包含五个模块锚点，分别承载渠道明细、运营分析、产品分析以及订单/广告占位 | `/api/independent/stats`、`/api/independent/*-ingest`【F:public/independent-site.html†L697-L759】【F:public/independent-site.html†L805-L852】 |
 | `amazon-overview.html` | 亚马逊运营与广告概览 | 单页内通过 Hash 切换“详细数据/运营分析/产品分析/订单中心/广告中心”，旧 `amazon-ads.html` 自动重定向至广告分栏 | `/api/amazon/query`、`/api/amazon/upsert`【F:public/amazon-overview.html†L104-L215】【F:public/amazon-ads.html†L1-L35】 |
-| `ozon-*.html` | Ozon 报表上传与多指标分析 | 明细/运营/产品页面均补充订单与广告入口，并新增 `ozon-orders.html`、`ozon-advertising.html` 提供占位说明 | `/api/ozon/stats`、`/api/ozon/import`【F:public/ozon-detail.html†L40-L78】【F:public/ozon-orders.html†L1-L68】 |
+| `ozon-*.html` | Ozon 官方 API 数据面板 | 明细/运营/产品页面扩展订单与广告模块，并通过后台直连 Ozon API 渲染 `ozon-orders.html`、`ozon-advertising.html` | `/api/ozon/stats`（运营），Ozon 官方 API（订单、广告数据回传）【F:public/ozon-detail.html†L40-L78】【F:public/ozon-orders.html†L1-L68】 |
 | `temu.html` / `tiktok.html` | Temu、TikTok Shop 预置页面，提前暴露五大模块占位 | 继承统一导航与布局，目前展示“建设中”提示，等待站点 API 接入 | —（待实现）【F:public/temu.html†L1-L36】【F:public/tiktok.html†L1-L36】 |
 | `lazada.html` | Lazada 站点壳层，统一承载 Lazada 店铺的流量、订单、库存与广告占位 | 左侧保持五大模块，并由 `platform-page.js` 读取导航写入的站点名称与标题 | —（规划中，待 Lazada API 接入）【F:public/lazada.html†L1-L88】【F:public/assets/platform-page.js†L1-L54】 |
 | `shopee.html` | Shopee 站点壳层，为东南亚多店铺提供统一模块框架 | 同样复用 `platform-page.js`，根据导航选择同步显示当前站点信息 | —（规划中，待 Shopee API 接入）【F:public/shopee.html†L1-L88】【F:public/assets/platform-page.js†L1-L54】 |
@@ -74,7 +74,7 @@
 - **站点管理页 `public/site-management.html`**：轻量化的站点登记入口，表单直接写入 `site_configs` 并调用 `/api/site-sync`，在成功创建后引导管理员前往 `admin.html` 做进一步配置。【F:public/site-management.html†L1-L420】
 - **独立站页 `public/independent-site.html`**：面向 Landing Page 运营分析，侧边栏同步扩展至五大模块，包含渠道选择、时间控件、KPI 卡片与数据明细，并保留列显隐、产品双击跳转等增强交互。【F:public/independent-site.html†L697-L852】
 - **亚马逊总览 `public/amazon-overview.html`**：按 Amazon 指标构建 KPI、趋势图和明细表的总览页，侧边栏新增五大模块并通过 Hash 切换，`amazon-ads.html` 负责重定向到新的广告分栏。【F:public/amazon-overview.html†L104-L215】【F:public/amazon-ads.html†L1-L35】
-- **Ozon 页面集**：`public/ozon-detail.html` 等页面提供上传入口、日期筛选及多图表分栏，并补充订单中心、广告中心入口，新建 `ozon-orders.html`、`ozon-advertising.html` 作为占位页。【F:public/ozon-detail.html†L40-L78】【F:public/ozon-orders.html†L1-L68】
+- **Ozon 页面集**：`public/ozon-detail.html` 等页面在保留历史报表上传入口的同时，新增直连 Ozon 官方 API 的订单中心、广告中心模块，`ozon-orders.html`、`ozon-advertising.html` 将直接展示实时回传结果。【F:public/ozon-detail.html†L40-L78】【F:public/ozon-orders.html†L1-L68】
 - **Temu/TikTok 占位页**：`public/temu.html` 与 `public/tiktok.html` 已接入统一导航与布局，并预留“详细数据/运营分析/产品分析/订单中心/广告中心”五个分栏占位，等待后端接口补齐。【F:public/temu.html†L1-L36】【F:public/tiktok.html†L1-L36】
 - **Lazada/Shopee 壳层**：`public/lazada.html` 与 `public/shopee.html` 复用统一模块布局，并借助 `assets/platform-page.js` 读取导航写入的站点选择、同步页面标题，为后续 Lazada/Shopee API 接入预留占位。【F:public/lazada.html†L1-L88】【F:public/shopee.html†L1-L88】【F:public/assets/platform-page.js†L1-L54】
 - **动态导航脚本 `public/assets/site-nav.js`**：初始化时调用 `/api/site-configs` 合并默认站点，自动插入 Lazada、Shopee 等平台入口，并在点击站点后写入 `localStorage` 供壳层页面显示当前站点名称。【F:public/assets/site-nav.js†L24-L309】【F:public/assets/site-nav.js†L563-L589】
@@ -158,6 +158,7 @@ CREATE INDEX IF NOT EXISTS idx_site_configs_data_source ON public.site_configs(d
 - `POST /api/site-sync`：在站点创建或重命名时同步 `ae_self_operated_daily` 等数据表的 `site` 字段，可在请求体中传入 `siteId`、`oldSiteId`、`action`（`create`/`update`）。【F:api/site-sync/index.js†L1-L111】
 - `GET /api/site-modules`：返回全局默认模块模板与字段覆盖信息，支持通过 `X-User-Role`/`role` 过滤模块可见性。【F:api/site-modules/index.js†L1-L64】
 - `GET /api/site-modules/{siteId}`：按站点合并全局/平台/站点级配置并附带指标字段矩阵，可用 `includeGlobal=false` 仅查看站点自定义部分。【F:api/site-modules/[siteId].js†L1-L229】
+- `GET /api/lazada/oauth/callback`：Lazada OAuth 回调入口，接收 `code`、`state` 等查询参数并回显授权码，同时校验 `LAZADA_*` 环境变量配置是否完整。【F:api/lazada/oauth/callback.js†L1-L63】
 - `PATCH /api/site-modules/{siteId}`：仅限 `super_admin` 调用，用于更新模块排序、启用状态、可见角色、数据源标记及自定义配置，返回最新合并后的配置。【F:api/site-modules/[siteId].js†L118-L209】
 - **平台扩展指引**：`site_configs` 的 `platform` 字段为自由文本，可直接以 `lazada`、`shopee` 等平台名创建新配置；`data_source`/`template_id` 可引用 `data_source_templates` 中的预设映射，必要时通过 `generate_dynamic_table` 创建对应日表结构。【F:site_configuration_framework.sql†L1-L118】
 
@@ -187,6 +188,8 @@ CREATE INDEX IF NOT EXISTS idx_site_configs_data_source ON public.site_configs(d
 ### Ozon
 - `GET /api/ozon/stats`：支持 `date` 或 `start`/`end` 范围，自动探测实际列名并聚合 SKU 指标（展示、访客、加购、下单等）；若未指定日期则返回最新日期列表供选择。【F:api/ozon/stats/index.js†L1-L120】
 - `POST /api/ozon/import`：接收 `file` 字段的报表，执行俄文表头转蛇形、列重映射与必填校验后 upsert 到 `ozon_product_report_wide`，并处理 Schema 缓存刷新。【F:api/ozon/import/index.js†L1-L160】
+- `POST /api/ozon/orders/sync`（规划中）：触发 Serverless 任务直连 Ozon 官方 API，按站点/时间范围抓取订单并写入 `orders`、`order_items`，供订单中心模块实时展示。【F:specs/openapi.yaml†L1506-L1546】
+- `POST /api/ozon/ads/sync`（规划中）：请求 Ozon Advertising API 获取广告系列与日指标，入库至 `ad_campaigns`、`ad_metrics_daily`，驱动广告中心模块。【F:specs/openapi.yaml†L1548-L1603】
 
 ### 模块配置与权限（规划中）
 - `/api/site-modules` 系列接口已上线，可按站点读取或更新模块顺序、可见角色与字段覆盖；请求需携带 `X-User-Role` 头以按角色过滤返回结果，规则详见 `rules.json`。【F:specs/openapi.yaml†L576-L653】【F:rules.json†L8-L76】【F:api/site-modules/[siteId].js†L1-L229】
@@ -419,7 +422,14 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
 # 其他配置
 TEMP=/tmp  # 临时文件目录
+
+# Lazada OAuth
+LAZADA_APP_KEY=your_lazada_app_key
+LAZADA_APP_SECRET=your_lazada_app_secret
+LAZADA_REDIRECT_URI=https://aliexpress-analytics.vercel.app/api/lazada/oauth/callback
 ```
+
+> ⚠️ Vercel 环境变量面板中请同时为 Preview/Production 填写 `LAZADA_APP_KEY`、`LAZADA_APP_SECRET` 与 `LAZADA_REDIRECT_URI`，其中回调地址固定为 `/api/lazada/oauth/callback`，回调接口会校验配置并回显授权码，供后端交换访问令牌使用。【F:api/lazada/oauth/callback.js†L1-L63】
 
 ## 部署说明
 

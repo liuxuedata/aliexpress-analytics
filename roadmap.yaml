@@ -7,12 +7,15 @@ v1:
     - 上线运营指标统一模型（site_metrics_daily）与 Temu/TikTok 运营数据接入
     - 启动订单中心 MVP：订单导入、订单列表、状态流转
     - 交付站点左侧模块配置（site_module_configs）与字段覆盖矩阵（platform_metric_profiles）
+    - 完成 Lazada OAuth 回调与 Ozon 官方 API 同步任务的后端铺设
   deliverables:
     - 更新站点管理页面支持平台筛选与权限开关
     - 发布 admin.html 管理后台（站点配置 + 权限矩阵 + 同步工具）
     - 实现 /api/orders (GET/POST) 与 /api/orders/import dry_run
     - 扩展 /api/ae_upsert 以支持 Lazada/Shopee 字段映射
     - 新增 /api/site-modules (GET/PATCH) 及默认模块模板，附带 availableFields 元数据
+    - 上线 /api/lazada/oauth/callback 并记录授权回调流程
+    - 设计 /api/ozon/orders/sync 与 /api/ozon/ads/sync Serverless connector（含 OpenAPI 草案）
   metrics:
     - 站点运营数据覆盖率 ≥ 6 个站点
     - 订单导入成功率 ≥ 95%

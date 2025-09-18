@@ -4,7 +4,8 @@
     "platforms": {
       "description": "站点必须通过 site-configs 注册，platform 字段使用小写蛇形命名，例如 ae_self_operated、ae_managed、amazon、ozon、temu、tiktok、independent、lazada、shopee。",
       "dataSources": "data_source 字段需使用标准值（ae_api、managed_report、google_ads、facebook_ads、tiktok_ads、tiktok_shop_api、amazon_sp_api、amazon_ads、ozon_api、ozon_report、temu_report、temu_api、lazada_api、lazada_ads、shopee_api、shopee_ads、ebay_report、custom），并在 specs/openapi.yaml 中同步更新。",
-      "enforceSiteSync": "新增站点后必须调用 /api/site-sync 并更新 specs/openapi.yaml 中的站点列表。"
+      "enforceSiteSync": "新增站点后必须调用 /api/site-sync 并更新 specs/openapi.yaml 中的站点列表。",
+      "ozonOfficialApi": "Ozon 平台的订单与广告模块必须通过官方 API 获取数据，允许保留报表上传作为兜底方案，但前端展示须以 API 返回为准。"
     },
     "modules": {
       "required": [
@@ -42,6 +43,9 @@
     },
     "responses": "接口返回 JSON，统一字段 { success:boolean, message?:string, data?:object }，分页使用 { items:[], total:number, limit:number, offset:number }。",
     "metadata": "所有运营、产品、广告查询接口需要在响应中携带 metadata.availableFields 与 metadata.missingFields，并在 specs/openapi.yaml 的 x-field-availability 中声明平台差异。",
+    "oauth": {
+      "lazada": "Lazada OAuth 回调固定为 /api/lazada/oauth/callback，必须校验 LAZADA_APP_KEY/SECRET/REDIRECT_URI 环境变量并仅在后端交换访问令牌。"
+    },
     "errorHandling": "错误码遵循 HTTP 状态码，400 用于参数错误、422 用于业务校验失败、500 为未知错误；错误响应必须包含 traceId。"
   },
   "files": {

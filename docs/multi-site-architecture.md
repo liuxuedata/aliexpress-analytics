@@ -91,11 +91,16 @@ CREATE TABLE public.platform_metric_profiles (
 - `GET /api/site-modules` - 获取全局模块配置与默认顺序，需传入 `X-User-Role` 头或 `role` 查询参数以按角色过滤
 - `GET /api/site-modules/{siteId}` - 获取指定站点的模块启用状态、可见角色与字段覆盖，支持 `includeGlobal` 控制是否合并平台/全局默认
 - `PATCH /api/site-modules/{siteId}` - 更新站点的模块可见性、排序与字段映射，仅 `super_admin` 可写，响应会返回过滤后的最新配置
+- `GET /api/lazada/oauth/callback` - 作为 Lazada 授权回调入口，读取 `code`、`state` 并校验 Vercel 中配置的 `LAZADA_APP_KEY/SECRET/REDIRECT_URI`
 
 #### 数据查询 API
 - `GET /api/ae_self_operated/stats?site={site}&from={date}&to={date}` - 速卖通自运营数据
 - `GET /api/independent/stats?site={site}&from={date}&to={date}` - 独立站数据
 - 所有运营接口均需返回 `metadata.availableFields` 与 `metadata.missingFields`，以反映 `platform_metric_profiles` 中定义的字段差异
+
+#### 平台专属同步 API（规划）
+- `POST /api/ozon/orders/sync` - 触发后台 connector 直连 Ozon 官方 API，按站点拉取订单写入 `orders`、`order_items`
+- `POST /api/ozon/ads/sync` - 同步 Ozon Advertising API 指标，写入 `ad_campaigns`、`ad_metrics_daily`
 
 ### 3. 前端功能
 

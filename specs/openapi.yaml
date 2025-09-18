@@ -743,6 +743,65 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SiteModuleResponse'
+  /api/lazada/oauth/callback:
+    get:
+      tags: [Integrations]
+      summary: Lazada OAuth 回调
+      description: 接收 Lazada 授权返回的 code/state，并在响应中回显授权码与环境变量配置状态。
+      parameters:
+        - name: code
+          in: query
+          schema:
+            type: string
+        - name: state
+          in: query
+          schema:
+            type: string
+        - name: error
+          in: query
+          schema:
+            type: string
+        - name: error_description
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 授权成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          code:
+                            type: string
+                            nullable: true
+                          state:
+                            type: string
+                            nullable: true
+                          env:
+                            type: object
+                            properties:
+                              appKeyConfigured:
+                                type: boolean
+                              appSecretConfigured:
+                                type: boolean
+                              redirectUriConfigured:
+                                type: boolean
+                              redirectUri:
+                                type: string
+                                nullable: true
+        '400':
+          description: 授权失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
   /api/ae_query:
     get:
       tags: [Operations]
@@ -1218,6 +1277,108 @@ paths:
       responses:
         '200':
           description: 上传结果
+  /api/ozon/orders/sync:
+    post:
+      tags: [Orders]
+      summary: Ozon 订单同步（规划）
+      description: 调用 Ozon 官方 API 拉取指定站点的订单与明细，并写入 orders/order_items 表。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [siteId]
+              properties:
+                siteId:
+                  type: string
+                  description: site_configs.id，需配置 platform=ozon。
+                dateFrom:
+                  type: string
+                  format: date-time
+                dateTo:
+                  type: string
+                  format: date-time
+                forceFullSync:
+                  type: boolean
+                  default: false
+      responses:
+        '202':
+          description: 同步任务已排队
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          jobId:
+                            type: string
+                          siteId:
+                            type: string
+                          queuedAt:
+                            type: string
+                            format: date-time
+        '400':
+          description: 参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/ozon/ads/sync:
+    post:
+      tags: [Advertising]
+      summary: Ozon 广告同步（规划）
+      description: 连接 Ozon Advertising API 抓取广告系列与日指标，写入 ad_campaigns/ad_metrics_daily。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [siteId]
+              properties:
+                siteId:
+                  type: string
+                dateFrom:
+                  type: string
+                  format: date-time
+                dateTo:
+                  type: string
+                  format: date-time
+                campaignIds:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '202':
+          description: 广告同步已排队
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          jobId:
+                            type: string
+                          siteId:
+                            type: string
+                          queuedAt:
+                            type: string
+                            format: date-time
+        '400':
+          description: 参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
   /api/orders:
     get:
       tags: [Orders]

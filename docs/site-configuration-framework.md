@@ -18,7 +18,7 @@ CREATE TABLE public.site_configs (
   domain      text,                             -- 域名
   data_source text not null,                    -- 数据源类型：google_ads, facebook_ads, etc.
   template_id text,                             -- 数据模板ID
-  config_json jsonb,                            -- 配置信息（字段映射、API密钥等）
+  config_json jsonb,                            -- 配置信息（字段映射、站点偏好；敏感密钥需存放在环境变量或密钥库）
   is_active   boolean default true,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
@@ -167,6 +167,8 @@ CREATE TABLE public.dynamic_tables (
 3. 系统自动生成配置
 4. 自动创建数据表和API接口
 5. 自动生成页面框架
+
+> Lazada 授权站点需在 Vercel 中配置 `LAZADA_APP_KEY`、`LAZADA_APP_SECRET`、`LAZADA_REDIRECT_URI=https://aliexpress-analytics.vercel.app/api/lazada/oauth/callback`，并通过回调接口验证授权码后再落库。Shopee 等站点同样建议使用环境变量存储敏感凭据。
 
 #### 5.2 数据上传
 1. 选择站点和数据源
