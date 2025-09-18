@@ -1570,19 +1570,26 @@ document.addEventListener('DOMContentLoaded', ()=>{
           visitors: 0,
           add_count: 0,
           pay_items: 0,
+          pay_orders: 0,
           expSet: new Set(),
           addSet: new Set(),
           paySet: new Set()
         });
       }
       const acc = map.get(w);
+      const addCount = r.add_count || 0;
+      const payItems = r.pay_items || 0;
+      const payOrders = r.pay_orders || 0;
+
       acc.exposure += r.exposure || 0;
       acc.visitors += r.visitors || 0;
-      acc.add_count += r.add_people || 0;
-      acc.pay_items += r.pay_items || 0;
+      acc.add_count += addCount;
+      acc.pay_items += payItems;
+      acc.pay_orders += payOrders;
+
       if ((r.exposure || 0) > 0) acc.expSet.add(r.product_id);
-      if ((r.add_people || 0) > 0) acc.addSet.add(r.product_id);
-      if ((r.pay_items || 0) > 0 || (r.pay_orders || 0) > 0) acc.paySet.add(r.product_id);
+      if (addCount > 0) acc.addSet.add(r.product_id);
+      if (payItems + payOrders > 0) acc.paySet.add(r.product_id);
     });
 
     const weeks = Array.from(map.keys()).sort();

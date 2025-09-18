@@ -283,53 +283,60 @@
     computeCards(rows, prevRows, totalCur, totalPrev) {
       function summarize(rs) {
         if (!rs.length) return {vr:0,cr:0,pr:0,total:0,pe:0,pc:0,pp:0};
-        
+
         // 调试：输出前几条数据的字段
         if (rs.length > 0) {
           console.log('KPI计算调试 - 第一条数据字段:', rs[0]);
           console.log('KPI计算调试 - 关键字段值:', {
             exposure: rs[0].exposure,
             visitors: rs[0].visitors,
+            add_people: rs[0].add_people,
             add_count: rs[0].add_count,
+            pay_buyers: rs[0].pay_buyers,
             pay_items: rs[0].pay_items,
-            add_people: rs[0].add_people
+            pay_orders: rs[0].pay_orders
           });
         }
-        
-        // 使用与index.html一致的字段名：add_people 和 pay_buyers
+
+        // 使用与 index.html 一致的字段名，额外跟踪加购/支付次数
         const sum = rs.reduce((a,b) => ({
           exposure: a.exposure + (b.exposure || 0),
           visitors: a.visitors + (b.visitors || 0),
           add_people: a.add_people + (b.add_people || 0),
-          pay_buyers: a.pay_buyers + (b.pay_buyers || 0)
-        }), {exposure:0,visitors:0,add_people:0,pay_buyers:0});
-        
+          add_count: a.add_count + (b.add_count || 0),
+          pay_buyers: a.pay_buyers + (b.pay_buyers || 0),
+          pay_items: a.pay_items + (b.pay_items || 0),
+          pay_orders: a.pay_orders + (b.pay_orders || 0)
+        }), {exposure:0,visitors:0,add_people:0,add_count:0,pay_buyers:0,pay_items:0,pay_orders:0});
+
         console.log('KPI计算调试 - 汇总数据:', sum);
-        
+
         const products = new Map();
         rs.forEach(r => {
           if (!products.has(r.product_id)) {
-            products.set(r.product_id, {exp:0,add:0,pay:0});
+            products.set(r.product_id, { exp:0, addPeople:0, addCount:0, payBuyers:0, payItems:0, payOrders:0 });
           }
           const acc = products.get(r.product_id);
           acc.exp += r.exposure || 0;
-          acc.add += r.add_people || 0;  // 使用 add_people 而不是 add_count
-          acc.pay += r.pay_buyers || 0;  // 使用 pay_buyers 而不是 pay_items
+          acc.addPeople += r.add_people || 0;
+          acc.addCount += r.add_count || 0;
+          acc.payBuyers += r.pay_buyers || 0;
+          acc.payItems += r.pay_items || 0;
+          acc.payOrders += r.pay_orders || 0;
         });
-        
+
         let pe = 0, pc = 0, pp = 0;
         products.forEach(v => {
           if (v.exp > 0) pe++;
-          // 仅统计加购人数大于1的商品
-          if (v.add > 1) pc++;
-          if (v.pay > 0) pp++;
+          if (v.addCount > 0) pc++;
+          if ((v.payItems || 0) + (v.payOrders || 0) > 0) pp++;
         });
-        
+
         // 修复计算逻辑：使用与index.html一致的字段名
         const vr = sum.exposure > 0 ? (sum.visitors / sum.exposure) : 0;
         const cr = sum.visitors > 0 ? (sum.add_people / sum.visitors) : 0;  // 使用 add_people
         const pr = sum.add_people > 0 ? (sum.pay_buyers / sum.add_people) : 0;  // 使用 add_people 和 pay_buyers
-        
+
         console.log('KPI计算调试 - 计算结果:', { vr, cr, pr, total: products.size, pe, pc, pp });
 
         return {vr, cr, pr, total: products.size, pe, pc, pp, newProducts: 0}; // 暂时返回0，后续计算
