@@ -17,7 +17,13 @@
     .orders-table th.sortable[data-sort-direction="desc"]::after { content:'\2193'; color:#2563eb; }
     .orders-table th.sortable:focus { outline:2px solid #2563eb; outline-offset:2px; }
     .orders-table th.product-column,
-    .orders-table td.product-cell { width:140px; min-width:140px; max-width:140px; word-break:break-word; vertical-align:top; }
+    .orders-table td.product-cell {
+      width:140ch;
+      max-width:140ch;
+      min-width:200px;
+      word-break:break-word;
+      vertical-align:top;
+    }
     .orders-table td.product-cell { padding-right:12px; }
     .product-items { display:flex; flex-direction:column; gap:12px; }
     .ozon-product-item { display:flex; align-items:flex-start; gap:12px; min-width:0; }

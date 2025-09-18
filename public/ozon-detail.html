@@ -121,6 +121,21 @@
   let newProducts = [];
   let onlyNew = false;
 
+  function cleanText(value){
+    if(value === null || value === undefined) return '';
+    return typeof value === 'string' ? value.trim() : String(value);
+  }
+
+  function productKey(row){
+    if(!row) return '';
+    const sku = cleanText(row.product_id || row.sku || row.offer_id || '');
+    const model = cleanText(row.model || '');
+    if(sku) return `${sku}@@${model || ''}`;
+    const title = cleanText(row.product_title || row.tovary || '');
+    if(title) return `title:${title}`;
+    return JSON.stringify({ sku, model, title });
+  }
+
   function initTable(){
     if(!table){
       table = $('#report').DataTable({
@@ -184,8 +199,8 @@
       if(!json.ok) throw new Error(json.msg||'查询失败');
       let rows = json.rows || [];
       if(onlyNew && newProducts.length){
-        const idSet = new Set(newProducts.map(p=>`${p.sku}@@${p.model||''}`));
-        rows = rows.filter(r=>idSet.has(`${r.product_id}@@${r.model||''}`));
+        const idSet = new Set(newProducts.map(productKey));
+        rows = rows.filter(r=>idSet.has(productKey(r)));
       }
       const mapped = rows.map(r=>{
         const exposure = Number(r.voronka_prodazh_pokazy_vsego)||0;
