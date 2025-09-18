@@ -528,6 +528,8 @@
       <li><a href="#" class="active" data-target="detail">详细数据</a></li>
       <li><a href="#analysis" data-target="analysis">运营分析</a></li>
       <li><a href="#products" data-target="products">产品分析</a></li>
+      <li><a href="#orders" data-target="orders">订单中心</a></li>
+      <li><a href="#advertising" data-target="advertising">广告中心</a></li>
     </ul>
   </nav>
 
@@ -761,6 +763,44 @@
               <div id="productPayRateChart" style="width:100%;height:260px;"></div>
             </div>
           </div>
+      </section>
+
+      <!-- 订单中心 -->
+      <section id="orders" class="content-pad" style="display:none;">
+        <div class="panel">
+          <h3>订单中心</h3>
+          <p class="notice">订单看板建设中，将汇总订单、客户与结算状态并支持按产品 ID 追溯。</p>
+          <div class="table-wrapper placeholder-table">
+            <table class="display" style="width:100%">
+              <thead>
+                <tr>
+                  <th>订单号</th>
+                  <th>产品 ID</th>
+                  <th>站点</th>
+                  <th>下单时间</th>
+                  <th>状态</th>
+                  <th>支付金额</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="6" style="text-align:center;color:#6b7280;">API 接入中，稍后可在此查看订单指标。</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 广告中心 -->
+      <section id="advertising" class="content-pad" style="display:none;">
+        <div class="panel">
+          <h3>广告中心</h3>
+          <p class="notice">广告数据接入规划中，将展示曝光、点击、加购与支付的归因链路，并支持产品维度联动。</p>
+          <div class="placeholder-chart" style="height:320px;display:flex;align-items:center;justify-content:center;border:1px dashed #d1d5db;border-radius:8px;margin-top:16px;">
+            <span style="color:#9ca3af;">等待广告 API 同步完成后展示趋势图</span>
+          </div>
+        </div>
       </section>
     </div>
   </main>
@@ -2111,6 +2151,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
      initResponsiveChart('productPayRateChart', productPayRateOption);
   }
   
+  const MODULE_IDS = ['detail', 'analysis', 'products', 'orders', 'advertising'];
   const userArea=document.getElementById('userArea');
   function refreshUser(){
     const u=JSON.parse(localStorage.getItem('user')||'null');
@@ -2139,7 +2180,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
        targetLink.classList.add('active');
        
        // 显示对应内容
-       ['detail', 'analysis', 'products'].forEach(id => {
+       MODULE_IDS.forEach(id => {
          const el = document.getElementById(id);
          if (el) el.style.display = (id === hash ? '' : 'none');
        });
@@ -2153,16 +2194,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
            console.log('隐藏KPI卡片');
            uploadSection.style.display = 'none';
            console.log('KPI卡片隐藏后的display值:', uploadSection.style.display);
-         } else {
+         } else if (hash === 'detail' || hash === 'analysis') {
            // 其他页面显示主KPI卡片
            console.log('显示KPI卡片');
            uploadSection.style.display = '';
            console.log('KPI卡片显示后的display值:', uploadSection.style.display);
+         } else {
+           uploadSection.style.display = 'none';
          }
        } else {
          console.log('未找到upload-section元素');
        }
-       
+
        // 根据路由加载相应数据
        if (hash === 'analysis') {
          loadAnalysisData(getDateRange());
@@ -2202,7 +2245,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const uploadControls = document.getElementById('uploadControls');
   function toggleUploadControls(){
     const hash = location.hash.replace('#','') || 'detail';
-    if (uploadControls) uploadControls.style.display = hash === 'detail' ? '' : 'none';
+    if (uploadControls) {
+      uploadControls.style.display = hash === 'detail' ? '' : 'none';
+    }
   }
   window.addEventListener('hashchange', toggleUploadControls);
   toggleUploadControls();
