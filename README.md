@@ -140,6 +140,17 @@ CREATE INDEX IF NOT EXISTS idx_site_configs_data_source ON public.site_configs(d
 - **独立站**：支持 Facebook、Google、TikTok 渠道，站点默认包含 `poolsvacuum.com` 与 `icyberite.com`，并在导航下拉与页面内同步显示。【F:public/assets/site-nav.js†L193-L227】
 - **多平台扩展**：导航脚本会在初始化时读取 `site-configs`，为 Lazada、Shopee 等新平台自动插入入口并同步站点下拉，未注册的平台不会显示入口。【F:public/assets/site-nav.js†L24-L309】【F:public/assets/site-nav.js†L563-L589】
 
+### 站点配置数据库结构
+**`site_configs`**：站点注册表，统一存储站点 ID、展示名称、所属平台、数据源模板、可选域名及 JSON 配置，所有入口页都会读取该表生成站点导航及默认模板。【F:specs/data-model.sql†L3-L18】
+**`site_channel_configs`**：按站点维护启用的渠道与落库表名（如 Facebook Ads/Google Ads），通过 `site_id + channel` 唯一索引保证站点内渠道唯一；前端在加载各站点页面时据此决定可见的渠道卡片与上传控件。【F:specs/data-model.sql†L20-L33】
+**同步脚本**：`site_configuration_framework.sql` 提供站点、渠道、模板及动态表的建表脚本，并附带 Lazada/Shopee 等预设站点，便于一键初始化及扩展新平台。【F:site_configuration_framework.sql†L5-L160】
+
+### 产品 ID 数据闭环
+**主数据层**：`products`、`categories` 与 `suppliers` 维护统一的商品、类目和供应商主档，订单、库存、广告等模块均引用同一 `product_id`/`sku`，避免多平台重复建模。【F:specs/data-model.sql†L109-L154】
+**订单与库存联动**：`orders`/`order_items` 落地站点订单、物流成本、采购价与商品缩略图，库存模块则通过 `inventory` 与 `inventory_movements` 跟踪同一商品在各站点的可售量、调拨与引用单据，实现从下单到出入库的全链路追踪。【F:specs/data-model.sql†L196-L233】【F:specs/data-model.sql†L157-L183】
+**广告归因**：`ad_campaigns` 与 `ad_metrics_daily` 以站点与产品 ID 维度记录投放配置与日指标，结合运营/订单数据实现“曝光 → 访客 → 加购 → 订单/支付”链路归因；缺失字段会在 `platform_metric_profiles` 中声明，确保不同平台的可选字段可视化明确。【F:specs/data-model.sql†L235-L270】【F:specs/data-model.sql†L75-L86】
+**约束要求**：`rules.json` 规定各模块必须保持独立数据管道与 DOM，库存/权限仅在全局入口展示，同时禁止在 `site_configs.config_json` 存放敏感密钥，敏感凭据需走环境变量或受控凭据表，保障跨团队开发安全。【F:rules.json†L8-L79】【F:rules.json†L80-L121】
+
 - **运营分析**：各站点的运营模块继续承载曝光、访客、加购、支付链路，响应式面板以 `section#analysis` 或同级容器承载图表与 KPI 卡片。【F:public/self-operated.html†L624-L745】【F:public/managed.html†L144-L198】
 - **产品分析**：保留独立的产品聚合与对比视图，模块在 `section#products` 中初始化并使用独立的数据请求，确保筛选器、表格与图表与其他模块隔离。【F:public/self-operated.html†L687-L775】【F:public/managed.html†L139-L208】
 - **订单中心**：面向每个站点在左侧导航新增“订单中心”锚点，核心依赖 `orders`（含物流、成本、结算字段）、`order_items`（商品明细）、`customers`（客户档案）三张表，并通过 `inventory_movements` 补足出入库引用，支持利润拆解与履约状态回溯；模块落位与字段映射详见架构蓝图与数据模型。【F:docs/platform-architecture.md†L69-L104】【F:specs/data-model.sql†L86-L164】
