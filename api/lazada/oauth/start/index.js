@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
-const { createSignedState } = require('../../../lib/lazada-oauth-state');
-const { getSiteConfig } = require('../../../lib/lazada-orders');
+const { createSignedState } = require('../../../../lib/lazada-oauth-state');
+const { getSiteConfig } = require('../../../../lib/lazada-orders');
 
 const AUTHORIZE_ENDPOINT = 'https://auth.lazada.com/oauth/authorize';
 

@@ -13,11 +13,11 @@
   "routes": [
     {
       "src": "/api/lazada/oauth/start",
-      "dest": "/api/lazada/oauth/start.js"
+      "dest": "/api/lazada/oauth/start/index.js"
     },
     {
       "src": "/api/lazada/oauth/callback",
-      "dest": "/api/lazada/oauth/callback.js"
+      "dest": "/api/lazada/oauth/callback/index.js"
     },
     {
       "src": "/api/lazada/orders",
