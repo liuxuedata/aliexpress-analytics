@@ -12,6 +12,26 @@
   ],
   "routes": [
     {
+      "src": "/api/lazada/oauth/start",
+      "dest": "/api/lazada/oauth/start.js"
+    },
+    {
+      "src": "/api/lazada/oauth/callback",
+      "dest": "/api/lazada/oauth/callback.js"
+    },
+    {
+      "src": "/api/lazada/orders",
+      "dest": "/api/lazada/orders/index.js"
+    },
+    {
+      "src": "/api/lazada/stats",
+      "dest": "/api/lazada/stats/index.js"
+    },
+    {
+      "src": "/api/lazada/ads",
+      "dest": "/api/lazada/ads/index.js"
+    },
+    {
       "src": "/api/site-configs",
       "dest": "/api/site-configs/index.js"
     },
