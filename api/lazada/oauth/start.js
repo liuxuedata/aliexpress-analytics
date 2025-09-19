@@ -47,7 +47,64 @@ function sanitizeReturnTo(value, host) {
   }
 }
 
-function buildAuthorizeUrl({ appKey, redirectUri, state, region, language }) {
+const SELLER_SHORT_CODE_KEYS = [
+  'sellerShortCode',
+  'seller_short_code',
+  'sellerShortcode',
+  'seller_code',
+  'sellerCode'
+];
+
+const ENV_SELLER_SHORT_CODE_KEYS = [
+  'LAZADA_SELLER_SHORT_CODE',
+  'LAZADA_DEFAULT_SELLER_SHORT_CODE'
+];
+
+function sanitizeSellerShortCode(value) {
+  if (value === null || value === undefined) return null;
+  const trimmed = String(value).trim();
+  if (!trimmed) return null;
+  if (/\s/.test(trimmed)) {
+    return null;
+  }
+  if (!/^[A-Za-z0-9_.-]+$/.test(trimmed)) {
+    return null;
+  }
+  return trimmed;
+}
+
+function resolveSellerShortCode(query = {}, config = {}, env = process.env) {
+  const candidates = [];
+
+  for (const key of SELLER_SHORT_CODE_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(query || {}, key)) {
+      candidates.push(query[key]);
+    }
+  }
+
+  for (const key of SELLER_SHORT_CODE_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(config || {}, key)) {
+      candidates.push(config[key]);
+    }
+  }
+
+  for (const key of ENV_SELLER_SHORT_CODE_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(env || {}, key)) {
+      candidates.push(env[key]);
+    }
+  }
+
+  for (const candidate of candidates) {
+    const normalized = sanitizeSellerShortCode(candidate);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return null;
+}
+
+function buildAuthorizeUrl({ appKey, redirectUri, state, region, language, sellerShortCode }) {
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: appKey,
@@ -61,6 +118,9 @@ function buildAuthorizeUrl({ appKey, redirectUri, state, region, language }) {
   }
   if (language) {
     params.set('language', language);
+  }
+  if (sellerShortCode) {
+    params.set('seller_short_code', sellerShortCode);
   }
 
   return `${AUTHORIZE_ENDPOINT}?${params.toString()}`;
@@ -115,12 +175,20 @@ function createHandler({ clientFactory = createClient, stateFactory = createSign
       const config = site.config_json || {};
       const region = config.region || config.country || null;
       const language = config.language || null;
+      const sellerShortCode = resolveSellerShortCode(query, config);
+      if (!sellerShortCode) {
+        const err = new Error('缺少 Lazada seller short code，请在站点配置 config_json.seller_short_code（或在请求中传递 seller_short_code）并确保 Lazada 开发者后台 App Management -> Auth Management 已配置对应卖家。');
+        err.code = 'SELLER_SHORT_CODE_REQUIRED';
+        throw err;
+      }
+
       const authorizeUrl = buildAuthorizeUrl({
         appKey,
         redirectUri,
         state,
         region,
-        language
+        language,
+        sellerShortCode
       });
 
       return res.status(200).json({
@@ -132,6 +200,7 @@ function createHandler({ clientFactory = createClient, stateFactory = createSign
             id: normalizedSiteId,
             display_name: site.display_name || site.name || normalizedSiteId
           },
+          seller_short_code: sellerShortCode,
           requestedSiteId: normalizedSiteId && siteId && normalizedSiteId !== siteId ? siteId : undefined
         }
       });

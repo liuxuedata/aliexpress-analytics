@@ -34,7 +34,7 @@
       "documentation": "任何影响 admin.html 的站点/权限变更需同步 README.md、docs/multi-site-architecture.md 与 specs/openapi.yaml 中的枚举。"
     },
     "environment": {
-      "lazada": "必须在部署环境中配置 LAZADA_APP_KEY、LAZADA_APP_SECRET、LAZADA_REDIRECT_URI，且回调固定为 https://aliexpress-analytics.vercel.app/api/lazada/oauth/callback，并通过 /api/lazada/oauth/start 触发授权；回调状态需重定向回原页面。",
+      "lazada": "必须在部署环境中配置 LAZADA_APP_KEY、LAZADA_APP_SECRET、LAZADA_REDIRECT_URI，且回调固定为 https://aliexpress-analytics.vercel.app/api/lazada/oauth/callback，并通过 /api/lazada/oauth/start 触发授权；site_configs.config_json 需维护 seller_short_code（或调用时提供 seller_short_code）以避免授权报错，回调状态需重定向回原页面。",
       "ozon": "OZON_CLIENT_ID 与 OZON_API_KEY 必须通过环境变量提供给 /api/ozon/fetch 与 /api/ozon/orders，后者还需配置 SUPABASE_URL 与 SUPABASE_SERVICE_ROLE_KEY 以写入 orders/order_items，并保证 product_id/sku 与运营数据一致。",
       "secrets": "site_configs.config_json 只可存放非敏感配置，任何密钥或 token 必须使用环境变量或受保护的凭据存储。"
     }
