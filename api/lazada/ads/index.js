@@ -80,6 +80,9 @@ function createHandler({ fetchImpl = fetch, clientFactory = createClient, syncAd
         message: error.message || 'Lazada ads sync failed',
         traceId
       };
+      if (error?.code) {
+        payload.code = error.code;
+      }
 
       if (error?.code === 'SITE_NOT_FOUND' && Array.isArray(error?.missingSites)) {
         payload.details = { missingSites: error.missingSites };

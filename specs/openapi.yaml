@@ -971,9 +971,66 @@ paths:
         '200':
           description: 同步结果
           content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApiResponse'
+  /api/lazada/oauth/start:
+    get:
+      tags: [Lazada]
+      summary: Lazada 授权入口
+      description: 根据站点 ID 生成 Lazada OAuth 授权链接，并在返回的 state 中签名保存站点与回跳信息。
+      parameters:
+        - name: siteId
+          in: query
+          schema:
+            type: string
+          required: true
+          description: 需要授权的 Lazada 站点 ID。
+        - name: returnTo
+          in: query
+          schema:
+            type: string
+          required: false
+          description: 授权完成后返回的页面路径，默认回到当前 Lazada 页面。
+      responses:
+        '200':
+          description: 返回授权链接
+          content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          url:
+                            type: string
+                            format: uri
+                            description: Lazada 授权地址
+                          state:
+                            type: string
+                            description: 签名后的授权状态值
+                          site:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              display_name:
+                                type: string
+        '400':
+          description: 请求参数错误或站点平台不匹配
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 未找到站点
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/lazada/oauth/callback:
     get:
       tags: [Lazada]

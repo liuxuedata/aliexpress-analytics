@@ -3,12 +3,14 @@ const assert = require('node:assert/strict');
 
 const moduleExport = require('../api/lazada/oauth/callback');
 const handler = moduleExport.default || moduleExport;
+const { createSignedState } = require('../lib/lazada-oauth-state');
 
 function createMockRes() {
   return {
     statusCode: 200,
     headers: {},
     body: undefined,
+    headersSent: false,
     setHeader(name, value) {
       this.headers[name] = value;
     },
@@ -18,6 +20,12 @@ function createMockRes() {
     },
     json(payload) {
       this.body = payload;
+      this.headersSent = true;
+      return this;
+    },
+    end(payload) {
+      this.body = payload;
+      this.headersSent = true;
       return this;
     },
   };
@@ -83,16 +91,18 @@ test('lazada oauth callback exchanges code for tokens', async () => {
     };
   };
 
-  const req = { method: 'GET', query: { code: 'abc123', state: 'xyz' } };
+  const state = createSignedState({ siteId: 'lazada_site', returnTo: '/lazada.html' }, { secret: 'secret' });
+  const req = {
+    method: 'GET',
+    query: { code: 'abc123', state },
+    headers: { host: 'example.com' }
+  };
   const res = createMockRes();
 
   await handler(req, res);
 
-  assert.equal(res.statusCode, 200);
-  assert.equal(res.body.ok, true);
-  assert.equal(res.body.success, true);
-  assert.equal(res.body.data.state, 'xyz');
-  assert.ok(res.body.data.tokens);
+  assert.equal(res.statusCode, 302);
+  assert.equal(res.headers.Location, '/lazada.html?lazadaAuth=stored%3Dfalse');
   assert.equal(fetchCalls.length, 1);
   assert.match(fetchCalls[0].url, /rest\/auth\/token\/create/);
 

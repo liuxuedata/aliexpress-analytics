@@ -91,7 +91,8 @@ CREATE TABLE public.platform_metric_profiles (
 - `GET /api/site-modules` - 获取全局模块配置与默认顺序，需传入 `X-User-Role` 头或 `role` 查询参数以按角色过滤
 - `GET /api/site-modules/{siteId}` - 获取指定站点的模块启用状态、可见角色与字段覆盖，支持 `includeGlobal` 控制是否合并平台/全局默认
 - `PATCH /api/site-modules/{siteId}` - 更新站点的模块可见性、排序与字段映射，仅 `super_admin` 可写，响应会返回过滤后的最新配置
-- `GET /api/lazada/oauth/callback` - Lazada OAuth 回调端点，使用环境变量签名并换取访问令牌，自动落库到 `integration_tokens`
+- `GET /api/lazada/oauth/start` - 生成签名 `state` 并返回 Lazada 授权链接，前端在站点选择后点击“立即授权”时调用。
+- `GET /api/lazada/oauth/callback` - Lazada OAuth 回调端点，校验签名状态并换取访问令牌，自动落库到 `integration_tokens`
 - `GET /api/lazada/stats` - 读取 Lazada Analytics API，同步 `site_metrics_daily` 与 `product_metrics_daily`
 - `GET /api/lazada/orders` - 调用 Lazada Seller API 获取订单头/明细并写入 `orders`、`order_items`
 - `GET /api/lazada/ads` - 拉取 Lazada 广告系列与日指标，落地 `ad_campaigns`、`ad_metrics_daily`

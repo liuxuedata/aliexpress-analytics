@@ -55,22 +55,42 @@
 
   function mergeSiteEntries(baseList = [], configList = []) {
     const merged = [];
-    const seen = new Set();
+    const seenKeys = new Set();
 
     baseList.forEach(item => {
-      if (!item || seen.has(item.id)) return;
+      if (!item) return;
+      const key = (item.id || item.display_name || item.name || '').toLowerCase();
+      const labelKey = item.display_name ? item.display_name.trim().toLowerCase() : null;
+      const composite = `${key}|${labelKey || ''}`;
+      if (seenKeys.has(composite)) return;
       merged.push({ ...item });
-      seen.add(item.id);
+      seenKeys.add(composite);
     });
 
     configList.forEach(site => {
       const normalized = normalizeSiteConfig(site);
-      if (!normalized || seen.has(normalized.id)) return;
+      if (!normalized) return;
+      const key = (normalized.id || normalized.name || '').toLowerCase();
+      const labelKey = normalized.display_name ? normalized.display_name.trim().toLowerCase() : '';
+      const composite = `${normalized.platform || ''}|${key}|${labelKey}`;
+      if (seenKeys.has(composite)) return;
       merged.push(normalized);
-      seen.add(normalized.id);
+      seenKeys.add(composite);
     });
 
     return merged;
+  }
+
+  function dedupeSitesByLabel(sites = [], platform) {
+    const seen = new Set();
+    return sites.filter(site => {
+      if (!site) return false;
+      const name = site.display_name || site.name || site.id || '';
+      const key = `${platform || site.platform || ''}|${name.trim().toLowerCase()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }
 
   async function getSiteConfigs(forceReload = false) {
@@ -337,7 +357,7 @@
 
       dropdown.innerHTML = '';
 
-      const normalizedSites = configs.map(normalizeSiteConfig).filter(Boolean);
+      const normalizedSites = dedupeSitesByLabel(configs.map(normalizeSiteConfig).filter(Boolean), platform);
       ensureSiteDefaults(platform, normalizedSites);
 
       normalizedSites.forEach(site => {

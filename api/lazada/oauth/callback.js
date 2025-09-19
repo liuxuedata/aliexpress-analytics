@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 const { storeTokenRecord } = require('../../../lib/lazada-auth');
+const { decodeState } = require('../../../lib/lazada-oauth-state');
 
 const TOKEN_ENDPOINT = 'https://auth.lazada.com/rest/auth/token/create';
 const TOKEN_PATH = '/rest/auth/token/create';
@@ -35,30 +36,6 @@ function createSupabaseClient() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
   if (!url || !key) return null;
   return createClient(url, key, { auth: { persistSession: false } });
-}
-
-function decodeState(state) {
-  if (!state) return {};
-  if (typeof state !== 'string') return state;
-  const trimmed = state.trim();
-  if (!trimmed) return {};
-
-  try {
-    return JSON.parse(decodeURIComponent(trimmed));
-  } catch (err) {
-    try {
-      return JSON.parse(Buffer.from(trimmed, 'base64').toString('utf8'));
-    } catch (err2) {
-      const params = new URLSearchParams(trimmed);
-      if (params.has('siteId')) {
-        return { siteId: params.get('siteId') };
-      }
-      if (params.has('site')) {
-        return { siteId: params.get('site') };
-      }
-      return { siteId: trimmed };
-    }
-  }
 }
 
 async function persistTokens({ supabase, siteId, payload }) {
@@ -120,6 +97,37 @@ async function exchangeAuthorizationCode(code, redirectUri) {
   return payload;
 }
 
+function sanitizeReturnTo(value, host) {
+  if (!value) return null;
+  const trimmed = String(value).trim();
+  if (!trimmed) return null;
+
+  if (trimmed.startsWith('/')) {
+    return trimmed;
+  }
+
+  try {
+    const hostOrigin = host ? `https://${host}` : null;
+    const target = new URL(trimmed, hostOrigin || undefined);
+    if (!host) {
+      return target.pathname + target.search + target.hash;
+    }
+    if (target.host && target.host.toLowerCase() !== host.toLowerCase()) {
+      return null;
+    }
+    return target.pathname + target.search + target.hash;
+  } catch (error) {
+    return null;
+  }
+}
+
+function appendAuthResult(url, result) {
+  if (!url) return null;
+  const hasQuery = url.includes('?');
+  const separator = hasQuery ? '&' : '?';
+  return `${url}${separator}lazadaAuth=${encodeURIComponent(result)}`;
+}
+
 async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
 
@@ -164,6 +172,15 @@ async function handler(req, res) {
     const siteId = decodedState?.siteId || decodedState?.site || null;
     const persisted = await persistTokens({ supabase, siteId, payload: tokenResponse });
 
+    const safeReturnTo = sanitizeReturnTo(decodedState?.returnTo, req.headers?.host);
+    if (safeReturnTo) {
+      const target = appendAuthResult(safeReturnTo, persisted ? 'success' : 'stored=false');
+      res.statusCode = 302;
+      res.setHeader('Location', target);
+      res.end();
+      return;
+    }
+
     return res.status(200).json({
       ok: true,
       success: true,
@@ -186,7 +203,9 @@ async function handler(req, res) {
     if (err.details) {
       body.details = err.details;
     }
-    return res.status(status).json(body);
+    if (!res.headersSent) {
+      res.status(status).json(body);
+    }
   }
 }
 
@@ -194,3 +213,4 @@ module.exports = handler;
 module.exports.default = handler;
 module.exports.buildLazadaSignature = buildLazadaSignature;
 module.exports.exchangeAuthorizationCode = exchangeAuthorizationCode;
+module.exports.sanitizeReturnTo = sanitizeReturnTo;

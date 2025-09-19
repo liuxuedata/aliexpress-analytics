@@ -23,6 +23,8 @@
     .order-items { display:flex; flex-direction:column; gap:4px; }
     .order-item-line { font-size:13px; color:var(--text-secondary); }
     .table-wrapper { overflow:auto; border-radius:12px; border:1px solid var(--border-subtle); background:var(--surface); }
+    .link-button { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:999px; border:none; background:var(--brand); color:#fff; cursor:pointer; font-size:13px; }
+    .link-button:hover { opacity:0.9; }
   </style>
 </head>
 <body class="fm" data-platform="lazada" data-platform-label="Lazada" data-default-site-name="Lazada 旗舰店">
@@ -207,20 +209,36 @@
       return `${symbol}${num.toFixed(2)}`;
     }
 
-    function setStatus(id, message, isError) {
+    function setStatus(id, message, isError, allowHtml = false) {
       const el = document.getElementById(id);
       if (!el) return;
-      el.textContent = message;
+      if (allowHtml) {
+        el.innerHTML = message;
+      } else {
+        el.textContent = message;
+      }
       el.classList.toggle('error', !!isError);
     }
 
     async function fetchJson(url) {
       const response = await fetch(url);
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || response.statusText || '请求失败');
+      const text = await response.text();
+      let data = null;
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch (error) {
+          data = null;
+        }
       }
-      return response.json();
+      if (!response.ok) {
+        const error = new Error(data?.message || text || response.statusText || '请求失败');
+        if (data?.code) error.code = data.code;
+        if (data) error.details = data;
+        error.status = response.status;
+        throw error;
+      }
+      return data || {};
     }
 
     function buildQuery(params){
@@ -385,6 +403,77 @@
       });
     }
 
+    async function requestAuthorizationLink() {
+      if (!state.siteId) return null;
+      const returnTo = window.location.pathname + window.location.search + window.location.hash;
+      const query = buildQuery({ siteId: state.siteId, returnTo });
+      const payload = await fetchJson(`/api/lazada/oauth/start?${query}`);
+      if (!payload.success) {
+        const error = new Error(payload.message || '无法生成授权链接');
+        error.code = payload.code;
+        throw error;
+      }
+      const url = payload.data?.url;
+      if (!url) {
+        const error = new Error('授权链接缺失');
+        error.code = 'MISSING_URL';
+        throw error;
+      }
+      return url;
+    }
+
+    async function startAuthorization() {
+      try {
+        setStatus('detailStatus', '正在跳转至 Lazada 授权…');
+        const url = await requestAuthorizationLink();
+        if (url) {
+          window.location.href = url;
+        }
+      } catch (error) {
+        console.error('[lazada] start authorization failed', error);
+        const message = error.message || '无法跳转至 Lazada 授权页面';
+        setStatus('detailStatus', message, true);
+      }
+    }
+
+    function attachAuthorizeHandlers() {
+      const buttons = document.querySelectorAll('.lazada-authorize-button');
+      buttons.forEach(button => {
+        if (button.dataset.bound === 'true') return;
+        button.dataset.bound = 'true';
+        button.addEventListener('click', event => {
+          event.preventDefault();
+          startAuthorization();
+        });
+      });
+    }
+
+    function showAuthorizationPrompt(message) {
+      const prompt = `
+        ${message || '尚未找到 Lazada 授权，请先完成授权。'}
+        <button type="button" class="link-button lazada-authorize-button">立即授权</button>
+      `;
+      ['detailStatus','operationsStatus','productsStatus','ordersStatus','adsStatus'].forEach(id => {
+        setStatus(id, prompt, true, true);
+      });
+      attachAuthorizeHandlers();
+    }
+
+    function handleAuthResult() {
+      const params = new URLSearchParams(window.location.search);
+      const authResult = params.get('lazadaAuth');
+      if (!authResult) return;
+      if (authResult === 'success') {
+        setStatus('detailStatus', 'Lazada 授权成功，正在刷新数据…');
+      } else {
+        showAuthorizationPrompt('Lazada 授权未能完成，请重试。');
+      }
+      params.delete('lazadaAuth');
+      const nextQuery = params.toString();
+      const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash}`;
+      window.history.replaceState({}, document.title, nextUrl);
+    }
+
     async function loadStats() {
       if (!state.siteId) return;
       setStatus('detailStatus', '加载中…');
@@ -408,9 +497,13 @@
         renderDailyMetrics([], null);
         renderSummary(null);
         renderProducts([]);
-        setStatus('detailStatus', error.message || '加载失败', true);
-        setStatus('operationsStatus', error.message || '加载失败', true);
-        setStatus('productsStatus', error.message || '加载失败', true);
+        if (error.code === 'TOKEN_NOT_FOUND') {
+          showAuthorizationPrompt(error.message);
+        } else {
+          setStatus('detailStatus', error.message || '加载失败', true);
+          setStatus('operationsStatus', error.message || '加载失败', true);
+          setStatus('productsStatus', error.message || '加载失败', true);
+        }
       }
     }
 
@@ -427,7 +520,11 @@
       } catch (error) {
         console.error('[lazada] orders load failed', error);
         renderOrders([]);
-        setStatus('ordersStatus', error.message || '加载失败', true);
+        if (error.code === 'TOKEN_NOT_FOUND') {
+          showAuthorizationPrompt(error.message);
+        } else {
+          setStatus('ordersStatus', error.message || '加载失败', true);
+        }
       }
     }
 
@@ -444,7 +541,11 @@
       } catch (error) {
         console.error('[lazada] ads load failed', error);
         renderAds([]);
-        setStatus('adsStatus', error.message || '加载失败', true);
+        if (error.code === 'TOKEN_NOT_FOUND') {
+          showAuthorizationPrompt(error.message);
+        } else {
+          setStatus('adsStatus', error.message || '加载失败', true);
+        }
       }
     }
 
@@ -480,6 +581,7 @@
       }
     });
 
+    handleAuthResult();
     updateSiteFromStorage();
     if (!state.siteId) {
       const defaultSite = document.getElementById('currentSite')?.dataset?.defaultName;

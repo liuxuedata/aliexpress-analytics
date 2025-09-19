@@ -46,12 +46,12 @@
 ### 2.3 API 分类
 - **站点管理层**：`/api/sites`、`/api/site-configs`、`/api/site-sync`、`/api/site-modules`（模块注册与权限配置）。
 - **运营数据层**：速卖通、独立站、亚马逊、Ozon、Lazada 已接入统一指标模型，落地到 `site_metrics_daily`、`product_metrics_daily` 等表；Temu/TikTok/Shopee 保持相同接口规范，字段可用性通过 `platform_metric_profiles` 与 API 响应暴露。
-- **授权回调层**：Lazada 通过 `/api/lazada/oauth/callback` 换取访问令牌，依赖 `LAZADA_APP_KEY/LAZADA_APP_SECRET/LAZADA_REDIRECT_URI` 环境变量，并要求回调地址在 Vercel 与 Lazada 控制台保持一致。
+- **授权回调层**：Lazada 的授权流程由 `/api/lazada/oauth/start` 生成签名 `state` 并跳转 Lazada 登录页，回调 `/api/lazada/oauth/callback` 在校验签名后持久化刷新令牌并根据 `state.returnTo` 重定向回业务页面。流程依赖 `LAZADA_APP_KEY/LAZADA_APP_SECRET/LAZADA_REDIRECT_URI` 环境变量，且回调地址需与 Lazada 控制台保持一致。
 - **业务扩展层（规划）**：订单、库存、广告、权限四大模块的 REST 接口详见 `specs/openapi.yaml`。
 
 ## 3. 应用层次结构
 ### 3.1 前端（展示层）
-- 静态页面部署于 Vercel 的 `/public` 目录，使用共享导航脚本 `public/assets/site-nav.js` 在加载时请求 `/api/site-configs`，自动合并默认站点并插入 Lazada、Shopee 等平台入口，再写入 `localStorage` 供壳层页面读取当前站点；脚本会缓存各平台站点列表并在未选择时自动持久化首个站点 ID（例如站点管理中新建的 `ozon_211440331`），使 Ozon/亚马逊等页面在首轮加载即可携带正确 `siteId`。【F:public/assets/site-nav.js†L24-L309】【F:public/assets/site-nav.js†L563-L589】
+- 静态页面部署于 Vercel 的 `/public` 目录，使用共享导航脚本 `public/assets/site-nav.js` 在加载时请求 `/api/site-configs`，自动合并默认站点并插入 Lazada、Shopee 等平台入口，再写入 `localStorage` 供壳层页面读取当前站点；脚本会缓存各平台站点列表并在未选择时自动持久化首个站点 ID（例如站点管理中新建的 `ozon_211440331`），并通过按平台及显示名称去重的逻辑避免 Lazada/Shopee 等站点重复出现在下拉菜单中。【F:public/assets/site-nav.js†L24-L330】【F:public/assets/site-nav.js†L563-L589】
 - 各页面遵循统一主题（`assets/theme.css`），通过 Hash/Tab 管理多模块视图，为后续 React/TailAdmin 迁移保留 DOM ID。
 - `admin.html` 作为全局管理后台，集成站点配置、权限矩阵与 `/api/site-sync` 的执行入口，新建站点时按平台预置 Lazada/Shopee/TikTok/Temu 模板并自动触发同步。【F:public/admin.html†L1-L420】
 
