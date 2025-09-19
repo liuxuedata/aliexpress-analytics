@@ -118,6 +118,7 @@ CREATE INDEX IF NOT EXISTS idx_site_configs_data_source ON public.site_configs(d
 - **库存域**：`inventory` 按站点与产品维度记录可售/预留数量及成本价，`inventory_movements` 追踪入出库与调拨，`purchases` 记录采购单与到货信息。【F:specs/data-model.sql†L116-L164】
 - **订单域**：`customers`、`orders`、`order_items` 形成订单头/明细结构，内建物流成本、结算状态与站点外键，支持后续利润分析与库存扣减。【F:specs/data-model.sql†L184-L233】
 - **订单域字段更新**：为支撑 Ozon 商品图片回填，`order_items` 增补可空的 `product_image TEXT` 字段；如历史环境缺少该列，可执行 `add_product_image_column.sql` 同步结构，避免 Supabase 在插入时因列不存在而报错。【F:specs/data-model.sql†L221-L233】【F:add_product_image_column.sql†L1-L12】
+- **授权凭据表**：Lazada/Shopee OAuth 凭据存放在 `integration_tokens`，若现网缺少该表，可执行 `create_integration_tokens_table.sql` 初始化结构、索引与 RLS，保证 `/api/lazada/*` 能正确加载刷新令牌。【F:specs/data-model.sql†L29-L52】【F:create_integration_tokens_table.sql†L1-L55】【F:lib/lazada-auth.js†L88-L127】
 - **广告域**：`ad_campaigns` 保存预算、目标与受众配置，`ad_metrics_daily` 记录按日聚合指标并以站点为分区键，二者均附带唯一约束与索引。【F:specs/data-model.sql†L168-L222】
 - **统一触发器与 RLS**：`set_updated_at` 触发器覆盖订单、产品、广告、模块配置，关键表默认启用 RLS 并以宽松策略开放开发期访问。【F:specs/data-model.sql†L224-L266】
 
