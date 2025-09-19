@@ -105,6 +105,8 @@
       <li><a href="#" class="active" data-target="detail"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/><line x1="15" y1="9" x2="15" y2="21"/></svg>详细数据</a></li>
       <li><a href="#analysis" data-target="analysis"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 3h7v7"/></svg>运营分析</a></li>
       <li><a href="#products" data-target="products"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3v8h8"/></svg>产品分析</a></li>
+      <li><a href="#orders" data-target="orders">订单中心</a></li>
+      <li><a href="#advertising" data-target="advertising">广告中心</a></li>
     </ul>
   </nav>
 
@@ -258,6 +260,42 @@
   </div>
 </section>
 
+<section id="orders" class="content-pad" style="display:none;">
+  <div class="panel">
+    <h3>订单中心</h3>
+    <p class="hint">全托管订单接入排期中，后续将展示订单金额、仓发状态与结算进度。</p>
+    <div class="table-wrapper">
+      <table class="display" style="width:100%">
+        <thead>
+          <tr>
+            <th>订单号</th>
+            <th>产品 ID</th>
+            <th>站点</th>
+            <th>结算状态</th>
+            <th>仓库</th>
+            <th>实付</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="6" style="text-align:center;color:#6b7280;">等待后台 /api/orders 接口开放后自动加载</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="advertising" class="content-pad" style="display:none;">
+  <div class="panel">
+    <h3>广告中心</h3>
+    <p class="hint">广告投放数据将接入 ad_campaigns/ad_metrics_daily 表，支持预算、曝光、点击与转化链路的联动分析。</p>
+    <div class="placeholder-chart" style="height:280px;border:1px dashed #d1d5db;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-top:16px;color:#9ca3af;">
+      广告数据尚未接入
+    </div>
+  </div>
+</section>
+
       </div>
     </div>
   </main>
@@ -265,6 +303,7 @@
 
 <script>
 (function(){
+  const MODULE_IDS = ['detail', 'analysis', 'products', 'orders', 'advertising'];
   const state = { granularity: 'week', table: null, uploading: false };
 
   // 初始化粒度：若本地存储有记录则使用
@@ -634,15 +673,15 @@
       targetLink.classList.add('active');
       
       // 显示对应内容
-      ['detail', 'analysis', 'products'].forEach(id => {
+      MODULE_IDS.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = (id === hash ? '' : 'none');
       });
 
       const kpiEl = document.getElementById('kpi');
-      if (kpiEl) kpiEl.style.display = (hash === 'products') ? 'none' : '';
+      if (kpiEl) kpiEl.style.display = (hash === 'detail' || hash === 'analysis') ? '' : 'none';
       const upEl = document.querySelector('.upload-section');
-      if (upEl) upEl.style.display = (hash === 'products') ? 'none' : '';
+      if (upEl) upEl.style.display = hash === 'detail' ? '' : 'none';
 
       // 根据路由加载相应数据
       if (hash === 'analysis') {

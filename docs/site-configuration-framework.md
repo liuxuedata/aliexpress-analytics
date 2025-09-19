@@ -18,7 +18,7 @@ CREATE TABLE public.site_configs (
   domain      text,                             -- 域名
   data_source text not null,                    -- 数据源类型：google_ads, facebook_ads, etc.
   template_id text,                             -- 数据模板ID
-  config_json jsonb,                            -- 配置信息（字段映射、API密钥等）
+  config_json jsonb,                            -- 配置信息（字段映射、API 配置，不落地密钥）
   is_active   boolean default true,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
@@ -51,6 +51,11 @@ CREATE TABLE public.dynamic_tables (
 - `ae_self_operated`: 速卖通自运营
 - `ae_managed`: 速卖通全托管
 - `amazon`: 亚马逊
+- `ozon`: Ozon
+- `tiktok`: TikTok Shop
+- `temu`: Temu
+- `lazada`: Lazada
+- `shopee`: Shopee
 - `ebay`: eBay
 
 #### 独立站（Independent Sites）
@@ -154,22 +159,26 @@ CREATE TABLE public.dynamic_tables (
 - 自动生成数据上传页面
 - 自动生成数据展示页面
 
-### 5. 使用流程
+### 5. 外部授权与环境变量约束
+- Lazada：所有站点授权必须通过 `/api/lazada/oauth/callback` 完成，环境变量 `LAZADA_APP_KEY`、`LAZADA_APP_SECRET`、`LAZADA_REDIRECT_URI`、`SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY` 由 Vercel 管理，回调地址需指向 `https://aliexpress-analytics.vercel.app/api/lazada/oauth/callback` 并与 Lazada 控制台一致。授权响应中的访问/刷新令牌由服务端写入 `integration_tokens` 表，禁止落地在 `site_configs.config_json`。
+- Ozon：`OZON_CLIENT_ID`、`OZON_API_KEY` 同时供 `/api/ozon/fetch` 与 `/api/ozon/orders` 使用；后者还需在 Serverless 端配置 `SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY` 以将 Seller API 返回的订单写入 `orders`、`order_items`，站点配置仅保存非敏感元数据。
 
-#### 5.1 添加新站点
-1. 在站点管理页面选择平台和数据源
+### 6. 使用流程
+
+#### 6.1 添加新站点
+1. 访问 `/admin.html`（或保留的 `/site-management.html` 快捷入口）选择平台和数据源
 2. 上传数据模板文件
 3. 系统自动生成配置
 4. 自动创建数据表和API接口
 5. 自动生成页面框架
 
-#### 5.2 数据上传
+#### 6.2 数据上传
 1. 选择站点和数据源
 2. 上传符合模板的Excel/CSV文件
 3. 系统自动解析和清洗数据
 4. 数据入库并生成报表
 
-#### 5.3 数据展示
+#### 6.3 数据展示
 1. 选择站点和时间范围
 2. 系统自动加载对应数据
 3. 生成图表和报表

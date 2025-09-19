@@ -2,7 +2,7 @@
 
 ## 概述
 
-本文档描述了跨境电商数据分析平台的多站点扩展功能，支持在速卖通自运营、独立站等平台下快速添加和管理多个站点。
+本文档描述了跨境电商数据分析平台的多站点扩展功能，支持在速卖通自运营、独立站等平台下快速添加和管理多个站点，并确保各站点的“运营分析 / 产品分析 / 订单管理 / 广告管理”模块在左侧导航中独立呈现。
 
 ## 架构设计
 
@@ -34,33 +34,107 @@ CREATE TABLE public.ae_self_operated_daily (
 );
 ```
 
+**站点模块配置 (site_module_configs)**
+```sql
+CREATE TABLE public.site_module_configs (
+  id              uuid primary key default gen_random_uuid(),
+  site_id         text,                           -- NULL 表示平台默认配置
+  platform        text not null,
+  module_key      text not null check (module_key in ('operations','products','orders','advertising','inventory','permissions')),
+  nav_label       text not null,
+  nav_order       smallint not null default 0,
+  enabled         boolean not null default true,
+  is_global       boolean not null default false,
+  has_data_source boolean not null default false,
+  visible_roles   text[] not null default array[]::text[],
+  config          jsonb default '{}'::jsonb,
+  created_at      timestamp not null default now(),
+  updated_at      timestamp not null default now()
+);
+
+CREATE UNIQUE INDEX idx_site_module_configs_unique ON public.site_module_configs (coalesce(site_id, ''), platform, module_key);
+```
+
+**平台指标覆盖矩阵 (platform_metric_profiles)**
+```sql
+CREATE TABLE public.platform_metric_profiles (
+  id                 uuid primary key default gen_random_uuid(),
+  platform           text not null,
+  module_key         text not null,
+  available_fields   text[] not null default array[]::text[],
+  optional_fields    text[] not null default array[]::text[],
+  missing_fields     text[] not null default array[]::text[],
+  notes              text,
+  last_synced_at     timestamp not null default now(),
+  unique (platform, module_key)
+);
+```
+
 #### 支持的平台类型
 - `ae_self_operated`: 速卖通自运营
 - `independent`: 独立站
 - `ae_managed`: 速卖通全托管
+- `amazon`: 亚马逊
+- `ozon`: Ozon
+- `tiktok`: TikTok Shop
+- `temu`: Temu
+- `lazada`: Lazada
+- `shopee`: Shopee
 
 ### 2. API 接口设计
 
 #### 站点管理 API
 - `GET /api/sites` - 获取站点列表
 - `POST /api/sites` - 创建新站点
+- `POST /api/site-configs` - 使用标准化平台/数据源枚举（ae_self_operated、amazon、lazada、shopee 等）创建站点配置，并在成功后触发 `/api/site-sync`
 - `PUT /api/sites?id={id}` - 更新站点信息
+- `GET /api/site-modules` - 获取全局模块配置与默认顺序，需传入 `X-User-Role` 头或 `role` 查询参数以按角色过滤
+- `GET /api/site-modules/{siteId}` - 获取指定站点的模块启用状态、可见角色与字段覆盖，支持 `includeGlobal` 控制是否合并平台/全局默认
+- `PATCH /api/site-modules/{siteId}` - 更新站点的模块可见性、排序与字段映射，仅 `super_admin` 可写，响应会返回过滤后的最新配置
+- `GET /api/lazada/oauth/callback` - Lazada OAuth 回调端点，使用环境变量签名并换取访问令牌，自动落库到 `integration_tokens`
+- `GET /api/lazada/stats` - 读取 Lazada Analytics API，同步 `site_metrics_daily` 与 `product_metrics_daily`
+- `GET /api/lazada/orders` - 调用 Lazada Seller API 获取订单头/明细并写入 `orders`、`order_items`
+- `GET /api/lazada/ads` - 拉取 Lazada 广告系列与日指标，落地 `ad_campaigns`、`ad_metrics_daily`
 
 #### 数据查询 API
 - `GET /api/ae_self_operated/stats?site={site}&from={date}&to={date}` - 速卖通自运营数据
 - `GET /api/independent/stats?site={site}&from={date}&to={date}` - 独立站数据
+- `POST /api/ozon/fetch` - 调用 Ozon Analytics API，将最新曝光、加购、订单等指标写入统一宽表供 Ozon 子模块查询
+- `GET /api/ozon/orders` - 以 `siteId`、`from`、`to` 为查询条件，可选择同步 Ozon Seller API（FBS/FBO）并将订单落入 `orders`、`order_items`，响应返回同步摘要与订单明细
+- 所有运营接口均需返回 `metadata.availableFields` 与 `metadata.missingFields`，以反映 `platform_metric_profiles` 中定义的字段差异
 
 ### 3. 前端功能
 
 #### 站点管理页面
 - 路径：`/site-management.html`
-- 功能：添加、编辑、删除站点
-- 支持按平台筛选站点
+- 功能：添加、编辑、删除站点，调用 `/api/site-configs` 并触发 `/api/site-sync`
+- 支持按平台筛选站点，新增 Lazada、Shopee、Temu、TikTok 等平台模板
+- 展示 `site_module_configs` 中的模块启用状态，允许为 Lazada、Shopee 等新站点开启“订单中心”“广告中心”占位模块
+- 支持配置 `site_module_configs.visible_roles`，为不同角色（如 operations_manager、ad_manager）定制模块可见性
+
+#### 管理后台
+- 路径：`/admin.html`
+- 功能：整合站点配置、权限矩阵与站点同步工具，创建站点时自动执行 `/api/site-sync`
+- 权限矩阵：基于 `rules.json` 默认角色展示模块可见性，可按站点缓存覆盖，后续通过权限中心 API 落库
+- 同步工具：调用 `/api/site-sync` 刷新导航模块、渠道配置与字段覆盖，保障新站点即刻生效
 
 #### 站点切换功能
 - 在自运营页面添加站点选择器
 - 支持动态切换站点并重新加载数据
 - 本地存储当前选择的站点
+- 切换站点后重新调用 `/api/site-modules/{siteId}`，根据权限渲染左侧导航
+
+#### 左侧导航布局（新增）
+- 默认顺序：详细数据 / 运营分析 / 产品分析 / 订单中心 / 广告中心，模块 DOM 结构互不嵌套
+- 库存管理、权限管理归属于全局设置面板，仅在具备角色（`inventory_manager`、`super_admin` 等）时出现
+- 通过 `site_module_configs.visible_roles` 将模块可见性与权限中心的角色绑定
+- 若 `platform_metric_profiles` 标记某模块缺少数据源，前端需隐藏该模块或显示“数据待接入”提示
+
+#### Ozon 订单中心表格
+- 入口：`/ozon-orders.html`
+- 功能：展示 Seller API 同步后的订单，默认将商品明细列放在首列（列宽 140px），并聚合订单明细中的数量为“采购件数”列
+- 交互：支持对商品明细、下单时间、状态、结算状态四列进行正序/倒序切换，便于按商品或履约状态定位订单
+- 视觉：商品明细单元格内包含首图、商品名称链接与 SKU 标签，保持与运营数据的产品 ID 对齐
 
 ## 开发任务分工
 
@@ -100,7 +174,7 @@ CREATE TABLE public.ae_self_operated_daily (
 ```
 
 ### 2. 添加新站点
-1. 访问 `/site-management.html`
+1. 访问 `/admin.html`（或使用 `/site-management.html` 进行快速登记）
 2. 填写站点信息：
    - 站点名称：如 "B站"
    - 平台：选择对应平台
@@ -118,16 +192,19 @@ CREATE TABLE public.ae_self_operated_daily (
 - 现有数据默认分配到 "A站"
 - API接口保持原有参数格式
 - 前端页面支持渐进式升级
+- 默认的 `site_module_configs` 为存量站点注册“运营/产品”模块，并为“订单/广告”提供占位，后续上线不会破坏旧导航
 
 ### 2. 数据隔离
 - 每个站点的数据通过 `site` 字段隔离
 - 查询时自动过滤对应站点数据
 - 支持跨站点数据对比（未来功能）
+- 站点模块独立请求自身数据源；将 `site_module_configs.enabled` 设为 false 可完全禁止模块访问数据库
 
 ### 3. 性能优化
 - 为 `site` 字段创建索引
 - 使用分页查询避免大数据量问题
 - 前端缓存站点列表减少API调用
+- 缓存 `/api/site-modules` 响应并监听权限变化；模块切换时仅刷新对应面板
 
 ## 扩展计划
 
@@ -135,12 +212,15 @@ CREATE TABLE public.ae_self_operated_daily (
 1. 完善站点编辑和删除功能
 2. 添加站点数据导入功能
 3. 实现站点间数据对比
+4. 为 Lazada/Shopee 生成默认 `site_module_configs` 并开启订单/广告模块占位
+5. 输出 `platform_metric_profiles` 首版，标记各平台缺失字段
 
 ### 长期目标
 1. 支持更多平台（亚马逊、TikTok等）
 2. 实现站点数据同步功能
 3. 添加站点权限管理
 4. 支持站点数据导出
+5. 基于 `platform_metric_profiles` 自动生成字段映射与占位提示
 
 ## 注意事项
 
@@ -148,6 +228,7 @@ CREATE TABLE public.ae_self_operated_daily (
 2. **测试环境**：先在测试环境验证功能
 3. **用户培训**：向用户说明新功能使用方法
 4. **监控告警**：添加站点数据异常监控
+5. **模块审计**：调整 `site_module_configs` 或角色后应记录日志，确保权限可追溯
 
 ## 联系方式
 

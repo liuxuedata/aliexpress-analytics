@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title id="pageTitle">Lazada 数据分析 - 跨境电商数据分析平台</title>
+  <link rel="stylesheet" href="assets/login.css">
+  <link rel="stylesheet" href="assets/theme.css?v=20250811-single">
+  <script>const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);</script>
+  <style>
+    .module-header { display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between; }
+    .metrics-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:16px; margin:16px 0; }
+    .metric-card { background:var(--surface); border-radius:12px; padding:16px; box-shadow:var(--shadow-sm); }
+    .metric-card h3 { margin:0 0 8px; font-size:16px; color:var(--text-secondary); }
+    .metric-card strong { font-size:24px; color:var(--text-primary); }
+    table.data-table { width:100%; border-collapse:collapse; margin-top:12px; }
+    table.data-table th, table.data-table td { padding:10px 12px; text-align:left; border-bottom:1px solid var(--border); }
+    table.data-table tbody tr:hover { background:var(--hover); }
+    .status-pill { display:inline-flex; align-items:center; padding:2px 8px; border-radius:999px; background:var(--surface-elevated); font-size:12px; }
+    .section-status { margin-top:12px; color:var(--text-secondary); }
+    .section-status.error { color:var(--danger); }
+    .order-items { display:flex; flex-direction:column; gap:4px; }
+    .order-item-line { font-size:13px; color:var(--text-secondary); }
+    .table-wrapper { overflow:auto; border-radius:12px; border:1px solid var(--border-subtle); background:var(--surface); }
+  </style>
+</head>
+<body class="fm" data-platform="lazada" data-platform-label="Lazada" data-default-site-name="Lazada 旗舰店">
+<header class="header">
+  <div class="logo-title"><img src="assets/logo.svg" alt="Ecommerce Analytics" class="site-logo"> 跨境电商数据分析平台</div>
+  <nav class="header-center">
+    <ul class="platform-nav">
+      <li class="ali"><a href="#">速卖通</a><ul class="dropdown" id="managedMenu"></ul></li>
+      <li class="amazon"><a href="amazon-overview.html">亚马逊</a></li>
+      <li class="tiktok"><a href="tiktok.html">TikTok Shop</a></li>
+      <li class="temu"><a href="temu.html">Temu</a></li>
+      <li class="ozon"><a href="ozon-detail.html">Ozon</a></li>
+      <li class="independent"><a href="#">独立站</a><ul class="dropdown" id="indepMenu"></ul></li>
+    </ul>
+  </nav>
+  <div id="userArea" class="user-section"></div>
+</header>
+<div class="layout container">
+  <nav class="sidebar" id="sidebar">
+    <div class="site-header"><span id="currentSite" data-default-name="Lazada 旗舰店">Lazada 旗舰店</span></div>
+    <ul class="sub-nav">
+      <li><a href="#detail" class="active" data-target="detail">详细数据</a></li>
+      <li><a href="#operations" data-target="operations">运营分析</a></li>
+      <li><a href="#products" data-target="products">产品分析</a></li>
+      <li><a href="#orders" data-target="orders">订单中心</a></li>
+      <li><a href="#ads" data-target="ads">广告中心</a></li>
+    </ul>
+  </nav>
+  <main class="main">
+    <section class="page-header">
+      <h1 data-platform-heading="Lazada 全渠道数据枢纽">Lazada 全渠道数据枢纽</h1>
+      <p class="section-subtitle">统一覆盖 Lazada 站点的流量、订单、库存与广告数据，支持快速切换站点配置。</p>
+    </section>
+
+    <section id="detail" class="analysis-container">
+      <div class="module-header">
+        <h2>详细数据</h2>
+        <div id="detailRange" class="section-status">—</div>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>曝光</th>
+              <th>访客</th>
+              <th>加购次数</th>
+              <th>下单数</th>
+              <th>支付数</th>
+              <th>支付金额</th>
+            </tr>
+          </thead>
+          <tbody id="dailyMetricsBody"></tbody>
+        </table>
+      </div>
+      <div id="detailStatus" class="section-status">等待站点选择…</div>
+    </section>
+
+    <section id="operations" class="analysis-container" style="display:none;">
+      <div class="module-header">
+        <h2>运营分析</h2>
+        <div id="operationsRange" class="section-status">—</div>
+      </div>
+      <div class="metrics-grid" id="operationsSummary"></div>
+      <div id="operationsStatus" class="section-status">等待站点选择…</div>
+    </section>
+
+    <section id="products" class="analysis-container" style="display:none;">
+      <div class="module-header">
+        <h2>产品分析</h2>
+        <div id="productsRange" class="section-status">—</div>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>SKU</th>
+              <th>产品名</th>
+              <th>曝光</th>
+              <th>访客</th>
+              <th>加购</th>
+              <th>下单</th>
+              <th>支付</th>
+              <th>支付金额</th>
+            </tr>
+          </thead>
+          <tbody id="productMetricsBody"></tbody>
+        </table>
+      </div>
+      <div id="productsStatus" class="section-status">等待站点选择…</div>
+    </section>
+
+    <section id="orders" class="analysis-container" style="display:none;">
+      <div class="module-header">
+        <h2>订单中心</h2>
+        <div id="ordersRange" class="section-status">—</div>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>订单号</th>
+              <th>下单时间</th>
+              <th>状态</th>
+              <th>结算状态</th>
+              <th>实付金额</th>
+              <th>物流成本</th>
+              <th>采购成本</th>
+              <th>商品明细</th>
+            </tr>
+          </thead>
+          <tbody id="ordersBody"></tbody>
+        </table>
+      </div>
+      <div id="ordersStatus" class="section-status">等待站点选择…</div>
+    </section>
+
+    <section id="ads" class="analysis-container" style="display:none;">
+      <div class="module-header">
+        <h2>广告中心</h2>
+        <div id="adsRange" class="section-status">—</div>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>广告系列</th>
+              <th>状态</th>
+              <th>日预算</th>
+              <th>总花费</th>
+              <th>曝光</th>
+              <th>点击</th>
+              <th>转化</th>
+              <th>转化金额</th>
+              <th>ROAS</th>
+            </tr>
+          </thead>
+          <tbody id="adsBody"></tbody>
+        </table>
+      </div>
+      <div id="adsStatus" class="section-status">等待站点选择…</div>
+    </section>
+  </main>
+</div>
+<script src="assets/login.js"></script>
+<script src="assets/site-nav.js"></script>
+<script src="assets/platform-page.js"></script>
+<script>
+  document.getElementById('sidebar').addEventListener('click', function(e){
+    const link = e.target.closest('a[data-target]');
+    if(!link) return;
+    e.preventDefault();
+    const target = link.dataset.target;
+    document.querySelectorAll('.sub-nav a[data-target]').forEach(a=>a.classList.remove('active'));
+    link.classList.add('active');
+    ['detail','operations','products','orders','ads'].forEach(sectionId=>{
+      const section = document.getElementById(sectionId);
+      if(section){ section.style.display = sectionId === target ? '' : 'none'; }
+    });
+  });
+
+  (function(){
+    const platform = document.body.dataset.platform;
+    const state = {
+      siteId: null,
+      range: null
+    };
+
+    function formatNumber(value) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
+      const num = Number(value);
+      if (!Number.isFinite(num)) return '—';
+      return num.toLocaleString('zh-CN');
+    }
+
+    function formatCurrency(value, currency) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
+      const num = Number(value);
+      if (!Number.isFinite(num)) return '—';
+      const symbol = currency && currency !== 'CNY' ? currency + ' ' : '¥';
+      return `${symbol}${num.toFixed(2)}`;
+    }
+
+    function setStatus(id, message, isError) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = message;
+      el.classList.toggle('error', !!isError);
+    }
+
+    async function fetchJson(url) {
+      const response = await fetch(url);
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || response.statusText || '请求失败');
+      }
+      return response.json();
+    }
+
+    function buildQuery(params){
+      const search = new URLSearchParams();
+      Object.entries(params).forEach(([key, value])=>{
+        if (value === undefined || value === null || value === '') return;
+        search.set(key, value);
+      });
+      return search.toString();
+    }
+
+    function renderDailyMetrics(rows, currency) {
+      const body = document.getElementById('dailyMetricsBody');
+      body.innerHTML = '';
+      if (!Array.isArray(rows) || !rows.length) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 7;
+        td.textContent = '暂无数据';
+        tr.appendChild(td);
+        body.appendChild(tr);
+        return;
+      }
+      rows.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.stat_date || '—'}</td>
+          <td>${formatNumber(row.impressions)}</td>
+          <td>${formatNumber(row.visitors)}</td>
+          <td>${formatNumber(row.add_to_cart)}</td>
+          <td>${formatNumber(row.orders)}</td>
+          <td>${formatNumber(row.payments)}</td>
+          <td>${formatCurrency(row.revenue, row.currency || currency)}</td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    function renderSummary(summary) {
+      const container = document.getElementById('operationsSummary');
+      container.innerHTML = '';
+      const items = [
+        { key: 'impressions', label: '曝光', value: summary?.impressions },
+        { key: 'visitors', label: '访客', value: summary?.visitors },
+        { key: 'add_to_cart', label: '加购次数', value: summary?.add_to_cart },
+        { key: 'orders', label: '下单数', value: summary?.orders },
+        { key: 'payments', label: '支付数', value: summary?.payments },
+        { key: 'revenue', label: '支付金额', value: summary?.revenue, formatter: val => formatCurrency(val, summary?.currency) }
+      ];
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'metric-card';
+        card.innerHTML = `<h3>${item.label}</h3><strong>${item.formatter ? item.formatter(item.value) : formatNumber(item.value)}</strong>`;
+        container.appendChild(card);
+      });
+      const conversionCard = document.createElement('div');
+      conversionCard.className = 'metric-card';
+      const funnel = summary && summary.visitors
+        ? `加购率 ${(summary.add_to_cart / Math.max(summary.visitors, 1) * 100).toFixed(1)}% · 下单率 ${(summary.orders / Math.max(summary.add_to_cart || summary.visitors, 1) * 100).toFixed(1)}% · 支付率 ${(summary.payments / Math.max(summary.orders, 1) * 100).toFixed(1)}%`
+        : '暂无转化数据';
+      conversionCard.innerHTML = `<h3>转化漏斗</h3><strong style="font-size:18px;">${funnel}</strong>`;
+      container.appendChild(conversionCard);
+    }
+
+    function renderProducts(rows) {
+      const body = document.getElementById('productMetricsBody');
+      body.innerHTML = '';
+      if (!Array.isArray(rows) || !rows.length) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 9;
+        td.textContent = '暂无产品指标';
+        tr.appendChild(td);
+        body.appendChild(tr);
+        return;
+      }
+      rows.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.stat_date || '—'}</td>
+          <td>${row.sku || '—'}</td>
+          <td>${row.product_name || '—'}</td>
+          <td>${formatNumber(row.impressions)}</td>
+          <td>${formatNumber(row.visitors)}</td>
+          <td>${formatNumber(row.add_to_cart)}</td>
+          <td>${formatNumber(row.orders)}</td>
+          <td>${formatNumber(row.payments)}</td>
+          <td>${formatCurrency(row.revenue, row.currency)}</td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    function renderOrders(rows) {
+      const body = document.getElementById('ordersBody');
+      body.innerHTML = '';
+      if (!Array.isArray(rows) || !rows.length) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 8;
+        td.textContent = '暂无订单记录';
+        tr.appendChild(td);
+        body.appendChild(tr);
+        return;
+      }
+      rows.forEach(order => {
+        const tr = document.createElement('tr');
+        const items = Array.isArray(order.order_items) ? order.order_items : [];
+        const itemsHtml = items.length
+          ? items.map(item => `<div class="order-item-line">${item.product_name || item.sku || '商品'} × ${formatNumber(item.quantity)} · ${formatCurrency(item.total_price || item.unit_price, order.currency)}</div>`).join('')
+          : '<span class="order-item-line">—</span>';
+        tr.innerHTML = `
+          <td>${order.order_no || '—'}</td>
+          <td>${order.placed_at ? new Date(order.placed_at).toLocaleString('zh-CN') : '—'}</td>
+          <td><span class="status-pill">${order.status || '—'}</span></td>
+          <td><span class="status-pill">${order.settlement_status || '—'}</span></td>
+          <td>${formatCurrency(order.total, order.currency)}</td>
+          <td>${formatCurrency(order.logistics_cost, order.currency)}</td>
+          <td>${formatCurrency(order.cost_of_goods, order.currency)}</td>
+          <td><div class="order-items">${itemsHtml}</div></td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    function renderAds(campaigns) {
+      const body = document.getElementById('adsBody');
+      body.innerHTML = '';
+      if (!Array.isArray(campaigns) || !campaigns.length) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 9;
+        td.textContent = '暂无广告数据';
+        tr.appendChild(td);
+        body.appendChild(tr);
+        return;
+      }
+      campaigns.forEach(campaign => {
+        const metrics = Array.isArray(campaign.metrics) ? campaign.metrics : [];
+        const totals = metrics.reduce((acc, row) => {
+          acc.impressions += Number(row.impressions) || 0;
+          acc.clicks += Number(row.clicks) || 0;
+          acc.conversions += Number(row.conversions) || 0;
+          acc.conversion_value += Number(row.conversion_value) || 0;
+          acc.spend += Number(row.spend) || 0;
+          acc.roas = acc.spend ? acc.conversion_value / acc.spend : null;
+          return acc;
+        }, { impressions:0, clicks:0, conversions:0, conversion_value:0, spend:0, roas:null });
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${campaign.campaign_name || campaign.campaign_id}</td>
+          <td><span class="status-pill">${campaign.status || '—'}</span></td>
+          <td>${campaign.budget_daily != null ? formatCurrency(campaign.budget_daily, 'CNY') : '—'}</td>
+          <td>${formatCurrency(totals.spend, 'CNY')}</td>
+          <td>${formatNumber(totals.impressions)}</td>
+          <td>${formatNumber(totals.clicks)}</td>
+          <td>${formatNumber(totals.conversions)}</td>
+          <td>${formatCurrency(totals.conversion_value, 'CNY')}</td>
+          <td>${totals.roas != null ? totals.roas.toFixed(2) : '—'}</td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    async function loadStats() {
+      if (!state.siteId) return;
+      setStatus('detailStatus', '加载中…');
+      setStatus('operationsStatus', '');
+      setStatus('productsStatus', '');
+      try {
+        const query = buildQuery({ siteId: state.siteId });
+        const payload = await fetchJson(`/api/lazada/stats?${query}`);
+        if (!payload.success) throw new Error(payload.message || '获取运营数据失败');
+        const daily = payload.data?.daily || [];
+        const products = payload.data?.products || [];
+        const summary = payload.data?.summary || {};
+        renderDailyMetrics(daily, summary.currency);
+        renderSummary(summary);
+        renderProducts(products);
+        setStatus('detailStatus', `共 ${daily.length} 天数据`, false);
+        setStatus('operationsStatus', summary.days ? `汇总 ${summary.days} 天数据` : '暂无数据');
+        setStatus('productsStatus', products.length ? `同步 ${products.length} 条产品指标` : '暂无产品指标');
+      } catch (error) {
+        console.error('[lazada] stats load failed', error);
+        renderDailyMetrics([], null);
+        renderSummary(null);
+        renderProducts([]);
+        setStatus('detailStatus', error.message || '加载失败', true);
+        setStatus('operationsStatus', error.message || '加载失败', true);
+        setStatus('productsStatus', error.message || '加载失败', true);
+      }
+    }
+
+    async function loadOrders() {
+      if (!state.siteId) return;
+      setStatus('ordersStatus', '加载中…');
+      try {
+        const query = buildQuery({ siteId: state.siteId, limit: 200 });
+        const payload = await fetchJson(`/api/lazada/orders?${query}`);
+        if (!payload.success) throw new Error(payload.message || '获取订单失败');
+        const orders = payload.data?.orders || [];
+        renderOrders(orders);
+        setStatus('ordersStatus', orders.length ? `同步 ${orders.length} 笔订单` : '暂无订单');
+      } catch (error) {
+        console.error('[lazada] orders load failed', error);
+        renderOrders([]);
+        setStatus('ordersStatus', error.message || '加载失败', true);
+      }
+    }
+
+    async function loadAds() {
+      if (!state.siteId) return;
+      setStatus('adsStatus', '加载中…');
+      try {
+        const query = buildQuery({ siteId: state.siteId });
+        const payload = await fetchJson(`/api/lazada/ads?${query}`);
+        if (!payload.success) throw new Error(payload.message || '获取广告数据失败');
+        const campaigns = payload.data?.campaigns || [];
+        renderAds(campaigns);
+        setStatus('adsStatus', campaigns.length ? `同步 ${campaigns.length} 个广告系列` : '暂无广告数据');
+      } catch (error) {
+        console.error('[lazada] ads load failed', error);
+        renderAds([]);
+        setStatus('adsStatus', error.message || '加载失败', true);
+      }
+    }
+
+    function loadAll() {
+      if (!state.siteId) return;
+      const params = buildQuery({ siteId: state.siteId });
+      const rangeText = `查询参数：${params}`;
+      setStatus('detailRange', rangeText);
+      setStatus('operationsRange', rangeText);
+      setStatus('productsRange', rangeText);
+      setStatus('ordersRange', rangeText);
+      setStatus('adsRange', rangeText);
+      loadStats();
+      loadOrders();
+      loadAds();
+    }
+
+    function updateSiteFromStorage() {
+      const stored = localStorage.getItem(`currentSiteId:${platform}`);
+      if (stored && stored !== state.siteId) {
+        state.siteId = stored;
+        loadAll();
+      }
+    }
+
+    document.addEventListener('site-selection-changed', event => {
+      const detail = event.detail || {};
+      if (detail.platform !== platform) return;
+      const newSite = detail.selection?.id;
+      if (newSite && newSite !== state.siteId) {
+        state.siteId = newSite;
+        loadAll();
+      }
+    });
+
+    updateSiteFromStorage();
+    if (!state.siteId) {
+      const defaultSite = document.getElementById('currentSite')?.dataset?.defaultName;
+      setStatus('detailStatus', defaultSite ? `等待 ${defaultSite} 授权` : '请选择站点');
+    }
+  })();
+</script>
+</body>
+</html>
