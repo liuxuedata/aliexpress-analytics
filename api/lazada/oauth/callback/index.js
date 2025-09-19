@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
-const { storeTokenRecord } = require('../../../lib/lazada-auth');
-const { decodeState } = require('../../../lib/lazada-oauth-state');
+const { storeTokenRecord } = require('../../../../lib/lazada-auth');
+const { decodeState } = require('../../../../lib/lazada-oauth-state');
 
 const TOKEN_ENDPOINT = 'https://auth.lazada.com/rest/auth/token/create';
 const TOKEN_PATH = '/rest/auth/token/create';
