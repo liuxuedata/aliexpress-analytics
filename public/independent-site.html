@@ -698,6 +698,8 @@
       <li><a href="#" class="active" data-target="detail">明细数据</a></li>
       <li><a href="#analysis" data-target="analysis">运营分析</a></li>
       <li><a href="#products" data-target="products">产品分析</a></li>
+      <li><a href="#orders" data-target="orders">订单中心</a></li>
+      <li><a href="#advertising" data-target="advertising">广告中心</a></li>
     </ul>
   </nav>
 
@@ -849,6 +851,42 @@
           <div>
             <div id="productConversionsChart" style="width:100%;height:260px;"></div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="orders" class="content-pad" style="display:none;">
+      <div class="panel">
+        <h3>订单中心</h3>
+        <p class="notice">独立站订单将统一写入 orders/order_items，并支持按广告渠道追踪来源。</p>
+        <div class="table-wrapper">
+          <table class="display" style="width:100%">
+            <thead>
+              <tr>
+                <th>订单号</th>
+                <th>站点</th>
+                <th>渠道</th>
+                <th>产品 ID</th>
+                <th>下单时间</th>
+                <th>支付金额</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="6" style="text-align:center;color:#6b7280;">等待 /api/independent/orders 接口上线后展示。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="advertising" class="content-pad" style="display:none;">
+      <div class="panel">
+        <h3>广告中心</h3>
+        <p class="notice">将接入 Facebook/Google/TikTok 广告报表，展示广告到访客/加购/支付的归因路径。</p>
+        <div class="placeholder-chart" style="height:280px;border:1px dashed #d1d5db;border-radius:8px;margin-top:16px;display:flex;align-items:center;justify-content:center;color:#9ca3af;">
+          广告指标筹备中
         </div>
       </div>
     </section>
@@ -2789,6 +2827,7 @@ function getFacebookAdsColumns() {
 <script>
 // 延迟执行Hash路由逻辑，确保数据加载函数已定义
 document.addEventListener('DOMContentLoaded', () => {
+  const MODULE_IDS = ['detail', 'analysis', 'products', 'orders', 'advertising'];
   function handleHashRoute() {
     const hash = window.location.hash.slice(1) || 'detail';
     const link = document.querySelector(`[data-target="${hash}"]`);
@@ -2796,7 +2835,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.sub-nav a').forEach(x => x.classList.remove('active'));
       link.classList.add('active');
 
-      ['detail', 'analysis', 'products'].forEach(id => {
+      MODULE_IDS.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = (id === hash ? '' : 'none');
       });
