@@ -14,6 +14,21 @@ function normalizeTableName(name, fallback = 'ozon_product_report_wide'){
   return t;
 }
 
+function cleanText(value){
+  if(value === null || value === undefined) return '';
+  return typeof value === 'string' ? value.trim() : String(value);
+}
+
+function productKey(row){
+  if(!row) return '';
+  const sku = cleanText(row.product_id || row.sku || row.offer_id || '');
+  const model = cleanText(row.model || '');
+  if(sku) return `${sku}@@${model || ''}`;
+  const title = cleanText(row.tovary || row.product_title || '');
+  if(title) return `title:${title}`;
+  return JSON.stringify({ sku, model, title });
+}
+
 module.exports = async function handler(req,res){
   try{
     const supabase = supa();
@@ -49,8 +64,6 @@ module.exports = async function handler(req,res){
     ];
     const uvCol = uvCandidates.find(c=>tableCols.includes(c)) || uvCandidates[0];
 
-    const idOf = r => `${r.sku}@@${r.model||''}`;
-
     async function fetchAllProductSet(until){
       const PAGE = 1000;
       const set = new Set();
@@ -63,7 +76,7 @@ module.exports = async function handler(req,res){
           .order('den', { ascending: true })
           .range(from, from+PAGE-1);
         if(error) throw error;
-        for(const r of data||[]) set.add(idOf(r));
+        for(const r of data||[]) set.add(productKey(r));
         if(!data || data.length < PAGE) break;
       }
       return set;
@@ -83,18 +96,18 @@ module.exports = async function handler(req,res){
       function agg(rows){
         const sums={exposure:0,uv:0,cart:0,pay:0};
         const prodSet=new Set();
-        const cartProds=new Set();
-        const payProds=new Set();
         const displayProds=new Set();
+        const cartPositive=new Set();
+        const payPositive=new Set();
         for(const r of rows){
-          const id=idOf(r);
-          prodSet.add(id);
-          const e=Number(r.voronka_prodazh_pokazy_vsego)||0; sums.exposure+=e; if(e>0) displayProds.add(id);
+          const key=productKey(r);
+          prodSet.add(key);
+          const e=Number(r.voronka_prodazh_pokazy_vsego)||0; sums.exposure+=e; if(e>0) displayProds.add(key);
           const u=Number(r.uv)||0; sums.uv+=u;
-          const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; sums.cart+=c; if(c>0) cartProds.add(id);
-          const p=Number(r.voronka_prodazh_zakazano_tovarov)||0; sums.pay+=p; if(p>0) payProds.add(id);
+          const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; sums.cart+=c; if(c>0) cartPositive.add(key);
+          const p=Number(r.voronka_prodazh_zakazano_tovarov)||0; sums.pay+=p; if(p>0) payPositive.add(key);
         }
-        return {sums, prodSet, cartProds, payProds, displayProds, rows};
+        return {sums, prodSet, cartPositive, payPositive, displayProds, rows};
       }
       const cur=agg(curResp.data||[]);
       const prev=agg(prevResp.data||[]);
@@ -108,9 +121,9 @@ module.exports = async function handler(req,res){
       const newIdSet=new Set(newIds);
       const newMap=new Map();
       for(const r of cur.rows){
-        const id=idOf(r);
-        if(newIdSet.has(id) && !newMap.has(id)){
-          newMap.set(id,{sku:r.sku,model:r.model,title:r.tovary});
+        const key=productKey(r);
+        if(newIdSet.has(key) && !newMap.has(key)){
+          newMap.set(key,{sku:r.sku,model:r.model,title:r.tovary});
         }
       }
       const newProducts=[...newMap.values()];
@@ -128,8 +141,8 @@ module.exports = async function handler(req,res){
           pay_rate:{current:payRate, previous:payRatePrev},
           display_product_total:{current:cur.displayProds.size, previous:prev.displayProds.size},
           product_total:{current:allCurSet.size, previous:allPrevSet.size},
-          cart_product_total:{current:cur.cartProds.size, previous:prev.cartProds.size},
-          pay_product_total:{current:cur.payProds.size, previous:prev.payProds.size},
+          cart_product_total:{current:cur.cartPositive.size, previous:prev.cartPositive.size},
+          pay_product_total:{current:cur.payPositive.size, previous:prev.payPositive.size},
           new_product_total:newProducts.length,
           new_products:newProducts
         }
@@ -166,18 +179,18 @@ module.exports = async function handler(req,res){
     function agg(rows){
       const sums={exposure:0,uv:0,cart:0,pay:0};
       const prodSet=new Set();
-      const cartProds=new Set();
-      const payProds=new Set();
       const displayProds=new Set();
+      const cartPositive=new Set();
+      const payPositive=new Set();
       for(const r of rows){
-        const id=idOf(r);
-        prodSet.add(id);
-        const e=Number(r.voronka_prodazh_pokazy_vsego)||0; sums.exposure+=e; if(e>0) displayProds.add(id);
+        const key=productKey(r);
+        prodSet.add(key);
+        const e=Number(r.voronka_prodazh_pokazy_vsego)||0; sums.exposure+=e; if(e>0) displayProds.add(key);
         const u=Number(r.uv)||0; sums.uv+=u;
-        const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; sums.cart+=c; if(c>0) cartProds.add(id);
-        const p=Number(r.voronka_prodazh_zakazano_tovarov)||0; sums.pay+=p; if(p>0) payProds.add(id);
+        const c=Number(r.voronka_prodazh_dobavleniya_v_korzinu_vsego)||0; sums.cart+=c; if(c>0) cartPositive.add(key);
+        const p=Number(r.voronka_prodazh_zakazano_tovarov)||0; sums.pay+=p; if(p>0) payPositive.add(key);
       }
-      return {sums, prodSet, cartProds, payProds, displayProds, rows};
+      return {sums, prodSet, cartPositive, payPositive, displayProds, rows};
     }
     const cur=agg(curResp.data||[]);
     const prev=agg(prevResp.data||[]);
@@ -191,9 +204,9 @@ module.exports = async function handler(req,res){
     const newIdSet=new Set(newIds);
     const newMap=new Map();
     for(const r of cur.rows){
-      const id=idOf(r);
-      if(newIdSet.has(id) && !newMap.has(id)){
-        newMap.set(id,{sku:r.sku,model:r.model,title:r.tovary});
+      const key=productKey(r);
+      if(newIdSet.has(key) && !newMap.has(key)){
+        newMap.set(key,{sku:r.sku,model:r.model,title:r.tovary});
       }
     }
     const newProducts=[...newMap.values()];
@@ -214,8 +227,8 @@ module.exports = async function handler(req,res){
         pay_rate:{current:payRate, previous:payRatePrev},
         display_product_total:{current:cur.displayProds.size, previous:prev.displayProds.size},
         product_total:{current:allCurSet.size, previous:allPrevSet.size},
-        cart_product_total:{current:cur.cartProds.size, previous:prev.cartProds.size},
-        pay_product_total:{current:cur.payProds.size, previous:prev.payProds.size},
+        cart_product_total:{current:cur.cartPositive.size, previous:prev.cartPositive.size},
+        pay_product_total:{current:cur.payPositive.size, previous:prev.payPositive.size},
         new_product_total:newProducts.length,
         new_products:newProducts
       }

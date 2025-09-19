@@ -177,21 +177,45 @@
           <div class="form-row">
             <div class="form-group">
               <label for="siteName">站点名称</label>
-              <input type="text" id="siteName" required placeholder="如：B站">
+              <input type="text" id="siteName" required placeholder="如：robot 或 flagship">
             </div>
             <div class="form-group">
               <label for="sitePlatform">平台</label>
               <select id="sitePlatform" required>
                 <option value="">选择平台</option>
                 <option value="ae_self_operated">速卖通自运营</option>
-                <option value="independent">独立站</option>
                 <option value="ae_managed">速卖通全托管</option>
+                <option value="independent">独立站</option>
+                <option value="amazon">亚马逊</option>
+                <option value="ozon">Ozon</option>
+                <option value="tiktok">TikTok Shop</option>
+                <option value="temu">Temu</option>
+                <option value="lazada">Lazada</option>
+                <option value="shopee">Shopee</option>
               </select>
             </div>
           </div>
-          <div class="form-group">
-            <label for="displayName">显示名称</label>
-            <input type="text" id="displayName" required placeholder="如：速卖通自运营 B站">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="displayName">显示名称</label>
+              <input type="text" id="displayName" required placeholder="如：速卖通自运营 Robot">
+            </div>
+            <div class="form-group">
+              <label for="siteDomain">域名 / 标识</label>
+              <input type="text" id="siteDomain" placeholder="如：robot.aliexpress.com">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="siteDataSource">数据源</label>
+              <select id="siteDataSource" required>
+                <option value="">选择数据源</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="templateId">数据模板</label>
+              <input type="text" id="templateId" placeholder="可选：facebook_ads_v2025">
+            </div>
           </div>
           <button type="submit" class="btn btn-primary">添加站点</button>
         </form>
@@ -263,28 +287,120 @@
 (function() {
   const addSiteForm = document.getElementById('addSiteForm');
   const siteGrid = document.getElementById('siteGrid');
+  const platformSelect = document.getElementById('sitePlatform');
+  const dataSourceSelect = document.getElementById('siteDataSource');
+  let currentSites = [];
 
-  // 加载站点列表
+  const PLATFORM_CATALOG = {
+    ae_self_operated: {
+      label: '速卖通自运营',
+      dataSources: [
+        { value: 'ae_api', label: '速卖通 API' },
+        { value: 'ae_report', label: '速卖通运营报表' }
+      ]
+    },
+    ae_managed: {
+      label: '速卖通全托管',
+      dataSources: [
+        { value: 'ae_api', label: '速卖通 API' },
+        { value: 'managed_report', label: '全托管报表' }
+      ]
+    },
+    independent: {
+      label: '独立站',
+      dataSources: [
+        { value: 'google_ads', label: 'Google Ads' },
+        { value: 'facebook_ads', label: 'Facebook Ads' },
+        { value: 'tiktok_ads', label: 'TikTok Ads' },
+        { value: 'custom', label: '自定义/埋点' }
+      ]
+    },
+    amazon: {
+      label: '亚马逊',
+      dataSources: [
+        { value: 'amazon_sp_api', label: 'Amazon SP-API' },
+        { value: 'amazon_ads', label: 'Amazon Ads 报表' }
+      ]
+    },
+    ozon: {
+      label: 'Ozon',
+      dataSources: [
+        { value: 'ozon_api', label: 'Ozon API' },
+        { value: 'ozon_report', label: 'Ozon 报表' }
+      ]
+    },
+    tiktok: {
+      label: 'TikTok Shop',
+      dataSources: [
+        { value: 'tiktok_shop_api', label: 'TikTok Shop API' },
+        { value: 'tiktok_ads', label: 'TikTok Ads 报表' }
+      ]
+    },
+    temu: {
+      label: 'Temu',
+      dataSources: [
+        { value: 'temu_report', label: 'Temu 报表' },
+        { value: 'temu_api', label: 'Temu API (规划)' }
+      ]
+    },
+    lazada: {
+      label: 'Lazada',
+      dataSources: [
+        { value: 'lazada_api', label: 'Lazada API' },
+        { value: 'lazada_ads', label: 'Lazada Ads 报表' },
+        { value: 'custom', label: '自定义/第三方' }
+      ]
+    },
+    shopee: {
+      label: 'Shopee',
+      dataSources: [
+        { value: 'shopee_api', label: 'Shopee API' },
+        { value: 'shopee_ads', label: 'Shopee Ads 报表' },
+        { value: 'custom', label: '自定义/第三方' }
+      ]
+    },
+    ebay: {
+      label: 'eBay',
+      dataSources: [
+        { value: 'ebay_report', label: 'eBay 报表' },
+        { value: 'custom', label: '自定义/第三方' }
+      ]
+    }
+  };
+
+  const DATA_SOURCE_LABELS = Object.values(PLATFORM_CATALOG).reduce((acc, platform) => {
+    platform.dataSources.forEach(ds => acc[ds.value] = ds.label);
+    return acc;
+  }, { custom: '自定义/第三方' });
+
+  platformSelect.addEventListener('change', updateDataSourceOptions);
+
   async function loadSites() {
     try {
-      const response = await fetch('/api/sites');
+      const response = await fetch('/api/site-configs');
       const result = await response.json();
-      
-      if (result.data) {
-        renderSites(result.data);
-      }
+      if (!response.ok) throw new Error(result.error || '加载失败');
+      currentSites = result.data || [];
+      renderSites();
     } catch (error) {
       console.error('加载站点失败:', error);
+      siteGrid.innerHTML = '<div class="site-card">加载站点失败，请稍后重试。</div>';
     }
   }
 
-  // 渲染站点列表
-  function renderSites(sites) {
-    siteGrid.innerHTML = sites.map(site => `
+  function renderSites() {
+    if (!currentSites.length) {
+      siteGrid.innerHTML = '<div class="site-card">暂无站点，请先创建。</div>';
+      return;
+    }
+
+    siteGrid.innerHTML = currentSites.map(site => `
       <div class="site-card">
-        <h3>${site.display_name}</h3>
+        <h3>${site.display_name || site.name}</h3>
         <div class="platform">平台: ${getPlatformName(site.platform)}</div>
-        <div class="platform">站点ID: ${site.name}</div>
+        <div class="platform">数据源: ${getDataSourceName(site.data_source)}</div>
+        <div class="platform">站点ID: ${site.id}</div>
+        <div class="platform">域名: ${site.domain || '—'}</div>
         <div class="actions">
           <button class="btn" onclick="editSite('${site.id}')">编辑</button>
           <button class="btn btn-danger" onclick="deleteSite('${site.id}')">删除</button>
@@ -293,43 +409,78 @@
     `).join('');
   }
 
-  // 获取平台名称
-  function getPlatformName(platform) {
-    const names = {
-      'ae_self_operated': '速卖通自运营',
-      'independent': '独立站',
-      'ae_managed': '速卖通全托管'
-    };
-    return names[platform] || platform;
+  function updateDataSourceOptions() {
+    const platform = platformSelect.value;
+    const options = PLATFORM_CATALOG[platform]?.dataSources || [];
+    dataSourceSelect.innerHTML = '<option value="">选择数据源</option>';
+    options.forEach(source => {
+      const option = document.createElement('option');
+      option.value = source.value;
+      option.textContent = source.label;
+      dataSourceSelect.appendChild(option);
+    });
+    if (!options.find(item => item.value === 'custom')) {
+      const fallback = document.createElement('option');
+      fallback.value = 'custom';
+      fallback.textContent = DATA_SOURCE_LABELS.custom;
+      dataSourceSelect.appendChild(fallback);
+    }
   }
 
-  // 添加站点
+  function getPlatformName(platform) {
+    return PLATFORM_CATALOG[platform]?.label || platform;
+  }
+
+  function getDataSourceName(source) {
+    if (!source) return '未配置';
+    return DATA_SOURCE_LABELS[source] || source;
+  }
+
   addSiteForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
-    const formData = {
-      name: document.getElementById('siteName').value,
-      platform: document.getElementById('sitePlatform').value,
-      display_name: document.getElementById('displayName').value
+
+    const name = document.getElementById('siteName').value.trim();
+    const platform = platformSelect.value;
+    const displayName = document.getElementById('displayName').value.trim();
+    const domain = document.getElementById('siteDomain').value.trim() || null;
+    const dataSource = dataSourceSelect.value;
+    const templateId = document.getElementById('templateId').value.trim() || null;
+
+    if (!name || !platform || !displayName || !dataSource) {
+      alert('请填写完整的站点名称、平台、显示名称与数据源。');
+      return;
+    }
+
+    const payload = {
+      name,
+      platform,
+      display_name: displayName,
+      domain,
+      data_source: dataSource,
+      template_id: templateId || null
     };
 
     try {
-      const response = await fetch('/api/sites', {
+      const response = await fetch('/api/site-configs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
 
       const result = await response.json();
-      
+
       if (response.ok) {
-        alert('站点添加成功！');
+        alert('站点添加成功，已自动注册导航模块！');
         addSiteForm.reset();
-        loadSites();
+        updateDataSourceOptions();
+        await loadSites();
+        if (result.data?.id) {
+          await syncSite(result.data.id, 'create');
+        }
       } else {
-        alert('添加失败: ' + result.error);
+        alert('添加失败: ' + (result.error || '未知错误'));
       }
     } catch (error) {
       console.error('添加站点失败:', error);
@@ -337,21 +488,29 @@
     }
   });
 
-  // 编辑站点
-  window.editSite = function(siteId) {
-    // 实现编辑功能
-    alert('编辑功能开发中...');
-  };
-
-  // 删除站点
-  window.deleteSite = function(siteId) {
-    if (confirm('确定要删除这个站点吗？')) {
-      // 实现删除功能
-      alert('删除功能开发中...');
+  async function syncSite(siteId, action) {
+    try {
+      await fetch('/api/site-sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ siteId, action })
+      });
+    } catch (error) {
+      console.warn('触发站点同步失败:', error);
     }
+  }
+
+  window.editSite = function() {
+    alert('如需编辑站点配置，请前往 admin.html 管理后台。');
   };
 
-  // 页面加载时获取站点列表
+  window.deleteSite = function() {
+    alert('站点删除操作受限，请在数据库或管理后台审核后执行。');
+  };
+
+  updateDataSourceOptions();
   loadSites();
 })();
 </script>

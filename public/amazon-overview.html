@@ -105,71 +105,129 @@
   <nav class="sidebar" id="sidebar">
     <div class="site-header"><span>Amazon数据总览</span></div>
     <ul class="sub-nav">
-      <li><a href="amazon-overview.html" class="active">总览</a></li>
-      <li><a href="amazon-ads.html">广告</a></li>
+      <li><a href="#" class="active" data-target="detail">详细数据</a></li>
+      <li><a href="#analysis" data-target="analysis">运营分析</a></li>
+      <li><a href="#products" data-target="products">产品分析</a></li>
+      <li><a href="#orders" data-target="orders">订单中心</a></li>
+      <li><a href="#advertising" data-target="advertising">广告中心</a></li>
     </ul>
   </nav>
-  
+
   <main class="main">
-    <!-- 日期选择器 -->
-    <div class="date-range-selector" style="margin-bottom: 2rem;">
-      <div class="date-inputs">
-        <input type="text" id="startDate" placeholder="开始日期" readonly>
-        <span>至</span>
-        <input type="text" id="endDate" placeholder="结束日期" readonly>
-        <button id="loadData" class="btn-primary">查询数据</button>
+    <section id="detail" class="module-section">
+      <!-- 日期选择器 -->
+      <div class="date-range-selector" style="margin-bottom: 2rem;">
+        <div class="date-inputs">
+          <input type="text" id="startDate" placeholder="开始日期" readonly>
+          <span>至</span>
+          <input type="text" id="endDate" placeholder="结束日期" readonly>
+          <button id="loadData" class="btn-primary">查询数据</button>
+        </div>
       </div>
-    </div>
 
-    <!-- KPI卡片 -->
-    <div class="amazon-kpi-grid" id="kpiGrid">
-      <div class="amazon-kpi-card">
-        <div class="amazon-kpi-value" id="totalSessions">-</div>
-        <div class="amazon-kpi-label">总访客数</div>
+      <!-- KPI卡片 -->
+      <div class="amazon-kpi-grid" id="kpiGrid">
+        <div class="amazon-kpi-card">
+          <div class="amazon-kpi-value" id="totalSessions">-</div>
+          <div class="amazon-kpi-label">总访客数</div>
+        </div>
+        <div class="amazon-kpi-card">
+          <div class="amazon-kpi-value" id="totalPageViews">-</div>
+          <div class="amazon-kpi-label">总曝光数</div>
+        </div>
+        <div class="amazon-kpi-card">
+          <div class="amazon-kpi-value" id="totalOrders">-</div>
+          <div class="amazon-kpi-label">总下单数</div>
+        </div>
+        <div class="amazon-kpi-card">
+          <div class="amazon-kpi-value" id="totalGMV">-</div>
+          <div class="amazon-kpi-label">总GMV</div>
+        </div>
+        <div class="amazon-kpi-card">
+          <div class="amazon-kpi-value" id="avgBuyBox">-</div>
+          <div class="amazon-kpi-label">平均Buy Box%</div>
+        </div>
       </div>
-      <div class="amazon-kpi-card">
-        <div class="amazon-kpi-value" id="totalPageViews">-</div>
-        <div class="amazon-kpi-label">总曝光数</div>
-      </div>
-      <div class="amazon-kpi-card">
-        <div class="amazon-kpi-value" id="totalOrders">-</div>
-        <div class="amazon-kpi-label">总下单数</div>
-      </div>
-      <div class="amazon-kpi-card">
-        <div class="amazon-kpi-value" id="totalGMV">-</div>
-        <div class="amazon-kpi-label">总GMV</div>
-      </div>
-      <div class="amazon-kpi-card">
-        <div class="amazon-kpi-value" id="avgBuyBox">-</div>
-        <div class="amazon-kpi-label">平均Buy Box%</div>
-      </div>
-    </div>
 
-    <!-- 趋势图表 -->
-    <div class="amazon-chart-container">
-      <h3 style="margin-bottom: 1rem;">趋势分析</h3>
-      <div id="trendChart" style="width: 100%; height: 400px;"></div>
-    </div>
+      <!-- 趋势图表 -->
+      <div class="amazon-chart-container">
+        <h3 style="margin-bottom: 1rem;">趋势分析</h3>
+        <div id="trendChart" style="width: 100%; height: 400px;"></div>
+      </div>
 
-    <!-- 数据表格 -->
-    <div class="amazon-table-container">
-      <h3 style="margin-bottom: 1rem;">详细数据</h3>
-      <table id="amazonDataTable" class="table">
-        <thead>
-          <tr>
-            <th>ASIN</th>
-            <th>日期</th>
-            <th>访客数</th>
-            <th>曝光数</th>
-            <th>下单数</th>
-            <th>GMV</th>
-            <th>Buy Box%</th>
-            <th>转化率</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+      <!-- 数据表格 -->
+      <div class="amazon-table-container">
+        <h3 style="margin-bottom: 1rem;">详细数据</h3>
+        <table id="amazonDataTable" class="table">
+          <thead>
+            <tr>
+              <th>ASIN</th>
+              <th>日期</th>
+              <th>访客数</th>
+              <th>曝光数</th>
+              <th>下单数</th>
+              <th>GMV</th>
+              <th>Buy Box%</th>
+              <th>转化率</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="analysis" class="module-section" style="display:none;">
+      <div class="panel">
+        <h3>运营分析</h3>
+        <p class="hint">Amazon 运营分析版块将拆分曝光 → 访客 → 下单 → 支付的漏斗趋势，并支持按站点/店铺筛选。</p>
+        <div class="placeholder-chart" style="height:320px;border:1px dashed #d1d5db;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#9ca3af;">
+          运营分析报表筹备中
+        </div>
+      </div>
+    </section>
+
+    <section id="products" class="module-section" style="display:none;">
+      <div class="panel">
+        <h3>产品分析</h3>
+        <p class="hint">计划对接 ASIN 维度的曝光、转化与广告归因数据，支持跳转至独立产品详情。</p>
+      </div>
+    </section>
+
+    <section id="orders" class="module-section" style="display:none;">
+      <div class="panel">
+        <h3>订单中心</h3>
+        <p class="hint">即将接入亚马逊订单 API，同步订单号、买家、履约与结算状态。</p>
+        <div class="table-wrapper">
+          <table class="table" style="width:100%">
+            <thead>
+              <tr>
+                <th>订单号</th>
+                <th>ASIN</th>
+                <th>买家</th>
+                <th>下单时间</th>
+                <th>状态</th>
+                <th>实付</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="6" style="text-align:center;color:#6b7280;">等待 SP-API 接入后自动填充</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="advertising" class="module-section" style="display:none;">
+      <div class="panel">
+        <h3>广告中心</h3>
+        <p class="hint">Amazon 广告数据将接入 Sponsored Products/Brands，支持预算、曝光、点击、转化链路分析。</p>
+        <div class="placeholder-chart" style="height:320px;border:1px dashed #d1d5db;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#9ca3af;">
+          广告指标同步中
+        </div>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -183,6 +241,7 @@ $(document).ready(function() {
   initializeDataTable();
   initializeChart();
   loadDefaultData();
+  setupModuleNavigation();
 });
 
 // 初始化日期选择器
@@ -469,6 +528,39 @@ $(window).resize(function() {
     trendChart.resize();
   }
 });
+
+const MODULE_IDS = ['detail', 'analysis', 'products', 'orders', 'advertising'];
+
+function setupModuleNavigation() {
+  document.querySelectorAll('.sub-nav a').forEach(link => {
+    link.addEventListener('click', event => {
+      const target = link.dataset.target;
+      if (target) {
+        event.preventDefault();
+        window.location.hash = target;
+      }
+    });
+  });
+
+  window.addEventListener('hashchange', handleModuleRoute);
+  handleModuleRoute();
+}
+
+function handleModuleRoute() {
+  const hash = window.location.hash.slice(1) || 'detail';
+  const active = MODULE_IDS.includes(hash) ? hash : 'detail';
+
+  document.querySelectorAll('.sub-nav a').forEach(link => {
+    link.classList.toggle('active', link.dataset.target === active);
+  });
+
+  MODULE_IDS.forEach(id => {
+    const section = document.getElementById(id);
+    if (section) {
+      section.style.display = id === active ? '' : 'none';
+    }
+  });
+}
 </script>
 
 <script src="assets/site-nav.js"></script>
