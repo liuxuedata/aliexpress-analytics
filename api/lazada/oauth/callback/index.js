@@ -51,22 +51,39 @@ function createSupabaseClient() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-function pickTokenValue(payload, keys) {
+function pickTokenValue(payload, keys, seen = new Set()) {
   if (!payload || typeof payload !== 'object') return null;
+  if (seen.has(payload)) return null;
+  seen.add(payload);
+
   for (const key of keys) {
     if (Object.prototype.hasOwnProperty.call(payload, key)) {
       const value = payload[key];
-      if (typeof value === 'string' && value.trim()) {
-        return value.trim();
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (trimmed) {
+          return trimmed;
+        }
       }
-      if (value && typeof value === 'object' && !Array.isArray(value)) {
-        const nested = pickTokenValue(value, keys);
+      if (value && typeof value === 'object') {
+        const nested = pickTokenValue(value, keys, seen);
         if (nested) {
           return nested;
         }
       }
     }
   }
+
+  const values = Array.isArray(payload) ? payload : Object.values(payload);
+  for (const value of values) {
+    if (value && typeof value === 'object') {
+      const nested = pickTokenValue(value, keys, seen);
+      if (nested) {
+        return nested;
+      }
+    }
+  }
+
   return null;
 }
 
