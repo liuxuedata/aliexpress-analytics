@@ -24,7 +24,7 @@ CREATE TABLE public.site_configs (
   updated_at  timestamptz not null default now()
 );
 
-> ⚠️ **Lazada 专用字段**：`platform = 'lazada'` 的站点必须在 `config_json` 中提供 `seller_short_code`（例如 `{ "seller_short_code": "MY123456" }`），以便 `/api/lazada/oauth/start` 构建授权链接并满足 App Management -> Auth Management 的卖家校验。
+> ℹ️ **Lazada 可选字段**：`platform = 'lazada'` 的站点可以在 `config_json` 中提供默认的 `seller_short_code`（例如 `{ "seller_short_code": "MY123456" }`），`/api/lazada/oauth/start` 会在存在时将其拼入授权链接；若未配置，接口仍会返回可用的授权地址，Lazada 授权流程会引导用户选择绑定卖家。
 
 -- 数据源模板
 CREATE TABLE public.data_source_templates (

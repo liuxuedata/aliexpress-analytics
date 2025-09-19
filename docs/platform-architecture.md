@@ -46,7 +46,7 @@
 ### 2.3 API 分类
 - **站点管理层**：`/api/sites`、`/api/site-configs`、`/api/site-sync`、`/api/site-modules`（模块注册与权限配置）。
 - **运营数据层**：速卖通、独立站、亚马逊、Ozon、Lazada 已接入统一指标模型，落地到 `site_metrics_daily`、`product_metrics_daily` 等表；Temu/TikTok/Shopee 保持相同接口规范，字段可用性通过 `platform_metric_profiles` 与 API 响应暴露。
-- **授权回调层**：Lazada 的授权流程由 `/api/lazada/oauth/start` 生成签名 `state` 并跳转 Lazada 登录页，回调 `/api/lazada/oauth/callback` 在校验签名后持久化刷新令牌并根据 `state.returnTo` 重定向回业务页面。流程依赖 `LAZADA_APP_KEY/LAZADA_APP_SECRET/LAZADA_REDIRECT_URI` 环境变量，且必须在站点配置 `config_json.seller_short_code`（或请求参数 `seller_short_code`）中提供 Lazada Seller Short Code 并确保控制台 App Management -> Auth Management 已登记对应卖家，回调地址需与 Lazada 控制台保持一致。
+- **授权回调层**：Lazada 的授权流程由 `/api/lazada/oauth/start` 生成签名 `state` 并跳转 Lazada 登录页，回调 `/api/lazada/oauth/callback` 在校验签名后持久化刷新令牌并根据 `state.returnTo` 重定向回业务页面。流程依赖 `LAZADA_APP_KEY/LAZADA_APP_SECRET/LAZADA_REDIRECT_URI` 环境变量，可选地在站点配置 `config_json.seller_short_code`（或请求参数 `seller_short_code`）填入默认卖家编号；若未提供，Lazada 登录页会提示用户选择或绑定卖家。回调地址需与 Lazada 控制台保持一致。
 - **业务扩展层（规划）**：订单、库存、广告、权限四大模块的 REST 接口详见 `specs/openapi.yaml`。
 
 ## 3. 应用层次结构

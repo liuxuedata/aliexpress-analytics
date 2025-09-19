@@ -200,7 +200,7 @@ test('lazada oauth start returns 404 when site missing', async () => {
   });
 });
 
-test('lazada oauth start fails when seller short code missing', async () => {
+test('lazada oauth start succeeds without seller short code', async () => {
   await withEnv({
     LAZADA_APP_KEY: 'app-key',
     LAZADA_REDIRECT_URI: 'https://example.com/callback',
@@ -225,8 +225,9 @@ test('lazada oauth start fails when seller short code missing', async () => {
 
     await handler(req, res);
 
-    assert.equal(res.statusCode, 400);
-    assert.equal(res.body.code, 'SELLER_SHORT_CODE_REQUIRED');
-    assert.equal(res.body.success, false);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.success, true);
+    assert.ok(!/seller_short_code=/.test(res.body.data.url));
+    assert.ok(!('seller_short_code' in res.body.data));
   });
 });

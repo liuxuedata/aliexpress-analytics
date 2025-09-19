@@ -176,11 +176,6 @@ function createHandler({ clientFactory = createClient, stateFactory = createSign
       const region = config.region || config.country || null;
       const language = config.language || null;
       const sellerShortCode = resolveSellerShortCode(query, config);
-      if (!sellerShortCode) {
-        const err = new Error('缺少 Lazada seller short code，请在站点配置 config_json.seller_short_code（或在请求中传递 seller_short_code）并确保 Lazada 开发者后台 App Management -> Auth Management 已配置对应卖家。');
-        err.code = 'SELLER_SHORT_CODE_REQUIRED';
-        throw err;
-      }
 
       const authorizeUrl = buildAuthorizeUrl({
         appKey,
@@ -191,18 +186,23 @@ function createHandler({ clientFactory = createClient, stateFactory = createSign
         sellerShortCode
       });
 
+      const responseData = {
+        url: authorizeUrl,
+        state,
+        site: {
+          id: normalizedSiteId,
+          display_name: site.display_name || site.name || normalizedSiteId
+        },
+        requestedSiteId: normalizedSiteId && siteId && normalizedSiteId !== siteId ? siteId : undefined
+      };
+
+      if (sellerShortCode) {
+        responseData.seller_short_code = sellerShortCode;
+      }
+
       return res.status(200).json({
         success: true,
-        data: {
-          url: authorizeUrl,
-          state,
-          site: {
-            id: normalizedSiteId,
-            display_name: site.display_name || site.name || normalizedSiteId
-          },
-          seller_short_code: sellerShortCode,
-          requestedSiteId: normalizedSiteId && siteId && normalizedSiteId !== siteId ? siteId : undefined
-        }
+        data: responseData
       });
     } catch (error) {
       const status = error?.code === 'SITE_NOT_FOUND' ? 404 : 400;

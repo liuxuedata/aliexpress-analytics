@@ -91,7 +91,7 @@ CREATE TABLE public.platform_metric_profiles (
 - `GET /api/site-modules` - 获取全局模块配置与默认顺序，需传入 `X-User-Role` 头或 `role` 查询参数以按角色过滤
 - `GET /api/site-modules/{siteId}` - 获取指定站点的模块启用状态、可见角色与字段覆盖，支持 `includeGlobal` 控制是否合并平台/全局默认
 - `PATCH /api/site-modules/{siteId}` - 更新站点的模块可见性、排序与字段映射，仅 `super_admin` 可写，响应会返回过滤后的最新配置
-- `GET /api/lazada/oauth/start` - 生成签名 `state` 并返回 Lazada 授权链接，前端在站点选择后点击“立即授权”时调用。该接口会校验站点 `config_json.seller_short_code`（或请求参数 `seller_short_code`），缺失时会拒绝授权并提示在 Lazada 开发者后台 App Management -> Auth Management 配置卖家。
+- `GET /api/lazada/oauth/start` - 生成签名 `state` 并返回 Lazada 授权链接，前端在站点选择后点击“立即授权”时调用。接口会在提供 `seller_short_code` 时拼接到 Lazada URL，并将其记录在响应数据中；若站点暂未维护该字段，授权流程仍可继续，由 Lazada 控制台在登录阶段提示选择或绑定卖家。
 - `GET /api/lazada/oauth/callback` - Lazada OAuth 回调端点，校验签名状态并换取访问令牌，自动落库到 `integration_tokens`
 - `GET /api/lazada/stats` - 读取 Lazada Analytics API，同步 `site_metrics_daily` 与 `product_metrics_daily`
 - `GET /api/lazada/orders` - 调用 Lazada Seller API 获取订单头/明细并写入 `orders`、`order_items`

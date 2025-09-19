@@ -991,7 +991,7 @@ paths:
           schema:
             type: string
           required: false
-          description: Lazada 卖家 Short Code。若站点 `config_json.seller_short_code` 未配置，则需通过该参数显式传入。
+          description: Lazada 卖家 Short Code。若站点有固定卖家，可通过该字段或 `config_json.seller_short_code` 预设；未提供时授权流程依旧可继续，由 Lazada 页面提示选择绑定卖家。
         - name: returnTo
           in: query
           schema:
@@ -1027,9 +1027,9 @@ paths:
                                 type: string
                           seller_short_code:
                             type: string
-                            description: 本次授权使用的 Lazada Seller Short Code。
+                            description: 本次授权使用的 Lazada Seller Short Code（仅在提供时返回）。
         '400':
-          description: 请求参数错误（包含缺少 Seller Short Code）或站点平台不匹配
+          description: 请求参数错误或站点平台不匹配
           content:
             application/json:
               schema:
