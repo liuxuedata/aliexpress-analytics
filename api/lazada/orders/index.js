@@ -67,7 +67,7 @@ function createHandler({ fetchImpl = fetch, clientFactory = createClient, syncOr
       const shouldSync = toBoolean(query.sync, true);
 
       const supabase = createSupabaseClient(clientFactory);
-      const { orders, summary } = await syncOrders({
+      const { orders, summary, siteId: normalizedSiteId, requestedSiteId } = await syncOrders({
         fetchImpl,
         supabase,
         siteId,
@@ -77,6 +77,8 @@ function createHandler({ fetchImpl = fetch, clientFactory = createClient, syncOr
         shouldSync
       });
 
+      const responseSiteId = normalizedSiteId || siteId;
+
       return res.status(200).json({
         success: true,
         data: {
@@ -84,7 +86,8 @@ function createHandler({ fetchImpl = fetch, clientFactory = createClient, syncOr
           sync: summary
         },
         metadata: {
-          siteId,
+          siteId: responseSiteId,
+          requestedSiteId: requestedSiteId && requestedSiteId !== responseSiteId ? requestedSiteId : undefined,
           range: { from, to },
           count: Array.isArray(orders) ? orders.length : 0,
           limit,

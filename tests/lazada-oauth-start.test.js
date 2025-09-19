@@ -2,18 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { createHandler } = require('../api/lazada/oauth/start');
-
-function createSupabaseStub(site) {
-  return {
-    schema() { return this; },
-    from() { return this; },
-    select() { return this; },
-    eq() { return this; },
-    limit() {
-      return Promise.resolve({ data: site ? [site] : [], error: null });
-    }
-  };
-}
+const { createSupabaseMock } = require('./helpers/supabase-mock');
 
 function createMockRes() {
   return {
@@ -59,10 +48,8 @@ test('lazada oauth start returns authorize url', async () => {
     SUPABASE_SERVICE_ROLE_KEY: 'service'
   }, async () => {
     const handler = createHandler({
-      clientFactory: () => createSupabaseStub({
-        id: 'lazada_site',
-        platform: 'lazada',
-        display_name: 'Lazada MY'
+      clientFactory: () => createSupabaseMock({
+        site_configs: [{ id: 'lazada_site', platform: 'lazada', display_name: 'Lazada MY', name: 'lazada_my', config_json: {} }]
       }),
       stateFactory: () => 'signed-state'
     });
@@ -84,6 +71,32 @@ test('lazada oauth start returns authorize url', async () => {
   });
 });
 
+test('lazada oauth start normalizes alias site id', async () => {
+  await withEnv({
+    LAZADA_APP_KEY: 'app-key',
+    LAZADA_REDIRECT_URI: 'https://example.com/callback',
+    SUPABASE_URL: 'https://supabase.example',
+    SUPABASE_SERVICE_ROLE_KEY: 'service'
+  }, async () => {
+    const handler = createHandler({
+      clientFactory: () => createSupabaseMock({
+        site_configs: [{ id: 'lazada_flagship', name: 'lazada_th', platform: 'lazada', display_name: 'Lazada TH', config_json: {} }]
+      }),
+      stateFactory: () => 'signed-state'
+    });
+
+    const req = { method: 'GET', query: { siteId: 'lazada_th' }, headers: { host: 'example.com' } };
+    const res = createMockRes();
+
+    await handler(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.success, true);
+    assert.equal(res.body.data.site.id, 'lazada_flagship');
+    assert.equal(res.body.data.requestedSiteId, 'lazada_th');
+  });
+});
+
 test('lazada oauth start rejects non lazada site', async () => {
   await withEnv({
     LAZADA_APP_KEY: 'app-key',
@@ -92,10 +105,8 @@ test('lazada oauth start rejects non lazada site', async () => {
     SUPABASE_SERVICE_ROLE_KEY: 'service'
   }, async () => {
     const handler = createHandler({
-      clientFactory: () => createSupabaseStub({
-        id: 'amazon_site',
-        platform: 'amazon',
-        display_name: 'Amazon'
+      clientFactory: () => createSupabaseMock({
+        site_configs: [{ id: 'amazon_site', platform: 'amazon', display_name: 'Amazon', name: 'amazon_site', config_json: {} }]
       }),
       stateFactory: () => 'signed-state'
     });
@@ -119,7 +130,7 @@ test('lazada oauth start returns 404 when site missing', async () => {
     SUPABASE_SERVICE_ROLE_KEY: 'service'
   }, async () => {
     const handler = createHandler({
-      clientFactory: () => createSupabaseStub(null),
+      clientFactory: () => createSupabaseMock({ site_configs: [] }),
       stateFactory: () => 'signed-state'
     });
 

@@ -49,7 +49,7 @@ function createHandler({ fetchImpl = fetch, clientFactory = createClient, syncAd
       const shouldSync = toBoolean(query.sync, true);
 
       const supabase = createSupabaseClient(clientFactory);
-      const { campaigns } = await syncAds({
+      const { campaigns, siteId: normalizedSiteId, requestedSiteId } = await syncAds({
         fetchImpl,
         supabase,
         siteId,
@@ -58,13 +58,16 @@ function createHandler({ fetchImpl = fetch, clientFactory = createClient, syncAd
         shouldSync
       });
 
+      const responseSiteId = normalizedSiteId || siteId;
+
       return res.status(200).json({
         success: true,
         data: {
           campaigns
         },
         metadata: {
-          siteId,
+          siteId: responseSiteId,
+          requestedSiteId: requestedSiteId && requestedSiteId !== responseSiteId ? requestedSiteId : undefined,
           range: { from, to }
         },
         traceId

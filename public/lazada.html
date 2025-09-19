@@ -250,6 +250,40 @@
       return search.toString();
     }
 
+    function persistResolvedSiteId(resolvedId, requestedId) {
+      if (!resolvedId) return;
+      if (resolvedId === state.siteId) return;
+      state.siteId = resolvedId;
+      try {
+        localStorage.setItem(`currentSiteId:${platform}`, resolvedId);
+      } catch (err) {
+        console.warn('[lazada] persist site id failed', err);
+      }
+      if (requestedId && requestedId !== resolvedId) {
+        console.info(`[lazada] 已根据 ${requestedId} 匹配站点 ${resolvedId}`);
+      }
+    }
+
+    function applyResolvedSiteMetadata(metadata) {
+      if (!metadata) return;
+      const resolved = metadata.siteId || metadata.site_id;
+      const requested = metadata.requestedSiteId || metadata.requested_site_id || metadata.alias;
+      if (resolved) {
+        persistResolvedSiteId(resolved, requested);
+      }
+    }
+
+    function updateRangeStatus(currentSiteId) {
+      if (!currentSiteId) return;
+      const params = buildQuery({ siteId: currentSiteId });
+      const rangeText = `查询参数：${params}`;
+      setStatus('detailRange', rangeText);
+      setStatus('operationsRange', rangeText);
+      setStatus('productsRange', rangeText);
+      setStatus('ordersRange', rangeText);
+      setStatus('adsRange', rangeText);
+    }
+
     function renderDailyMetrics(rows, currency) {
       const body = document.getElementById('dailyMetricsBody');
       body.innerHTML = '';
@@ -413,6 +447,11 @@
         error.code = payload.code;
         throw error;
       }
+      const normalizedSiteId = payload.data?.site?.id;
+      const requestedSiteId = payload.data?.requestedSiteId;
+      if (normalizedSiteId) {
+        persistResolvedSiteId(normalizedSiteId, requestedSiteId);
+      }
       const url = payload.data?.url;
       if (!url) {
         const error = new Error('授权链接缺失');
@@ -483,6 +522,9 @@
         const query = buildQuery({ siteId: state.siteId });
         const payload = await fetchJson(`/api/lazada/stats?${query}`);
         if (!payload.success) throw new Error(payload.message || '获取运营数据失败');
+        applyResolvedSiteMetadata(payload.metadata);
+        persistResolvedSiteId(payload.data?.summary?.siteId, payload.data?.summary?.requestedSiteId);
+        updateRangeStatus(state.siteId);
         const daily = payload.data?.daily || [];
         const products = payload.data?.products || [];
         const summary = payload.data?.summary || {};
@@ -514,6 +556,9 @@
         const query = buildQuery({ siteId: state.siteId, limit: 200 });
         const payload = await fetchJson(`/api/lazada/orders?${query}`);
         if (!payload.success) throw new Error(payload.message || '获取订单失败');
+        applyResolvedSiteMetadata(payload.metadata);
+        persistResolvedSiteId(payload.data?.sync?.siteId, payload.data?.sync?.requestedSiteId);
+        updateRangeStatus(state.siteId);
         const orders = payload.data?.orders || [];
         renderOrders(orders);
         setStatus('ordersStatus', orders.length ? `同步 ${orders.length} 笔订单` : '暂无订单');
@@ -535,6 +580,9 @@
         const query = buildQuery({ siteId: state.siteId });
         const payload = await fetchJson(`/api/lazada/ads?${query}`);
         if (!payload.success) throw new Error(payload.message || '获取广告数据失败');
+        applyResolvedSiteMetadata(payload.metadata);
+        persistResolvedSiteId(payload.metadata?.siteId, payload.metadata?.requestedSiteId);
+        updateRangeStatus(state.siteId);
         const campaigns = payload.data?.campaigns || [];
         renderAds(campaigns);
         setStatus('adsStatus', campaigns.length ? `同步 ${campaigns.length} 个广告系列` : '暂无广告数据');
@@ -549,26 +597,23 @@
       }
     }
 
-    function loadAll() {
+    async function loadAll() {
       if (!state.siteId) return;
-      const params = buildQuery({ siteId: state.siteId });
-      const rangeText = `查询参数：${params}`;
-      setStatus('detailRange', rangeText);
-      setStatus('operationsRange', rangeText);
-      setStatus('productsRange', rangeText);
-      setStatus('ordersRange', rangeText);
-      setStatus('adsRange', rangeText);
-      loadStats();
-      loadOrders();
-      loadAds();
+      updateRangeStatus(state.siteId);
+      await loadStats();
+      updateRangeStatus(state.siteId);
+      await loadOrders();
+      await loadAds();
     }
 
     function updateSiteFromStorage() {
       const stored = localStorage.getItem(`currentSiteId:${platform}`);
       if (stored && stored !== state.siteId) {
         state.siteId = stored;
-        loadAll();
+        loadAll().catch(err => console.error('[lazada] loadAll failed', err));
+        return true;
       }
+      return false;
     }
 
     document.addEventListener('site-selection-changed', event => {
@@ -577,12 +622,15 @@
       const newSite = detail.selection?.id;
       if (newSite && newSite !== state.siteId) {
         state.siteId = newSite;
-        loadAll();
+        loadAll().catch(err => console.error('[lazada] loadAll failed', err));
       }
     });
 
     handleAuthResult();
-    updateSiteFromStorage();
+    const triggered = updateSiteFromStorage();
+    if (!triggered && state.siteId) {
+      loadAll().catch(err => console.error('[lazada] loadAll failed', err));
+    }
     if (!state.siteId) {
       const defaultSite = document.getElementById('currentSite')?.dataset?.defaultName;
       setStatus('detailStatus', defaultSite ? `等待 ${defaultSite} 授权` : '请选择站点');

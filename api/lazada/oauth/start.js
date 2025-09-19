@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { createSignedState } = require('../../../lib/lazada-oauth-state');
+const { getSiteConfig } = require('../../../lib/lazada-orders');
 
 const AUTHORIZE_ENDPOINT = 'https://auth.lazada.com/oauth/authorize';
 
@@ -22,21 +23,6 @@ function createSupabaseClient(factory = createClient) {
     throw new Error('Missing Supabase configuration');
   }
   return factory(url, key, { auth: { persistSession: false } });
-}
-
-async function fetchSiteConfig(supabase, siteId) {
-  const { data, error } = await supabase
-    .schema('public')
-    .from('site_configs')
-    .select('id, platform, display_name, name, config_json')
-    .eq('id', siteId)
-    .limit(1);
-
-  if (error) {
-    throw new Error(`Supabase 查询站点配置失败：${error.message}`);
-  }
-
-  return Array.isArray(data) && data.length ? data[0] : null;
 }
 
 function sanitizeReturnTo(value, host) {
@@ -101,23 +87,25 @@ function createHandler({ clientFactory = createClient, stateFactory = createSign
       const redirectUri = getEnvOrThrow('LAZADA_REDIRECT_URI');
 
       const supabase = createSupabaseClient(clientFactory);
-      const site = await fetchSiteConfig(supabase, siteId);
+      let site = await getSiteConfig(supabase, siteId, { platform: 'lazada' });
       if (!site) {
+        const anySite = await getSiteConfig(supabase, siteId, { platform: false });
+        if (anySite) {
+          const err = new Error('该站点不是 Lazada 平台，无法发起授权');
+          err.code = 'INVALID_PLATFORM';
+          throw err;
+        }
         const err = new Error(`未找到站点：${siteId}`);
         err.code = 'SITE_NOT_FOUND';
         throw err;
       }
-      if (site.platform && site.platform !== 'lazada') {
-        const err = new Error('该站点不是 Lazada 平台，无法发起授权');
-        err.code = 'INVALID_PLATFORM';
-        throw err;
-      }
 
+      const normalizedSiteId = site.id;
       const returnTo = sanitizeReturnTo(query.returnTo, req.headers?.host);
       const statePayload = {
-        siteId,
+        siteId: normalizedSiteId,
         platform: site.platform || 'lazada',
-        displayName: site.display_name || site.name || siteId
+        displayName: site.display_name || site.name || normalizedSiteId
       };
       if (returnTo) {
         statePayload.returnTo = returnTo;
@@ -141,9 +129,10 @@ function createHandler({ clientFactory = createClient, stateFactory = createSign
           url: authorizeUrl,
           state,
           site: {
-            id: site.id,
-            display_name: site.display_name || site.name || site.id
-          }
+            id: normalizedSiteId,
+            display_name: site.display_name || site.name || normalizedSiteId
+          },
+          requestedSiteId: normalizedSiteId && siteId && normalizedSiteId !== siteId ? siteId : undefined
         }
       });
     } catch (error) {

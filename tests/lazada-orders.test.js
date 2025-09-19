@@ -65,9 +65,68 @@ test('syncLazadaOrders fetches and persists orders', async () => {
   assert.equal(orders[0].order_items.length, 1);
   assert.equal(summary.fetched, 1);
   assert.equal(summary.persisted, 1);
+  assert.equal(summary.siteId, 'lazada_site');
+  assert.equal(summary.requestedSiteId, undefined);
   assert.ok(summary.tokenRefreshed === false || typeof summary.tokenRefreshed === 'boolean');
   assert.equal(supabase.state.orders.length, 1);
   assert.equal(supabase.state.order_items.length, 1);
+});
+
+test('syncLazadaOrders normalizes alias site ids', async () => {
+  const supabase = createSupabaseMock({
+    integration_tokens: [{
+      site_id: 'lazada_flagship',
+      provider: 'lazada',
+      access_token: 'token',
+      refresh_token: 'refresh',
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString()
+    }],
+    site_configs: [{ id: 'lazada_flagship', name: 'lazada_th', platform: 'lazada', display_name: 'Lazada TH', config_json: {} }]
+  });
+
+  const fetchImpl = async (url) => {
+    if (url.includes('/orders/get')) {
+      return {
+        ok: true,
+        json: async () => ({
+          data: {
+            orders: [
+              {
+                order_id: 'A1',
+                order_number: 'A1',
+                created_at: '2025-02-01T00:00:00Z',
+                order_status: 'delivered',
+                payment_status: 'paid',
+                currency: 'THB',
+                shipping_fee: 5,
+                total_amount: 55,
+                items: [
+                  { sku: 'SKU-TH', product_name: 'Thai Item', quantity: 1, item_price: 50, paid_price: 50, cost_price: 30 }
+                ]
+              }
+            ],
+            count: 1
+          }
+        })
+      };
+    }
+    if (url.includes('/order/items/get')) {
+      return { ok: true, json: async () => ({ data: [] }) };
+    }
+    throw new Error(`Unexpected URL: ${url}`);
+  };
+
+  const { summary } = await syncLazadaOrders({
+    fetchImpl,
+    supabase,
+    siteId: 'lazada_th',
+    from: '2025-01-30',
+    to: '2025-02-02'
+  });
+
+  assert.equal(summary.siteId, 'lazada_flagship');
+  assert.equal(summary.requestedSiteId, 'lazada_th');
+  assert.equal(supabase.state.orders[0].site_id, 'lazada_flagship');
 });
 
 test('syncLazadaOrders throws for missing site config', async () => {

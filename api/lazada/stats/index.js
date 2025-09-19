@@ -49,7 +49,7 @@ function createHandler({ fetchImpl = fetch, clientFactory = createClient, syncSt
       const shouldSync = toBoolean(query.sync, true);
 
       const supabase = createSupabaseClient(clientFactory);
-      const { daily, products, summary, availability } = await syncStats({
+      const { daily, products, summary, availability, siteId: normalizedSiteId, requestedSiteId } = await syncStats({
         fetchImpl,
         supabase,
         siteId,
@@ -57,6 +57,8 @@ function createHandler({ fetchImpl = fetch, clientFactory = createClient, syncSt
         to,
         shouldSync
       });
+
+      const responseSiteId = normalizedSiteId || siteId;
 
       return res.status(200).json({
         success: true,
@@ -66,7 +68,8 @@ function createHandler({ fetchImpl = fetch, clientFactory = createClient, syncSt
           summary
         },
         metadata: {
-          siteId,
+          siteId: responseSiteId,
+          requestedSiteId: requestedSiteId && requestedSiteId !== responseSiteId ? requestedSiteId : undefined,
           range: { from, to },
           availableFields: availability?.availableFields || [],
           missingFields: availability?.missingFields || []
