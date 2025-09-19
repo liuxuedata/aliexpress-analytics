@@ -33,35 +33,69 @@ function buildLazadaSignature(params, secret) {
 
 function createSupabaseClient() {
   const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
+  if (!url) {
+    const err = new Error('SUPABASE_URL is not configured (required to persist Lazada tokens)');
+    err.code = 'SUPABASE_URL_MISSING';
+    err.status = 500;
+    throw err;
+  }
+
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key) {
+    const err = new Error('SUPABASE_SERVICE_ROLE_KEY is not configured。Lazada OAuth 回调需要 Service Role Key 才能写入 integration_tokens 表');
+    err.code = 'SUPABASE_SERVICE_ROLE_KEY_MISSING';
+    err.status = 500;
+    throw err;
+  }
+
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
 async function persistTokens({ supabase, siteId, payload }) {
-  if (!supabase || !siteId || !payload) return false;
+  if (!supabase) {
+    const err = new Error('缺少 Supabase client，无法存储 Lazada 凭据');
+    err.code = 'SUPABASE_CLIENT_MISSING';
+    err.status = 500;
+    throw err;
+  }
+
+  if (!siteId) {
+    const err = new Error('授权 state 中缺少 siteId，无法存储 Lazada 凭据');
+    err.code = 'SITE_ID_MISSING';
+    err.status = 400;
+    throw err;
+  }
+
+  if (!payload || typeof payload !== 'object') {
+    const err = new Error('Lazada 授权响应缺失，无法存储凭据');
+    err.code = 'LAZADA_TOKEN_RESPONSE_MISSING';
+    err.status = 500;
+    throw err;
+  }
+
+  if (!payload.refresh_token) {
+    const err = new Error('Lazada 授权响应缺少 refresh_token，无法存储凭据');
+    err.code = 'REFRESH_TOKEN_MISSING';
+    err.status = 500;
+    throw err;
+  }
+
   const expiresIn = Number(payload.expires_in || payload.expire_in);
   const expiresAt = Number.isFinite(expiresIn) && expiresIn > 0
     ? new Date(Date.now() + expiresIn * 1000).toISOString()
     : null;
 
-  try {
-    await storeTokenRecord(supabase, {
-      siteId,
-      accessToken: payload.access_token,
-      refreshToken: payload.refresh_token,
-      expiresAt,
-      meta: {
-        account_id: payload.account_id || payload.country_user_info?.userId || null,
-        country: payload.country || payload.country_user_info?.country || null,
-        state: payload.country_user_info || null
-      }
-    });
-    return true;
-  } catch (error) {
-    console.error('[lazada] Failed to persist tokens', error);
-    return false;
-  }
+  return storeTokenRecord(supabase, {
+    siteId,
+    accessToken: payload.access_token,
+    refreshToken: payload.refresh_token,
+    expiresAt,
+    meta: {
+      account_id: payload.account_id || payload.country_user_info?.userId || null,
+      country: payload.country || payload.country_user_info?.country || null,
+      state: payload.country_user_info || null
+    }
+  });
 }
 
 async function exchangeAuthorizationCode(code, redirectUri) {
@@ -167,14 +201,14 @@ async function handler(req, res) {
         }
       : null;
 
-    const supabase = createSupabaseClient();
     const decodedState = decodeState(state);
+    const supabase = createSupabaseClient();
     const siteId = decodedState?.siteId || decodedState?.site || null;
-    const persisted = await persistTokens({ supabase, siteId, payload: tokenResponse });
+    const persistedRecord = await persistTokens({ supabase, siteId, payload: tokenResponse });
 
     const safeReturnTo = sanitizeReturnTo(decodedState?.returnTo, req.headers?.host);
     if (safeReturnTo) {
-      const target = appendAuthResult(safeReturnTo, persisted ? 'success' : 'stored=false');
+      const target = appendAuthResult(safeReturnTo, persistedRecord ? 'success' : 'stored=false');
       res.statusCode = 302;
       res.setHeader('Location', target);
       res.end();
@@ -190,7 +224,7 @@ async function handler(req, res) {
         siteId: siteId || null,
         tokens: safeData,
         raw: tokenResponse,
-        persisted
+        persisted: Boolean(persistedRecord)
       },
     });
   } catch (err) {
@@ -200,6 +234,9 @@ async function handler(req, res) {
       success: false,
       error: err.message || 'Failed to exchange Lazada authorization code',
     };
+    if (err.code) {
+      body.code = err.code;
+    }
     if (err.details) {
       body.details = err.details;
     }
