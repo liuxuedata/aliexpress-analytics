@@ -457,21 +457,176 @@
     .analysis-container {
       animation: fadeInUp 0.6s ease-out;
     }
-    
+
     .analysis-kpi-card {
       animation: fadeInUp 0.6s ease-out;
       animation-fill-mode: both;
     }
-    
+
          .analysis-kpi-card:nth-child(1) { animation-delay: 0.1s; }
      .analysis-kpi-card:nth-child(2) { animation-delay: 0.2s; }
      .analysis-kpi-card:nth-child(3) { animation-delay: 0.3s; }
      .analysis-kpi-card:nth-child(4) { animation-delay: 0.4s; }
-     
+
+    /* ====== 自运营明细布局优化 ====== */
+    body.self-operated-page {
+      --self-header-height: 64px;
+      background: var(--primary-50, #f8fafc);
+    }
+
+    body.self-operated-page .layout {
+      min-height: calc(100vh - var(--self-header-height));
+      height: calc(100vh - var(--self-header-height));
+    }
+
+    body.self-operated-page .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background: transparent;
+      padding: 16px 20px 24px;
+      overflow: hidden;
+    }
+
+    body.self-operated-page .main.mx-auto {
+      margin-left: 0;
+      margin-right: 0;
+    }
+
+    body.self-operated-page .main.max-w-container {
+      max-width: none;
+    }
+
+    body.self-operated-page .main.px-6 {
+      padding-left: 20px;
+      padding-right: 20px;
+    }
+
+    body.self-operated-page .sidebar {
+      top: var(--self-header-height);
+      height: calc(100vh - var(--self-header-height));
+      overflow-y: auto;
+      padding-bottom: 16px;
+    }
+
+    body.self-operated-page .page-header {
+      margin-bottom: 12px;
+    }
+
+    body.self-operated-page .page-header h1 {
+      font-size: 24px;
+      line-height: 1.35;
+    }
+
+    body.self-operated-page .upload-section {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: var(--shadow-sm, 0 8px 24px rgba(15, 23, 42, 0.08));
+      display: grid;
+      gap: 12px;
+    }
+
+    body.self-operated-page .upload-top {
+      gap: 12px;
+    }
+
+    body.self-operated-page .upload-section .controls {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    body.self-operated-page .upload-section .controls span {
+      font-size: 14px;
+    }
+
+    body.self-operated-page .status-display {
+      min-width: 0;
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+
+    body.self-operated-page .upload-section .kpi-grid {
+      margin: 0;
+      gap: 12px;
+    }
+
+    body.self-operated-page .kpi-card h4 {
+      font-size: 0.7rem;
+    }
+
+    body.self-operated-page .kpi-card p {
+      font-size: 1.25rem;
+    }
+
+    body.self-operated-page .content {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow: auto;
+    }
+
+    body.self-operated-page #detail {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    body.self-operated-page #detail .chart-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 0;
+      padding: 16px 20px;
+    }
+
+    body.self-operated-page #detail .chart-container h3 {
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+    }
+
+    body.self-operated-page #detailContent {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+    }
+
+    body.self-operated-page #detailContent .dataTables_wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    body.self-operated-page #detailContent .dataTables_scrollHead,
+    body.self-operated-page #detailContent .dataTables_scrollFoot {
+      flex-shrink: 0;
+    }
+
+    body.self-operated-page #detailContent .dataTables_scrollBody {
+      flex: 1 !important;
+    }
+
+    body.self-operated-page .dataTables_wrapper .dataTables_info,
+    body.self-operated-page .dataTables_wrapper .dataTables_paginate {
+      padding-top: 8px;
+    }
+
+    body.self-operated-page .content > section:not(#detail) {
+      flex: 1 0 auto;
+      overflow: auto;
+    }
+
      /* 产品详情分析部分已移除 */
   </style>
 </head>
-<body class="fm">
+<body class="fm self-operated-page">
 <div id="loginOverlay" class="login-overlay" style="display:none">
   <div class="login-container">
     <div class="login-form-card login-card-enter">

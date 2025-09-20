@@ -58,6 +58,109 @@
       super();
       this.dataTable = null;
       this.pageReadyTriggered = false;
+      this.boundResize = false;
+      this.handleResize = this.handleResize.bind(this);
+      this.autoPageLength = null;
+      this.currentPageLength = null;
+      this.userSelectedPageLength = false;
+      this.suppressLengthEvent = false;
+    }
+
+    applyCompactLayout() {
+      const refreshMetrics = () => {
+        this.updateLayoutMetrics();
+        this.adjustTableHeight();
+      };
+
+      if (!this.boundResize) {
+        window.addEventListener('resize', this.handleResize);
+        this.boundResize = true;
+      }
+
+      requestAnimationFrame(refreshMetrics);
+
+      if (document.readyState !== 'complete') {
+        window.addEventListener('load', refreshMetrics, { once: true });
+      }
+    }
+
+    updateLayoutMetrics() {
+      const header = document.querySelector('.header');
+      if (header) {
+        document.body.style.setProperty('--self-header-height', `${header.offsetHeight}px`);
+      }
+    }
+
+    handleResize() {
+      this.updateLayoutMetrics();
+      this.adjustTableHeight();
+    }
+
+    computeTableHeight() {
+      const detailContent = document.getElementById('detailContent');
+      if (!detailContent) return 0;
+
+      const rect = detailContent.getBoundingClientRect();
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      const wrapper = document.querySelector('#detailContent .dataTables_wrapper');
+
+      let reserved = 24;
+      if (wrapper) {
+        const info = wrapper.querySelector('.dataTables_info');
+        const paginate = wrapper.querySelector('.dataTables_paginate');
+        if (info) reserved += info.offsetHeight;
+        if (paginate) reserved += paginate.offsetHeight;
+      }
+
+      const height = viewportHeight - rect.top - reserved;
+      return Math.max(260, Math.floor(height));
+    }
+
+    computeAutoPageLength(height) {
+      const estimatedRowHeight = 38;
+      const candidates = [10, 20, 25, 50, 100];
+      const target = Math.max(10, Math.floor(((height || 400)) / estimatedRowHeight));
+      const match = candidates.find(len => len >= target);
+      return match || candidates[candidates.length - 1];
+    }
+
+    adjustTableHeight() {
+      if (!this.dataTable || !this.dataTable.settings) return;
+
+      const wrapper = document.querySelector('#detailContent .dataTables_wrapper');
+      const scrollBody = wrapper ? wrapper.querySelector('.dataTables_scrollBody') : null;
+      const newHeight = this.computeTableHeight();
+
+      if (!scrollBody || !newHeight) return;
+
+      const heightPx = `${newHeight}px`;
+      scrollBody.style.height = heightPx;
+      scrollBody.style.maxHeight = heightPx;
+
+      const settings = this.dataTable.settings()[0];
+      let redrawNeeded = false;
+      if (settings && settings.oScroll && settings.oScroll.sY !== heightPx) {
+        settings.oScroll.sY = heightPx;
+        redrawNeeded = true;
+      }
+
+      if (!this.userSelectedPageLength) {
+        const newAutoLength = this.computeAutoPageLength(newHeight);
+        if (newAutoLength && newAutoLength !== this.autoPageLength) {
+          this.autoPageLength = newAutoLength;
+          this.currentPageLength = newAutoLength;
+          this.suppressLengthEvent = true;
+          this.dataTable.page.len(newAutoLength);
+          this.suppressLengthEvent = false;
+          redrawNeeded = true;
+        }
+      }
+
+      if (redrawNeeded) {
+        this.dataTable.draw(false);
+      }
+
+      this.dataTable.columns.adjust();
     }
 
     // 重写refreshData方法，确保能正确调用loadData
@@ -470,6 +573,10 @@
       const table = document.getElementById('report');
       if (!table) return;
 
+      if (window.jQuery && jQuery.fn) {
+        jQuery(table).off('.self');
+      }
+
       console.log('开始渲染数据表格，数据量:', data.length);
 
       // 简单清理：只销毁DataTable实例和清空表格内容
@@ -477,6 +584,10 @@
         try {
           this.dataTable.destroy();
           this.dataTable = null;
+          this.autoPageLength = null;
+          this.currentPageLength = null;
+          this.userSelectedPageLength = false;
+          this.suppressLengthEvent = false;
           console.log('DataTable实例已销毁');
         } catch (error) {
           console.warn('销毁DataTable实例时出错:', error);
@@ -618,19 +729,46 @@
              
              // 如果表格有实际数据行，使用正确的DataTable配置
              if (dataRows.length > 0) {
+              this.updateLayoutMetrics();
+              const computedHeight = this.computeTableHeight();
+              const scrollY = computedHeight ? `${computedHeight}px` : '60vh';
+              const pageLength = this.computeAutoPageLength(computedHeight);
+              const lengthValues = [10, 20, 25, 50, 100];
+              const lengthMenu = [lengthValues, lengthValues.map(v => `${v} 行`)];
+
               this.dataTable = jQuery(table).DataTable({
                 destroy: true,
-                pageLength: 10,
-                order: [[1, 'desc']], 
-                scrollX: true, 
-                scrollY: 'calc(100vh - 420px)', 
-                scrollCollapse: true, 
+                pageLength,
+                lengthMenu,
+                order: [[1, 'desc']],
+                scrollX: true,
+                scrollY,
+                scrollCollapse: true,
                 fixedHeader: true,
                 language: {
                   url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json'
                 }
               });
-              
+
+              this.autoPageLength = pageLength;
+              this.currentPageLength = pageLength;
+              this.userSelectedPageLength = false;
+              this.suppressLengthEvent = false;
+
+              if (window.jQuery && jQuery.fn) {
+                jQuery(table).on('length.dt.self', (e, settings, len) => {
+                  this.currentPageLength = len;
+                  if (this.suppressLengthEvent) {
+                    return;
+                  }
+                  this.userSelectedPageLength = true;
+                });
+              }
+
+              this.applyCompactLayout();
+              this.adjustTableHeight();
+              setTimeout(() => this.adjustTableHeight(), 0);
+
               console.log('DataTable初始化成功！');
               console.log('DataTable数据行数:', this.dataTable.data().count());
               console.log('DataTable实际显示行数:', this.dataTable.rows().count());
@@ -675,12 +813,14 @@
     }
 
          // 页面就绪回调
-     onPageReady(pageInfo) {
-       console.log('自运营页面就绪，开始加载数据:', pageInfo);
-       
-       // 设置当前站点信息
-       this.currentSite = pageInfo.site;
-       this.currentSiteName = pageInfo.siteName;
+    onPageReady(pageInfo) {
+      console.log('自运营页面就绪，开始加载数据:', pageInfo);
+
+      this.applyCompactLayout();
+
+      // 设置当前站点信息
+      this.currentSite = pageInfo.site;
+      this.currentSiteName = pageInfo.siteName;
        
        // 更新页面标题显示当前站点名称
        this.updatePageTitle();
