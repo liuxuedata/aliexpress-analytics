@@ -104,10 +104,17 @@ function extractTokenPayload(envelope) {
     return { tokens: null, raw: envelope };
   }
 
+  // 如果响应包含 data 字段，使用 data 字段
   if (envelope.data && typeof envelope.data === 'object' && !Array.isArray(envelope.data)) {
     return { tokens: envelope.data, raw: envelope };
   }
 
+  // 如果响应直接包含令牌字段，直接使用
+  if (envelope.access_token || envelope.refresh_token) {
+    return { tokens: envelope, raw: envelope };
+  }
+
+  // 默认返回整个响应
   return { tokens: envelope, raw: envelope };
 }
 
@@ -320,6 +327,18 @@ async function handler(req, res) {
     const redirectUri = getEnvOrThrow('LAZADA_REDIRECT_URI', 'must match Lazada app settings');
     const tokenEnvelope = await exchangeAuthorizationCode(code, redirectUri);
     const { tokens: tokenResponse, raw: rawTokenResponse } = extractTokenPayload(tokenEnvelope);
+
+    // 添加调试日志
+    console.log('Lazada OAuth 回调调试信息:', {
+      code: code ? `${code.substring(0, 10)}...` : null,
+      state: state,
+      redirectUri: redirectUri,
+      tokenEnvelopeKeys: tokenEnvelope ? Object.keys(tokenEnvelope) : null,
+      tokenResponseKeys: tokenResponse ? Object.keys(tokenResponse) : null,
+      hasAccessToken: Boolean(tokenResponse?.access_token),
+      hasRefreshToken: Boolean(tokenResponse?.refresh_token),
+      timestamp: new Date().toISOString()
+    });
 
   const safeData = tokenResponse && typeof tokenResponse === 'object'
     ? {
