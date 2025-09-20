@@ -168,6 +168,75 @@ test('lazada oauth callback exchanges code for tokens', async () => {
   restoreEnv(originalEnv);
 });
 
+test('lazada oauth callback skips empty refresh tokens in favor of nested value', async () => {
+  const originalEnv = snapshotEnv();
+  process.env.LAZADA_APP_KEY = 'key';
+  process.env.LAZADA_APP_SECRET = 'secret';
+  process.env.LAZADA_REDIRECT_URI = 'https://example.com/callback';
+  process.env.SUPABASE_URL = 'https://example.supabase.co';
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role';
+
+  const originalFetch = global.fetch;
+  global.fetch = async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      code: '0',
+      data: {
+        access_token: '',
+        refresh_token: '',
+        account_platform: 'lazada',
+        nested: {
+          refresh_token: 'refresh-nested',
+          access_token: 'access-nested',
+        },
+      },
+    }),
+  });
+
+  const upsertCalls = [];
+  await withSupabaseClientStub(() => ({
+    schema() {
+      return {
+        from() {
+          return {
+            upsert(row) {
+              upsertCalls.push(row);
+              return {
+                select: async () => ({ data: [{ id: 'record', ...row }], error: null })
+              };
+            }
+          };
+        }
+      };
+    }
+  }), async () => {
+    const handler = loadHandler();
+    const state = createSignedState({ siteId: 'site_nested', returnTo: '/lazada.html' }, { secret: 'secret' });
+    const req = {
+      method: 'GET',
+      query: { code: 'abc123', state },
+      headers: { host: 'example.com' }
+    };
+    const res = createMockRes();
+
+    await handler(req, res);
+
+    assert.equal(res.statusCode, 302);
+    assert.equal(res.headers.Location, '/lazada.html?lazadaAuth=success');
+    assert.equal(upsertCalls.length, 1);
+    assert.equal(upsertCalls[0].refresh_token, 'refresh-nested');
+    assert.equal(upsertCalls[0].access_token, 'access-nested');
+  });
+
+  if (originalFetch) {
+    global.fetch = originalFetch;
+  } else {
+    delete global.fetch;
+  }
+  restoreEnv(originalEnv);
+});
+
 test('lazada oauth callback handles responses wrapped in data envelope', async () => {
   const originalEnv = snapshotEnv();
   process.env.LAZADA_APP_KEY = 'key';

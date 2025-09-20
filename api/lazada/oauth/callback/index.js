@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 const { storeTokenRecord } = require('../../../../lib/lazada-auth');
 const { decodeState } = require('../../../../lib/lazada-oauth-state');
+const { findKeyDeep } = require('../../../../lib/find-key-deep');
 
 const TOKEN_ENDPOINT = 'https://auth.lazada.com/rest/auth/token/create';
 const TOKEN_PATH = '/rest/auth/token/create';
@@ -51,22 +52,50 @@ function createSupabaseClient() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-function pickTokenValue(payload, keys) {
+function pickDeepValue(payload, keys, options = {}) {
   if (!payload || typeof payload !== 'object') return null;
-  for (const key of keys) {
-    if (Object.prototype.hasOwnProperty.call(payload, key)) {
-      const value = payload[key];
-      if (typeof value === 'string' && value.trim()) {
-        return value.trim();
-      }
-      if (value && typeof value === 'object' && !Array.isArray(value)) {
-        const nested = pickTokenValue(value, keys);
-        if (nested) {
-          return nested;
+
+  const searchKeys = Array.isArray(keys) ? keys : [keys];
+  const transformers = Array.isArray(options.transformers) && options.transformers.length > 0
+    ? options.transformers
+    : [
+        (value) => {
+          if (typeof value === 'string') {
+            const trimmed = value.trim();
+            return trimmed ? trimmed : null;
+          }
+          if (typeof value === 'number' && Number.isFinite(value)) {
+            return value;
+          }
+          return null;
+        },
+      ];
+
+  for (const key of searchKeys) {
+    const match = findKeyDeep(payload, key, {
+      maxDepth: options.maxDepth,
+      predicate: ({ value, key: candidateKey, path, parent }) => {
+        const context = { key: candidateKey, value, path, parent };
+        for (const transform of transformers) {
+          let result;
+          try {
+            result = transform(value, context);
+          } catch (error) {
+            continue;
+          }
+          if (result !== null && result !== undefined) {
+            return { accept: true, value: result };
+          }
         }
-      }
+        return { accept: false };
+      },
+    });
+
+    if (match) {
+      return match.value;
     }
   }
+
   return null;
 }
 
@@ -104,7 +133,7 @@ async function persistTokens({ supabase, siteId, payload, raw }) {
     throw err;
   }
 
-  const refreshToken = pickTokenValue(payload, ['refresh_token', 'refreshToken']);
+  const refreshToken = pickDeepValue(payload, ['refresh_token', 'refreshToken']);
   if (!refreshToken) {
     const err = new Error('Lazada 授权响应缺少 refresh_token，无法存储凭据');
     err.code = 'REFRESH_TOKEN_MISSING';
@@ -112,7 +141,7 @@ async function persistTokens({ supabase, siteId, payload, raw }) {
     throw err;
   }
 
-  const accessToken = pickTokenValue(payload, ['access_token', 'accessToken']);
+  const accessToken = pickDeepValue(payload, ['access_token', 'accessToken']);
   const expiresIn = Number(payload.expires_in || payload.expire_in);
   const expiresAt = Number.isFinite(expiresIn) && expiresIn > 0
     ? new Date(Date.now() + expiresIn * 1000).toISOString()
