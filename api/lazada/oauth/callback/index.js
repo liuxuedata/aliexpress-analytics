@@ -140,8 +140,31 @@ async function persistTokens({ supabase, siteId, payload, raw }) {
     throw err;
   }
 
+  // 详细调试令牌提取过程
+  console.log('开始提取 refresh_token，payload 结构:', {
+    payloadKeys: payload ? Object.keys(payload) : null,
+    payloadType: typeof payload,
+    payloadSample: payload ? JSON.stringify(payload).substring(0, 200) + '...' : null
+  });
+
   const refreshToken = pickDeepValue(payload, ['refresh_token', 'refreshToken']);
+  console.log('refresh_token 提取结果:', {
+    refreshToken: refreshToken ? `${refreshToken.substring(0, 20)}...` : null,
+    refreshTokenType: typeof refreshToken,
+    refreshTokenLength: refreshToken ? refreshToken.length : 0
+  });
+
   if (!refreshToken) {
+    // 添加更详细的错误信息
+    console.error('refresh_token 提取失败，payload 详情:', {
+      payload: payload,
+      payloadKeys: payload ? Object.keys(payload) : null,
+      directAccess: {
+        refresh_token: payload?.refresh_token,
+        refreshToken: payload?.refreshToken
+      }
+    });
+    
     const err = new Error('Lazada 授权响应缺少 refresh_token，无法存储凭据');
     err.code = 'REFRESH_TOKEN_MISSING';
     err.status = 500;
