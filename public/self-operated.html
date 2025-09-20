@@ -95,6 +95,64 @@
       font-size: 14px;
       margin: 0;
     }
+
+    .page-header h1 {
+      font-size: 24px;
+      line-height: 1.35;
+    }
+
+    .upload-section {
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      display: grid;
+      gap: 16px;
+      padding: 16px 20px;
+    }
+
+    .upload-top {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .upload-top .controls {
+      flex-wrap: wrap;
+      row-gap: 8px;
+    }
+
+    #uploadControls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .upload-section .kpi-grid {
+      margin: 0;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+
+    .upload-section .kpi-card {
+      padding: 12px 14px;
+    }
+
+    .upload-section .kpi-card p {
+      font-size: 1.25rem;
+    }
+
+    @media (max-width: 1024px) {
+      .upload-top {
+        grid-template-columns: 1fr;
+      }
+
+      #uploadControls {
+        justify-content: flex-start;
+      }
+    }
     
     .grid-2 {
       display: grid;
@@ -2213,6 +2271,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
          console.log('未找到upload-section元素');
        }
 
+       if (window.selfOperatedManager && typeof window.selfOperatedManager.updateDataTableHeight === 'function') {
+         setTimeout(() => window.selfOperatedManager.updateDataTableHeight(), 60);
+       }
+
        // 根据路由加载相应数据
        if (hash === 'analysis') {
          loadAnalysisData(getDateRange());
@@ -2254,6 +2316,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const hash = location.hash.replace('#','') || 'detail';
     if (uploadControls) {
       uploadControls.style.display = hash === 'detail' ? '' : 'none';
+    }
+
+    if (window.selfOperatedManager && typeof window.selfOperatedManager.updateDataTableHeight === 'function') {
+      setTimeout(() => window.selfOperatedManager.updateDataTableHeight(), 60);
     }
   }
   window.addEventListener('hashchange', toggleUploadControls);
