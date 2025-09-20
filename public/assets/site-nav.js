@@ -12,12 +12,32 @@
   // 默认站点配置
   const defaultSites = {
     ae_self_operated: [
-      { id: 'ae_self_operated_a', name: '自运营robot站', display_name: '自运营robot站' },
-      { id: 'ae_self_operated_poolslab_store', name: 'poolslab', display_name: 'Poolslab运动娱乐' }
+      {
+        id: 'ae_self_operated_a',
+        name: '自运营robot站',
+        display_name: '自运营robot站',
+        platform: 'ae_self_operated'
+      },
+      {
+        id: 'ae_self_operated_poolslab_store',
+        name: 'poolslab',
+        display_name: 'Poolslab运动娱乐',
+        platform: 'ae_self_operated'
+      }
     ],
     independent: [
-      { id: 'independent_poolsvacuum', name: 'poolsvacuum', display_name: 'poolsvacuum.com' },
-      { id: 'independent_icyberite', name: 'icyberite', display_name: 'icyberite.com' }
+      {
+        id: 'independent_poolsvacuum',
+        name: 'poolsvacuum',
+        display_name: 'poolsvacuum.com',
+        platform: 'independent'
+      },
+      {
+        id: 'independent_icyberite',
+        name: 'icyberite',
+        display_name: 'icyberite.com',
+        platform: 'independent'
+      }
     ]
   };
 
@@ -41,39 +61,45 @@
   let siteConfigsCache = null;
   let siteConfigsPromise = null;
 
-  function normalizeSiteConfig(site) {
+  function normalizeSiteConfig(site, fallbackPlatform = null) {
     if (!site) return null;
-    const id = site.id || `${site.platform || 'site'}_${site.name || Date.now()}`;
+    const platform = site.platform || fallbackPlatform || null;
+    const id = site.id || `${platform || 'site'}_${site.name || Date.now()}`;
     const displayName = site.display_name || site.name || site.domain || id;
     return {
       id,
       name: site.name || id,
       display_name: displayName,
-      platform: site.platform || null
+      platform
     };
   }
 
-  function mergeSiteEntries(baseList = [], configList = []) {
+  function getSiteCompositeKey(site, fallbackPlatform = null) {
+    if (!site) return '';
+    const normalized = normalizeSiteConfig(site, fallbackPlatform);
+    if (!normalized) return '';
+    const idKey = (normalized.id || '').trim().toLowerCase();
+    const nameKey = (normalized.display_name || normalized.name || '').trim().toLowerCase();
+    const platformKey = (normalized.platform || fallbackPlatform || '').trim().toLowerCase();
+    return `${platformKey}|${idKey}|${nameKey}`;
+  }
+
+  function mergeSiteEntries(baseList = [], configList = [], platform = null) {
     const merged = [];
     const seenKeys = new Set();
 
     baseList.forEach(item => {
-      if (!item) return;
-      const key = (item.id || item.display_name || item.name || '').toLowerCase();
-      const labelKey = item.display_name ? item.display_name.trim().toLowerCase() : null;
-      const composite = `${key}|${labelKey || ''}`;
-      if (seenKeys.has(composite)) return;
-      merged.push({ ...item });
+      const composite = getSiteCompositeKey(item, platform);
+      if (!composite || seenKeys.has(composite)) return;
+      const normalized = normalizeSiteConfig(item, platform);
+      merged.push(normalized);
       seenKeys.add(composite);
     });
 
     configList.forEach(site => {
-      const normalized = normalizeSiteConfig(site);
-      if (!normalized) return;
-      const key = (normalized.id || normalized.name || '').toLowerCase();
-      const labelKey = normalized.display_name ? normalized.display_name.trim().toLowerCase() : '';
-      const composite = `${normalized.platform || ''}|${key}|${labelKey}`;
-      if (seenKeys.has(composite)) return;
+      const composite = getSiteCompositeKey(site, platform);
+      if (!composite || seenKeys.has(composite)) return;
+      const normalized = normalizeSiteConfig(site, platform);
       merged.push(normalized);
       seenKeys.add(composite);
     });
@@ -133,7 +159,7 @@
     const platformSites = Array.isArray(siteConfigsCache)
       ? siteConfigsCache
           .filter(site => site?.platform === platform)
-          .map(normalizeSiteConfig)
+          .map(site => normalizeSiteConfig(site, platform))
           .filter(Boolean)
       : [];
 
@@ -225,7 +251,7 @@
     const currentSite = localStorage.getItem('currentSite');
     const currentSiteName = localStorage.getItem('currentSiteName');
     const configSites = siteConfigs.filter(site => site.platform === 'ae_self_operated');
-    const mergedSites = mergeSiteEntries(defaultSites.ae_self_operated, configSites);
+    const mergedSites = mergeSiteEntries(defaultSites.ae_self_operated, configSites, 'ae_self_operated');
 
     managedMenu.innerHTML = '';
 
@@ -274,7 +300,7 @@
 
     const currentIndepSite = localStorage.getItem('currentIndepSite');
     const configSites = siteConfigs.filter(site => site.platform === 'independent');
-    const mergedSites = mergeSiteEntries(defaultSites.independent, configSites);
+    const mergedSites = mergeSiteEntries(defaultSites.independent, configSites, 'independent');
 
     indepMenu.innerHTML = '';
 
@@ -357,7 +383,10 @@
 
       dropdown.innerHTML = '';
 
-      const normalizedSites = dedupeSitesByLabel(configs.map(normalizeSiteConfig).filter(Boolean), platform);
+      const normalizedSites = dedupeSitesByLabel(
+        configs.map(site => normalizeSiteConfig(site, platform)).filter(Boolean),
+        platform
+      );
       ensureSiteDefaults(platform, normalizedSites);
 
       normalizedSites.forEach(site => {
@@ -600,25 +629,36 @@
       link.addEventListener('click', (e) => {
         // 确保链接能正常工作
         console.log('导航链接点击:', link.href);
-        
-                 // 检查当前页面类型，调用相应的平台切换处理函数
-         const currentPath = window.location.pathname;
-         if (currentPath.includes('self-operated')) {
-           // 自运营页面：调用平台切换处理
-           if (window.handlePlatformSwitch && link && link.getAttribute) {
-             try {
-               e.preventDefault();
-               const platform = link.getAttribute('data-platform') || link.textContent.trim();
-               console.log('自运营页面平台切换:', platform);
-               window.handlePlatformSwitch(platform);
-               return;
-             } catch (error) {
-               console.warn('平台切换处理出错:', error);
-               // 如果出错，让链接正常工作
-             }
-           }
-         }
-        // 不阻止默认行为，让链接正常工作
+
+        const currentPath = window.location.pathname;
+        if (!currentPath.includes('self-operated')) {
+          return;
+        }
+
+        if (!window.handlePlatformSwitch || typeof window.handlePlatformSwitch !== 'function') {
+          return;
+        }
+
+        if (link.dataset && link.dataset.siteId) {
+          return;
+        }
+
+        const platformAttr =
+          (typeof link.getAttribute === 'function' && link.getAttribute('data-platform')) ||
+          link.closest('li[data-platform]')?.dataset.platform ||
+          null;
+
+        if (!platformAttr) {
+          return;
+        }
+
+        try {
+          e.preventDefault();
+          console.log('自运营页面平台切换:', platformAttr);
+          window.handlePlatformSwitch(platformAttr);
+        } catch (error) {
+          console.warn('平台切换处理出错:', error);
+        }
       });
     });
     
