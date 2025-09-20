@@ -111,7 +111,7 @@ test('lazada oauth callback exchanges code for tokens', async () => {
     return {
       ok: true,
       status: 200,
-      json: async () => ({
+      text: async () => JSON.stringify({
         access_token: 'access',
         refresh_token: 'refresh',
         expires_in: 3600,
@@ -152,9 +152,14 @@ test('lazada oauth callback exchanges code for tokens', async () => {
     assert.equal(res.statusCode, 302);
     assert.equal(res.headers.Location, '/lazada.html?lazadaAuth=success');
     assert.equal(fetchCalls.length, 1);
-    assert.match(fetchCalls[0].url, /rest\/auth\/token\/create/);
-    const url = new URL(fetchCalls[0].url);
-    assert.equal(url.searchParams.get('need_refresh_token'), 'true');
+    assert.equal(fetchCalls[0].url, 'https://auth.lazada.com/rest/auth/token/create');
+    const sentBody = new URLSearchParams(fetchCalls[0].options.body);
+    assert.equal(fetchCalls[0].options.headers['Content-Type'], 'application/x-www-form-urlencoded');
+    assert.equal(fetchCalls[0].options.headers['Cache-Control'], 'no-store');
+    assert.equal(sentBody.get('need_refresh_token'), 'true');
+    assert.equal(sentBody.get('grant_type'), 'authorization_code');
+    assert.equal(sentBody.get('client_id'), 'key');
+    assert.equal(sentBody.get('client_secret'), 'secret');
     assert.equal(upsertCalls.length, 1);
     assert.equal(upsertCalls[0].site_id, 'lazada_site');
     assert.equal(upsertCalls[0].refresh_token, 'refresh');
@@ -162,6 +167,7 @@ test('lazada oauth callback exchanges code for tokens', async () => {
     assert.equal(upsertCalls[0].meta.refresh_expires_in, 86400);
     assert.equal(upsertCalls[0].meta.country, 'SG');
     assert.deepEqual(upsertCalls[0].meta.state, [{ country: 'SG' }]);
+    assert.equal(typeof upsertCalls[0].meta.raw_text, 'string');
   });
 
   if (originalFetch) {
@@ -184,7 +190,7 @@ test('lazada oauth callback handles responses wrapped in data envelope', async (
   global.fetch = async () => ({
     ok: true,
     status: 200,
-    json: async () => ({
+    text: async () => JSON.stringify({
       code: '0',
       data: {
         access_token: 'access',
@@ -233,6 +239,7 @@ test('lazada oauth callback handles responses wrapped in data envelope', async (
     assert.equal(upsertCalls[0].meta.country, null);
     assert.equal(upsertCalls[0].meta.state, null);
     assert.equal(upsertCalls[0].meta.raw.request_id, 'req-123');
+    assert.equal(typeof upsertCalls[0].meta.raw_text, 'string');
   });
 
   if (originalFetch) {
@@ -255,7 +262,7 @@ test('lazada oauth callback finds tokens nested inside Lazada wrapper objects', 
   global.fetch = async () => ({
     ok: true,
     status: 200,
-    json: async () => ({
+    text: async () => JSON.stringify({
       data: {
         token_result: [
           {
@@ -338,7 +345,7 @@ test('lazada oauth callback parses JSON string token payloads', async () => {
   global.fetch = async () => ({
     ok: true,
     status: 200,
-    json: async () => ({
+    text: async () => JSON.stringify({
       code: '0',
       data: JSON.stringify({
         token_info: {
@@ -399,6 +406,7 @@ test('lazada oauth callback parses JSON string token payloads', async () => {
     assert.equal(upsertCalls[0].meta.state[0].country, 'VN');
     assert.equal(upsertCalls[0].meta.raw.request_id, 'req-json');
     assert.equal(typeof upsertCalls[0].meta.raw.data, 'string');
+    assert.equal(typeof upsertCalls[0].meta.raw_text, 'string');
   });
 
   if (originalFetch) {
@@ -421,7 +429,7 @@ test('lazada oauth callback reports Supabase credential misconfiguration', async
   global.fetch = async () => ({
     ok: true,
     status: 200,
-    json: async () => ({
+    text: async () => JSON.stringify({
       access_token: 'access',
       refresh_token: 'refresh',
       expires_in: 3600,

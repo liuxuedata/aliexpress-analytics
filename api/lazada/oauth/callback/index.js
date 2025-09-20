@@ -204,8 +204,11 @@ function redactTokens(input, depth = 0, maxDepth = 6) {
   return output;
 }
 
-function logTokenResponse(envelope, tokenPayload) {
+function logTokenResponse(envelope, tokenPayload, rawText) {
   try {
+    if (typeof rawText === 'string') {
+      console.info('[Lazada OAuth] token/create raw response (text):', rawText);
+    }
     const safeEnvelope = redactTokens(envelope);
     const safePayload = tokenPayload === envelope ? safeEnvelope : redactTokens(tokenPayload);
 
@@ -235,7 +238,7 @@ function extractTokenPayload(envelope) {
   return { tokens: envelope, raw: envelope };
 }
 
-async function persistTokens({ supabase, siteId, payload, raw }) {
+async function persistTokens({ supabase, siteId, payload, raw, rawText }) {
   if (!supabase) {
     const err = new Error('缺少 Supabase client，无法存储 Lazada 凭据');
     err.code = 'SUPABASE_CLIENT_MISSING';
@@ -250,7 +253,7 @@ async function persistTokens({ supabase, siteId, payload, raw }) {
     throw err;
   }
 
-  const searchSpaces = gatherSearchSpaces(payload, raw);
+  const searchSpaces = gatherSearchSpaces(payload, raw, rawText);
   if (!searchSpaces.length) {
     const err = new Error('Lazada 授权响应缺失，无法存储凭据');
     err.code = 'LAZADA_TOKEN_RESPONSE_MISSING';
@@ -307,7 +310,8 @@ async function persistTokens({ supabase, siteId, payload, raw }) {
       country: country || null,
       refresh_expires_in: refreshExpiresIn || null,
       state: stateInfo || null,
-      raw: rawForStorage
+      raw: rawForStorage,
+      raw_text: typeof rawText === 'string' ? rawText : null
     }
   });
 }
@@ -317,7 +321,7 @@ async function exchangeAuthorizationCode(code, redirectUri) {
   const appSecret = getEnvOrThrow('LAZADA_APP_SECRET');
 
   const timestamp = Date.now().toString();
-  const params = {
+  const signatureParams = {
     app_key: appKey,
     code,
     redirect_uri: redirectUri,
@@ -326,14 +330,42 @@ async function exchangeAuthorizationCode(code, redirectUri) {
     need_refresh_token: 'true',
   };
 
-  params.sign = buildLazadaSignature(params, appSecret);
+  const sign = buildLazadaSignature(signatureParams, appSecret);
 
-  const search = new URLSearchParams(params);
-  const response = await fetchLazada(`${TOKEN_ENDPOINT}?${search.toString()}`, {
-    method: 'POST',
+  const body = new URLSearchParams({
+    ...signatureParams,
+    sign,
+    grant_type: 'authorization_code',
+    app_secret: appSecret,
+    client_id: appKey,
+    client_secret: appSecret,
   });
 
-  const payload = await response.json().catch(() => null);
+  const response = await fetchLazada(TOKEN_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cache-Control': 'no-store',
+    },
+    body: body.toString(),
+  });
+
+  const rawText = await response.text();
+  if (rawText) {
+    console.info('[Lazada OAuth] token/create raw HTTP body:', rawText);
+  }
+
+  let payload = null;
+  if (rawText) {
+    try {
+      const parsed = JSON.parse(rawText);
+      if (parsed && typeof parsed === 'object') {
+        payload = parsed;
+      }
+    } catch (parseError) {
+      console.warn('[Lazada OAuth] failed to parse Lazada token response as JSON', parseError);
+    }
+  }
 
   if (!response.ok) {
     const message = payload?.message || payload?.error_description || response.statusText;
@@ -343,7 +375,15 @@ async function exchangeAuthorizationCode(code, redirectUri) {
     throw error;
   }
 
-  return payload;
+  if (!payload || typeof payload !== 'object') {
+    const error = new Error('Lazada 授权返回无法解析为 JSON');
+    error.code = 'LAZADA_TOKEN_PARSE_ERROR';
+    error.status = 502;
+    error.details = { raw: rawText || null };
+    throw error;
+  }
+
+  return { payload, rawText };
 }
 
 function sanitizeReturnTo(value, host) {
@@ -403,10 +443,10 @@ async function handler(req, res) {
 
   try {
     const redirectUri = getEnvOrThrow('LAZADA_REDIRECT_URI', 'must match Lazada app settings');
-    const tokenEnvelope = await exchangeAuthorizationCode(code, redirectUri);
+    const { payload: tokenEnvelope, rawText } = await exchangeAuthorizationCode(code, redirectUri);
     const { tokens: tokenResponse, raw: rawTokenResponse } = extractTokenPayload(tokenEnvelope);
 
-    logTokenResponse(tokenEnvelope, tokenResponse);
+    logTokenResponse(tokenEnvelope, tokenResponse, rawText);
 
     const safeData = tokenResponse && typeof tokenResponse === 'object'
       ? {
@@ -422,7 +462,13 @@ async function handler(req, res) {
     const decodedState = decodeState(state);
     const supabase = createSupabaseClient();
     const siteId = decodedState?.siteId || decodedState?.site || null;
-    const persistedRecord = await persistTokens({ supabase, siteId, payload: tokenResponse, raw: rawTokenResponse });
+    const persistedRecord = await persistTokens({
+      supabase,
+      siteId,
+      payload: tokenResponse || tokenEnvelope,
+      raw: rawTokenResponse || tokenEnvelope,
+      rawText,
+    });
 
     const safeReturnTo = sanitizeReturnTo(decodedState?.returnTo, req.headers?.host);
     if (safeReturnTo) {
