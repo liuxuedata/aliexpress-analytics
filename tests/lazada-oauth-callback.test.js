@@ -112,12 +112,13 @@ test('lazada oauth callback exchanges code for tokens', async () => {
     return {
       ok: true,
       status: 200,
-      json: async () => ({
+      text: async () => JSON.stringify({
         access_token: 'access',
         refresh_token: 'refresh',
         expires_in: 3600,
         refresh_expires_in: 86400,
-        country_user_info: [{ country: 'SG' }],
+        account: 'seller@example.com',
+        country_user_info: [{ country: 'SG', user_id: '1001', seller_id: '5001', short_code: 'SG1001' }],
       }),
     };
   };
@@ -153,12 +154,20 @@ test('lazada oauth callback exchanges code for tokens', async () => {
     assert.equal(res.statusCode, 302);
     assert.equal(res.headers.Location, '/lazada.html?lazadaAuth=success');
     assert.equal(fetchCalls.length, 1);
-    assert.match(fetchCalls[0].url, /rest\/auth\/token\/create/);
-    const url = new URL(fetchCalls[0].url);
-    assert.equal(url.searchParams.get('need_refresh_token'), 'true');
+    assert.equal(fetchCalls[0].url, 'https://auth.lazada.com/rest/auth/token/create');
+    const params = new URLSearchParams(fetchCalls[0].options.body);
+    assert.equal(params.get('need_refresh_token'), 'true');
+    assert.equal(params.get('code'), 'abc123');
+    assert.equal(fetchCalls[0].options.headers['Content-Type'], 'application/x-www-form-urlencoded;charset=utf-8');
+    assert.equal(fetchCalls[0].options.headers.Accept, 'application/json');
     assert.equal(upsertCalls.length, 1);
     assert.equal(upsertCalls[0].site_id, 'lazada_site');
     assert.equal(upsertCalls[0].refresh_token, 'refresh');
+    assert.equal(upsertCalls[0].meta.account_id, '1001');
+    assert.equal(upsertCalls[0].meta.country, 'SG');
+    assert.equal(upsertCalls[0].meta.account, 'seller@example.com');
+    assert.equal(upsertCalls[0].meta.seller_id, '5001');
+    assert.equal(upsertCalls[0].meta.short_code, 'SG1001');
   });
 
   if (originalFetch) {
@@ -181,7 +190,7 @@ test('lazada oauth callback skips empty refresh tokens in favor of nested value'
   global.fetch = async () => ({
     ok: true,
     status: 200,
-    json: async () => ({
+    text: async () => JSON.stringify({
       code: '0',
       data: {
         access_token: '',
@@ -250,7 +259,7 @@ test('lazada oauth callback handles responses wrapped in data envelope', async (
   global.fetch = async () => ({
     ok: true,
     status: 200,
-    json: async () => ({
+    text: async () => JSON.stringify({
       code: '0',
       data: {
         access_token: 'access',
@@ -318,7 +327,7 @@ test('lazada oauth callback reports Supabase credential misconfiguration', async
   global.fetch = async () => ({
     ok: true,
     status: 200,
-    json: async () => ({
+    text: async () => JSON.stringify({
       access_token: 'access',
       refresh_token: 'refresh',
       expires_in: 3600,
@@ -340,6 +349,40 @@ test('lazada oauth callback reports Supabase credential misconfiguration', async
   assert.equal(res.body.ok, false);
   assert.equal(res.body.code, 'SUPABASE_SERVICE_ROLE_KEY_MISSING');
   assert.match(res.body.error, /SUPABASE_SERVICE_ROLE_KEY/);
+
+  if (originalFetch) {
+    global.fetch = originalFetch;
+  } else {
+    delete global.fetch;
+  }
+  restoreEnv(originalEnv);
+});
+
+test('lazada oauth callback surfaces Lazada network failures', async () => {
+  const originalEnv = snapshotEnv();
+  process.env.LAZADA_APP_KEY = 'key';
+  process.env.LAZADA_APP_SECRET = 'secret';
+  process.env.LAZADA_REDIRECT_URI = 'https://example.com/callback';
+
+  const originalFetch = global.fetch;
+  global.fetch = async () => {
+    throw new Error('connect ECONNREFUSED');
+  };
+
+  const handler = loadHandler();
+  const req = {
+    method: 'GET',
+    query: { code: 'abc123', state: createSignedState({ siteId: 'site', returnTo: '/dashboard' }, { secret: 'secret' }) },
+    headers: { host: 'example.com' }
+  };
+  const res = createMockRes();
+
+  await handler(req, res);
+
+  assert.equal(res.statusCode, 502);
+  assert.equal(res.body.ok, false);
+  assert.equal(res.body.code, 'LAZADA_TOKEN_FETCH_FAILED');
+  assert.match(res.body.error, /Failed to reach Lazada token endpoint/);
 
   if (originalFetch) {
     global.fetch = originalFetch;

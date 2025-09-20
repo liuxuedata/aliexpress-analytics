@@ -147,6 +147,13 @@ async function persistTokens({ supabase, siteId, payload, raw }) {
     ? new Date(Date.now() + expiresIn * 1000).toISOString()
     : null;
 
+  const countryInfo = Array.isArray(payload.country_user_info)
+    ? payload.country_user_info[0]
+    : payload.country_user_info;
+  const accountInfo = Array.isArray(payload.account_user_info)
+    ? payload.account_user_info[0]
+    : payload.account_user_info;
+
   return storeTokenRecord(supabase, {
     siteId,
     accessToken,
@@ -156,13 +163,28 @@ async function persistTokens({ supabase, siteId, payload, raw }) {
       account_id:
         payload.account_id ||
         payload.accountId ||
-        payload.country_user_info?.userId ||
-        payload.account_user_info?.userId ||
+        countryInfo?.user_id ||
+        countryInfo?.userId ||
+        accountInfo?.user_id ||
+        accountInfo?.userId ||
         null,
       country:
         payload.country ||
-        payload.country_user_info?.country ||
-        payload.account_user_info?.country ||
+        countryInfo?.country ||
+        accountInfo?.country ||
+        null,
+      account: payload.account || null,
+      seller_id:
+        countryInfo?.seller_id ||
+        countryInfo?.sellerId ||
+        accountInfo?.seller_id ||
+        accountInfo?.sellerId ||
+        null,
+      short_code:
+        countryInfo?.short_code ||
+        countryInfo?.shortCode ||
+        accountInfo?.short_code ||
+        accountInfo?.shortCode ||
         null,
       state: payload.country_user_info || payload.account_user_info || null,
       raw: raw && typeof raw === 'object' ? raw : undefined
@@ -187,17 +209,52 @@ async function exchangeAuthorizationCode(code, redirectUri) {
   params.sign = buildLazadaSignature(params, appSecret);
 
   const search = new URLSearchParams(params);
-  const response = await fetchLazada(`${TOKEN_ENDPOINT}?${search.toString()}`, {
-    method: 'POST',
-  });
+  const body = search.toString();
 
-  const payload = await response.json().catch(() => null);
+  let response;
+  try {
+    response = await fetchLazada(TOKEN_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
+        Accept: 'application/json',
+      },
+      body,
+    });
+  } catch (networkError) {
+    const message = networkError && typeof networkError.message === 'string'
+      ? networkError.message
+      : String(networkError);
+    const error = new Error(`Failed to reach Lazada token endpoint: ${message}`);
+    error.code = 'LAZADA_TOKEN_FETCH_FAILED';
+    error.status = 502;
+    error.cause = networkError;
+    throw error;
+  }
+
+  let rawBody = null;
+  try {
+    rawBody = await response.text();
+  } catch (readError) {
+    rawBody = null;
+  }
+
+  let payload = null;
+  if (rawBody) {
+    try {
+      payload = JSON.parse(rawBody);
+    } catch (parseError) {
+      payload = null;
+    }
+  }
 
   if (!response.ok) {
-    const message = payload?.message || payload?.error_description || response.statusText;
+    const message = payload?.message || payload?.error_description || rawBody || response.statusText;
     const error = new Error(message || 'Failed to exchange Lazada auth code');
     error.status = response.status;
-    error.details = payload;
+    if (payload || rawBody) {
+      error.details = payload || { raw: rawBody };
+    }
     throw error;
   }
 
@@ -264,16 +321,22 @@ async function handler(req, res) {
     const tokenEnvelope = await exchangeAuthorizationCode(code, redirectUri);
     const { tokens: tokenResponse, raw: rawTokenResponse } = extractTokenPayload(tokenEnvelope);
 
-    const safeData = tokenResponse && typeof tokenResponse === 'object'
-      ? {
-          access_token: tokenResponse.access_token,
-          refresh_token: tokenResponse.refresh_token,
-          expires_in: tokenResponse.expires_in,
-          refresh_expires_in: tokenResponse.refresh_expires_in,
-          account_platform: tokenResponse.account_platform,
-          country_user_info: tokenResponse.country_user_info,
-        }
-      : null;
+  const safeData = tokenResponse && typeof tokenResponse === 'object'
+    ? {
+        access_token: tokenResponse.access_token,
+        refresh_token: tokenResponse.refresh_token,
+        expires_in: tokenResponse.expires_in,
+        refresh_expires_in: tokenResponse.refresh_expires_in,
+        account_platform: tokenResponse.account_platform,
+        account_id: tokenResponse.account_id || tokenResponse.accountId || null,
+        country: tokenResponse.country || null,
+        account: tokenResponse.account || null,
+        code: tokenResponse.code || null,
+        request_id: tokenResponse.request_id || tokenResponse.requestId || null,
+        country_user_info: tokenResponse.country_user_info,
+        account_user_info: tokenResponse.account_user_info,
+      }
+    : null;
 
     const decodedState = decodeState(state);
     const supabase = createSupabaseClient();
