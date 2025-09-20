@@ -136,7 +136,100 @@
     .legend-list a:hover {
       text-decoration: underline;
     }
-    
+
+    /* 数据明细表格布局优化 */
+    #detail .detail-table-card {
+      padding: 0;
+      background: #ffffff;
+      border: 1px solid var(--primary-200);
+      border-radius: 12px;
+      box-shadow: var(--shadow-sm);
+      width: 100%;
+    }
+
+    #detail .detail-table-card .table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      background: #ffffff;
+      border-bottom: 1px solid var(--primary-200);
+      border-radius: 12px 12px 0 0;
+    }
+
+    #detail .detail-table-card .table-header h3 {
+      margin: 0;
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #1f2937;
+      letter-spacing: 0.01em;
+    }
+
+    #detail .detail-table-card .table-wrapper {
+      border-top: none;
+      border-radius: 0 0 12px 12px;
+      background: #ffffff;
+      padding: 0;
+      overflow: auto;
+    }
+
+    #detail .detail-table-card .table-wrapper .dataTables_wrapper {
+      padding: 12px 16px 16px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    #detail .detail-table-card #report_wrapper {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      border-radius: 0 0 12px 12px;
+    }
+
+    #detail .detail-table-card .table-wrapper .dataTables_wrapper .dataTables_length,
+    #detail .detail-table-card .table-wrapper .dataTables_wrapper .dataTables_filter,
+    #detail .detail-table-card .table-wrapper .dataTables_wrapper .dataTables_info {
+      font-size: 12px;
+      color: #475569;
+    }
+
+    #detail .detail-table-card .table-wrapper .dataTables_wrapper .dataTables_paginate {
+      font-size: 12px;
+    }
+
+    #detail .detail-table-card .loading-state {
+      margin: 16px;
+      padding: 20px 16px;
+      background: #f8fafc;
+      border-radius: 8px;
+    }
+
+    #detail .detail-table-card table,
+    #detail .detail-table-card table th,
+    #detail .detail-table-card table td,
+    #detail .detail-table-card table.dataTable,
+    #detail .detail-table-card table.dataTable th,
+    #detail .detail-table-card table.dataTable td {
+      font-size: 12px;
+    }
+
+    #detail .detail-table-card table th,
+    #detail .detail-table-card table td,
+    #detail .detail-table-card table.dataTable th,
+    #detail .detail-table-card table.dataTable td {
+      padding: 6px 8px;
+    }
+
+    #detail .detail-table-card .dataTables_scrollBody {
+      border-top: 1px solid var(--primary-200);
+    }
+
+    @media (max-width: 1280px) {
+      #detail .detail-table-card .table-wrapper .dataTables_wrapper {
+        padding: 12px;
+      }
+    }
+
     /* KPI对比数据样式 */
     .kpi-comparison {
       margin-top: 0.5rem;
@@ -608,18 +701,20 @@
     <div class="content">
       <!-- 明细表 -->
       <section id="detail" class="content-pad">
-        <div class="chart-container">
-          <h3>数据明细</h3>
-          
+        <div class="table-section detail-table-card">
+          <div class="table-header">
+            <h3>数据明细</h3>
+          </div>
+
           <!-- 加载状态 -->
           <div id="detailLoading" class="loading-state" style="display: none;">
             <div class="loading-spinner"></div>
             <p class="loading-text">努力加载中,请等待片刻。。。</p>
           </div>
-          
+
           <!-- 数据表格 -->
-          <div id="detailContent">
-            <table id="report" class="data-table display nowrap" style="width:100%"></table>
+          <div id="detailContent" class="table-wrapper">
+            <table id="report" class="display nowrap" style="width:100%"></table>
           </div>
         </div>
       </section>
