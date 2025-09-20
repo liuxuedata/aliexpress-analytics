@@ -58,6 +58,7 @@
       super();
       this.dataTable = null;
       this.pageReadyTriggered = false;
+      this._tableResizeHandler = null;
     }
 
     // 重写refreshData方法，确保能正确调用loadData
@@ -473,6 +474,11 @@
       console.log('开始渲染数据表格，数据量:', data.length);
 
       // 简单清理：只销毁DataTable实例和清空表格内容
+      if (this._tableResizeHandler) {
+        window.removeEventListener('resize', this._tableResizeHandler);
+        this._tableResizeHandler = null;
+      }
+
       if (this.dataTable) {
         try {
           this.dataTable.destroy();
@@ -618,24 +624,29 @@
              
              // 如果表格有实际数据行，使用正确的DataTable配置
              if (dataRows.length > 0) {
+              const scrollY = this.computeTableHeight(table);
+
               this.dataTable = jQuery(table).DataTable({
                 destroy: true,
                 pageLength: 10,
-                order: [[1, 'desc']], 
-                scrollX: true, 
-                scrollY: 'calc(100vh - 420px)', 
-                scrollCollapse: true, 
+                order: [[1, 'desc']],
+                scrollX: true,
+                scrollY,
+                scrollCollapse: true,
                 fixedHeader: true,
                 language: {
                   url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json'
                 }
               });
-              
+
               console.log('DataTable初始化成功！');
               console.log('DataTable数据行数:', this.dataTable.data().count());
               console.log('DataTable实际显示行数:', this.dataTable.rows().count());
-              
-                         } else {
+
+              this.bindTableResize(table);
+              this.dataTable.columns.adjust();
+
+                       } else {
                console.warn('表格没有实际数据行，跳过DataTable初始化');
                // 如果没有数据，显示"暂无数据"提示
                if (tbody) {
@@ -649,6 +660,68 @@
         } else {
           console.warn('jQuery或DataTables未加载');
         }
+    }
+
+    computeTableHeight(table) {
+      if (!table || typeof window === 'undefined') {
+        return '360px';
+      }
+
+      const container = table.closest('.chart-container');
+      if (!container) {
+        return '360px';
+      }
+
+      const rect = container.getBoundingClientRect();
+      const styles = window.getComputedStyle(container);
+      const paddingTop = parseFloat(styles.paddingTop) || 0;
+      const paddingBottom = parseFloat(styles.paddingBottom) || 0;
+      const header = container.querySelector('h3');
+      let headerSpace = 0;
+
+      if (header) {
+        const headerStyles = window.getComputedStyle(header);
+        headerSpace = header.offsetHeight + (parseFloat(headerStyles.marginBottom) || 0);
+      }
+
+      const viewportHeight = window.innerHeight || 0;
+      const footerGap = 32; // 与底部留白保持一致
+      const available = viewportHeight - rect.top - footerGap - paddingBottom;
+      const rawHeight = available - paddingTop - headerSpace;
+      const MIN_HEIGHT = 320;
+
+      if (!isFinite(rawHeight)) {
+        return `${MIN_HEIGHT}px`;
+      }
+
+      return `${Math.max(MIN_HEIGHT, Math.floor(rawHeight))}px`;
+    }
+
+    bindTableResize(table) {
+      if (!table || !this.dataTable || typeof window === 'undefined') {
+        return;
+      }
+
+      const adjustHeight = () => {
+        if (!this.dataTable) return;
+        const newHeight = this.computeTableHeight(table);
+        const settings = this.dataTable.settings()[0];
+        if (settings.oScroll.sY !== newHeight) {
+          settings.oScroll.sY = newHeight;
+          this.dataTable.draw(false);
+        }
+        this.dataTable.columns.adjust();
+      };
+
+      if (this._tableResizeHandler) {
+        window.removeEventListener('resize', this._tableResizeHandler);
+      }
+
+      this._tableResizeHandler = adjustHeight;
+      window.addEventListener('resize', this._tableResizeHandler);
+
+      adjustHeight();
+      setTimeout(adjustHeight, 0);
     }
 
     // 格式化日期范围

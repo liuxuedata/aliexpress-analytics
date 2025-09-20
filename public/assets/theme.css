@@ -8,6 +8,7 @@
 
 /* ------ CSS Variables (Light) ------ */
 :root{
+  --header-height: 64px;
   --bg: #f3f4f6;                   /* app background */
   --panel: #ffffff;                /* white panels */
   --panel-border: #e5e7eb;         /* light border */
@@ -47,6 +48,7 @@ body{
   justify-content:space-between;
   padding:8px 16px;
   box-shadow:0 1px 2px rgba(0,0,0,.05);
+  min-height:var(--header-height);
 }
 .logo-title{font-weight:700;font-size:16px;color:var(--text);display:flex;align-items:center;gap:8px;}
 .logo-title .site-logo{height:32px;}
@@ -100,10 +102,12 @@ body{
   background:#0f172a;
   color:#fff;
   padding:16px;
-  height:100vh;
+  height:calc(100vh - var(--header-height));
   overflow:auto;
   border-right:1px solid #1f2937;
-  position:sticky; top:0; z-index:1000;
+  position:sticky;
+  top:var(--header-height);
+  z-index:1000;
 }
 .sidebar h3{ margin:0 0 10px; font-size:16px }
 .site-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
@@ -142,6 +146,13 @@ body{
 .main{
   flex:1; display:flex; flex-direction:column; gap:12px;
   padding:16px; background:#ffffff;
+}
+
+@media (max-width: 1023px){
+  .sidebar{
+    position:static;
+    height:auto;
+  }
 }
 
 /* generic paddings + panels */
