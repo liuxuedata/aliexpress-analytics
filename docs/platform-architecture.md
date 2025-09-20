@@ -13,7 +13,7 @@
 | 速卖通 | 自运营 Poolslab | `public/self-operated.html` | 同上 | ✅ 运营数据 | 同上 | 同上 | 默认站点 `ae_self_operated_poolslab_store` |
 | 速卖通 | 全托管 | `public/managed.html` | 详细数据 / 运营分析 / 产品分析（订单中心、广告中心占位） | ✅ 运营数据 | `/api/stats`, `/api/managed/daily-totals` | `/api/ingest` | 支持周/月报表 |
 | Lazada | Lazada 数据枢纽 | `public/lazada.html` | 运营 / 产品 / 订单 / 广告 | ✅ 已上线 | `/api/lazada/stats` | `/api/lazada/orders`、`/api/lazada/ads` | 页面在站点切换时刷新三大 API，将指标写入 `site_metrics_daily`、`product_metrics_daily`、`orders`、`order_items`、`ad_campaigns`、`ad_metrics_daily` 并渲染卡片/表格 |【F:public/lazada.html†L1-L284】【F:lib/lazada-stats.js†L1-L192】【F:lib/lazada-orders.js†L1-L213】【F:lib/lazada-ads.js†L1-L182】
-| Shopee | Shopee 站点壳层 | `public/shopee.html` | 运营 / 产品 / 订单 / 广告（待启用） | ⏳ 规划中 | —（待实现） | —（待实现） | 同上，等待 Shopee API 接入 |【F:public/shopee.html†L1-L88】【F:public/assets/platform-page.js†L1-L54】【F:public/assets/site-nav.js†L24-L309】
+| Shopee | Shopee 站点壳层 | `public/shopee.html` | 运营 / 产品 / 订单 / 广告（待启用） | ⏳ 规划中 | —（待实现） | —（待实现） | 同上，等待 Shopee API 接入 |【F:public/shopee.html†L1-L88】【F:public/assets/platform-page.js†L1-L54】【F:public/assets/site-nav.js†L13-L159】【F:public/assets/site-nav.js†L373-L457】
 | 独立站 | poolsvacuum.com | `public/independent-site.html` | 渠道分析 / 产品分析（订单中心、广告中心占位） | ✅ 运营数据 | `/api/independent/stats` | `/api/independent/ingest` | Google Ads + Landing Page |
 | 独立站 | icyberite.com | `public/independent-site.html` | 渠道分析 / 产品分析 / 广告中心（TikTok/Facebook） | ✅ 运营数据 | `/api/independent/stats` | `/api/independent/facebook-ingest`, `/api/independent/tiktok-ingest` | Facebook/TikTok Ads |
 | 独立站 | 新增站点（Facebook/Google） | 统一入口 | 运营 / 产品 / 广告（订单中心待接入） | ⏳ 规划中 | `/api/independent/stats` | 对应 ingest 扩展 | 通过站点配置管理 |
@@ -31,7 +31,7 @@
 - `public/self-operated.html`：自运营站点运营分析，内置 DataTables + ECharts + Flatpickr，并在 `ul.sub-nav` 中固定“详细数据/运营分析/产品分析/订单中心/广告中心”顺序（后两项按权限占位）。
 - 自运营页面的加购类 KPI 与图表全部读取 `add_people` 字段：该值既代表加购次数，也用于判定“加购商品数”（`add_people > 0` 的 SKU 计入）。
 - `public/managed.html`：全托管运营分析及跨平台导航，提供登录覆盖层与报表上传入口，同步实现左侧模块顺序与自运营保持一致。
-- `public/site-management.html`：站点配置与动态站点注册表单，支持新增 Lazada/Shopee 等平台。
+- `public/site-management.html`：站点配置与动态站点注册表单，支持新增 Lazada/Shopee 等平台并可直接删除重复站点后触发同步。
 - `public/independent-site.html`：独立站多渠道分析，支持渠道切换及列显隐。
 - `public/amazon-overview.html`、`public/amazon-ads.html`：亚马逊运营与广告视图。
 - `public/ozon-detail.html` 系列：Ozon 指标与报表上传，订单中心子页面通过 `/api/ozon/orders` 调用 Seller API 下发订单头与明细，保持与运营数据的产品 ID 对齐；广告中心仍预留官方广告 API 接入。【F:api/ozon/orders/index.js†L1-L117】【F:api/ozon/fetch/index.js†L1-L160】
@@ -51,9 +51,9 @@
 
 ## 3. 应用层次结构
 ### 3.1 前端（展示层）
-- 静态页面部署于 Vercel 的 `/public` 目录，使用共享导航脚本 `public/assets/site-nav.js` 在加载时请求 `/api/site-configs`，自动合并默认站点并插入 Lazada、Shopee 等平台入口，再写入 `localStorage` 供壳层页面读取当前站点；脚本会缓存各平台站点列表并在未选择时自动持久化首个站点 ID（例如站点管理中新建的 `ozon_211440331`），并通过按平台及显示名称去重的逻辑避免 Lazada/Shopee 等站点重复出现在下拉菜单中。【F:public/assets/site-nav.js†L24-L330】【F:public/assets/site-nav.js†L563-L589】
+- 静态页面部署于 Vercel 的 `/public` 目录，使用共享导航脚本 `public/assets/site-nav.js` 在加载时请求 `/api/site-configs`，合并默认站点并注入 Lazada、Shopee 等入口，再写入 `localStorage` 供壳层页面读取当前站点；脚本以平台 + 站点 ID 去重防止重复项，并仅拦截带 `data-platform` 的切换链接，其他导航（如“管理后台”）保持原生跳转。【F:public/assets/site-nav.js†L13-L159】【F:public/assets/site-nav.js†L373-L457】【F:public/assets/site-nav.js†L666-L691】
 - 各页面遵循统一主题（`assets/theme.css`），通过 Hash/Tab 管理多模块视图，为后续 React/TailAdmin 迁移保留 DOM ID。
-- `admin.html` 作为全局管理后台，集成站点配置、权限矩阵与 `/api/site-sync` 的执行入口，新建站点时按平台预置 Lazada/Shopee/TikTok/Temu 模板并自动触发同步。【F:public/admin.html†L1-L420】
+- `admin.html` 作为全局管理后台，分为站点管理、角色管理与用户管理三大控制台，支持快捷模板、站点删除、角色自定义及成员站点分配，配置暂存于浏览器便于调试。【F:public/admin.html†L360-L543】【F:public/admin.html†L932-L1390】
 
 ### 3.2 API（服务层）
 - 所有 `/api/**` 函数运行于 Vercel Serverless，使用 Node.js + Postgres。
