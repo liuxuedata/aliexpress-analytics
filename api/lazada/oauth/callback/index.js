@@ -11,7 +11,7 @@ const ACCESS_KEYS = ['access_token', 'accessToken', 'token'];
 const REFRESH_KEYS = ['refresh_token', 'refreshToken', 'refresh'];
 const EXPIRES_IN_KEYS = ['expires_in', 'expiresIn', 'expire_in'];
 const REFRESH_EXPIRES_IN_KEYS = ['refresh_expires_in', 'refreshExpiresIn'];
-const ACCOUNT_ID_KEYS = ['account_id', 'accountId', 'seller_id', 'sellerId'];
+const ACCOUNT_ID_KEYS = ['account_id', 'accountId', 'seller_id', 'sellerId', 'user_id', 'userId'];
 const COUNTRY_KEYS = ['country', 'region'];
 const STATE_KEYS = ['country_user_info', 'account_user_info'];
 
@@ -92,6 +92,22 @@ function coerceNumber(value) {
   return null;
 }
 
+function safeJsonParse(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const firstChar = trimmed[0];
+  if (firstChar !== '{' && firstChar !== '[') {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(trimmed);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (err) {
+    return null;
+  }
+}
+
 function pickDeepValue(payload, keys, transformer) {
   const result = findKeyDeep(payload, keys);
   if (!result) return null;
@@ -112,6 +128,52 @@ function firstObjectMatch(payload, keys) {
   const value = result.value;
   if (!value || typeof value !== 'object') return null;
   return value;
+}
+
+function gatherSearchSpaces(...roots) {
+  const spaces = [];
+  const queue = roots.filter((value) => value != null);
+  const seen = new Set();
+
+  while (queue.length) {
+    const current = queue.shift();
+    if (current == null) continue;
+
+    if (typeof current === 'string') {
+      const parsed = safeJsonParse(current);
+      if (parsed) {
+        queue.push(parsed);
+      }
+      continue;
+    }
+
+    if (typeof current === 'object') {
+      if (seen.has(current)) {
+        continue;
+      }
+      seen.add(current);
+      spaces.push(current);
+
+      const values = Array.isArray(current) ? current : Object.values(current);
+      for (const value of values) {
+        if (value && (typeof value === 'object' || typeof value === 'string')) {
+          queue.push(value);
+        }
+      }
+    }
+  }
+
+  return spaces;
+}
+
+function findFirst(spaces, resolver) {
+  for (const space of spaces) {
+    const value = resolver(space);
+    if (value !== null && value !== undefined) {
+      return value;
+    }
+  }
+  return null;
 }
 
 function redactTokens(input, depth = 0, maxDepth = 6) {
@@ -146,8 +208,14 @@ function logTokenResponse(envelope, tokenPayload) {
   try {
     const safeEnvelope = redactTokens(envelope);
     const safePayload = tokenPayload === envelope ? safeEnvelope : redactTokens(tokenPayload);
+
+    console.info('[Lazada OAuth] raw token response envelope (debug):', envelope);
+    if (tokenPayload && tokenPayload !== envelope) {
+      console.info('[Lazada OAuth] raw extracted token payload (debug):', tokenPayload);
+    }
+
     console.info('[Lazada OAuth] token response envelope:', JSON.stringify(safeEnvelope));
-    if (tokenPayload && typeof tokenPayload === 'object') {
+    if (tokenPayload) {
       console.info('[Lazada OAuth] extracted token payload:', JSON.stringify(safePayload));
     }
   } catch (logError) {
@@ -182,18 +250,21 @@ async function persistTokens({ supabase, siteId, payload, raw }) {
     throw err;
   }
 
-  if (!payload || typeof payload !== 'object') {
+  const searchSpaces = gatherSearchSpaces(payload, raw);
+  if (!searchSpaces.length) {
     const err = new Error('Lazada 授权响应缺失，无法存储凭据');
     err.code = 'LAZADA_TOKEN_RESPONSE_MISSING';
     err.status = 500;
     throw err;
   }
 
-  const refreshToken = pickDeepString(payload, REFRESH_KEYS);
+  const primarySpace = searchSpaces.find((space) => !Array.isArray(space)) || searchSpaces[0] || null;
+
+  const refreshToken = findFirst(searchSpaces, (space) => pickDeepString(space, REFRESH_KEYS));
   if (!refreshToken) {
     console.error('[Lazada OAuth] Missing refresh token in payload', {
       keys: REFRESH_KEYS,
-      snapshot: redactTokens(payload)
+      snapshot: redactTokens(primarySpace || payload || raw || null)
     });
     const err = new Error('Lazada 授权响应缺少 refresh_token，无法存储凭据');
     err.code = 'REFRESH_TOKEN_MISSING';
@@ -201,33 +272,30 @@ async function persistTokens({ supabase, siteId, payload, raw }) {
     throw err;
   }
 
-  const accessToken = pickDeepString(payload, ACCESS_KEYS);
-  const expiresIn = pickDeepNumber(payload, EXPIRES_IN_KEYS);
+  const accessToken = findFirst(searchSpaces, (space) => pickDeepString(space, ACCESS_KEYS));
+  const expiresIn = findFirst(searchSpaces, (space) => pickDeepNumber(space, EXPIRES_IN_KEYS));
   const expiresAt = Number.isFinite(expiresIn) && expiresIn > 0
     ? new Date(Date.now() + expiresIn * 1000).toISOString()
     : null;
 
-  const refreshExpiresIn = pickDeepNumber(payload, REFRESH_EXPIRES_IN_KEYS);
-
-  const accountId =
-    pickDeepString(payload, ACCOUNT_ID_KEYS) ||
-    coerceString(payload?.country_user_info?.userId) ||
-    coerceString(payload?.account_user_info?.userId) ||
-    coerceString(Array.isArray(payload?.country_user_info) ? payload.country_user_info[0]?.userId : null) ||
-    coerceString(Array.isArray(payload?.account_user_info) ? payload.account_user_info[0]?.userId : null);
-
-  const country =
-    pickDeepString(payload, COUNTRY_KEYS) ||
-    coerceString(payload?.country_user_info?.country) ||
-    coerceString(payload?.account_user_info?.country) ||
-    coerceString(Array.isArray(payload?.country_user_info) ? payload.country_user_info[0]?.country : null) ||
-    coerceString(Array.isArray(payload?.account_user_info) ? payload.account_user_info[0]?.country : null);
+  const refreshExpiresIn = findFirst(searchSpaces, (space) => pickDeepNumber(space, REFRESH_EXPIRES_IN_KEYS));
 
   const stateInfo =
-    firstObjectMatch(payload, STATE_KEYS) ||
-    payload?.country_user_info ||
-    payload?.account_user_info ||
+    findFirst(searchSpaces, (space) => firstObjectMatch(space, STATE_KEYS)) ||
+    (primarySpace && (primarySpace.country_user_info || primarySpace.account_user_info)) ||
     null;
+
+  const accountId =
+    findFirst(searchSpaces, (space) => pickDeepString(space, ACCOUNT_ID_KEYS)) ||
+    (stateInfo ? pickDeepString(stateInfo, ACCOUNT_ID_KEYS) : null);
+
+  const country =
+    findFirst(searchSpaces, (space) => pickDeepString(space, COUNTRY_KEYS)) ||
+    (stateInfo ? pickDeepString(stateInfo, COUNTRY_KEYS) : null);
+
+  const rawForStorage =
+    (raw && typeof raw === 'object') ? raw :
+    (primarySpace && typeof primarySpace === 'object' ? primarySpace : undefined);
 
   return storeTokenRecord(supabase, {
     siteId,
@@ -239,7 +307,7 @@ async function persistTokens({ supabase, siteId, payload, raw }) {
       country: country || null,
       refresh_expires_in: refreshExpiresIn || null,
       state: stateInfo || null,
-      raw: raw && typeof raw === 'object' ? raw : undefined
+      raw: rawForStorage
     }
   });
 }
