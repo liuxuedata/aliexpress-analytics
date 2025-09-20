@@ -36,6 +36,10 @@
       "dest": "/api/lazada/orders/test/index.js"
     },
     {
+      "src": "/api/lazada-token-test",
+      "dest": "/api/lazada-token-test.js"
+    },
+    {
       "src": "/api/lazada/stats",
       "dest": "/api/lazada/stats/index.js"
     },
