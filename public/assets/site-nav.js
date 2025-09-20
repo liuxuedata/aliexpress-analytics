@@ -12,12 +12,32 @@
   // 默认站点配置
   const defaultSites = {
     ae_self_operated: [
-      { id: 'ae_self_operated_a', name: '自运营robot站', display_name: '自运营robot站' },
-      { id: 'ae_self_operated_poolslab_store', name: 'poolslab', display_name: 'Poolslab运动娱乐' }
+      {
+        id: 'ae_self_operated_a',
+        name: '自运营robot站',
+        display_name: '自运营robot站',
+        platform: 'ae_self_operated'
+      },
+      {
+        id: 'ae_self_operated_poolslab_store',
+        name: 'poolslab',
+        display_name: 'Poolslab运动娱乐',
+        platform: 'ae_self_operated'
+      }
     ],
     independent: [
-      { id: 'independent_poolsvacuum', name: 'poolsvacuum', display_name: 'poolsvacuum.com' },
-      { id: 'independent_icyberite', name: 'icyberite', display_name: 'icyberite.com' }
+      {
+        id: 'independent_poolsvacuum',
+        name: 'poolsvacuum',
+        display_name: 'poolsvacuum.com',
+        platform: 'independent'
+      },
+      {
+        id: 'independent_icyberite',
+        name: 'icyberite',
+        display_name: 'icyberite.com',
+        platform: 'independent'
+      }
     ]
   };
 
@@ -54,31 +74,30 @@
   }
 
   function mergeSiteEntries(baseList = [], configList = []) {
-    const merged = [];
-    const seenKeys = new Set();
+    const mergedMap = new Map();
 
-    baseList.forEach(item => {
-      if (!item) return;
-      const key = (item.id || item.display_name || item.name || '').toLowerCase();
-      const labelKey = item.display_name ? item.display_name.trim().toLowerCase() : null;
-      const composite = `${key}|${labelKey || ''}`;
-      if (seenKeys.has(composite)) return;
-      merged.push({ ...item });
-      seenKeys.add(composite);
-    });
-
-    configList.forEach(site => {
+    function addToMap(site) {
       const normalized = normalizeSiteConfig(site);
       if (!normalized) return;
-      const key = (normalized.id || normalized.name || '').toLowerCase();
-      const labelKey = normalized.display_name ? normalized.display_name.trim().toLowerCase() : '';
-      const composite = `${normalized.platform || ''}|${key}|${labelKey}`;
-      if (seenKeys.has(composite)) return;
-      merged.push(normalized);
-      seenKeys.add(composite);
-    });
 
-    return merged;
+      const combined = { ...site, ...normalized };
+      const idKey = (combined.id || combined.name || combined.display_name || '').trim().toLowerCase();
+      const platformKey = (combined.platform || '').trim().toLowerCase();
+      if (!idKey && !platformKey) return;
+
+      const compositeKey = `${platformKey}|${idKey}`;
+      if (mergedMap.has(compositeKey)) {
+        const existing = mergedMap.get(compositeKey);
+        mergedMap.set(compositeKey, { ...existing, ...combined });
+      } else {
+        mergedMap.set(compositeKey, combined);
+      }
+    }
+
+    baseList.forEach(addToMap);
+    configList.forEach(addToMap);
+
+    return Array.from(mergedMap.values());
   }
 
   function dedupeSitesByLabel(sites = [], platform) {
@@ -600,24 +619,25 @@
       link.addEventListener('click', (e) => {
         // 确保链接能正常工作
         console.log('导航链接点击:', link.href);
-        
-                 // 检查当前页面类型，调用相应的平台切换处理函数
-         const currentPath = window.location.pathname;
-         if (currentPath.includes('self-operated')) {
-           // 自运营页面：调用平台切换处理
-           if (window.handlePlatformSwitch && link && link.getAttribute) {
-             try {
-               e.preventDefault();
-               const platform = link.getAttribute('data-platform') || link.textContent.trim();
-               console.log('自运营页面平台切换:', platform);
-               window.handlePlatformSwitch(platform);
-               return;
-             } catch (error) {
-               console.warn('平台切换处理出错:', error);
-               // 如果出错，让链接正常工作
-             }
-           }
-         }
+
+        // 检查当前页面类型，调用相应的平台切换处理函数
+        const currentPath = window.location.pathname;
+        const platformAttr = safeGetAttribute(link, 'data-platform', '').trim();
+        if (
+          currentPath.includes('self-operated') &&
+          typeof window.handlePlatformSwitch === 'function' &&
+          platformAttr
+        ) {
+          try {
+            e.preventDefault();
+            console.log('自运营页面平台切换:', platformAttr);
+            window.handlePlatformSwitch(platformAttr);
+            return;
+          } catch (error) {
+            console.warn('平台切换处理出错:', error);
+            // 如果出错，让链接正常工作
+          }
+        }
         // 不阻止默认行为，让链接正常工作
       });
     });

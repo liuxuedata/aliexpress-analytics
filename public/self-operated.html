@@ -136,7 +136,218 @@
     .legend-list a:hover {
       text-decoration: underline;
     }
-    
+
+    main.main {
+      background: transparent;
+      padding: 24px 24px 32px;
+    }
+
+    .page-header {
+      margin: 0;
+      text-align: left;
+    }
+
+    .page-header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      color: #1f2937;
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    .detail-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    @media (min-width: 1280px) {
+      .detail-layout {
+        display: grid;
+        grid-template-columns: minmax(300px, 340px) 1fr;
+        align-items: start;
+        gap: 32px;
+      }
+    }
+
+    .detail-summary {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      position: sticky;
+      top: calc(var(--header-height, 64px) + 16px);
+      max-height: calc(100vh - var(--header-height, 64px) - 32px);
+      overflow-y: auto;
+      padding-right: 8px;
+    }
+
+    @media (max-width: 1279px) {
+      .detail-summary {
+        position: static;
+        max-height: none;
+        overflow: visible;
+        padding-right: 0;
+      }
+    }
+
+    .detail-summary .upload-section {
+      margin: 0;
+    }
+
+    .detail-summary .upload-top {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 16px;
+    }
+
+    .detail-summary .controls {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      margin-bottom: 0;
+    }
+
+    .detail-summary .controls span {
+      margin: 0;
+      color: #334155;
+      font-weight: 600;
+    }
+
+    .detail-summary .sel,
+    .detail-summary .date-filter,
+    .detail-summary #statusDisplay {
+      width: 100%;
+    }
+
+    .detail-summary .sel,
+    .detail-summary .date-filter {
+      margin: 0;
+    }
+
+    .detail-summary #statusDisplay {
+      margin-top: 4px;
+    }
+
+    .detail-summary #uploadControls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .detail-summary #uploadControls .btn {
+      flex: 1;
+      min-width: 140px;
+      justify-content: center;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .detail-summary #progress {
+      display: block;
+      width: 100%;
+      margin-top: 4px;
+      margin-left: 0;
+      text-align: left;
+      flex-basis: 100%;
+    }
+
+    .detail-summary .kpi-grid {
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+
+    .detail-summary .kpi-card p {
+      font-size: 1.25rem;
+    }
+
+    .detail-main {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      min-height: calc(100vh - var(--header-height, 64px) - 32px);
+    }
+
+    @media (max-width: 1279px) {
+      .detail-main {
+        min-height: auto;
+      }
+    }
+
+    .detail-main .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-main #detail.content-pad {
+      flex: 1;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-main #detail .chart-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 0;
+      padding: 24px;
+    }
+
+    .detail-main #detail h3 {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+
+    .detail-main #detailContent {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-main #detailContent .dataTables_wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-main #detailContent .dataTables_scroll {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-main #detailContent .dataTables_scrollBody {
+      flex: 1 !important;
+    }
+
+    .detail-main #detailContent table {
+      width: 100% !important;
+    }
+
+    .detail-main section:not(#detail) {
+      overflow: auto;
+    }
+
+    .upload-section {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .upload-section .divider {
+      margin: 16px 0;
+    }
+
+    .upload-top {
+      align-items: flex-start;
+      gap: 12px;
+    }
+
     /* KPI对比数据样式 */
     .kpi-comparison {
       margin-top: 0.5rem;
@@ -534,78 +745,82 @@
   </nav>
 
   <main class="main mx-auto max-w-container px-6">
-    <!-- 页面标题 -->
-    <div class="page-header" style="margin-bottom: 20px; text-align: center;">
-      <h1 style="font-size: 28px; font-weight: 600; color: #1f2937; margin: 0;">自运营Robot站 - 智能数据分析与决策支持</h1>
-    </div>
-    
-    <!-- 顶部：上传 + 全局过滤 -->
-    <div class="upload-section">
-      <div class="upload-top">
-        <div class="controls">
-          <span>粒度：</span>
-          <span class="sel" style="background:#1f2937;color:#fff;border-color:#334155;cursor:not-allowed">按日</span>
-          <input type="hidden" id="granularity" value="day">
-          <span>日期：</span>
-          <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
-          <div id="statusDisplay" class="status-display">数据加载完成</div>
+    <div class="detail-layout">
+      <aside class="detail-summary">
+        <!-- 页面标题 -->
+        <div class="page-header">
+          <h1>自运营Robot站 - 智能数据分析与决策支持</h1>
         </div>
-        <div id="uploadControls">
-          <label for="fileInput" class="btn">上传数据</label>
-          <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none">
-          <button id="refreshBtn" class="btn">刷新</button>
-          <span id="progress" class="notice"></span>
-        </div>
-      </div>
-      <div class="divider"></div>
-      <div class="kpi-grid">
-        <div class="kpi-card info">
-          <h4>平均访客比</h4>
-          <p id="avgVisitor">0%</p>
-          <div id="avgVisitorComparison" class="kpi-comparison"></div>
-        </div>
-        <div class="kpi-card success">
-          <h4>平均加购比</h4>
-          <p id="avgCart">0%</p>
-          <div id="avgCartComparison" class="kpi-comparison"></div>
-        </div>
-        <div class="kpi-card success">
-          <h4>平均支付比</h4>
-          <p id="avgPay">0%</p>
-          <div id="avgPayComparison" class="kpi-comparison"></div>
-        </div>
-        <div class="kpi-card success">
-          <h4>商品总数</h4>
-          <p id="totalProducts">0</p>
-          <div id="totalProductsComparison" class="kpi-comparison"></div>
-        </div>
-        <div class="kpi-card info">
-          <h4>曝光商品数</h4>
-          <p id="exposedProducts">0</p>
-          <div id="exposedProductsComparison" class="kpi-comparison"></div>
-        </div>
-        <div class="kpi-card warning">
-          <h4>加购商品数</h4>
-          <p id="cartedProducts">0</p>
-          <div id="cartedProductsComparison" class="kpi-comparison"></div>
-        </div>
-        <div class="kpi-card danger">
-          <h4>支付商品数</h4>
-          <p id="purchasedProducts">0</p>
-          <div id="purchasedProductsComparison" class="kpi-comparison"></div>
-        </div>
-        <div class="kpi-card info" style="cursor: pointer;" title="点击筛选新品数据">
-          <h4>本周期新品数</h4>
-          <p id="newProducts">0</p>
-          <div id="newProductsClear" class="kpi-clear" style="display: none;">
-            <a href="#" id="clearNewProductsFilter" style="color: #007bff; text-decoration: underline; font-size: 12px;">清除筛选</a>
+
+        <!-- 顶部：上传 + 全局过滤 -->
+        <div class="upload-section">
+          <div class="upload-top">
+            <div class="controls">
+              <span>粒度：</span>
+              <span class="sel" style="background:#1f2937;color:#fff;border-color:#334155;cursor:not-allowed">按日</span>
+              <input type="hidden" id="granularity" value="day">
+              <span>日期：</span>
+              <input id="dateFilter" class="date-filter" placeholder="选择日期范围">
+              <div id="statusDisplay" class="status-display">数据加载完成</div>
+            </div>
+            <div id="uploadControls">
+              <label for="fileInput" class="btn">上传数据</label>
+              <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none">
+              <button id="refreshBtn" class="btn">刷新</button>
+              <span id="progress" class="notice"></span>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div class="kpi-grid">
+            <div class="kpi-card info">
+              <h4>平均访客比</h4>
+              <p id="avgVisitor">0%</p>
+              <div id="avgVisitorComparison" class="kpi-comparison"></div>
+            </div>
+            <div class="kpi-card success">
+              <h4>平均加购比</h4>
+              <p id="avgCart">0%</p>
+              <div id="avgCartComparison" class="kpi-comparison"></div>
+            </div>
+            <div class="kpi-card success">
+              <h4>平均支付比</h4>
+              <p id="avgPay">0%</p>
+              <div id="avgPayComparison" class="kpi-comparison"></div>
+            </div>
+            <div class="kpi-card success">
+              <h4>商品总数</h4>
+              <p id="totalProducts">0</p>
+              <div id="totalProductsComparison" class="kpi-comparison"></div>
+            </div>
+            <div class="kpi-card info">
+              <h4>曝光商品数</h4>
+              <p id="exposedProducts">0</p>
+              <div id="exposedProductsComparison" class="kpi-comparison"></div>
+            </div>
+            <div class="kpi-card warning">
+              <h4>加购商品数</h4>
+              <p id="cartedProducts">0</p>
+              <div id="cartedProductsComparison" class="kpi-comparison"></div>
+            </div>
+            <div class="kpi-card danger">
+              <h4>支付商品数</h4>
+              <p id="purchasedProducts">0</p>
+              <div id="purchasedProductsComparison" class="kpi-comparison"></div>
+            </div>
+            <div class="kpi-card info" style="cursor: pointer;" title="点击筛选新品数据">
+              <h4>本周期新品数</h4>
+              <p id="newProducts">0</p>
+              <div id="newProductsClear" class="kpi-clear" style="display: none;">
+                <a href="#" id="clearNewProductsFilter" style="color: #007bff; text-decoration: underline; font-size: 12px;">清除筛选</a>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </aside>
 
-    <!-- 顶部 Tabs -->
-    <div class="content">
+      <div class="detail-main">
+        <!-- 顶部 Tabs -->
+        <div class="content">
       <!-- 明细表 -->
       <section id="detail" class="content-pad">
         <div class="chart-container">
@@ -802,7 +1017,9 @@
           </div>
         </div>
       </section>
-    </div>
+    </div> <!-- .content -->
+  </div> <!-- .detail-main -->
+</div> <!-- .detail-layout -->
   </main>
 </div>
 
