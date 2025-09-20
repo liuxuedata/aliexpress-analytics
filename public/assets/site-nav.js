@@ -12,12 +12,32 @@
   // 默认站点配置
   const defaultSites = {
     ae_self_operated: [
-      { id: 'ae_self_operated_a', name: '自运营robot站', display_name: '自运营robot站' },
-      { id: 'ae_self_operated_poolslab_store', name: 'poolslab', display_name: 'Poolslab运动娱乐' }
+      {
+        id: 'ae_self_operated_a',
+        name: '自运营robot站',
+        display_name: '自运营robot站',
+        platform: 'ae_self_operated'
+      },
+      {
+        id: 'ae_self_operated_poolslab_store',
+        name: 'poolslab',
+        display_name: 'Poolslab运动娱乐',
+        platform: 'ae_self_operated'
+      }
     ],
     independent: [
-      { id: 'independent_poolsvacuum', name: 'poolsvacuum', display_name: 'poolsvacuum.com' },
-      { id: 'independent_icyberite', name: 'icyberite', display_name: 'icyberite.com' }
+      {
+        id: 'independent_poolsvacuum',
+        name: 'poolsvacuum',
+        display_name: 'poolsvacuum.com',
+        platform: 'independent'
+      },
+      {
+        id: 'independent_icyberite',
+        name: 'icyberite',
+        display_name: 'icyberite.com',
+        platform: 'independent'
+      }
     ]
   };
 
@@ -41,52 +61,97 @@
   let siteConfigsCache = null;
   let siteConfigsPromise = null;
 
-  function normalizeSiteConfig(site) {
+  function normalizeSiteConfig(site, fallbackPlatform = null) {
     if (!site) return null;
-    const id = site.id || `${site.platform || 'site'}_${site.name || Date.now()}`;
+    const platform = site.platform || fallbackPlatform || null;
+    const idBase = site.id || site.name || site.domain;
+    const id = idBase
+      ? `${idBase}`
+      : `${platform || 'site'}_${Date.now()}`;
     const displayName = site.display_name || site.name || site.domain || id;
+    const safeId = String(id);
+    const safeName = site.name ? String(site.name) : safeId;
+    const safeDisplayName = displayName ? String(displayName) : safeId;
     return {
-      id,
-      name: site.name || id,
-      display_name: displayName,
-      platform: site.platform || null
+      id: safeId,
+      name: safeName,
+      display_name: safeDisplayName,
+      platform
     };
   }
 
-  function mergeSiteEntries(baseList = [], configList = []) {
-    const merged = [];
-    const seenKeys = new Set();
+  function mergeSiteEntries(baseList = [], configList = [], platform = null) {
+    const order = [];
+    const siteMap = new Map();
+    const aliasMap = new Map();
 
-    baseList.forEach(item => {
-      if (!item) return;
-      const key = (item.id || item.display_name || item.name || '').toLowerCase();
-      const labelKey = item.display_name ? item.display_name.trim().toLowerCase() : null;
-      const composite = `${key}|${labelKey || ''}`;
-      if (seenKeys.has(composite)) return;
-      merged.push({ ...item });
-      seenKeys.add(composite);
-    });
+    const buildAliasKeys = normalized => {
+      const platformKey = normalized.platform || platform || '';
+      const values = [normalized.id, normalized.name, normalized.display_name];
+      return values
+        .map(value => (value ? String(value).trim().toLowerCase() : ''))
+        .filter(Boolean)
+        .map(value => `${platformKey}::${value}`);
+    };
 
-    configList.forEach(site => {
-      const normalized = normalizeSiteConfig(site);
-      if (!normalized) return;
-      const key = (normalized.id || normalized.name || '').toLowerCase();
-      const labelKey = normalized.display_name ? normalized.display_name.trim().toLowerCase() : '';
-      const composite = `${normalized.platform || ''}|${key}|${labelKey}`;
-      if (seenKeys.has(composite)) return;
-      merged.push(normalized);
-      seenKeys.add(composite);
-    });
+    const registerAliases = (normalized, compositeKey) => {
+      buildAliasKeys(normalized).forEach(alias => {
+        if (!aliasMap.has(alias)) {
+          aliasMap.set(alias, compositeKey);
+        }
+      });
+    };
 
-    return merged;
+    const upsertSite = (site, source) => {
+      const normalized = normalizeSiteConfig(site, platform);
+      if (!normalized || !normalized.id) return;
+      const platformKey = normalized.platform || platform || '';
+      const primaryKey = `${platformKey}::${String(normalized.id).trim().toLowerCase()}`;
+      const aliasKeys = buildAliasKeys(normalized);
+
+      let compositeKey = primaryKey;
+      for (const alias of aliasKeys) {
+        if (aliasMap.has(alias)) {
+          compositeKey = aliasMap.get(alias);
+          break;
+        }
+      }
+
+      const existing = siteMap.get(compositeKey);
+
+      if (!existing) {
+        siteMap.set(compositeKey, { ...normalized });
+        order.push(compositeKey);
+        registerAliases(normalized, compositeKey);
+        return;
+      }
+
+      if (source === 'remote') {
+        const mergedSite = {
+          ...existing,
+          ...normalized,
+          display_name: normalized.display_name || existing.display_name,
+          name: normalized.name || existing.name,
+          platform: normalized.platform || existing.platform
+        };
+        siteMap.set(compositeKey, mergedSite);
+        registerAliases(mergedSite, compositeKey);
+      }
+    };
+
+    baseList.forEach(site => upsertSite(site, 'default'));
+    configList.forEach(site => upsertSite(site, 'remote'));
+
+    return order.map(key => siteMap.get(key)).filter(Boolean);
   }
 
   function dedupeSitesByLabel(sites = [], platform) {
     const seen = new Set();
     return sites.filter(site => {
       if (!site) return false;
-      const name = site.display_name || site.name || site.id || '';
-      const key = `${platform || site.platform || ''}|${name.trim().toLowerCase()}`;
+      const platformKey = platform || site.platform || '';
+      const id = site.id || site.name || site.display_name || '';
+      const key = `${platformKey}|${String(id).trim().toLowerCase()}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -133,7 +198,7 @@
     const platformSites = Array.isArray(siteConfigsCache)
       ? siteConfigsCache
           .filter(site => site?.platform === platform)
-          .map(normalizeSiteConfig)
+          .map(site => normalizeSiteConfig(site, platform))
           .filter(Boolean)
       : [];
 
@@ -225,7 +290,7 @@
     const currentSite = localStorage.getItem('currentSite');
     const currentSiteName = localStorage.getItem('currentSiteName');
     const configSites = siteConfigs.filter(site => site.platform === 'ae_self_operated');
-    const mergedSites = mergeSiteEntries(defaultSites.ae_self_operated, configSites);
+    const mergedSites = mergeSiteEntries(defaultSites.ae_self_operated, configSites, 'ae_self_operated');
 
     managedMenu.innerHTML = '';
 
@@ -274,7 +339,7 @@
 
     const currentIndepSite = localStorage.getItem('currentIndepSite');
     const configSites = siteConfigs.filter(site => site.platform === 'independent');
-    const mergedSites = mergeSiteEntries(defaultSites.independent, configSites);
+    const mergedSites = mergeSiteEntries(defaultSites.independent, configSites, 'independent');
 
     indepMenu.innerHTML = '';
 
@@ -327,6 +392,7 @@
         const anchor = document.createElement('a');
         anchor.href = info.href;
         anchor.textContent = info.label;
+        anchor.dataset.platform = platform;
         li.appendChild(anchor);
 
         if (info.insertBefore) {
@@ -345,6 +411,7 @@
         if (anchor) {
           anchor.href = info.href;
           anchor.textContent = info.label;
+          anchor.dataset.platform = platform;
         }
       }
 
@@ -357,7 +424,10 @@
 
       dropdown.innerHTML = '';
 
-      const normalizedSites = dedupeSitesByLabel(configs.map(normalizeSiteConfig).filter(Boolean), platform);
+      const normalizedSites = dedupeSitesByLabel(
+        configs.map(site => normalizeSiteConfig(site, platform)).filter(Boolean),
+        platform
+      );
       ensureSiteDefaults(platform, normalizedSites);
 
       normalizedSites.forEach(site => {
@@ -600,24 +670,22 @@
       link.addEventListener('click', (e) => {
         // 确保链接能正常工作
         console.log('导航链接点击:', link.href);
-        
-                 // 检查当前页面类型，调用相应的平台切换处理函数
-         const currentPath = window.location.pathname;
-         if (currentPath.includes('self-operated')) {
-           // 自运营页面：调用平台切换处理
-           if (window.handlePlatformSwitch && link && link.getAttribute) {
-             try {
-               e.preventDefault();
-               const platform = link.getAttribute('data-platform') || link.textContent.trim();
-               console.log('自运营页面平台切换:', platform);
-               window.handlePlatformSwitch(platform);
-               return;
-             } catch (error) {
-               console.warn('平台切换处理出错:', error);
-               // 如果出错，让链接正常工作
-             }
-           }
-         }
+
+        const currentPath = window.location.pathname;
+        const platformAttr = link.dataset?.platform || link.getAttribute?.('data-platform');
+        if (currentPath.includes('self-operated') && platformAttr) {
+          if (window.handlePlatformSwitch) {
+            try {
+              e.preventDefault();
+              console.log('自运营页面平台切换:', platformAttr);
+              window.handlePlatformSwitch(platformAttr);
+              return;
+            } catch (error) {
+              console.warn('平台切换处理出错:', error);
+              // 如果出错，让链接正常工作
+            }
+          }
+        }
         // 不阻止默认行为，让链接正常工作
       });
     });

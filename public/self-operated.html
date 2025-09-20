@@ -136,7 +136,54 @@
     .legend-list a:hover {
       text-decoration: underline;
     }
-    
+
+    /* 数据明细展示区域 */
+    .section-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4px 12px;
+    }
+
+    .section-heading h3 {
+      margin: 0;
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #1f2937;
+    }
+
+    #detail .table-section {
+      padding: 0;
+    }
+
+    #detailLoading {
+      margin: 0 0 12px;
+    }
+
+    #detailContent {
+      overflow-x: auto;
+    }
+
+    #detailContent .dataTables_wrapper {
+      width: 100%;
+    }
+
+    #detailContent table.dataTable,
+    #detailContent table.dataTable th,
+    #detailContent table.dataTable td {
+      font-size: 12px;
+    }
+
+    #detailContent table.dataTable th,
+    #detailContent table.dataTable td {
+      padding: 6px 10px;
+      white-space: nowrap;
+    }
+
+    #detailContent table.dataTable td {
+      line-height: 1.5;
+    }
+
     /* KPI对比数据样式 */
     .kpi-comparison {
       margin-top: 0.5rem;
@@ -533,7 +580,7 @@
     </ul>
   </nav>
 
-  <main class="main mx-auto max-w-container px-6">
+  <main class="main">
     <!-- 页面标题 -->
     <div class="page-header" style="margin-bottom: 20px; text-align: center;">
       <h1 style="font-size: 28px; font-weight: 600; color: #1f2937; margin: 0;">自运营Robot站 - 智能数据分析与决策支持</h1>
@@ -608,18 +655,20 @@
     <div class="content">
       <!-- 明细表 -->
       <section id="detail" class="content-pad">
-        <div class="chart-container">
+        <div class="section-heading">
           <h3>数据明细</h3>
-          
+        </div>
+
+        <div class="table-section">
           <!-- 加载状态 -->
           <div id="detailLoading" class="loading-state" style="display: none;">
             <div class="loading-spinner"></div>
             <p class="loading-text">努力加载中,请等待片刻。。。</p>
           </div>
-          
+
           <!-- 数据表格 -->
-          <div id="detailContent">
-            <table id="report" class="data-table display nowrap" style="width:100%"></table>
+          <div id="detailContent" class="table-wrapper">
+            <table id="report" class="display nowrap" style="width:100%"></table>
           </div>
         </div>
       </section>
