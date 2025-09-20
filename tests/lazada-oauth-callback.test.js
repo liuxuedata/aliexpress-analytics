@@ -158,6 +158,10 @@ test('lazada oauth callback exchanges code for tokens', async () => {
     assert.equal(upsertCalls.length, 1);
     assert.equal(upsertCalls[0].site_id, 'lazada_site');
     assert.equal(upsertCalls[0].refresh_token, 'refresh');
+    assert.equal(upsertCalls[0].access_token, 'access');
+    assert.equal(upsertCalls[0].meta.refresh_expires_in, 86400);
+    assert.equal(upsertCalls[0].meta.country, 'SG');
+    assert.deepEqual(upsertCalls[0].meta.state, [{ country: 'SG' }]);
   });
 
   if (originalFetch) {
@@ -225,6 +229,9 @@ test('lazada oauth callback handles responses wrapped in data envelope', async (
     assert.equal(upsertCalls.length, 1);
     assert.equal(upsertCalls[0].refresh_token, 'refresh');
     assert.equal(upsertCalls[0].meta.account_id, 'seller-1');
+    assert.equal(upsertCalls[0].meta.refresh_expires_in, null);
+    assert.equal(upsertCalls[0].meta.country, null);
+    assert.equal(upsertCalls[0].meta.state, null);
     assert.equal(upsertCalls[0].meta.raw.request_id, 'req-123');
   });
 
@@ -253,8 +260,18 @@ test('lazada oauth callback finds tokens nested inside Lazada wrapper objects', 
         token_result: [
           {
             token_info: {
-              refresh_token: '  nested-refresh  ',
-              access_token: ' nested-access ',
+              tokens: {
+                refreshToken: '  nested-refresh  ',
+                accessToken: ' nested-access ',
+              },
+              metrics: {
+                expiresIn: ' 3600 ',
+                refreshExpiresIn: '172800',
+              },
+              profile: {
+                sellerId: 'seller-2',
+                region: 'PH',
+              }
             }
           }
         ]
@@ -295,6 +312,10 @@ test('lazada oauth callback finds tokens nested inside Lazada wrapper objects', 
     assert.equal(upsertCalls.length, 1);
     assert.equal(upsertCalls[0].refresh_token, 'nested-refresh');
     assert.equal(upsertCalls[0].access_token, 'nested-access');
+    assert.equal(upsertCalls[0].meta.account_id, 'seller-2');
+    assert.equal(upsertCalls[0].meta.country, 'PH');
+    assert.equal(upsertCalls[0].meta.refresh_expires_in, 172800);
+    assert.equal(upsertCalls[0].meta.state, null);
   });
 
   if (originalFetch) {
