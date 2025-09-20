@@ -145,6 +145,15 @@
       border-color: #111827;
       color: #f9fafb;
     }
+    .btn-danger {
+      background: #ef4444;
+      border-color: #ef4444;
+      color: #fff;
+    }
+    .btn-danger:hover {
+      background: #dc2626;
+      border-color: #dc2626;
+    }
     .btn-success {
       background: #059669;
       border-color: #059669;
@@ -159,6 +168,107 @@
       flex-wrap: wrap;
       gap: 10px;
       margin-bottom: 16px;
+    }
+    .role-grid,
+    .user-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+    }
+    .role-card,
+    .user-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 20px;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(15,23,42,0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .role-card h3,
+    .user-card h3 {
+      margin: 0;
+      font-size: 18px;
+      color: #1f2937;
+    }
+    .role-meta,
+    .user-meta {
+      color: #6b7280;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .user-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 8px;
+    }
+    .role-modules {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+    }
+    .role-checkbox {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #374151;
+      background: #f9fafb;
+      border-radius: 9999px;
+      padding: 6px 12px;
+      border: 1px solid #e5e7eb;
+    }
+    .role-checkbox input {
+      margin: 0;
+    }
+    .role-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .role-card-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+    .badge-outline {
+      background: transparent;
+      border: 1px solid #bfdbfe;
+      color: #1d4ed8;
+    }
+    .form-note {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-size: 12px;
+      margin: 2px 4px 2px 0;
+      white-space: nowrap;
+    }
+    .chip-muted {
+      background: #f3f4f6;
+      color: #6b7280;
+    }
+    select[multiple] {
+      min-height: 120px;
+    }
+    .multi-select-hint {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: -4px;
     }
     .site-card {
       border: 1px solid #e5e7eb;
@@ -206,37 +316,6 @@
       background: #fef2f2;
       color: #b91c1c;
       border: 1px solid #fecaca;
-    }
-    .permissions-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    .permissions-table thead th {
-      text-align: left;
-      font-size: 13px;
-      letter-spacing: 0.02em;
-      color: #6b7280;
-      padding: 12px;
-      border-bottom: 1px solid #e5e7eb;
-    }
-    .permissions-table tbody td {
-      padding: 12px;
-      border-bottom: 1px solid #f3f4f6;
-      font-size: 14px;
-    }
-    .permissions-table tbody tr:nth-child(odd) {
-      background: #f9fafb;
-    }
-    .permissions-table .module-label {
-      font-weight: 600;
-      color: #1f2937;
-    }
-    .matrix-controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 16px;
-      align-items: center;
     }
     .badge {
       display: inline-block;
@@ -317,8 +396,8 @@
     <div class="site-header">管理后台</div>
     <ul class="sub-nav" id="adminNav">
       <li><a href="#" class="active" data-target="siteConsole">站点管理</a></li>
-      <li><a href="#" data-target="permissionConsole">权限矩阵</a></li>
-      <li><a href="#" data-target="syncConsole">同步工具</a></li>
+      <li><a href="#" data-target="roleConsole">角色管理</a></li>
+      <li><a href="#" data-target="userConsole">用户管理</a></li>
     </ul>
   </nav>
 
@@ -396,72 +475,97 @@
       </div>
     </section>
 
-    <section id="permissionConsole" class="admin-section">
+    <section id="roleConsole" class="admin-section">
       <div class="section-header">
         <div>
-          <h1>权限矩阵</h1>
-          <div class="section-subtitle">基于 `rules.json` 默认策略管理模块可见性，可按站点覆写。</div>
+          <h1>角色管理</h1>
+          <div class="section-subtitle">按功能模块配置系统角色，并可扩展自定义角色。</div>
         </div>
-        <div class="matrix-controls">
-          <select id="permissionSiteSelect" class="btn">
-            <option value="">全局默认</option>
-          </select>
-          <button class="btn" id="resetPermissionBtn">恢复默认</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn" id="resetRoleBtn">恢复默认</button>
+          <button class="btn btn-primary" id="saveRoleBtn">保存角色配置</button>
         </div>
       </div>
 
       <div class="admin-card">
-        <table class="permissions-table">
-          <thead>
-            <tr>
-              <th style="width:180px">模块</th>
-              <th>描述</th>
-              <th>角色访问</th>
-            </tr>
-          </thead>
-          <tbody id="permissionMatrix"></tbody>
-        </table>
-        <div class="form-actions">
-          <button class="btn btn-primary" id="savePermissionBtn">保存配置</button>
-          <button class="btn" id="exportPermissionBtn">复制 JSON</button>
-        </div>
-        <p class="section-subtitle">保存操作会在浏览器内缓存配置，后端写入接口将在权限中心上线时接入。</p>
+        <h2 style="margin-top:0">新增角色</h2>
+        <form id="createRoleForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="newRoleName">角色名称 *</label>
+              <input id="newRoleName" placeholder="如：数据分析师" required>
+            </div>
+            <div class="form-group">
+              <label for="newRoleKey">角色标识 *</label>
+              <input id="newRoleKey" placeholder="如：data_analyst" required>
+              <div class="form-note">仅限字母、数字、下划线或短横线，用于系统标识。</div>
+            </div>
+            <div class="form-group">
+              <label for="newRoleDescription">角色说明</label>
+              <input id="newRoleDescription" placeholder="可选，方便其他管理员理解权限范围">
+            </div>
+          </div>
+          <div class="form-group" style="margin-top:12px;">
+            <label>可访问模块 *</label>
+            <div class="role-modules" id="newRoleModuleContainer"></div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">新增角色</button>
+            <button type="button" class="btn" id="resetNewRoleForm">清空</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="admin-card">
+        <h2 style="margin-top:0">角色权限配置</h2>
+        <div class="role-grid" id="roleList"></div>
+        <p class="section-subtitle">角色配置保存在浏览器本地存储，后续将接入后端权限中心。</p>
       </div>
     </section>
 
-    <section id="syncConsole" class="admin-section">
+    <section id="userConsole" class="admin-section">
       <div class="section-header">
         <div>
-          <h1>同步工具</h1>
-          <div class="section-subtitle">用于触发 `/api/site-sync` 与检查指标字段覆盖，保障新站点上线即连通。</div>
+          <h1>用户管理</h1>
+          <div class="section-subtitle">为成员分配角色与站点范围，不同角色将继承相应模块权限。</div>
         </div>
       </div>
+
       <div class="admin-card">
-        <h2 style="margin-top:0">站点同步</h2>
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="syncSiteSelect">选择站点</label>
-            <select id="syncSiteSelect"></select>
+        <h2 style="margin-top:0">新增 / 编辑用户</h2>
+        <form id="userForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="userNameInput">姓名 *</label>
+              <input id="userNameInput" placeholder="如：王小明" required>
+            </div>
+            <div class="form-group">
+              <label for="userEmailInput">邮箱 *</label>
+              <input id="userEmailInput" type="email" placeholder="name@example.com" required>
+            </div>
+            <div class="form-group">
+              <label for="userRoleSelect">角色 *</label>
+              <select id="userRoleSelect" required></select>
+            </div>
+            <div class="form-group">
+              <label for="userSiteMulti">授权站点 *</label>
+              <select id="userSiteMulti" multiple required></select>
+            </div>
           </div>
-          <div class="form-group">
-            <label for="syncActionSelect">同步动作</label>
-            <select id="syncActionSelect">
-              <option value="create">创建站点结构</option>
-              <option value="update">更新站点结构</option>
-            </select>
+          <p class="multi-select-hint">请选择至少一个站点，按住 Ctrl / Command 可多选。</p>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存用户</button>
+            <button type="button" class="btn" id="resetUserForm">重置</button>
           </div>
-        </div>
-        <div class="form-actions">
-          <button class="btn btn-secondary" id="runSyncBtn">执行同步</button>
-        </div>
-        <p class="section-subtitle">同步操作将刷新 `site_module_configs`、`site_channel_configs` 等依赖站点 ID 的表，以便 Lazada/Shopee 等新站点立即生效。</p>
+        </form>
       </div>
+
       <div class="admin-card">
-        <h2 style="margin-top:0">字段覆盖校验</h2>
-        <p class="section-subtitle">即将上线：自动对比 `platform_metric_profiles` 与接口返回的 `availableFields`，提示缺失字段或可选字段。</p>
-        <button class="btn" disabled>开发中</button>
+        <h2 style="margin-top:0">已授权用户</h2>
+        <div id="userList" class="user-grid"></div>
       </div>
     </section>
+
   </main>
 </div>
 
@@ -550,41 +654,37 @@ const DATA_SOURCE_LABELS = Object.values(PLATFORM_CATALOG).reduce((acc, platform
   return acc;
 }, { custom: '自定义/第三方' });
 
-const MODULE_LABELS = {
-  operations: '运营分析',
-  products: '产品分析',
-  orders: '订单中心',
-  advertising: '广告中心',
-  inventory: '库存管理 (全局)',
-  permissions: '权限管理 (全局)'
-};
+const MODULE_DEFINITIONS = [
+  { id: 'operations', label: '运营分析', description: '曝光、访客、加购、支付等全链路指标。' },
+  { id: 'products', label: '产品分析', description: '商品维度分析、属性与绩效对比。' },
+  { id: 'orders', label: '订单中心', description: '订单列表、客户信息、物流成本与结算状态。' },
+  { id: 'advertising', label: '广告中心', description: '广告预算、投放配置、归因与带来访客/订单。' },
+  { id: 'inventory', label: '库存管理 (全局)', description: '全局库存中心（批次、调拨、预警）。' },
+  { id: 'permissions', label: '权限管理 (全局)', description: '角色与资源配置，仅限超级管理员。' }
+];
 
-const DEFAULT_MATRIX = {
-  operations: ['super_admin', 'operations_manager', 'viewer'],
-  products: ['super_admin', 'operations_manager', 'viewer'],
-  orders: ['super_admin', 'operations_manager', 'order_manager', 'finance', 'viewer'],
-  advertising: ['super_admin', 'operations_manager', 'ad_manager', 'viewer'],
-  inventory: ['super_admin', 'inventory_manager', 'operations_manager'],
-  permissions: ['super_admin']
-};
+const MODULE_LOOKUP = MODULE_DEFINITIONS.reduce((acc, module) => {
+  acc[module.id] = module;
+  return acc;
+}, {});
 
-const ROLE_LABELS = {
-  super_admin: '超级管理员',
-  operations_manager: '运营管理员',
-  order_manager: '订单管理员',
-  inventory_manager: '库存管理员',
-  ad_manager: '广告管理员',
-  finance: '财务',
-  viewer: '只读用户'
-};
+const BUILTIN_ROLES = [
+  { id: 'super_admin', name: '超级管理员', description: '拥有全部功能权限，可配置站点、模块与权限矩阵。', modules: MODULE_DEFINITIONS.map(module => module.id), builtIn: true },
+  { id: 'operations_manager', name: '运营管理员', description: '聚焦核心运营指标与商品表现，查看报表与看板。', modules: ['operations', 'products', 'orders', 'advertising', 'inventory'], builtIn: true },
+  { id: 'order_manager', name: '订单管理员', description: '管理订单、售后与物流信息，确保履约准确。', modules: ['orders'], builtIn: true },
+  { id: 'inventory_manager', name: '库存管理员', description: '维护库存、调拨与预警配置，掌握供应链状态。', modules: ['inventory'], builtIn: true },
+  { id: 'ad_manager', name: '广告管理员', description: '负责广告预算、投放配置与投放效果追踪。', modules: ['advertising'], builtIn: true },
+  { id: 'finance', name: '财务', description: '查看结算、回款与费用分摊等财务数据。', modules: ['orders'], builtIn: true },
+  { id: 'viewer', name: '只读用户', description: '只读访问主要看板，适用于业务查看。', modules: ['operations', 'products', 'orders', 'advertising'], builtIn: true }
+];
+
+const BUILTIN_ROLE_IDS = new Set(BUILTIN_ROLES.map(role => role.id));
 
 let siteConfigs = [];
-let matrixOverrides = {};
-let activeMatrix = cloneMatrix(DEFAULT_MATRIX);
-
-function cloneMatrix(matrix) {
-  return JSON.parse(JSON.stringify(matrix));
-}
+let roleDefinitions = [];
+let userAccounts = [];
+let editingUserId = null;
+let editingUserSites = [];
 
 function setMessage(text, type = 'info') {
   const bar = document.getElementById('adminMessage');
@@ -678,6 +778,7 @@ async function loadSiteConfigs() {
     document.getElementById('siteCount').textContent = siteConfigs.length;
     renderSiteList();
     populateSiteSelectors();
+    renderUserList();
     setMessage(`已加载 ${siteConfigs.length} 个站点`, 'success');
   } catch (error) {
     console.error('加载站点失败', error);
@@ -716,7 +817,7 @@ function renderSiteList() {
       </div>
       <div class="site-actions">
         <button class="btn" data-action="prefill" data-site-id="${site.id}">填充到表单</button>
-        <button class="btn btn-secondary" data-action="sync" data-site-id="${site.id}">同步结构</button>
+        <button class="btn btn-danger" data-action="delete" data-site-id="${site.id}">删除站点</button>
       </div>
     `;
     list.appendChild(card);
@@ -743,8 +844,8 @@ function renderSiteList() {
     });
   });
 
-  list.querySelectorAll('button[data-action="sync"]').forEach(btn => {
-    btn.addEventListener('click', () => runSync(btn.dataset.siteId, 'update'));
+  list.querySelectorAll('button[data-action="delete"]').forEach(btn => {
+    btn.addEventListener('click', () => deleteSiteConfig(btn.dataset.siteId));
   });
 }
 
@@ -791,9 +892,8 @@ async function submitSiteForm(event) {
     const payload = await res.json();
     if (!res.ok) throw new Error(payload.error || '保存失败');
 
-    setMessage('站点已保存，正在触发结构同步...', 'success');
+    setMessage('站点已保存。', 'success');
     await loadSiteConfigs();
-    await runSync(payload.data?.id, 'create');
     document.getElementById('siteForm').reset();
     updateDataSourceOptions();
   } catch (error) {
@@ -803,152 +903,497 @@ async function submitSiteForm(event) {
 }
 
 function populateSiteSelectors() {
-  const siteSelects = [
-    document.getElementById('permissionSiteSelect'),
-    document.getElementById('syncSiteSelect')
-  ];
-  siteSelects.forEach(select => {
-    if (!select) return;
-    const preserveFirst = select === document.getElementById('permissionSiteSelect');
-    const defaultOption = preserveFirst ? select.querySelector('option[value=""]') : null;
-    select.innerHTML = '';
-    if (preserveFirst && defaultOption) {
-      select.appendChild(defaultOption);
-    } else {
-      const placeholder = document.createElement('option');
-      placeholder.value = '';
-      placeholder.textContent = '选择站点';
-      select.appendChild(placeholder);
+  const userSiteSelect = document.getElementById('userSiteMulti');
+  if (!userSiteSelect) return;
+  const preserved = editingUserId
+    ? new Set(editingUserSites)
+    : new Set(Array.from(userSiteSelect.selectedOptions || []).map(opt => opt.value));
+  userSiteSelect.innerHTML = '';
+  siteConfigs.forEach(site => {
+    const option = document.createElement('option');
+    option.value = site.id;
+    option.textContent = `${site.display_name || site.name} (${site.platform})`;
+    if (preserved.has(site.id)) {
+      option.selected = true;
     }
-
-    siteConfigs.forEach(site => {
-      const option = document.createElement('option');
-      option.value = site.id;
-      option.textContent = `${site.display_name || site.name} (${site.platform})`;
-      select.appendChild(option);
-    });
+    userSiteSelect.appendChild(option);
   });
 }
 
-async function runSync(siteId, action) {
-  if (!siteId) {
-    setMessage('请先选择站点后再执行同步。', 'error');
-    return;
-  }
-  setMessage('正在执行站点同步...', 'info');
+async function deleteSiteConfig(siteId) {
+  if (!siteId) return;
+  const target = siteConfigs.find(item => item.id === siteId);
+  const name = target ? (target.display_name || target.name || siteId) : siteId;
+  const confirmed = confirm(`确定要删除站点「${name}」吗？删除后导航与权限配置将移除该站点。`);
+  if (!confirmed) return;
+
+  setMessage('正在删除站点...', 'info');
   try {
-    const res = await fetch('/api/site-sync', {
+    const res = await fetch('/api/site-configs/delete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ siteId, action })
+      body: JSON.stringify({ siteId })
     });
     const payload = await res.json();
-    if (!res.ok) throw new Error(payload.error || '同步失败');
-    setMessage('站点同步成功，模块与渠道配置已刷新。', 'success');
+    if (!res.ok) throw new Error(payload.error || '删除失败');
+    setMessage('站点已删除。', 'success');
+    await loadSiteConfigs();
   } catch (error) {
-    console.error('同步失败', error);
-    setMessage(`站点同步失败：${error.message}`, 'error');
+    console.error('删除站点失败', error);
+    setMessage(`删除站点失败：${error.message}`, 'error');
   }
 }
 
-function renderPermissionMatrix() {
-  const matrixBody = document.getElementById('permissionMatrix');
-  matrixBody.innerHTML = '';
-  Object.entries(MODULE_LABELS).forEach(([moduleKey, label]) => {
-    const row = document.createElement('tr');
-    const roleList = Object.keys(ROLE_LABELS).map(role => {
-      const checked = (activeMatrix[moduleKey] || []).includes(role);
-      return `<label style="margin-right:12px;display:inline-flex;align-items:center;gap:6px;">
-        <input type="checkbox" data-module="${moduleKey}" data-role="${role}" ${checked ? 'checked' : ''}>
-        <span>${ROLE_LABELS[role]}</span>
-      </label>`;
-    }).join('');
-    row.innerHTML = `
-      <td class="module-label">${label}</td>
-      <td>${getModuleDescription(moduleKey)}</td>
-      <td>${roleList}</td>
-    `;
-    matrixBody.appendChild(row);
+function sanitizeModules(modules = []) {
+  return Array.from(new Set((modules || []).filter(module => MODULE_LOOKUP[module])));
+}
+
+function cloneRoleDefinition(role) {
+  return {
+    id: role.id,
+    name: role.name,
+    description: role.description || '',
+    modules: sanitizeModules(role.modules),
+    builtIn: !!role.builtIn
+  };
+}
+
+function sortRoleDefinitions() {
+  const builtinOrder = new Map(BUILTIN_ROLES.map((role, index) => [role.id, index]));
+  roleDefinitions.sort((a, b) => {
+    const aIsBuiltin = builtinOrder.has(a.id);
+    const bIsBuiltin = builtinOrder.has(b.id);
+    if (aIsBuiltin && bIsBuiltin) {
+      return builtinOrder.get(a.id) - builtinOrder.get(b.id);
+    }
+    if (aIsBuiltin) return -1;
+    if (bIsBuiltin) return 1;
+    return (a.name || '').localeCompare(b.name || '', 'zh-Hans-CN');
+  });
+}
+
+function loadRoleDefinitions() {
+  let storedRoles = [];
+  try {
+    const cached = localStorage.getItem('adminRoleDefinitions');
+    storedRoles = cached ? JSON.parse(cached) : [];
+  } catch (error) {
+    console.warn('加载角色配置失败', error);
+    storedRoles = [];
+  }
+
+  const storedMap = new Map((storedRoles || []).map(role => [role.id, role]));
+  const merged = BUILTIN_ROLES.map(role => {
+    const override = storedMap.get(role.id);
+    const base = cloneRoleDefinition(role);
+    if (override) {
+      base.name = override.name || base.name;
+      base.description = override.description || base.description;
+      base.modules = sanitizeModules(override.modules && override.modules.length ? override.modules : base.modules);
+    }
+    return base;
   });
 
-  matrixBody.querySelectorAll('input[type="checkbox"]').forEach(input => {
+  storedRoles.forEach(role => {
+    if (!role || !role.id || BUILTIN_ROLE_IDS.has(role.id)) return;
+    merged.push(cloneRoleDefinition({ ...role, builtIn: false }));
+  });
+
+  roleDefinitions = merged;
+  sortRoleDefinitions();
+}
+
+function persistRoleDefinitions(showMessage = true) {
+  try {
+    localStorage.setItem('adminRoleDefinitions', JSON.stringify(roleDefinitions));
+    if (showMessage) {
+      setMessage('角色配置已保存。', 'success');
+    }
+  } catch (error) {
+    console.warn('保存角色配置失败', error);
+    setMessage('保存角色配置失败，请检查浏览器存储权限。', 'error');
+  }
+}
+
+function resetRoleDefinitions() {
+  roleDefinitions = BUILTIN_ROLES.map(cloneRoleDefinition);
+  sortRoleDefinitions();
+  persistRoleDefinitions(false);
+  populateRoleOptions();
+  renderRoleManagement();
+  ensureUserRolesValid();
+  renderUserList();
+  resetNewRoleForm();
+  setMessage('已恢复系统默认角色配置。', 'success');
+}
+
+function getRoleDefinition(roleId) {
+  return roleDefinitions.find(role => role.id === roleId) || null;
+}
+
+function getRoleDisplayName(roleId) {
+  const role = getRoleDefinition(roleId);
+  return role ? role.name : roleId;
+}
+
+function getRoleModuleLabels(roleId) {
+  const role = getRoleDefinition(roleId);
+  if (!role) return [];
+  return sanitizeModules(role.modules).map(module => MODULE_LOOKUP[module]?.label || module);
+}
+
+function renderRoleManagement() {
+  const container = document.getElementById('roleList');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!roleDefinitions.length) {
+    container.innerHTML = '<div class="message info">暂无角色，请恢复默认或新增角色。</div>';
+    return;
+  }
+
+  roleDefinitions.forEach(role => {
+    const modules = new Set(sanitizeModules(role.modules));
+    const card = document.createElement('div');
+    card.className = 'role-card';
+    const moduleHtml = MODULE_DEFINITIONS.map(module => {
+      const checked = modules.has(module.id) ? 'checked' : '';
+      return `<label class="role-checkbox"><input type="checkbox" data-role="${role.id}" data-module="${module.id}" ${checked}><span>${module.label}</span></label>`;
+    }).join('');
+    const badge = role.builtIn ? '<span class="badge">系统</span>' : '<span class="badge badge-outline">自定义</span>';
+    const description = role.description ? `<div class="role-meta">${role.description}</div>` : '';
+    const actions = role.builtIn ? '' : '<div class="role-card-actions"><button class="btn btn-danger btn-sm" data-role-remove="${role.id}">删除角色</button></div>';
+
+    card.innerHTML = `
+      <div class="role-card-header">
+        <div>
+          <h3>${role.name} ${badge}</h3>
+          ${description}
+        </div>
+        ${actions}
+      </div>
+      <div class="role-modules">
+        ${moduleHtml || '<span class="chip chip-muted">暂无可配置模块</span>'}
+      </div>
+    `;
+    container.appendChild(card);
+  });
+
+  container.querySelectorAll('input[type="checkbox"]').forEach(input => {
     input.addEventListener('change', () => {
-      const moduleKey = input.dataset.module;
-      const role = input.dataset.role;
-      const target = activeMatrix[moduleKey] || [];
-      if (input.checked && !target.includes(role)) {
-        target.push(role);
-      } else if (!input.checked) {
-        activeMatrix[moduleKey] = target.filter(item => item !== role);
+      const roleId = input.dataset.role;
+      const moduleId = input.dataset.module;
+      const role = getRoleDefinition(roleId);
+      if (!role) return;
+      const modules = new Set(role.modules || []);
+      if (input.checked) {
+        modules.add(moduleId);
+      } else {
+        modules.delete(moduleId);
+      }
+      role.modules = sanitizeModules(Array.from(modules));
+      renderUserList();
+      if (roleId === 'viewer') {
+        renderNewRoleModuleSelector();
       }
     });
   });
-}
 
-function getModuleDescription(moduleKey) {
-  switch (moduleKey) {
-    case 'operations':
-      return '曝光、访客、加购、支付等全链路指标。';
-    case 'products':
-      return '商品维度分析、属性与绩效对比。';
-    case 'orders':
-      return '订单列表、客户信息、物流成本与结算状态。';
-    case 'advertising':
-      return '广告预算、投放配置、归因与带来访客/订单。';
-    case 'inventory':
-      return '全局库存中心（批次、调拨、预警）。';
-    case 'permissions':
-      return '角色与资源矩阵，仅限超级管理员。';
-    default:
-      return '';
-  }
-}
-
-function handlePermissionSiteChange() {
-  const siteId = document.getElementById('permissionSiteSelect').value;
-  if (siteId && matrixOverrides[siteId]) {
-    activeMatrix = cloneMatrix(matrixOverrides[siteId]);
-  } else {
-    activeMatrix = cloneMatrix(siteId ? DEFAULT_MATRIX : DEFAULT_MATRIX);
-    if (siteId && !matrixOverrides[siteId]) {
-      matrixOverrides[siteId] = cloneMatrix(DEFAULT_MATRIX);
-    }
-  }
-  renderPermissionMatrix();
-}
-
-function resetPermissionMatrix() {
-  const siteId = document.getElementById('permissionSiteSelect').value;
-  if (siteId) {
-    matrixOverrides[siteId] = cloneMatrix(DEFAULT_MATRIX);
-  }
-  activeMatrix = cloneMatrix(DEFAULT_MATRIX);
-  renderPermissionMatrix();
-  setMessage('已恢复默认权限矩阵。', 'success');
-}
-
-function savePermissionMatrix() {
-  const siteId = document.getElementById('permissionSiteSelect').value;
-  if (siteId) {
-    matrixOverrides[siteId] = cloneMatrix(activeMatrix);
-    setMessage(`已暂存 ${siteId} 的权限矩阵，后端接口上线后将写入数据库。`, 'success');
-  } else {
-    Object.keys(matrixOverrides).forEach(key => delete matrixOverrides[key]);
-    Object.assign(DEFAULT_MATRIX, cloneMatrix(activeMatrix));
-    setMessage('已更新全局默认权限矩阵。', 'success');
-  }
-}
-
-function exportPermissionMatrix() {
-  const siteId = document.getElementById('permissionSiteSelect').value;
-  const payload = siteId ? matrixOverrides[siteId] || activeMatrix : activeMatrix;
-  const json = JSON.stringify(payload, null, 2);
-  navigator.clipboard?.writeText(json).then(() => {
-    setMessage('权限矩阵 JSON 已复制到剪贴板。', 'success');
-  }).catch(() => {
-    setMessage('请手动复制：\n' + json, 'info');
+  container.querySelectorAll('[data-role-remove]').forEach(button => {
+    button.addEventListener('click', () => removeRole(button.dataset.roleRemove));
   });
 }
+
+function populateRoleOptions() {
+  const roleSelect = document.getElementById('userRoleSelect');
+  if (!roleSelect) return;
+  const current = roleSelect.value;
+  roleSelect.innerHTML = '<option value="">选择角色</option>';
+  roleDefinitions.forEach(role => {
+    const option = document.createElement('option');
+    option.value = role.id;
+    option.textContent = role.name;
+    if (role.id === current) {
+      option.selected = true;
+    }
+    roleSelect.appendChild(option);
+  });
+}
+
+function renderNewRoleModuleSelector(selectedModules) {
+  const container = document.getElementById('newRoleModuleContainer');
+  if (!container) return;
+  const defaults = selectedModules ?? (getRoleDefinition('viewer')?.modules || []);
+  const selectedSet = new Set(sanitizeModules(defaults));
+  const markup = MODULE_DEFINITIONS.map(module => {
+    const checked = selectedSet.has(module.id) ? 'checked' : '';
+    return `<label class="role-checkbox"><input type="checkbox" data-module="${module.id}" ${checked}><span>${module.label}</span></label>`;
+  }).join('');
+  container.innerHTML = markup || '<span class="chip chip-muted">暂无可配置模块</span>';
+}
+
+function resetNewRoleForm() {
+  const form = document.getElementById('createRoleForm');
+  if (form) {
+    form.reset();
+  }
+  renderNewRoleModuleSelector();
+}
+
+function removeRole(roleId) {
+  const role = getRoleDefinition(roleId);
+  if (!role || role.builtIn) {
+    setMessage('系统角色不可删除。', 'error');
+    return;
+  }
+  const confirmed = confirm(`确定要删除角色「${role.name}」吗？`);
+  if (!confirmed) return;
+  roleDefinitions = roleDefinitions.filter(item => item.id !== roleId);
+  sortRoleDefinitions();
+  persistRoleDefinitions(false);
+
+  let affected = 0;
+  userAccounts = userAccounts.map(user => {
+    if (user.role === roleId) {
+      affected += 1;
+      return { ...user, role: 'viewer' };
+    }
+    return user;
+  });
+  if (affected) {
+    saveUserAccounts();
+  }
+
+  populateRoleOptions();
+  renderRoleManagement();
+  resetNewRoleForm();
+  renderUserList();
+  setMessage(affected ? `已删除角色 ${role.name}，${affected} 名用户已调整为只读用户。` : `已删除角色 ${role.name}。`, 'success');
+}
+
+function handleCreateRoleSubmit(event) {
+  event.preventDefault();
+  const name = document.getElementById('newRoleName').value.trim();
+  let key = document.getElementById('newRoleKey').value.trim();
+  const description = document.getElementById('newRoleDescription').value.trim();
+  const selectedModules = Array.from(document.querySelectorAll('#newRoleModuleContainer input[type="checkbox"]:checked')).map(input => input.dataset.module);
+
+  if (!name || !key) {
+    setMessage('请填写角色名称和唯一标识。', 'error');
+    return;
+  }
+
+  key = key.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
+  if (!key) {
+    setMessage('角色标识需由字母、数字、下划线或短横线组成。', 'error');
+    return;
+  }
+
+  if (BUILTIN_ROLE_IDS.has(key) || roleDefinitions.some(role => role.id === key)) {
+    setMessage('角色标识已存在，请更换。', 'error');
+    return;
+  }
+
+  if (!selectedModules.length) {
+    setMessage('请至少选择一个功能模块。', 'error');
+    return;
+  }
+
+  roleDefinitions.push({
+    id: key,
+    name,
+    description,
+    modules: sanitizeModules(selectedModules),
+    builtIn: false
+  });
+  sortRoleDefinitions();
+  persistRoleDefinitions(false);
+  populateRoleOptions();
+  renderRoleManagement();
+  renderUserList();
+  resetNewRoleForm();
+  setMessage(`已新增角色 ${name}。`, 'success');
+}
+
+function ensureUserRolesValid() {
+  const validRoleIds = new Set(roleDefinitions.map(role => role.id));
+  let updated = false;
+  userAccounts = userAccounts.map(user => {
+    if (!validRoleIds.has(user.role)) {
+      updated = true;
+      return { ...user, role: 'viewer' };
+    }
+    return user;
+  });
+  if (updated) {
+    saveUserAccounts();
+  }
+}
+
+function getSiteDisplayName(siteId) {
+  const site = siteConfigs.find(item => item.id === siteId);
+  return site ? (site.display_name || site.name || siteId) : siteId;
+}
+
+function loadUserAccounts() {
+  try {
+    const cached = localStorage.getItem('adminUserAccounts');
+    userAccounts = cached ? JSON.parse(cached) : [];
+  } catch (error) {
+    console.warn('加载用户配置失败', error);
+    userAccounts = [];
+  }
+}
+
+function saveUserAccounts() {
+  try {
+    localStorage.setItem('adminUserAccounts', JSON.stringify(userAccounts));
+  } catch (error) {
+    console.warn('保存用户配置失败', error);
+  }
+}
+
+function renderUserList() {
+  const container = document.getElementById('userList');
+  if (!container) return;
+
+  if (!userAccounts.length) {
+    container.innerHTML = '<div class="message info">暂无用户，请添加成员后分配角色。</div>';
+    return;
+  }
+
+  container.innerHTML = '';
+  userAccounts.forEach(user => {
+    const card = document.createElement('div');
+    card.className = 'user-card';
+    const roleDef = getRoleDefinition(user.role);
+    const roleLabel = roleDef ? roleDef.name : '角色已移除，请重新分配';
+    const moduleLabels = roleDef ? getRoleModuleLabels(user.role) : [];
+    const moduleHtml = moduleLabels.length
+      ? moduleLabels.map(label => `<span class="chip">${label}</span>`).join('')
+      : '<span class="chip chip-muted">未分配模块</span>';
+    const siteHtml = user.sites && user.sites.length
+      ? user.sites.map(getSiteDisplayName).map(name => `<span class="chip chip-muted">${name}</span>`).join('')
+      : '<span class="chip chip-muted">未分配站点</span>';
+
+    card.innerHTML = `
+      <div>
+        <h3>${user.name}</h3>
+        <div class="section-subtitle">${user.email}</div>
+      </div>
+      <div class="user-meta">
+        <div><strong>角色：</strong>${roleLabel}</div>
+        <div><strong>可访问模块：</strong>${moduleHtml}</div>
+        <div><strong>授权站点：</strong>${siteHtml}</div>
+      </div>
+      <div class="site-actions">
+        <button class="btn" data-action="edit-user" data-user-id="${user.id}">编辑</button>
+        <button class="btn btn-danger" data-action="remove-user" data-user-id="${user.id}">删除</button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+
+  container.querySelectorAll('button[data-action="edit-user"]').forEach(btn => {
+    btn.addEventListener('click', () => editUser(btn.dataset.userId));
+  });
+
+  container.querySelectorAll('button[data-action="remove-user"]').forEach(btn => {
+    btn.addEventListener('click', () => removeUser(btn.dataset.userId));
+  });
+}
+
+function handleUserFormSubmit(event) {
+  event.preventDefault();
+  const name = document.getElementById('userNameInput').value.trim();
+  const email = document.getElementById('userEmailInput').value.trim();
+  const role = document.getElementById('userRoleSelect').value;
+  const siteSelect = document.getElementById('userSiteMulti');
+  const sites = siteSelect ? Array.from(siteSelect.selectedOptions).map(opt => opt.value) : [];
+
+  if (!name || !email || !role) {
+    setMessage('请填写完整的用户姓名、邮箱并选择角色。', 'error');
+    return;
+  }
+
+  if (!sites.length) {
+    setMessage('请至少选择一个授权站点。', 'error');
+    return;
+  }
+
+  const payload = {
+    id: editingUserId || `user_${Date.now()}`,
+    name,
+    email,
+    role,
+    sites
+  };
+
+  if (editingUserId) {
+    const index = userAccounts.findIndex(user => user.id === editingUserId);
+    if (index >= 0) {
+      userAccounts[index] = payload;
+      setMessage(`已更新用户 ${name}。`, 'success');
+    }
+  } else {
+    userAccounts.push(payload);
+    setMessage(`已添加用户 ${name}。`, 'success');
+  }
+
+  saveUserAccounts();
+  resetUserForm();
+  renderUserList();
+}
+
+function resetUserForm() {
+  editingUserId = null;
+  editingUserSites = [];
+  const form = document.getElementById('userForm');
+  if (form) {
+    form.reset();
+  }
+  populateRoleOptions();
+  const siteSelect = document.getElementById('userSiteMulti');
+  if (siteSelect) {
+    Array.from(siteSelect.options).forEach(option => {
+      option.selected = false;
+    });
+  }
+}
+
+function editUser(userId) {
+  const target = userAccounts.find(user => user.id === userId);
+  if (!target) return;
+  editingUserId = target.id;
+  editingUserSites = Array.isArray(target.sites) ? [...target.sites] : [];
+  document.getElementById('userNameInput').value = target.name || '';
+  document.getElementById('userEmailInput').value = target.email || '';
+  populateRoleOptions();
+  document.getElementById('userRoleSelect').value = target.role || '';
+  const siteSelect = document.getElementById('userSiteMulti');
+  if (siteSelect) {
+    Array.from(siteSelect.options).forEach(option => {
+      option.selected = editingUserSites.includes(option.value);
+    });
+  }
+  setMessage(`正在编辑用户 ${target.name}`, 'info');
+  switchSection('userConsole');
+}
+
+function removeUser(userId) {
+  const target = userAccounts.find(user => user.id === userId);
+  if (!target) return;
+  const confirmed = confirm(`确定要删除用户「${target.name}」吗？`);
+  if (!confirmed) return;
+  userAccounts = userAccounts.filter(user => user.id !== userId);
+  saveUserAccounts();
+  renderUserList();
+  if (editingUserId === userId) {
+    resetUserForm();
+  }
+  setMessage(`已删除用户 ${target.name}。`, 'success');
+}
+
 
 function setupAuth() {
   const loginOverlay = document.getElementById('loginOverlay');
@@ -1011,22 +1456,44 @@ function initializeAdmin() {
     updateDataSourceOptions();
   });
   document.getElementById('refreshSitesBtn').addEventListener('click', loadSiteConfigs);
-  document.getElementById('permissionSiteSelect').addEventListener('change', () => {
-    handlePermissionSiteChange();
-  });
-  document.getElementById('resetPermissionBtn').addEventListener('click', resetPermissionMatrix);
-  document.getElementById('savePermissionBtn').addEventListener('click', savePermissionMatrix);
-  document.getElementById('exportPermissionBtn').addEventListener('click', exportPermissionMatrix);
-  document.getElementById('runSyncBtn').addEventListener('click', () => {
-    const siteId = document.getElementById('syncSiteSelect').value;
-    const action = document.getElementById('syncActionSelect').value;
-    runSync(siteId, action);
-  });
+
+  const saveRoleBtn = document.getElementById('saveRoleBtn');
+  const resetRoleBtn = document.getElementById('resetRoleBtn');
+  if (saveRoleBtn) {
+    saveRoleBtn.addEventListener('click', () => persistRoleDefinitions(true));
+  }
+  if (resetRoleBtn) {
+    resetRoleBtn.addEventListener('click', resetRoleDefinitions);
+  }
+
+  const createRoleForm = document.getElementById('createRoleForm');
+  if (createRoleForm) {
+    createRoleForm.addEventListener('submit', handleCreateRoleSubmit);
+  }
+  const resetNewRoleBtn = document.getElementById('resetNewRoleForm');
+  if (resetNewRoleBtn) {
+    resetNewRoleBtn.addEventListener('click', resetNewRoleForm);
+  }
+
+  const userForm = document.getElementById('userForm');
+  if (userForm) {
+    userForm.addEventListener('submit', handleUserFormSubmit);
+  }
+  const resetUserBtn = document.getElementById('resetUserForm');
+  if (resetUserBtn) {
+    resetUserBtn.addEventListener('click', resetUserForm);
+  }
 
   populatePlatformOptions();
   populateQuickTemplates();
   updateDataSourceOptions();
-  renderPermissionMatrix();
+  loadRoleDefinitions();
+  renderRoleManagement();
+  populateRoleOptions();
+  resetNewRoleForm();
+  loadUserAccounts();
+  ensureUserRolesValid();
+  renderUserList();
   loadSiteConfigs();
   switchSection('siteConsole');
 }
