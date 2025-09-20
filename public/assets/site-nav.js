@@ -12,12 +12,12 @@
   // 默认站点配置
   const defaultSites = {
     ae_self_operated: [
-      { id: 'ae_self_operated_a', name: '自运营robot站', display_name: '自运营robot站' },
-      { id: 'ae_self_operated_poolslab_store', name: 'poolslab', display_name: 'Poolslab运动娱乐' }
+      { id: 'ae_self_operated_a', name: '自运营robot站', display_name: '自运营robot站', platform: 'ae_self_operated' },
+      { id: 'ae_self_operated_poolslab_store', name: 'poolslab', display_name: 'Poolslab运动娱乐', platform: 'ae_self_operated' }
     ],
     independent: [
-      { id: 'independent_poolsvacuum', name: 'poolsvacuum', display_name: 'poolsvacuum.com' },
-      { id: 'independent_icyberite', name: 'icyberite', display_name: 'icyberite.com' }
+      { id: 'independent_poolsvacuum', name: 'poolsvacuum', display_name: 'poolsvacuum.com', platform: 'independent' },
+      { id: 'independent_icyberite', name: 'icyberite', display_name: 'icyberite.com', platform: 'independent' }
     ]
   };
 
@@ -53,30 +53,31 @@
     };
   }
 
-  function mergeSiteEntries(baseList = [], configList = []) {
+  function mergeSiteEntries(baseList = [], configList = [], defaultPlatform = null) {
     const merged = [];
     const seenKeys = new Set();
 
-    baseList.forEach(item => {
-      if (!item) return;
-      const key = (item.id || item.display_name || item.name || '').toLowerCase();
-      const labelKey = item.display_name ? item.display_name.trim().toLowerCase() : null;
-      const composite = `${key}|${labelKey || ''}`;
-      if (seenKeys.has(composite)) return;
-      merged.push({ ...item });
-      seenKeys.add(composite);
-    });
-
-    configList.forEach(site => {
+    const appendEntry = (site, platformHint = null) => {
       const normalized = normalizeSiteConfig(site);
       if (!normalized) return;
-      const key = (normalized.id || normalized.name || '').toLowerCase();
+
+      const resolvedPlatform = normalized.platform || platformHint || defaultPlatform || null;
+      const platformKey = (resolvedPlatform || '').toLowerCase();
+      const idKey = (normalized.id || normalized.name || '').toLowerCase();
       const labelKey = normalized.display_name ? normalized.display_name.trim().toLowerCase() : '';
-      const composite = `${normalized.platform || ''}|${key}|${labelKey}`;
+      const composite = `${platformKey}|${idKey}|${labelKey}`;
+
       if (seenKeys.has(composite)) return;
-      merged.push(normalized);
+
+      merged.push({
+        ...normalized,
+        platform: resolvedPlatform
+      });
       seenKeys.add(composite);
-    });
+    };
+
+    baseList.forEach(item => appendEntry(item, defaultPlatform));
+    configList.forEach(item => appendEntry(item));
 
     return merged;
   }
@@ -225,7 +226,7 @@
     const currentSite = localStorage.getItem('currentSite');
     const currentSiteName = localStorage.getItem('currentSiteName');
     const configSites = siteConfigs.filter(site => site.platform === 'ae_self_operated');
-    const mergedSites = mergeSiteEntries(defaultSites.ae_self_operated, configSites);
+    const mergedSites = mergeSiteEntries(defaultSites.ae_self_operated, configSites, 'ae_self_operated');
 
     managedMenu.innerHTML = '';
 
@@ -274,7 +275,7 @@
 
     const currentIndepSite = localStorage.getItem('currentIndepSite');
     const configSites = siteConfigs.filter(site => site.platform === 'independent');
-    const mergedSites = mergeSiteEntries(defaultSites.independent, configSites);
+    const mergedSites = mergeSiteEntries(defaultSites.independent, configSites, 'independent');
 
     indepMenu.innerHTML = '';
 
@@ -598,9 +599,12 @@
     allNavLinks.forEach(link => {
       // 移除可能的事件阻止器
       link.addEventListener('click', (e) => {
+        if (link?.dataset?.noIntercept === 'true') {
+          return;
+        }
         // 确保链接能正常工作
         console.log('导航链接点击:', link.href);
-        
+
                  // 检查当前页面类型，调用相应的平台切换处理函数
          const currentPath = window.location.pathname;
          if (currentPath.includes('self-operated')) {
@@ -685,6 +689,7 @@
     const existing = platformNav.querySelector('a[href="admin.html"]');
     if (existing) {
       existing.setAttribute('title', '站点与权限统一管理后台');
+      existing.dataset.noIntercept = 'true';
       return;
     }
 
@@ -695,6 +700,7 @@
     adminLink.href = 'admin.html';
     adminLink.textContent = '管理后台';
     adminLink.title = '站点配置、权限矩阵与全局设置入口';
+    adminLink.dataset.noIntercept = 'true';
 
     adminItem.appendChild(adminLink);
     platformNav.appendChild(adminItem);
