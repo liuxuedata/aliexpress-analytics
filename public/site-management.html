@@ -506,8 +506,35 @@
     alert('如需编辑站点配置，请前往 admin.html 管理后台。');
   };
 
-  window.deleteSite = function() {
-    alert('站点删除操作受限，请在数据库或管理后台审核后执行。');
+  window.deleteSite = async function(siteId) {
+    if (!siteId) {
+      alert('未找到站点ID，无法删除。');
+      return;
+    }
+
+    const confirmed = confirm('确定要删除该站点吗？此操作将移除站点配置并从导航中隐藏。');
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch('/api/site-configs/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ siteId })
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || '删除失败');
+      }
+
+      alert('站点已删除。');
+      await loadSites();
+    } catch (error) {
+      console.error('删除站点失败:', error);
+      alert('删除站点失败：' + error.message);
+    }
   };
 
   updateDataSourceOptions();
