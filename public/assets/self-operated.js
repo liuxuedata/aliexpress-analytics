@@ -458,6 +458,12 @@
         .product-id-cell {
           text-align: left !important;
         }
+        #report th.period-column,
+        #report td.period-column,
+        #report_wrapper th.period-column,
+        #report_wrapper td.period-column {
+          display: none !important;
+        }
       `;
       document.head.appendChild(style);
       console.log('商品链接样式已添加');
@@ -491,7 +497,7 @@
       thead.innerHTML = `
         <tr>
           <th style="text-align: left; min-width: 120px;">商品(ID)</th>
-          <th style="text-align: center; min-width: 150px;">周期</th>
+          <th class="period-column" style="text-align: center; min-width: 150px;">周期</th>
           <th style="text-align: center; min-width: 100px;">访客比(%)</th>
           <th style="text-align: center; min-width: 100px;">加购比(%)</th>
           <th style="text-align: center; min-width: 100px;">支付比(%)</th>
@@ -559,7 +565,7 @@
 
           tr.innerHTML = `
             <td style="text-align: left;">${productLink}</td>
-            <td style="text-align: center;">${row.bucket || this.formatDateRange(row.start_date, row.end_date)}</td>
+            <td class="period-column" style="text-align: center;">${row.bucket || this.formatDateRange(row.start_date, row.end_date)}</td>
             <td style="text-align: center;">${this.formatPercentage(visitorRatio)}</td>
             <td style="text-align: center;">${this.formatPercentage(addToCartRatio)}</td>
             <td style="text-align: center;">${this.formatPercentage(paymentRatio)}</td>
@@ -621,11 +627,14 @@
               this.dataTable = jQuery(table).DataTable({
                 destroy: true,
                 pageLength: 10,
-                order: [[1, 'desc']], 
-                scrollX: true, 
-                scrollY: 'calc(100vh - 420px)', 
-                scrollCollapse: true, 
+                order: [[1, 'desc']],
+                scrollX: true,
+                scrollY: 'calc(100vh - 420px)',
+                scrollCollapse: true,
                 fixedHeader: true,
+                columnDefs: [
+                  { targets: 1, visible: false, searchable: false }
+                ],
                 language: {
                   url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json'
                 }
