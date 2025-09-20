@@ -76,7 +76,7 @@
 - **亚马逊总览 `public/amazon-overview.html`**：按 Amazon 指标构建 KPI、趋势图和明细表的总览页，侧边栏新增五大模块并通过 Hash 切换，`amazon-ads.html` 负责重定向到新的广告分栏。【F:public/amazon-overview.html†L104-L215】【F:public/amazon-ads.html†L1-L35】
 - **Ozon 页面集**：`public/ozon-detail.html` 等页面提供上传入口、日期筛选及多图表分栏，并补充订单中心、广告中心入口；`ozon-orders.html` 在同步订单头与明细的基础上，将商品明细列移动至首列并限制宽度为 140px，单独展示“采购件数”，且商品明细/下单时间/状态/结算状态四列可点击切换正序或倒序，保持与运营数据的产品 ID 对齐，并统一移除商品图片仅保留文本信息，广告模块仍预留官方 API 接入。【F:public/ozon-detail.html†L40-L78】【F:public/ozon-orders.html†L1-L210】【F:api/ozon/orders/index.js†L1-L117】
 - **Temu/TikTok 占位页**：`public/temu.html` 与 `public/tiktok.html` 已接入统一导航与布局，并预留“详细数据/运营分析/产品分析/订单中心/广告中心”五个分栏占位，等待后端接口补齐。【F:public/temu.html†L1-L36】【F:public/tiktok.html†L1-L36】
-- **Lazada 数据枢纽 / Shopee 占位**：`public/lazada.html` 已接入 Lazada 运营、产品、订单、广告 API，并在站点切换时自动刷新五大模块；`public/shopee.html` 继续保留统一布局与导航，占位等待后续 API 补齐。【F:public/lazada.html†L1-L284】【F:api/lazada/stats/index.js†L1-L72】【F:public/shopee.html†L1-L88】
+- **Lazada 数据枢纽 / Shopee 占位**：`public/lazada.html` 已接入 Lazada 运营、产品、订单、广告 API，并在站点切换时自动刷新五大模块；最新的授权回调会在后端使用 `findKeyDeep` 兜底提取嵌套的访问/刷新令牌并返还脱敏调试信息，保证页面切换后始终可拉取实时数据。`public/shopee.html` 则继续保留统一布局与导航，占位等待后续 API 补齐。【F:public/lazada.html†L1-L284】【F:api/lazada/oauth/callback/index.js†L1-L226】【F:lib/find-key-deep.js†L1-L89】【F:api/lazada/stats/index.js†L1-L72】【F:public/shopee.html†L1-L88】
 - **动态导航脚本 `public/assets/site-nav.js`**：初始化时调用 `/api/site-configs` 合并默认站点，自动插入 Lazada、Shopee 等平台入口，并在点击站点后写入 `localStorage` 供壳层页面显示当前站点名称。【F:public/assets/site-nav.js†L24-L309】【F:public/assets/site-nav.js†L563-L589】
 - **库存管理 `public/inventory.html`**：全局入口以卡片形式描述库存总览、库存变动与采购管理模块，后续上线后将直接接入 `inventory`、`inventory_movements`、`purchases` 数据表。【F:public/inventory.html†L1-L60】
 - **权限管理 `public/permissions.html`**：全局入口汇总角色矩阵、站点授权和审计日志三大能力，未来会与 admin 权限矩阵共享数据源以维持一致性。【F:public/permissions.html†L1-L58】
@@ -206,7 +206,7 @@ CREATE INDEX IF NOT EXISTS idx_site_configs_data_source ON public.site_configs(d
 
 ### Lazada 数据管道
 - `GET /api/lazada/oauth/start`：生成 Lazada 授权地址，校验站点是否属于 Lazada，并在 `state` 中签名保存 `siteId/returnTo` 等上下文信息。接口会优先读取查询参数 `seller_short_code`，否则回退站点配置 `config_json.seller_short_code`；若站点暂未配置该字段，也会返回可用的授权链接（Lazada 会在授权流程中提示绑定卖家），仅在提供时把 `seller_short_code` 透传回响应，便于记录本次授权上下文。前端点击“立即授权”按钮时会调用该接口并跳转 Lazada 登录页。【F:api/lazada/oauth/start/index.js†L1-L210】【F:public/lazada.html†L1-L520】
-- `GET /api/lazada/oauth/callback`：作为 Lazada 授权回调，接受 `code`、`state` 或 `error` 查询参数，使用 `LAZADA_APP_KEY/LAZADA_APP_SECRET/LAZADA_REDIRECT_URI` 计算签名并向 Lazada 授权服务器换取访问令牌；成功后会解析签名 `state` 中的 `siteId` 并将访问/刷新令牌写入 `integration_tokens` 表，再根据 `returnTo` 重定向回业务页面并携带 `lazadaAuth=success` 标记。若缺少 `SUPABASE_SERVICE_ROLE_KEY`、`SUPABASE_URL` 或 `state` 未包含 `siteId`，接口会返回带有 `code` 字段的 4xx/5xx JSON 提示，便于及时补齐配置而不是出现“授权成功但无刷新令牌”的假象。【F:api/lazada/oauth/callback/index.js†L1-L220】【F:specs/data-model.sql†L29-L52】
+- `GET /api/lazada/oauth/callback`：作为 Lazada 授权回调，接受 `code`、`state` 或 `error` 查询参数，并以 `/auth/token/create` 为签名基串调用 Lazada 授权服务器换取访问令牌；成功后会解析签名 `state` 中的 `siteId` 并使用 `pickDeepValue`/`findKeyDeep` 继续向下寻找嵌套的 `refresh_token`/`access_token`，忽略顶层的空字符串，再把最终凭据写入 `integration_tokens` 表并根据 `returnTo` 重定向回业务页面附带 `lazadaAuth=success` 标记。若缺少 `SUPABASE_SERVICE_ROLE_KEY`、`SUPABASE_URL` 或 `state` 未包含 `siteId`，接口会返回带有 `code` 字段的 4xx/5xx JSON 提示，同时响应体会回传脱敏后的 Lazada 字段与原始载荷用于排查，避免出现“授权成功但无刷新令牌”的假象。【F:api/lazada/oauth/callback/index.js†L1-L226】【F:lib/find-key-deep.js†L1-L89】【F:specs/data-model.sql†L29-L52】
 - `GET /api/lazada/stats`：根据 `siteId`、`from`、`to`（默认最近 7 天）自动换取访问令牌、调用 Lazada Analytics API，同步 `site_metrics_daily` 与 `product_metrics_daily`，并返回日指标、产品指标与聚合汇总，附带 `availableFields/missingFields` 以反映 Lazada 字段覆盖范围。【F:api/lazada/stats/index.js†L1-L72】【F:lib/lazada-stats.js†L1-L192】
 - `GET /api/lazada/orders`：按 `siteId`、日期范围与 `limit` 获取 Lazada 订单，必要时刷新令牌、分页调用订单接口，映射至 `orders`/`order_items`，返回订单明细与同步摘要，可复用响应中的 `availableFields` 驱动前端列显示。【F:api/lazada/orders/index.js†L1-L82】【F:lib/lazada-orders.js†L1-L213】
 - `GET /api/lazada/ads`：使用站点刷新令牌后请求 Lazada 广告系列与指标，写入 `ad_campaigns`/`ad_metrics_daily`，并返回带有日指标数组的广告系列列表，便于前端叠加汇总。【F:api/lazada/ads/index.js†L1-L63】【F:lib/lazada-ads.js†L1-L182】
@@ -222,6 +222,7 @@ CREATE INDEX IF NOT EXISTS idx_site_configs_data_source ON public.site_configs(d
 - `docs/platform-architecture.md`：全站架构蓝图，描述站点矩阵、模块职责、数据流与执行建议。【F:docs/platform-architecture.md†L1-L162】
 - `rules.json`：约束站点命名、模块范围、API 约定、权限角色及文档同步要求，是代码审查的硬性规范。【F:rules.json†L1-L76】
 - `roadmap.yaml`：规划 v1/v2/v3 的重点交付、指标、风险与缓解策略，指导多模块并行实施。【F:roadmap.yaml†L1-L63】
+- `lib/find-key-deep.js`：提供安全的深度优先遍历与谓词回调，支持 Lazada OAuth 回调在嵌套/循环结构中持续搜索可用令牌，避免空值导致的凭据丢失。【F:lib/find-key-deep.js†L1-L89】【F:api/lazada/oauth/callback/index.js†L62-L137】
 - `specs/`：包含 `openapi.yaml`、`data-model.sql`、`metrics_dictionary.md` 三大规格文件，统一接口、数据结构与指标口径。【F:specs/README.md†L1-L6】【F:specs/openapi.yaml†L1-L1454】【F:specs/data-model.sql†L1-L308】【F:specs/metrics_dictionary.md†L1-L40】
 
 ---

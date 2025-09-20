@@ -1,4 +1,4 @@
-version: 2025-01-08
+version: 2025-01-10
 v1:
   codename: atlas
   timeframe: 2025-01-08 ~ 2025-02-15
@@ -13,6 +13,7 @@ v1:
     - 实现 /api/orders (GET/POST) 与 /api/orders/import dry_run
     - 扩展 /api/ae_upsert 以支持 Lazada/Shopee 字段映射
     - 新增 /api/site-modules (GET/PATCH) 及默认模块模板，附带 availableFields 元数据
+    - 加固 Lazada OAuth 回调：以 `/auth/token/create` 生成签名、使用 findKeyDeep 穿透嵌套载荷并持久化 refresh_token，响应附带脱敏调试数据
   metrics:
     - 站点运营数据覆盖率 ≥ 6 个站点
     - 订单导入成功率 ≥ 95%
@@ -25,6 +26,7 @@ v1:
       - 在 specs/openapi.yaml 中维护字段映射表
       - 提前实现权限模块的读校验逻辑
       - 引入 site_module_configs.visible_roles 与 metadata.availableFields，前端按权限渲染
+      - 为 Lazada 授权回调引入 findKeyDeep/pickDeepValue，确保跳过空值并记录原始载荷，便于排查授权失败
 
 v2:
   codename: orion
