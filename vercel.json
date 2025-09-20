@@ -20,8 +20,20 @@
       "dest": "/api/lazada/oauth/callback/index.js"
     },
     {
+      "src": "/api/lazada/oauth/callback-oauth2",
+      "dest": "/api/lazada/oauth/callback-oauth2/index.js"
+    },
+    {
+      "src": "/api/lazada/oauth/refresh",
+      "dest": "/api/lazada/oauth/refresh/index.js"
+    },
+    {
       "src": "/api/lazada/orders",
       "dest": "/api/lazada/orders/index.js"
+    },
+    {
+      "src": "/api/lazada/orders/test",
+      "dest": "/api/lazada/orders/test/index.js"
     },
     {
       "src": "/api/lazada/stats",
