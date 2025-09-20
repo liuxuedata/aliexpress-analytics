@@ -37,35 +37,37 @@
         
         .kpi-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(calc(200px * var(--kpi-card-scale, 0.9)), 1fr));
+            gap: calc(20px * var(--kpi-card-scale, 0.9));
+            margin-bottom: calc(30px * var(--kpi-card-scale, 0.9));
         }
-        
+
         .kpi-card {
             background: white;
-            padding: 20px;
-            border-radius: 8px;
+            padding: calc(20px * var(--kpi-card-scale, 0.9));
+            border-radius: calc(8px * var(--kpi-card-scale, 0.9));
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             text-align: center;
-            border-left: 4px solid #667eea;
+            border-left-width: calc(4px * var(--kpi-card-scale, 0.9));
+            border-left-style: solid;
+            border-left-color: #667eea;
         }
-        
+
         .kpi-value {
-            font-size: 2em;
+            font-size: calc(2em * var(--kpi-card-scale, 0.9));
             font-weight: bold;
             color: #333;
-            margin: 10px 0;
+            margin: calc(10px * var(--kpi-card-scale, 0.9)) 0;
         }
-        
+
         .kpi-label {
             color: #666;
-            font-size: 0.9em;
+            font-size: calc(0.9em * var(--kpi-card-scale, 0.9));
         }
-        
+
         .kpi-comparison {
-            margin-top: 10px;
-            font-size: 0.8em;
+            margin-top: calc(10px * var(--kpi-card-scale, 0.9));
+            font-size: calc(0.8em * var(--kpi-card-scale, 0.9));
         }
         
         .controls {

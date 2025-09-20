@@ -20,6 +20,7 @@
   --row-even: #f9fafb;             /* zebra row even */
   --row-hover: #eef2f7;            /* row hover */
   --shadow: 0 8px 24px rgba(16,24,40,.06);
+  --kpi-card-scale: 0.9;           /* KPI 缩放比例 */
 }
 
 *{ box-sizing:border-box }
@@ -88,11 +89,13 @@ body{
 /* ------ KPI Cards (managed.html) ------ */
 .stat-card{
   background:#fff; border:1px solid var(--panel-border);
-  border-radius:14px; padding:12px 14px; box-shadow:var(--shadow);
+  border-radius:calc(14px * var(--kpi-card-scale, 0.9));
+  padding:calc(12px * var(--kpi-card-scale, 0.9)) calc(14px * var(--kpi-card-scale, 0.9));
+  box-shadow:var(--shadow);
 }
-.stat-card h4{ margin:0 0 6px; color:#334155; font-size:12px; letter-spacing:.2px }
-.stat-card p{ margin:0; color:#0f172a; font-size:28px; font-weight:900; line-height:1.1 }
-#kpi{ display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px }
+.stat-card h4{ margin:0 0 calc(6px * var(--kpi-card-scale, 0.9)); color:#334155; font-size:calc(12px * var(--kpi-card-scale, 0.9)); letter-spacing:calc(.2px * var(--kpi-card-scale, 0.9)) }
+.stat-card p{ margin:0; color:#0f172a; font-size:calc(28px * var(--kpi-card-scale, 0.9)); font-weight:900; line-height:1.1 }
+#kpi{ display:grid; grid-template-columns:repeat(auto-fit,minmax(calc(210px * var(--kpi-card-scale, 0.9)),1fr)); gap:calc(12px * var(--kpi-card-scale, 0.9)) }
 
 /* ------ Tables: DataTables High-Contrast Light ------ */
 #report_wrapper{ background:#fff; border-radius:12px; padding:8px; border:1px solid var(--panel-border); box-shadow:var(--shadow) }
@@ -174,9 +177,9 @@ table.dataTable thead th.sorting_desc{
 */
 .kpi{
   display:flex;
-  gap:12px;
-  padding:0 12px;
-  margin:10px 0;
+  gap:calc(12px * var(--kpi-card-scale, 0.9));
+  padding:0 calc(12px * var(--kpi-card-scale, 0.9));
+  margin:calc(10px * var(--kpi-card-scale, 0.9)) 0;
   overflow:auto;           /* allow horizontal scroll if viewport too narrow */
   -webkit-overflow-scrolling: touch;
 }
@@ -186,16 +189,16 @@ table.dataTable thead th.sorting_desc{
 .kpi .card{
   background:#fff;
   border:1px solid var(--panel-border);
-  border-radius:14px;
-  padding:12px 14px;
-  min-width:200px;         /* keep readable width */
+  border-radius:calc(14px * var(--kpi-card-scale, 0.9));
+  padding:calc(12px * var(--kpi-card-scale, 0.9)) calc(14px * var(--kpi-card-scale, 0.9));
+  min-width:calc(200px * var(--kpi-card-scale, 0.9));         /* keep readable width */
   box-shadow: var(--shadow);
   flex:0 0 1;              /* fixed width cards for single-row layout */
 }
-.kpi .card h4{ margin:0 0 6px; color:#334155; font-size:12px; letter-spacing:.2px }
-.kpi .card p{ margin:0; color:#0f172a; font-size:22px; font-weight:900; line-height:1.1 }
-.kpi .card .sub{ margin-top:4px; font-size:12px; color:#6b7280 }
-.kpi .card .delta{ margin-left:6px; font-size:12px; font-weight:700 }
+.kpi .card h4{ margin:0 0 calc(6px * var(--kpi-card-scale, 0.9)); color:#334155; font-size:calc(12px * var(--kpi-card-scale, 0.9)); letter-spacing:calc(.2px * var(--kpi-card-scale, 0.9)) }
+.kpi .card p{ margin:0; color:#0f172a; font-size:calc(22px * var(--kpi-card-scale, 0.9)); font-weight:900; line-height:1.1 }
+.kpi .card .sub{ margin-top:calc(4px * var(--kpi-card-scale, 0.9)); font-size:calc(12px * var(--kpi-card-scale, 0.9)); color:#6b7280 }
+.kpi .card .delta{ margin-left:calc(6px * var(--kpi-card-scale, 0.9)); font-size:calc(12px * var(--kpi-card-scale, 0.9)); font-weight:700 }
 .kpi .card .delta.up{ color:#10b981 }
 .kpi .card .delta.down{ color:#ef4444 }
 

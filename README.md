@@ -64,20 +64,20 @@
 | `shopee.html` | Shopee 站点壳层，为东南亚多店铺提供统一模块框架 | 同样复用 `platform-page.js`，根据导航选择同步显示当前站点信息 | —（规划中，待 Shopee API 接入）【F:public/shopee.html†L1-L88】【F:public/assets/platform-page.js†L1-L54】 |
 | `inventory.html` | 全局库存管理入口 | 卡片式布局概述库存总览、库存变动与采购管理，将连接 `inventory*` 系列表 | —（规划中）【F:public/inventory.html†L1-L60】 |
 | `permissions.html` | 全局权限管理入口 | 汇总角色矩阵、站点授权与审计日志的计划功能，待与 admin 权限矩阵联动 | —（规划中）【F:public/permissions.html†L1-L58】 |
-| `admin.html` | 管理后台，将站点配置、模块同步与权限矩阵集中在一个入口 | 左侧“站点管理/权限矩阵/同步工具”三段式布局，站点新增后自动触发 `/api/site-sync` | `/api/site-configs`、`/api/site-sync`【F:public/admin.html†L1-L320】 |
-| `site-management.html` | 轻量站点登记视图，支持快速创建 Lazada/Shopee 等站点并引导进入管理后台 | 卡片式站点网格 + 表单，提交后会调用 `/api/site-sync` 刷新模块 | `/api/site-configs`、`/api/site-sync`【F:public/site-management.html†L1-L420】 |
+| `admin.html` | 管理后台，将站点配置、角色与成员集中在一个入口 | 左侧“站点管理/角色管理/用户管理”布局，内置快捷模板、站点删除与角色/用户卡片管理 | `/api/site-configs`、`/api/site-configs/delete`【F:public/admin.html†L360-L543】【F:public/admin.html†L932-L1390】 |
+| `site-management.html` | 轻量站点登记视图，支持快速创建 Lazada/Shopee 等站点并引导进入管理后台 | 卡片式站点网格 + 表单，提交后触发 `/api/site-sync` 并支持一键删除重复站点 | `/api/site-configs`、`/api/site-configs/delete`、`/api/site-sync`【F:public/site-management.html†L397-L541】 |
 
 - **入口页 `public/index.html`**：作为平台门户，内置渐变过渡和加载动画，并在 1 秒内自动重定向到自运营 Robot 站，确保默认落地页一致。【F:public/index.html†L1-L58】
-- **自运营页 `public/self-operated.html`**：聚合 DataTables、ECharts、Flatpickr 等库，侧边栏固定包含“详细数据/运营分析/产品分析/订单中心/广告中心”五大模块；订单与广告板块暂提供占位说明，默认站点包含 Robot 与 Poolslab，可在导航中快速切换。【F:public/self-operated.html†L520-L788】【F:public/assets/site-nav.js†L12-L191】
+- **自运营页 `public/self-operated.html`**：聚合 DataTables、ECharts、Flatpickr 等库，侧边栏固定包含“详细数据/运营分析/产品分析/订单中心/广告中心”五大模块；数据明细表默认隐藏“周期”列并复用固定表头/滚动配置压缩宽度，默认站点包含 Robot 与 Poolslab，可在导航中快速切换。【F:public/self-operated.html†L520-L788】【F:public/assets/self-operated.js†L461-L639】【F:public/assets/site-nav.js†L13-L159】
 - **全托管页 `public/managed.html`**：带登录覆盖层与统一侧边栏，顶部导航涵盖速卖通、亚马逊、TikTok Shop、Temu、Ozon、独立站等平台；页面内按 Hash 切分“详细数据/运营分析/产品分析/订单中心/广告中心”，并支持上传全托管周/月报表。【F:public/managed.html†L20-L260】
-- **管理后台 `public/admin.html`**：集中提供站点配置、权限矩阵与站点同步工具，表单内置 Lazada/Shopee/TikTok/Temu 模板并会自动触发 `/api/site-sync`，权限矩阵部分复用 `rules.json` 默认角色。【F:public/admin.html†L1-L420】
-- **站点管理页 `public/site-management.html`**：轻量化的站点登记入口，表单直接写入 `site_configs` 并调用 `/api/site-sync`，在成功创建后引导管理员前往 `admin.html` 做进一步配置。【F:public/site-management.html†L1-L420】
+- **管理后台 `public/admin.html`**：站点管理支持快捷模板、筛选与删除，角色管理基于模块定义生成角色卡片并允许自定义保存，用户管理要求同时选择角色与站点并以标签展示授权范围，整体配置保存在浏览器以便快速迭代。【F:public/admin.html†L360-L543】【F:public/admin.html†L932-L1390】
+- **站点管理页 `public/site-management.html`**：轻量化的站点登记入口，表单直接写入 `site_configs` 并调用 `/api/site-sync`，新增支持在网格中直接删除重复或无效站点并在成功创建后提示同步到管理后台。【F:public/site-management.html†L397-L541】
 - **独立站页 `public/independent-site.html`**：面向 Landing Page 运营分析，侧边栏同步扩展至五大模块，包含渠道选择、时间控件、KPI 卡片与数据明细，并保留列显隐、产品双击跳转等增强交互。【F:public/independent-site.html†L697-L852】
 - **亚马逊总览 `public/amazon-overview.html`**：按 Amazon 指标构建 KPI、趋势图和明细表的总览页，侧边栏新增五大模块并通过 Hash 切换，`amazon-ads.html` 负责重定向到新的广告分栏。【F:public/amazon-overview.html†L104-L215】【F:public/amazon-ads.html†L1-L35】
 - **Ozon 页面集**：`public/ozon-detail.html` 等页面提供上传入口、日期筛选及多图表分栏，并补充订单中心、广告中心入口；`ozon-orders.html` 在同步订单头与明细的基础上，将商品明细列移动至首列并限制宽度为 140px，单独展示“采购件数”，且商品明细/下单时间/状态/结算状态四列可点击切换正序或倒序，保持与运营数据的产品 ID 对齐，并统一移除商品图片仅保留文本信息，广告模块仍预留官方 API 接入。【F:public/ozon-detail.html†L40-L78】【F:public/ozon-orders.html†L1-L210】【F:api/ozon/orders/index.js†L1-L117】
 - **Temu/TikTok 占位页**：`public/temu.html` 与 `public/tiktok.html` 已接入统一导航与布局，并预留“详细数据/运营分析/产品分析/订单中心/广告中心”五个分栏占位，等待后端接口补齐。【F:public/temu.html†L1-L36】【F:public/tiktok.html†L1-L36】
 - **Lazada 数据枢纽 / Shopee 占位**：`public/lazada.html` 已接入 Lazada 运营、产品、订单、广告 API，并在站点切换时自动刷新五大模块；最新的授权回调会在后端使用 `findKeyDeep` 兜底提取嵌套的访问/刷新令牌并返还脱敏调试信息，保证页面切换后始终可拉取实时数据。`public/shopee.html` 则继续保留统一布局与导航，占位等待后续 API 补齐。【F:public/lazada.html†L1-L284】【F:api/lazada/oauth/callback/index.js†L1-L226】【F:lib/find-key-deep.js†L1-L89】【F:api/lazada/stats/index.js†L1-L72】【F:public/shopee.html†L1-L88】
-- **动态导航脚本 `public/assets/site-nav.js`**：初始化时调用 `/api/site-configs` 合并默认站点，自动插入 Lazada、Shopee 等平台入口，并在点击站点后写入 `localStorage` 供壳层页面显示当前站点名称。【F:public/assets/site-nav.js†L24-L309】【F:public/assets/site-nav.js†L563-L589】
+- **动态导航脚本 `public/assets/site-nav.js`**：初始化时调用 `/api/site-configs` 合并默认站点，基于平台 + 站点 ID 去重后再渲染 Lazada、Shopee 等入口，并仅拦截带 `data-platform` 属性的切换链接以保证“管理后台”等普通导航可直接跳转。【F:public/assets/site-nav.js†L13-L159】【F:public/assets/site-nav.js†L373-L457】【F:public/assets/site-nav.js†L666-L691】
 - **库存管理 `public/inventory.html`**：全局入口以卡片形式描述库存总览、库存变动与采购管理模块，后续上线后将直接接入 `inventory`、`inventory_movements`、`purchases` 数据表。【F:public/inventory.html†L1-L60】
 - **权限管理 `public/permissions.html`**：全局入口汇总角色矩阵、站点授权和审计日志三大能力，未来会与 admin 权限矩阵共享数据源以维持一致性。【F:public/permissions.html†L1-L58】
 

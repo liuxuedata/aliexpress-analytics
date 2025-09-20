@@ -458,6 +458,12 @@
         .product-id-cell {
           text-align: left !important;
         }
+        #report th.period-column,
+        #report td.period-column,
+        #report_wrapper th.period-column,
+        #report_wrapper td.period-column {
+          display: none !important;
+        }
       `;
       document.head.appendChild(style);
       console.log('商品链接样式已添加');
@@ -490,20 +496,20 @@
       const thead = document.createElement('thead');
       thead.innerHTML = `
         <tr>
-          <th style="text-align: left; min-width: 120px;">商品(ID)</th>
-          <th style="text-align: center; min-width: 150px;">周期</th>
-          <th style="text-align: center; min-width: 100px;">访客比(%)</th>
-          <th style="text-align: center; min-width: 100px;">加购比(%)</th>
-          <th style="text-align: center; min-width: 100px;">支付比(%)</th>
-          <th style="text-align: center; min-width: 80px;">曝光量</th>
-          <th style="text-align: center; min-width: 80px;">访客数</th>
-          <th style="text-align: center; min-width: 80px;">浏览量</th>
-          <th style="text-align: center; min-width: 80px;">加购件数</th>
-          <th style="text-align: center; min-width: 100px;">下单商品件数</th>
-          <th style="text-align: center; min-width: 80px;">支付件数</th>
-          <th style="text-align: center; min-width: 80px;">支付买家数</th>
-          <th style="text-align: center; min-width: 100px;">搜索点击率(%)</th>
-          <th style="text-align: center; min-width: 120px;">平均停留时长(秒)</th>
+          <th class="col-product">商品ID</th>
+          <th class="period-column">周期</th>
+          <th>访客比(%)</th>
+          <th>加购比(%)</th>
+          <th>支付比(%)</th>
+          <th>曝光量</th>
+          <th>访客数</th>
+          <th>浏览量</th>
+          <th>加购件数</th>
+          <th>下单商品件数</th>
+          <th>支付件数</th>
+          <th>支付买家数</th>
+          <th>搜索点击率(%)</th>
+          <th>平均停留时长(秒)</th>
         </tr>
       `;
       table.appendChild(thead);
@@ -530,6 +536,7 @@
           
           // 计算比率，优先使用 add_people
           const addPeople = row.add_people || 0;
+          const addCount = row.add_times || row.add_people || 0;
           const visitors = row.visitors || 0;
           const exposure = row.exposure || 0;
           const payItems = row.pay_items || 0;
@@ -558,20 +565,20 @@
           }
 
           tr.innerHTML = `
-            <td style="text-align: left;">${productLink}</td>
-            <td style="text-align: center;">${row.bucket || this.formatDateRange(row.start_date, row.end_date)}</td>
-            <td style="text-align: center;">${this.formatPercentage(visitorRatio)}</td>
-            <td style="text-align: center;">${this.formatPercentage(addToCartRatio)}</td>
-            <td style="text-align: center;">${this.formatPercentage(paymentRatio)}</td>
-            <td style="text-align: center;">${this.formatNumber(row.exposure || 0)}</td>
-            <td style="text-align: center;">${this.formatNumber(row.visitors || 0)}</td>
-            <td style="text-align: center;">${this.formatNumber(row.views || 0)}</td>
-            <td style="text-align: center;">${this.formatNumber(addPeople)}</td>
-            <td style="text-align: center;">${this.formatNumber(row.order_items || 0)}</td>
-            <td style="text-align: center;">${this.formatNumber(row.pay_items || 0)}</td>
-            <td style="text-align: center;">${this.formatNumber(row.pay_buyers || 0)}</td>
-            <td style="text-align: center;">${this.formatPercentage(row.search_ctr)}</td>
-            <td style="text-align: center;">${this.formatNumber(row.avg_stay_seconds || 0)}</td>
+            <td class="product-id-cell col-product">${productLink}</td>
+            <td class="period-column">${row.bucket || this.formatDateRange(row.start_date, row.end_date)}</td>
+            <td>${this.formatPercentage(visitorRatio)}</td>
+            <td>${this.formatPercentage(addToCartRatio)}</td>
+            <td>${this.formatPercentage(paymentRatio)}</td>
+            <td>${this.formatNumber(row.exposure || 0)}</td>
+            <td>${this.formatNumber(row.visitors || 0)}</td>
+            <td>${this.formatNumber(row.views || 0)}</td>
+            <td>${this.formatNumber(addCount)}</td>
+            <td>${this.formatNumber(row.order_items || 0)}</td>
+            <td>${this.formatNumber(row.pay_items || 0)}</td>
+            <td>${this.formatNumber(row.pay_buyers || 0)}</td>
+            <td>${this.formatPercentage(row.search_ctr)}</td>
+            <td>${this.formatNumber(row.avg_stay_seconds || 0)}</td>
           `;
           
           // 为每行数据添加双击事件（排除商品ID列）
@@ -621,27 +628,30 @@
               this.dataTable = jQuery(table).DataTable({
                 destroy: true,
                 pageLength: 10,
-                order: [[1, 'desc']], 
-                scrollX: true, 
-                scrollY: 'calc(100vh - 420px)', 
-                scrollCollapse: true, 
+                order: [[1, 'desc']],
+                autoWidth: false,
+                scrollY: '60vh',
+                scrollCollapse: true,
                 fixedHeader: true,
+                columnDefs: [
+                  { targets: 1, visible: false, searchable: false }
+                ],
                 language: {
                   url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json'
                 }
               });
-              
+
+              this.dataTable.columns.adjust();
               console.log('DataTable初始化成功！');
               console.log('DataTable数据行数:', this.dataTable.data().count());
               console.log('DataTable实际显示行数:', this.dataTable.rows().count());
-              
-                         } else {
-               console.warn('表格没有实际数据行，跳过DataTable初始化');
-               // 如果没有数据，显示"暂无数据"提示
-               if (tbody) {
-                 tbody.innerHTML = '<tr><td colspan="14" style="text-align: center; padding: 20px; color: #666;">暂无数据</td></tr>';
-               }
-             }
+             } else {
+              console.warn('表格没有实际数据行，跳过DataTable初始化');
+              // 如果没有数据，显示"暂无数据"提示
+              if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="14" style="text-align: center; padding: 20px; color: #666;">暂无数据</td></tr>';
+              }
+            }
             
           } catch (error) {
             console.error('DataTable初始化失败:', error);
