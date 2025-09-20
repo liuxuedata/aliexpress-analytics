@@ -149,7 +149,24 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
 ## 一键自检脚本
 
-使用提供的自检脚本验证配置：
+### 1. 最小化测试程序（推荐用于问题定位）
+
+使用专门的最小化测试程序来检查 Lazada Token API 的原始响应：
+
+```bash
+# 测试授权码换取令牌（打印原始响应）
+node api/lazada_token_test.js --code=your_authorization_code
+```
+
+**特点**：
+- 专门用于定位 `refresh_token` 缺失问题
+- 打印 Lazada API 的原始响应内容
+- 对比标准 OAuth2 端点和签名版端点的差异
+- 提供详细的字段分析和错误诊断
+
+### 2. 完整自检脚本
+
+使用提供的完整自检脚本验证配置：
 
 ```bash
 # 测试授权码换取令牌
@@ -235,6 +252,65 @@ curl "https://your-domain.com/api/lazada/orders/test?siteId=your_site_id"
 }
 ```
 
+## 问题定位流程
+
+### 1. 使用最小化测试程序定位问题
+
+当遇到 `refresh_token` 无法获取的问题时，首先使用最小化测试程序：
+
+```bash
+# 1. 获取授权码
+# 访问 Lazada 授权页面，完成授权后从回调 URL 中提取 code 参数
+
+# 2. 运行最小化测试程序
+node api/lazada_token_test.js --code=your_authorization_code
+```
+
+**测试程序会输出**：
+- 环境变量检查结果
+- 标准 OAuth2 端点的原始响应
+- 签名版端点的原始响应（用于对比）
+- 详细的字段分析
+- 错误诊断和建议
+
+### 2. 常见问题模式识别
+
+#### 模式 1：响应中完全缺少 refresh_token
+```
+原始响应: {"access_token": "xxx", "expires_in": 10}
+分析结果: hasRefreshToken: false
+根本原因: 使用了错误的端点或配置问题
+```
+
+#### 模式 2：refresh_token 为空字符串
+```
+原始响应: {"access_token": "xxx", "refresh_token": "", "expires_in": 3600}
+分析结果: hasRefreshToken: false (空字符串)
+根本原因: redirect_uri 不匹配或授权码问题
+```
+
+#### 模式 3：expires_in 过短
+```
+原始响应: {"access_token": "xxx", "refresh_token": "xxx", "expires_in": 10}
+分析结果: expiresIn: 10 (过短)
+根本原因: 使用了签名版端点，获取的是短期令牌
+```
+
+### 3. 根据测试结果采取行动
+
+#### 如果标准 OAuth2 端点成功
+- ✅ 使用 `/api/lazada/oauth/callback-oauth2` 端点
+- ✅ 确保回调处理使用标准 OAuth2 流程
+
+#### 如果标准 OAuth2 端点失败
+- ❌ 检查 `redirect_uri` 三处一致性
+- ❌ 验证授权码是否有效
+- ❌ 确认应用配置正确
+
+#### 如果签名版端点也能获取 refresh_token
+- ⚠️ 可能存在其他问题（如令牌有效期）
+- ⚠️ 建议仍使用标准 OAuth2 端点
+
 ## 调试技巧
 
 ### 1. 启用详细日志
@@ -305,7 +381,8 @@ const refreshToken = findKeyDeep(payload, 'refresh_token', {
 - `/api/lazada/oauth/callback-oauth2/index.js` - 标准 OAuth2 回调端点
 - `/api/lazada/oauth/refresh/index.js` - 刷新令牌端点
 - `/api/lazada/orders/test/index.js` - 业务接口测试端点
-- `/scripts/lazada-oauth-self-check.js` - 一键自检脚本
+- `/api/lazada_token_test.js` - **最小化测试程序（推荐用于问题定位）**
+- `/scripts/lazada-oauth-self-check.js` - 完整自检脚本
 - `/lib/find-key-deep.js` - 深度搜索工具
 
 ## 更新日志
