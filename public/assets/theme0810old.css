@@ -7,6 +7,8 @@
   --orange:#F97316;
   --text:#E5E7EB;
   --muted:#94a3b8;
+  --kpi-card-scale:0.9;
+  --kpi-font-scale:0.85;
 }
 
 /* ===== Base layout ===== */
@@ -52,12 +54,12 @@ body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: var(--b
 .progress { font-size:13px; }
 
 /* ===== KPI cards（统一两种命名） ===== */
-.kpi { display:grid; grid-template-columns: repeat(6, minmax(160px, 1fr)); gap:10px; }
+.kpi { display:grid; grid-template-columns: repeat(6, minmax(calc(160px * var(--kpi-card-scale, 0.9)), 1fr)); gap:calc(10px * var(--kpi-card-scale, 0.9)); }
 .card, .stat-card {
-  background: var(--panel); color:#fff; padding:12px; border-radius:12px; min-width:160px;
+  background: var(--panel); color:#fff; padding:calc(12px * var(--kpi-card-scale, 0.9)); border-radius:calc(12px * var(--kpi-card-scale, 0.9)); min-width:calc(160px * var(--kpi-card-scale, 0.9));
 }
-.card h4, .stat-card h4 { margin:0 0 6px 0; font-size:13px; color:#93c5fd; }
-.card p, .stat-card p { margin:0; font-size:18px; font-weight:800; }
+.card h4, .stat-card h4 { margin:0 0 calc(6px * var(--kpi-card-scale, 0.9)) 0; font-size:calc(13px * var(--kpi-font-scale, var(--kpi-card-scale, 1))); color:#93c5fd; }
+.card p, .stat-card p { margin:0; font-size:calc(18px * var(--kpi-font-scale, var(--kpi-card-scale, 1))); font-weight:800; }
 
 /* ===== Tabs（仅自运营页用，其他页无影响） ===== */
 .tabs { display:flex; gap:12px; padding:10px 16px; border-bottom:1px solid #1f2937; background: var(--bg); }
