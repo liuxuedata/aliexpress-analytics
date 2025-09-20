@@ -5,7 +5,7 @@ const { decodeState } = require('../../../../lib/lazada-oauth-state');
 const { findKeyDeep } = require('../../../../lib/find-key-deep');
 
 const TOKEN_ENDPOINT = 'https://auth.lazada.com/rest/auth/token/create';
-const TOKEN_PATH = '/rest/auth/token/create';
+const TOKEN_PATH = '/auth/token/create';
 
 function fetchLazada(endpoint, options) {
   if (typeof global.fetch === 'function') {

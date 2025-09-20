@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { createSignedState } = require('../lib/lazada-oauth-state');
+const { buildLazadaSignature } = require('../api/lazada/oauth/callback');
 
 function createMockRes() {
   return {
@@ -347,3 +348,17 @@ test('lazada oauth callback reports Supabase credential misconfiguration', async
   }
   restoreEnv(originalEnv);
 });
+test('buildLazadaSignature matches Lazada API name when hashing', () => {
+  const params = {
+    app_key: '123456',
+    code: 'abc',
+    redirect_uri: 'https://example.com/callback',
+    sign_method: 'sha256',
+    timestamp: '1700000000000',
+    need_refresh_token: 'true',
+  };
+
+  const signature = buildLazadaSignature(params, 'secret');
+  assert.equal(signature, 'BFF942DE94B87C6C9F147B160645681D1B81489C97BB98A3681A3033572E7B8C');
+});
+
