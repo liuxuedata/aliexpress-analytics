@@ -95,7 +95,70 @@
       font-size: 14px;
       margin: 0;
     }
-    
+
+    /* 数据明细区域 */
+    #detail .table-card {
+      background: #ffffff;
+      border: 1px solid var(--primary-200);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+
+    #detail .table-card h3 {
+      margin: 0;
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--primary-800);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    #detail .table-wrapper {
+      width: 100%;
+      overflow: auto;
+    }
+
+    #detail #report_wrapper {
+      width: 100%;
+    }
+
+    #detail table.dataTable {
+      width: 100% !important;
+      font-size: 0.75rem;
+      table-layout: auto;
+    }
+
+    #detail table.dataTable thead th,
+    #detail table.dataTable tbody td {
+      font-size: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      white-space: nowrap;
+    }
+
+    #detail table.dataTable tbody td {
+      font-variant-numeric: tabular-nums;
+      color: var(--primary-800);
+    }
+
+    #detail table.dataTable thead th {
+      color: var(--primary-700);
+    }
+
+    #detail table.dataTable .col-product {
+      text-align: left;
+      min-width: 140px;
+    }
+
+    #detail table.dataTable tbody td:not(.col-product),
+    #detail table.dataTable thead th:not(.col-product) {
+      text-align: center;
+    }
+
     .grid-2 {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -608,17 +671,17 @@
     <div class="content">
       <!-- 明细表 -->
       <section id="detail" class="content-pad">
-        <div class="chart-container">
+        <div class="table-card">
           <h3>数据明细</h3>
-          
+
           <!-- 加载状态 -->
           <div id="detailLoading" class="loading-state" style="display: none;">
             <div class="loading-spinner"></div>
             <p class="loading-text">努力加载中,请等待片刻。。。</p>
           </div>
-          
+
           <!-- 数据表格 -->
-          <div id="detailContent">
+          <div id="detailContent" class="table-wrapper">
             <table id="report" class="data-table display nowrap" style="width:100%"></table>
           </div>
         </div>
