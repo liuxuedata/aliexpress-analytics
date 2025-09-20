@@ -311,6 +311,40 @@ node api/lazada_token_test.js --code=your_authorization_code
 - ⚠️ 可能存在其他问题（如令牌有效期）
 - ⚠️ 建议仍使用标准 OAuth2 端点
 
+## 实际测试结果与解决方案
+
+### 测试发现（2025-01-20）
+
+通过实际测试发现：
+
+1. **标准 OAuth2 端点问题**：
+   - 端点 `https://auth.lazada.com/oauth/token` 返回 405 状态码
+   - 可能是 Lazada 的 OAuth2 实现问题或端点配置问题
+
+2. **签名版端点正常工作**：
+   - 端点 `https://auth.lazada.com/rest/auth/token/create` 完全正常
+   - 能够成功获取长期有效的 `refresh_token`（7天有效期）
+   - 能够成功获取长期有效的 `access_token`（30天有效期）
+
+3. **根本问题确认**：
+   - 问题不在于端点选择，而在于令牌数据提取逻辑
+   - `extractTokenPayload` 函数没有正确处理 Lazada 的直接 JSON 响应格式
+
+### 解决方案
+
+1. **继续使用签名版端点**：
+   - 签名版端点工作正常，能够获取长期令牌
+   - 无需切换到标准 OAuth2 端点
+
+2. **修复令牌提取逻辑**：
+   - 更新 `extractTokenPayload` 函数
+   - 正确处理 Lazada 的直接 JSON 响应格式
+   - 添加详细的调试日志
+
+3. **验证修复效果**：
+   - 重新测试授权流程
+   - 确认能够成功获取并存储 `refresh_token`
+
 ## 调试技巧
 
 ### 1. 启用详细日志
@@ -389,4 +423,6 @@ const refreshToken = findKeyDeep(payload, 'refresh_token', {
 
 - **2025-01-20**：初始版本，包含完整的 OAuth2 实现和排错指南
 - **2025-01-20**：添加一键自检脚本和业务接口测试
+- **2025-01-20**：**重要发现** - 通过测试确认签名版端点能够正常获取长期 refresh_token
+- **2025-01-20**：修复 `extractTokenPayload` 函数，正确处理 Lazada 的直接 JSON 响应格式
 - **2025-01-20**：完善错误诊断和解决方案
