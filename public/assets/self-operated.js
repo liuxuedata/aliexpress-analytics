@@ -58,6 +58,63 @@
       super();
       this.dataTable = null;
       this.pageReadyTriggered = false;
+      this.resizeHandler = null;
+      this.lastTableHeight = null;
+    }
+
+    calculateDetailTableHeight() {
+      const detailSection = document.getElementById('detail');
+      if (!detailSection || detailSection.offsetParent === null) {
+        return this.lastTableHeight || 360;
+      }
+
+      const rect = detailSection.getBoundingClientRect();
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 900;
+      const buffer = 48;
+      const top = Math.max(rect.top, 0);
+      const available = viewportHeight - top - buffer;
+
+      return Math.max(280, Math.floor(available));
+    }
+
+    ensureResizeHandler() {
+      if (this.resizeHandler) {
+        return;
+      }
+
+      this.resizeHandler = () => {
+        this.updateDataTableHeight();
+      };
+
+      window.addEventListener('resize', this.resizeHandler);
+    }
+
+    updateDataTableHeight() {
+      if (!this.dataTable) {
+        return;
+      }
+
+      const detailSection = document.getElementById('detail');
+      if (!detailSection || detailSection.offsetParent === null) {
+        return;
+      }
+
+      const newHeight = this.calculateDetailTableHeight();
+      if (!newHeight) {
+        return;
+      }
+
+      this.lastTableHeight = newHeight;
+      const settings = this.dataTable.settings()[0];
+      if (settings && settings.oScroll) {
+        settings.oScroll.sY = `${newHeight}px`;
+      }
+
+      if (this.dataTable.columns && typeof this.dataTable.columns.adjust === 'function') {
+        this.dataTable.columns.adjust();
+      }
+
+      this.dataTable.draw(false);
     }
 
     // 重写refreshData方法，确保能正确调用loadData
@@ -159,13 +216,15 @@
          // 数据加载完成后，更新页面标题（确保显示正确的站点名称）
          this.updatePageTitle();
          
-         // 数据加载完成后，绑定新品筛选事件
-         this.bindNewProductsFilter();
-         
-       } catch (error) {
-         console.error('数据加载失败:', error);
-         this.updateStatus('数据加载失败：' + (error.message || error), 'error');
-         this.showError('查询失败：' + (error.message || error));
+        // 数据加载完成后，绑定新品筛选事件
+        this.bindNewProductsFilter();
+
+        this.updateDataTableHeight();
+
+      } catch (error) {
+        console.error('数据加载失败:', error);
+        this.updateStatus('数据加载失败：' + (error.message || error), 'error');
+        this.showError('查询失败：' + (error.message || error));
        }
     }
 
@@ -618,23 +677,33 @@
              
              // 如果表格有实际数据行，使用正确的DataTable配置
              if (dataRows.length > 0) {
+              const tableHeight = this.calculateDetailTableHeight();
               this.dataTable = jQuery(table).DataTable({
                 destroy: true,
-                pageLength: 10,
-                order: [[1, 'desc']], 
-                scrollX: true, 
-                scrollY: 'calc(100vh - 420px)', 
-                scrollCollapse: true, 
+                lengthMenu: [[10, 25, 50, -1], ['10 条', '25 条', '50 条', '全部']],
+                pageLength: 25,
+                order: [[1, 'desc']],
+                scrollX: true,
+                scrollY: `${tableHeight}px`,
+                scrollCollapse: true,
                 fixedHeader: true,
                 language: {
                   url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json'
                 }
               });
-              
+
+              this.ensureResizeHandler();
+              this.lastTableHeight = null;
+              if (typeof window.requestAnimationFrame === 'function') {
+                window.requestAnimationFrame(() => this.updateDataTableHeight());
+              } else {
+                setTimeout(() => this.updateDataTableHeight(), 0);
+              }
+
               console.log('DataTable初始化成功！');
               console.log('DataTable数据行数:', this.dataTable.data().count());
               console.log('DataTable实际显示行数:', this.dataTable.rows().count());
-              
+
                          } else {
                console.warn('表格没有实际数据行，跳过DataTable初始化');
                // 如果没有数据，显示"暂无数据"提示
