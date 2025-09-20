@@ -2,9 +2,18 @@ const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 const { storeTokenRecord } = require('../../../../lib/lazada-auth');
 const { decodeState } = require('../../../../lib/lazada-oauth-state');
+const { findKeyDeep } = require('../../../../lib/find-key-deep');
 
 const TOKEN_ENDPOINT = 'https://auth.lazada.com/rest/auth/token/create';
 const TOKEN_PATH = '/rest/auth/token/create';
+
+const ACCESS_KEYS = ['access_token', 'accessToken', 'token'];
+const REFRESH_KEYS = ['refresh_token', 'refreshToken', 'refresh'];
+const EXPIRES_IN_KEYS = ['expires_in', 'expiresIn', 'expire_in'];
+const REFRESH_EXPIRES_IN_KEYS = ['refresh_expires_in', 'refreshExpiresIn'];
+const ACCOUNT_ID_KEYS = ['account_id', 'accountId', 'seller_id', 'sellerId', 'user_id', 'userId'];
+const COUNTRY_KEYS = ['country', 'region'];
+const STATE_KEYS = ['country_user_info', 'account_user_info'];
 
 function fetchLazada(endpoint, options) {
   if (typeof global.fetch === 'function') {
@@ -51,23 +60,171 @@ function createSupabaseClient() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-function pickTokenValue(payload, keys) {
-  if (!payload || typeof payload !== 'object') return null;
-  for (const key of keys) {
-    if (Object.prototype.hasOwnProperty.call(payload, key)) {
-      const value = payload[key];
-      if (typeof value === 'string' && value.trim()) {
-        return value.trim();
+function coerceString(value) {
+  if (value == null) return null;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const result = coerceString(item);
+      if (result) return result;
+    }
+  }
+  return null;
+}
+
+function coerceNumber(value) {
+  if (value == null) return null;
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function safeJsonParse(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const firstChar = trimmed[0];
+  if (firstChar !== '{' && firstChar !== '[') {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(trimmed);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function pickDeepValue(payload, keys, transformer) {
+  const result = findKeyDeep(payload, keys);
+  if (!result) return null;
+  return transformer(result.value);
+}
+
+function pickDeepString(payload, keys) {
+  return pickDeepValue(payload, keys, coerceString);
+}
+
+function pickDeepNumber(payload, keys) {
+  return pickDeepValue(payload, keys, coerceNumber);
+}
+
+function firstObjectMatch(payload, keys) {
+  const result = findKeyDeep(payload, keys);
+  if (!result) return null;
+  const value = result.value;
+  if (!value || typeof value !== 'object') return null;
+  return value;
+}
+
+function gatherSearchSpaces(...roots) {
+  const spaces = [];
+  const queue = roots.filter((value) => value != null);
+  const seen = new Set();
+
+  while (queue.length) {
+    const current = queue.shift();
+    if (current == null) continue;
+
+    if (typeof current === 'string') {
+      const parsed = safeJsonParse(current);
+      if (parsed) {
+        queue.push(parsed);
       }
-      if (value && typeof value === 'object' && !Array.isArray(value)) {
-        const nested = pickTokenValue(value, keys);
-        if (nested) {
-          return nested;
+      continue;
+    }
+
+    if (typeof current === 'object') {
+      if (seen.has(current)) {
+        continue;
+      }
+      seen.add(current);
+      spaces.push(current);
+
+      const values = Array.isArray(current) ? current : Object.values(current);
+      for (const value of values) {
+        if (value && (typeof value === 'object' || typeof value === 'string')) {
+          queue.push(value);
         }
       }
     }
   }
+
+  return spaces;
+}
+
+function findFirst(spaces, resolver) {
+  for (const space of spaces) {
+    const value = resolver(space);
+    if (value !== null && value !== undefined) {
+      return value;
+    }
+  }
   return null;
+}
+
+function redactTokens(input, depth = 0, maxDepth = 6) {
+  if (depth > maxDepth) {
+    return '[depth-exceeded]';
+  }
+  if (input == null) return input;
+  if (typeof input !== 'object') return input;
+  if (Array.isArray(input)) {
+    return input.map((item) => redactTokens(item, depth + 1, maxDepth));
+  }
+
+  const output = {};
+  for (const [key, value] of Object.entries(input)) {
+    if (typeof value === 'string' && /token/i.test(key)) {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        output[key] = trimmed;
+      } else if (trimmed.length <= 8) {
+        output[key] = `${trimmed.slice(0, 2)}***${trimmed.slice(-2)}`;
+      } else {
+        output[key] = `${trimmed.slice(0, 4)}…${trimmed.slice(-4)}`;
+      }
+      continue;
+    }
+    output[key] = redactTokens(value, depth + 1, maxDepth);
+  }
+  return output;
+}
+
+function logTokenResponse(envelope, tokenPayload, rawBody) {
+  try {
+    const safeEnvelope = redactTokens(envelope);
+    const safePayload = tokenPayload === envelope ? safeEnvelope : redactTokens(tokenPayload);
+
+    if (rawBody !== undefined) {
+      console.info('[Lazada OAuth] raw token/create response body (debug):', rawBody);
+    }
+
+    console.info('[Lazada OAuth] raw token response envelope (debug):', envelope);
+    if (tokenPayload && tokenPayload !== envelope) {
+      console.info('[Lazada OAuth] raw extracted token payload (debug):', tokenPayload);
+    }
+
+    console.info('[Lazada OAuth] token response envelope:', JSON.stringify(safeEnvelope));
+    if (tokenPayload) {
+      console.info('[Lazada OAuth] extracted token payload:', JSON.stringify(safePayload));
+    }
+  } catch (logError) {
+    console.warn('[Lazada OAuth] failed to log Lazada token response', logError);
+  }
 }
 
 function extractTokenPayload(envelope) {
@@ -97,26 +254,58 @@ async function persistTokens({ supabase, siteId, payload, raw }) {
     throw err;
   }
 
-  if (!payload || typeof payload !== 'object') {
+  const rawRoots = Array.isArray(raw)
+    ? raw.filter((value) => value !== undefined && value !== null)
+    : raw === undefined || raw === null
+      ? []
+      : [raw];
+
+  const searchSpaces = gatherSearchSpaces(payload, ...rawRoots);
+  if (!searchSpaces.length) {
     const err = new Error('Lazada 授权响应缺失，无法存储凭据');
     err.code = 'LAZADA_TOKEN_RESPONSE_MISSING';
     err.status = 500;
     throw err;
   }
 
-  const refreshToken = pickTokenValue(payload, ['refresh_token', 'refreshToken']);
+  const primarySpace = searchSpaces.find((space) => !Array.isArray(space)) || searchSpaces[0] || null;
+
+  const refreshToken = findFirst(searchSpaces, (space) => pickDeepString(space, REFRESH_KEYS));
   if (!refreshToken) {
+    console.error('[Lazada OAuth] Missing refresh token in payload', {
+      keys: REFRESH_KEYS,
+      snapshot: redactTokens(primarySpace || payload || rawRoots.find((value) => value && typeof value === 'object') || null)
+    });
     const err = new Error('Lazada 授权响应缺少 refresh_token，无法存储凭据');
     err.code = 'REFRESH_TOKEN_MISSING';
     err.status = 500;
     throw err;
   }
 
-  const accessToken = pickTokenValue(payload, ['access_token', 'accessToken']);
-  const expiresIn = Number(payload.expires_in || payload.expire_in);
+  const accessToken = findFirst(searchSpaces, (space) => pickDeepString(space, ACCESS_KEYS));
+  const expiresIn = findFirst(searchSpaces, (space) => pickDeepNumber(space, EXPIRES_IN_KEYS));
   const expiresAt = Number.isFinite(expiresIn) && expiresIn > 0
     ? new Date(Date.now() + expiresIn * 1000).toISOString()
     : null;
+
+  const refreshExpiresIn = findFirst(searchSpaces, (space) => pickDeepNumber(space, REFRESH_EXPIRES_IN_KEYS));
+
+  const stateInfo =
+    findFirst(searchSpaces, (space) => firstObjectMatch(space, STATE_KEYS)) ||
+    (primarySpace && (primarySpace.country_user_info || primarySpace.account_user_info)) ||
+    null;
+
+  const accountId =
+    findFirst(searchSpaces, (space) => pickDeepString(space, ACCOUNT_ID_KEYS)) ||
+    (stateInfo ? pickDeepString(stateInfo, ACCOUNT_ID_KEYS) : null);
+
+  const country =
+    findFirst(searchSpaces, (space) => pickDeepString(space, COUNTRY_KEYS)) ||
+    (stateInfo ? pickDeepString(stateInfo, COUNTRY_KEYS) : null);
+
+  const rawForStorage =
+    rawRoots.find((value) => value && typeof value === 'object' && !Array.isArray(value)) ||
+    (primarySpace && typeof primarySpace === 'object' && !Array.isArray(primarySpace) ? primarySpace : undefined);
 
   return storeTokenRecord(supabase, {
     siteId,
@@ -124,19 +313,11 @@ async function persistTokens({ supabase, siteId, payload, raw }) {
     refreshToken,
     expiresAt,
     meta: {
-      account_id:
-        payload.account_id ||
-        payload.accountId ||
-        payload.country_user_info?.userId ||
-        payload.account_user_info?.userId ||
-        null,
-      country:
-        payload.country ||
-        payload.country_user_info?.country ||
-        payload.account_user_info?.country ||
-        null,
-      state: payload.country_user_info || payload.account_user_info || null,
-      raw: raw && typeof raw === 'object' ? raw : undefined
+      account_id: accountId || null,
+      country: country || null,
+      refresh_expires_in: refreshExpiresIn || null,
+      state: stateInfo || null,
+      raw: rawForStorage
     }
   });
 }
@@ -144,35 +325,59 @@ async function persistTokens({ supabase, siteId, payload, raw }) {
 async function exchangeAuthorizationCode(code, redirectUri) {
   const appKey = getEnvOrThrow('LAZADA_APP_KEY');
   const appSecret = getEnvOrThrow('LAZADA_APP_SECRET');
+  const clientId = process.env.LAZADA_CLIENT_ID || appKey;
+  const clientSecret = process.env.LAZADA_CLIENT_SECRET || appSecret;
 
   const timestamp = Date.now().toString();
-  const params = {
+  const baseParams = {
     app_key: appKey,
+    client_id: clientId,
     code,
     redirect_uri: redirectUri,
+    grant_type: 'authorization_code',
+    need_refresh_token: 'true',
     sign_method: 'sha256',
     timestamp,
-    need_refresh_token: 'true',
   };
 
-  params.sign = buildLazadaSignature(params, appSecret);
+  const signature = buildLazadaSignature(baseParams, appSecret);
+  const form = new URLSearchParams();
+  for (const [key, value] of Object.entries(baseParams)) {
+    if (value !== undefined && value !== null) {
+      form.append(key, String(value));
+    }
+  }
+  form.append('sign', signature);
+  if (clientSecret) {
+    form.append('client_secret', String(clientSecret));
+  }
+  if (appSecret) {
+    form.append('app_secret', String(appSecret));
+  }
 
-  const search = new URLSearchParams(params);
-  const response = await fetchLazada(`${TOKEN_ENDPOINT}?${search.toString()}`, {
+  const response = await fetchLazada(TOKEN_ENDPOINT, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: form.toString(),
+    cache: 'no-store',
   });
 
-  const payload = await response.json().catch(() => null);
+  const rawBody = await response.text();
+  const payload = typeof rawBody === 'string' ? safeJsonParse(rawBody) : null;
 
   if (!response.ok) {
     const message = payload?.message || payload?.error_description || response.statusText;
     const error = new Error(message || 'Failed to exchange Lazada auth code');
     error.status = response.status;
-    error.details = payload;
+    if (payload) {
+      error.details = payload;
+    } else if (rawBody) {
+      error.details = { raw: rawBody };
+    }
     throw error;
   }
 
-  return payload;
+  return { envelope: payload, rawBody };
 }
 
 function sanitizeReturnTo(value, host) {
@@ -232,8 +437,10 @@ async function handler(req, res) {
 
   try {
     const redirectUri = getEnvOrThrow('LAZADA_REDIRECT_URI', 'must match Lazada app settings');
-    const tokenEnvelope = await exchangeAuthorizationCode(code, redirectUri);
+    const { envelope: tokenEnvelope, rawBody: rawTokenBody } = await exchangeAuthorizationCode(code, redirectUri);
     const { tokens: tokenResponse, raw: rawTokenResponse } = extractTokenPayload(tokenEnvelope);
+
+    logTokenResponse(tokenEnvelope, tokenResponse, rawTokenBody);
 
     const safeData = tokenResponse && typeof tokenResponse === 'object'
       ? {
@@ -249,7 +456,20 @@ async function handler(req, res) {
     const decodedState = decodeState(state);
     const supabase = createSupabaseClient();
     const siteId = decodedState?.siteId || decodedState?.site || null;
-    const persistedRecord = await persistTokens({ supabase, siteId, payload: tokenResponse, raw: rawTokenResponse });
+    const rawInputs = [];
+    if (rawTokenResponse !== undefined && rawTokenResponse !== null) {
+      rawInputs.push(rawTokenResponse);
+    }
+    if (rawTokenBody !== undefined && rawTokenBody !== null && rawTokenBody !== '') {
+      rawInputs.push(rawTokenBody);
+    }
+
+    const persistedRecord = await persistTokens({
+      supabase,
+      siteId,
+      payload: tokenResponse,
+      raw: rawInputs.length === 0 ? undefined : rawInputs.length === 1 ? rawInputs[0] : rawInputs,
+    });
 
     const safeReturnTo = sanitizeReturnTo(decodedState?.returnTo, req.headers?.host);
     if (safeReturnTo) {
