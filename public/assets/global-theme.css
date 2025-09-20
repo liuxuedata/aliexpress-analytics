@@ -58,6 +58,7 @@
 
   /* KPI 缩放比例 */
   --kpi-card-scale: 0.9;
+  --kpi-font-scale: 0.85; /* KPI 字体缩放比例 */
 }
 
 /* 2. 全局重置和基础样式 */
@@ -109,7 +110,7 @@ body {
 
 .kpi-card h4 {
   color: var(--primary-600);
-  font-size: calc(0.75rem * var(--kpi-card-scale, 0.9));
+  font-size: calc(0.75rem * var(--kpi-font-scale, var(--kpi-card-scale, 1)));
   font-weight: 500;
   margin: 0 0 calc(var(--space-2) * var(--kpi-card-scale, 0.9)) 0;
   text-transform: uppercase;
@@ -118,7 +119,7 @@ body {
 
 .kpi-card p {
   color: var(--primary-900);
-  font-size: calc(1.5rem * var(--kpi-card-scale, 0.9));
+  font-size: calc(1.5rem * var(--kpi-font-scale, var(--kpi-card-scale, 1)));
   font-weight: 700;
   margin: 0;
   line-height: 1;
@@ -126,7 +127,7 @@ body {
 
 .kpi-card .kpi-comparison {
   margin-top: calc(var(--space-2) * var(--kpi-card-scale, 0.9));
-  font-size: calc(0.75rem * var(--kpi-card-scale, 0.9));
+  font-size: calc(0.75rem * var(--kpi-font-scale, var(--kpi-card-scale, 1)));
 }
 
 .kpi-card .delta {

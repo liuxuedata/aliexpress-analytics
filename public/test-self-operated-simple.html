@@ -11,6 +11,10 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
     
     <style>
+        :root {
+            --kpi-card-scale: 0.9;
+            --kpi-font-scale: 0.85;
+        }
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
@@ -54,7 +58,7 @@
         }
 
         .kpi-value {
-            font-size: calc(2em * var(--kpi-card-scale, 0.9));
+            font-size: calc(2em * var(--kpi-font-scale, var(--kpi-card-scale, 1)));
             font-weight: bold;
             color: #333;
             margin: calc(10px * var(--kpi-card-scale, 0.9)) 0;
@@ -62,12 +66,12 @@
 
         .kpi-label {
             color: #666;
-            font-size: calc(0.9em * var(--kpi-card-scale, 0.9));
+            font-size: calc(0.9em * var(--kpi-font-scale, var(--kpi-card-scale, 1)));
         }
 
         .kpi-comparison {
             margin-top: calc(10px * var(--kpi-card-scale, 0.9));
-            font-size: calc(0.8em * var(--kpi-card-scale, 0.9));
+            font-size: calc(0.8em * var(--kpi-font-scale, var(--kpi-card-scale, 1)));
         }
         
         .controls {

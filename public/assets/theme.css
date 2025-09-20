@@ -197,8 +197,8 @@ table.dataTable td{
   padding:calc(8px * var(--kpi-card-scale, 0.9)) calc(10px * var(--kpi-card-scale, 0.9));
   box-shadow:var(--shadow);
 }
-.stat-card h4{ margin:0 0 calc(6px * var(--kpi-card-scale, 0.9)); color:#334155; font-size:calc(11px * var(--kpi-card-scale, 0.9)); letter-spacing:calc(.2px * var(--kpi-card-scale, 0.9)) }
-.stat-card p{ margin:0; color:#0f172a; font-size:calc(24px * var(--kpi-card-scale, 0.9)); font-weight:900; line-height:1.1 }
+.stat-card h4{ margin:0 0 calc(6px * var(--kpi-card-scale, 0.9)); color:#334155; font-size:calc(11px * var(--kpi-font-scale, var(--kpi-card-scale, 1))); letter-spacing:calc(.2px * var(--kpi-font-scale, var(--kpi-card-scale, 1))) }
+.stat-card p{ margin:0; color:#0f172a; font-size:calc(24px * var(--kpi-font-scale, var(--kpi-card-scale, 1))); font-weight:900; line-height:1.1 }
 #kpi{ display:grid; grid-template-columns:repeat(auto-fit,minmax(calc(180px * var(--kpi-card-scale, 0.9)),1fr)); gap:calc(8px * var(--kpi-card-scale, 0.9)) }
 
 /* ------ Tables: DataTables High-Contrast Light ------ */
@@ -299,10 +299,10 @@ table.dataTable thead th.sorting_desc{
   box-shadow: var(--shadow);
   flex:0 0 1;              /* fixed width cards for single-row layout */
 }
-.kpi .card h4{ margin:0 0 calc(6px * var(--kpi-card-scale, 0.9)); color:#334155; font-size:calc(12px * var(--kpi-card-scale, 0.9)); letter-spacing:calc(.2px * var(--kpi-card-scale, 0.9)) }
-.kpi .card p{ margin:0; color:#0f172a; font-size:calc(22px * var(--kpi-card-scale, 0.9)); font-weight:900; line-height:1.1 }
-.kpi .card .sub{ margin-top:calc(4px * var(--kpi-card-scale, 0.9)); font-size:calc(12px * var(--kpi-card-scale, 0.9)); color:#6b7280 }
-.kpi .card .delta{ margin-left:calc(6px * var(--kpi-card-scale, 0.9)); font-size:calc(12px * var(--kpi-card-scale, 0.9)); font-weight:700 }
+.kpi .card h4{ margin:0 0 calc(6px * var(--kpi-card-scale, 0.9)); color:#334155; font-size:calc(12px * var(--kpi-font-scale, var(--kpi-card-scale, 1))); letter-spacing:calc(.2px * var(--kpi-font-scale, var(--kpi-card-scale, 1))) }
+.kpi .card p{ margin:0; color:#0f172a; font-size:calc(22px * var(--kpi-font-scale, var(--kpi-card-scale, 1))); font-weight:900; line-height:1.1 }
+.kpi .card .sub{ margin-top:calc(4px * var(--kpi-card-scale, 0.9)); font-size:calc(12px * var(--kpi-font-scale, var(--kpi-card-scale, 1))); color:#6b7280 }
+.kpi .card .delta{ margin-left:calc(6px * var(--kpi-card-scale, 0.9)); font-size:calc(12px * var(--kpi-font-scale, var(--kpi-card-scale, 1))); font-weight:700 }
 .kpi .card .delta.up{ color:#10b981 }
 .kpi .card .delta.down{ color:#ef4444 }
 
@@ -319,6 +319,7 @@ table.dataTable thead th.sorting_desc{
   --kpi-bg: #f1f5f9;           /* darker KPI background */
   --kpi-border: #d1d5db;       /* matching darker border */
   --kpi-card-scale: 0.9;       /* KPI 缩放比例 */
+  --kpi-font-scale: 0.85;      /* KPI 字体缩放比例 */
 }
 
 /* KPI: full-managed (#kpi .stat-card) */
@@ -354,8 +355,8 @@ table.dataTable thead th.sorting_desc{
   background:linear-gradient(135deg,#9d174d,#db2777);
 }
 
-#kpi .stat-card .sub{ margin-top:calc(4px * var(--kpi-card-scale, 0.9)); font-size:calc(12px * var(--kpi-card-scale, 0.9)); color:#f1f5f9; }
-#kpi .stat-card .delta{ margin-left:calc(6px * var(--kpi-card-scale, 0.9)); font-size:calc(12px * var(--kpi-card-scale, 0.9)); font-weight:700; }
+#kpi .stat-card .sub{ margin-top:calc(4px * var(--kpi-card-scale, 0.9)); font-size:calc(12px * var(--kpi-font-scale, var(--kpi-card-scale, 1))); color:#f1f5f9; }
+#kpi .stat-card .delta{ margin-left:calc(6px * var(--kpi-card-scale, 0.9)); font-size:calc(12px * var(--kpi-font-scale, var(--kpi-card-scale, 1))); font-weight:700; }
 #kpi .stat-card .delta.up{ color:#bbf7d0; }
 #kpi .stat-card .delta.down{ color:#fecaca; }
 

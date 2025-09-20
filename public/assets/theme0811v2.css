@@ -21,6 +21,7 @@
   --row-hover: #eef2f7;            /* row hover */
   --shadow: 0 8px 24px rgba(16,24,40,.06);
   --kpi-card-scale: 0.9;           /* KPI 缩放比例 */
+  --kpi-font-scale: 0.85;          /* KPI 字体缩放比例 */
 }
 
 *{ box-sizing:border-box }
@@ -93,8 +94,8 @@ body{
   padding:calc(12px * var(--kpi-card-scale, 0.9)) calc(14px * var(--kpi-card-scale, 0.9));
   box-shadow:var(--shadow);
 }
-.stat-card h4{ margin:0 0 calc(6px * var(--kpi-card-scale, 0.9)); color:#334155; font-size:calc(12px * var(--kpi-card-scale, 0.9)); letter-spacing:calc(.2px * var(--kpi-card-scale, 0.9)) }
-.stat-card p{ margin:0; color:#0f172a; font-size:calc(28px * var(--kpi-card-scale, 0.9)); font-weight:900; line-height:1.1 }
+.stat-card h4{ margin:0 0 calc(6px * var(--kpi-card-scale, 0.9)); color:#334155; font-size:calc(12px * var(--kpi-font-scale, var(--kpi-card-scale, 1))); letter-spacing:calc(.2px * var(--kpi-font-scale, var(--kpi-card-scale, 1))) }
+.stat-card p{ margin:0; color:#0f172a; font-size:calc(28px * var(--kpi-font-scale, var(--kpi-card-scale, 1))); font-weight:900; line-height:1.1 }
 #kpi{ display:grid; grid-template-columns:repeat(auto-fit,minmax(calc(210px * var(--kpi-card-scale, 0.9)),1fr)); gap:calc(12px * var(--kpi-card-scale, 0.9)) }
 
 /* ------ Tables: DataTables High-Contrast Light ------ */
@@ -195,10 +196,10 @@ table.dataTable thead th.sorting_desc{
   box-shadow: var(--shadow);
   flex:0 0 1;              /* fixed width cards for single-row layout */
 }
-.kpi .card h4{ margin:0 0 calc(6px * var(--kpi-card-scale, 0.9)); color:#334155; font-size:calc(12px * var(--kpi-card-scale, 0.9)); letter-spacing:calc(.2px * var(--kpi-card-scale, 0.9)) }
-.kpi .card p{ margin:0; color:#0f172a; font-size:calc(22px * var(--kpi-card-scale, 0.9)); font-weight:900; line-height:1.1 }
-.kpi .card .sub{ margin-top:calc(4px * var(--kpi-card-scale, 0.9)); font-size:calc(12px * var(--kpi-card-scale, 0.9)); color:#6b7280 }
-.kpi .card .delta{ margin-left:calc(6px * var(--kpi-card-scale, 0.9)); font-size:calc(12px * var(--kpi-card-scale, 0.9)); font-weight:700 }
+.kpi .card h4{ margin:0 0 calc(6px * var(--kpi-card-scale, 0.9)); color:#334155; font-size:calc(12px * var(--kpi-font-scale, var(--kpi-card-scale, 1))); letter-spacing:calc(.2px * var(--kpi-font-scale, var(--kpi-card-scale, 1))) }
+.kpi .card p{ margin:0; color:#0f172a; font-size:calc(22px * var(--kpi-font-scale, var(--kpi-card-scale, 1))); font-weight:900; line-height:1.1 }
+.kpi .card .sub{ margin-top:calc(4px * var(--kpi-card-scale, 0.9)); font-size:calc(12px * var(--kpi-font-scale, var(--kpi-card-scale, 1))); color:#6b7280 }
+.kpi .card .delta{ margin-left:calc(6px * var(--kpi-card-scale, 0.9)); font-size:calc(12px * var(--kpi-font-scale, var(--kpi-card-scale, 1))); font-weight:700 }
 .kpi .card .delta.up{ color:#10b981 }
 .kpi .card .delta.down{ color:#ef4444 }
 
